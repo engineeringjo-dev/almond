@@ -79,6 +79,7 @@ export const useCartStore = create<CartState>((set) => ({
         qty,
         isBrunch: item.isBrunch,
         isDrink: item.isDrink,
+        prepMinutes: item.prepMinutes,
       };
       return { items: [...state.items, line] };
     }),

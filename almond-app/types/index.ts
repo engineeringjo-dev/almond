@@ -75,6 +75,7 @@ export interface CartItem {
   qty: number;
   isBrunch?: boolean;
   isDrink?: boolean;
+  prepMinutes?: number;
 }
 
 export type OrderType = 'pickup' | 'dinein' | 'delivery';
