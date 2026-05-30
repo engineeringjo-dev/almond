@@ -1,13 +1,22 @@
+import { useEffect } from 'react';
 import { Tabs } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 
 import { colors, fontFamily } from '@/constants/theme';
 import { TabBarIcon } from '@/components/ui/TabBarIcon';
 import { useCartCount } from '@/stores/cartStore';
+import { useUserId } from '@/stores/authStore';
+import { registerForPush } from '@/lib/notifications';
 
 export default function TabsLayout() {
   const { t } = useTranslation();
   const cartCount = useCartCount();
+  const userId = useUserId();
+
+  // Wire push registration once the user lands in the app (section 14).
+  useEffect(() => {
+    registerForPush(userId);
+  }, [userId]);
 
   return (
     <Tabs

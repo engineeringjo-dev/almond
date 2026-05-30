@@ -7,6 +7,7 @@ import { HomeTopBar } from '@/components/home/HomeTopBar';
 import { LoyaltyCard } from '@/components/home/LoyaltyCard';
 import { QuickActions } from '@/components/home/QuickActions';
 import { UsualOrderCard } from '@/components/home/UsualOrderCard';
+import { VisitRewardBanner } from '@/components/home/VisitRewardBanner';
 import { PromoCarousel } from '@/components/home/PromoCarousel';
 import { BranchCard } from '@/components/branch/BranchCard';
 import { BranchPicker } from '@/components/branch/BranchPicker';
@@ -48,6 +49,10 @@ export default function HomeScreen() {
         <Text variant="h1" style={styles.greeting}>
           {t(greeting, { name })}
         </Text>
+
+        <View style={styles.section}>
+          <VisitRewardBanner />
+        </View>
 
         <View style={styles.section}>
           <UsualOrderCard />

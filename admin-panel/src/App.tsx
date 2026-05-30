@@ -3,12 +3,17 @@ import { colors } from './theme';
 import { isAuthed, login, logout } from './auth';
 import { Button, Card, Field, TextInput } from './components/ui';
 import { SpinControl } from './components/SpinControl';
+import { CampaignsControl } from './components/CampaignsControl';
+import { GeofenceControl } from './components/GeofenceControl';
+import { VisitRewardControl } from './components/VisitRewardControl';
 
 type Tab = 'spin' | 'campaigns' | 'geofence' | 'visit';
 
 const TABS: { id: Tab; label: string; emoji: string }[] = [
   { id: 'spin', label: 'عجلة الحظ', emoji: '🎡' },
-  // Notification tabs (section 14.5) are added in the next build step.
+  { id: 'campaigns', label: 'الحملات الترويجية', emoji: '📣' },
+  { id: 'geofence', label: 'إشعارات الموقع', emoji: '📍' },
+  { id: 'visit', label: 'مكافأة الزيارة', emoji: '🎁' },
 ];
 
 export default function App() {
@@ -59,6 +64,9 @@ export default function App() {
       {/* Content */}
       <main style={{ flex: 1, padding: 28, maxWidth: 1100 }}>
         {tab === 'spin' ? <SpinControl /> : null}
+        {tab === 'campaigns' ? <CampaignsControl /> : null}
+        {tab === 'geofence' ? <GeofenceControl /> : null}
+        {tab === 'visit' ? <VisitRewardControl /> : null}
       </main>
     </div>
   );
