@@ -1,0 +1,80 @@
+import { useEffect, useState } from 'react';
+import { Stack } from 'expo-router';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { StatusBar } from 'expo-status-bar';
+import * as SplashScreen from 'expo-splash-screen';
+
+import { initI18n } from '@/lib/i18n';
+import { useAppStore } from '@/stores/appStore';
+import { useAppFonts } from '@/constants/fonts';
+import { colors } from '@/constants/theme';
+
+// Initialize i18n as early as possible (AR default).
+initI18n();
+
+SplashScreen.preventAutoHideAsync().catch(() => {});
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 1000 * 60, // 1 min — light caching per success factors (section 11)
+      retry: 1,
+    },
+  },
+});
+
+export default function RootLayout() {
+  const [fontsLoaded] = useAppFonts();
+  const hydrate = useAppStore((s) => s.hydrate);
+  const hydrated = useAppStore((s) => s.hydrated);
+  const [ready, setReady] = useState(false);
+
+  useEffect(() => {
+    hydrate();
+  }, [hydrate]);
+
+  useEffect(() => {
+    if ((fontsLoaded || fontsLoaded === undefined) && hydrated) {
+      setReady(true);
+      SplashScreen.hideAsync().catch(() => {});
+    }
+  }, [fontsLoaded, hydrated]);
+
+  if (!ready) return null;
+
+  return (
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <SafeAreaProvider>
+        <QueryClientProvider client={queryClient}>
+          <StatusBar style="light" />
+          <Stack
+            screenOptions={{
+              headerShown: false,
+              contentStyle: { backgroundColor: colors.cream },
+              animation: 'fade',
+            }}
+          >
+            <Stack.Screen name="index" />
+            <Stack.Screen name="onboarding" />
+            <Stack.Screen name="(auth)" />
+            <Stack.Screen name="(tabs)" />
+            <Stack.Screen
+              name="order/confirm"
+              options={{ presentation: 'modal' }}
+            />
+            <Stack.Screen name="order/[id]" />
+            <Stack.Screen name="loyalty" />
+            <Stack.Screen name="spin" options={{ presentation: 'modal' }} />
+            <Stack.Screen
+              name="notifications"
+              options={{ presentation: 'modal' }}
+            />
+            <Stack.Screen name="referral" />
+          </Stack>
+        </QueryClientProvider>
+      </SafeAreaProvider>
+    </GestureHandlerRootView>
+  );
+}
