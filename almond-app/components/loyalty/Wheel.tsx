@@ -16,7 +16,15 @@ interface Props {
   lang: 'ar' | 'en';
 }
 
-const SEGMENT_COLORS = [colors.gold, colors.dark, colors.brown, colors.lightGold, colors.warmGray];
+// Segments use the active theme exclusively (green primary + gold accent),
+// separated by cream — so the wheel re-skins automatically with the theme.
+function segmentFill(index: number): string {
+  return index % 2 === 0 ? colors.primary : colors.gold;
+}
+function segmentText(index: number): string {
+  // Cream on green, dark on gold — always high contrast.
+  return index % 2 === 0 ? colors.cream : colors.dark;
+}
 
 function polar(cx: number, cy: number, r: number, angleDeg: number) {
   const rad = (angleDeg * Math.PI) / 180;
@@ -66,8 +74,8 @@ export const Wheel = forwardRef<WheelHandle, Props>(({ prizes, size = 300, lang 
         const end = (i + 1) * seg;
         const mid = (start + end) / 2;
         const labelPos = polar(cx, cy, r * 0.62, mid);
-        const fill = p.color ?? SEGMENT_COLORS[i % SEGMENT_COLORS.length];
-        const textColor = fill === colors.lightGold || fill === colors.gold ? colors.dark : colors.cream;
+        const fill = segmentFill(i);
+        const textColor = segmentText(i);
         const label = lang === 'ar' ? p.nameAr : p.nameEn;
         return { path: wedgePath(cx, cy, r, start, end), fill, labelPos, textColor, label, mid, id: p.id };
       }),

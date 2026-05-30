@@ -85,38 +85,46 @@ export default function SpinScreen() {
             </View>
           ) : (
             <>
-              <Text variant="h1" center color={colors.gold} style={styles.winFree}>
-                {t('loyalty.winFree')}
-              </Text>
+              {/* Header: prominent "win for free" */}
+              <View style={styles.header}>
+                <Text variant="h1" center color={colors.gold}>
+                  {t('loyalty.winFree')}
+                </Text>
+              </View>
 
+              {/* Wheel centered */}
               <View style={styles.wheelArea}>
                 <View style={styles.pointer} />
-                <Wheel ref={wheelRef} prizes={enabledPrizes} size={300} lang={lang} />
+                <Wheel ref={wheelRef} prizes={enabledPrizes} size={296} lang={lang} />
               </View>
 
-              <View style={styles.info}>
-                {canSpin ? (
-                  <Text variant="title" center color={colors.brown}>
-                    {t('spin.spinsLeft', { count: spinsAvailable })}
-                  </Text>
-                ) : (
-                  <>
-                    <Text variant="title" center>
-                      {t('spin.noSpins')}
+              {/* Footer: spins info + spin button clearly below the wheel */}
+              <View style={styles.footer}>
+                <View style={styles.info}>
+                  {canSpin ? (
+                    <Text variant="title" center color={colors.primary}>
+                      {t('spin.spinsLeft', { count: spinsAvailable })}
                     </Text>
-                    <Text variant="caption" center color={colors.warmGray}>
-                      {t('spin.noSpinsHint', { visits: visitsPerSpin })}
-                    </Text>
-                  </>
-                )}
-              </View>
+                  ) : (
+                    <>
+                      <Text variant="title" center>
+                        {t('spin.noSpins')}
+                      </Text>
+                      <Text variant="caption" center color={colors.warmGray}>
+                        {t('spin.noSpinsHint', { visits: visitsPerSpin })}
+                      </Text>
+                    </>
+                  )}
+                </View>
 
-              <Button
-                title={spinning ? t('spin.spinning') : t('spin.spinNow')}
-                onPress={onSpin}
-                disabled={!canSpin || spinning}
-                loading={spinning}
-              />
+                <Button
+                  title={spinning ? t('spin.spinning') : t('spin.spinNow')}
+                  onPress={onSpin}
+                  disabled={!canSpin || spinning}
+                  loading={spinning}
+                  leadingEmoji="🎡"
+                />
+              </View>
             </>
           )}
         </View>
@@ -149,22 +157,31 @@ export default function SpinScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, alignItems: 'center', justifyContent: 'space-around', paddingVertical: spacing.xl },
-  winFree: {},
-  wheelArea: { alignItems: 'center', justifyContent: 'center' },
+  // Consistent screen padding + deliberate vertical rhythm.
+  container: {
+    flex: 1,
+    alignItems: 'center',
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.xl,
+    paddingBottom: spacing.xl,
+  },
+  header: { marginBottom: spacing.lg },
+  // Wheel takes the centered middle space.
+  wheelArea: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   pointer: {
     position: 'absolute',
-    top: -6,
+    top: -4,
     zIndex: 10,
     width: 0,
     height: 0,
-    borderLeftWidth: 14,
-    borderRightWidth: 14,
-    borderTopWidth: 26,
+    borderLeftWidth: 13,
+    borderRightWidth: 13,
+    borderTopWidth: 24,
     borderLeftColor: 'transparent',
     borderRightColor: 'transparent',
-    borderTopColor: colors.red,
+    borderTopColor: colors.dark, // theme primaryDark — contrasts on green + gold
   },
+  footer: { alignSelf: 'stretch', gap: spacing.lg, paddingTop: spacing.lg },
   info: { gap: spacing.xs, alignItems: 'center' },
   disabled: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: spacing.md },
   bigEmoji: { fontSize: 72 },
