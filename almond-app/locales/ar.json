@@ -109,7 +109,7 @@
     "deliveryRedirect": "متابعة التوصيل",
     "branch": "الفرع",
     "change": "تغيير",
-    "readyOnArrival": "سيكون جاهزاً عند وصولك ✨",
+    "readyOnArrival": "تخطَّ الطابور — جاهز عند وصولك ✨",
     "readyIn": "جاهز خلال {{min}} دقيقة",
     "promoPlaceholder": "أدخل رمز الخصم",
     "apply": "تطبيق",
@@ -140,7 +140,8 @@
     "dinein": "في المقهى",
     "delivery": "توصيل",
     "choose": "اختر نوع الطلب",
-    "pickupDesc": "اطلب واستلم من الفرع",
+    "recommended": "موصى به",
+    "pickupDesc": "تخطَّ الطابور — جاهز عند وصولك",
     "deliveryDesc": "عبر موقعنا وشركائنا"
   },
   "confirm": {

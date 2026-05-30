@@ -109,7 +109,7 @@
     "deliveryRedirect": "Continue to delivery",
     "branch": "Branch",
     "change": "Change",
-    "readyOnArrival": "Ready right when you arrive ✨",
+    "readyOnArrival": "Skip the queue — ready when you arrive ✨",
     "readyIn": "Ready in {{min}} min",
     "promoPlaceholder": "Enter promo code",
     "apply": "Apply",
@@ -140,7 +140,8 @@
     "dinein": "Dine-in",
     "delivery": "Delivery",
     "choose": "Choose order type",
-    "pickupDesc": "Order and pick up at the branch",
+    "recommended": "Recommended",
+    "pickupDesc": "Skip the queue — ready when you arrive",
     "deliveryDesc": "Via our website and partners"
   },
   "confirm": {
