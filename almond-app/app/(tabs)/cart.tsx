@@ -24,6 +24,7 @@ import { useAuthStore, useUserId } from '@/stores/authStore';
 import { useCreateOrder } from '@/hooks/useOrder';
 import { useWallet, useLoyaltyBalance, useInvalidateLoyalty } from '@/hooks/useLoyalty';
 import { computePickupEstimate } from '@/lib/pickup';
+import { formatJOD } from '@/lib/format';
 import { paymentService } from '@/services/payment.service';
 import { loyaltyService } from '@/services/loyalty.service';
 import { aggregatorService } from '@/services/aggregator.service';
@@ -220,7 +221,7 @@ export default function CartScreen() {
           <Button title={t('cart.deliveryRedirect')} onPress={openDelivery} leadingEmoji="🛵" />
         ) : (
           <Button
-            title={t('cart.placeOrder')}
+            title={`${t('cart.placeOrder')} · ${formatJOD(totals.total, lang)}`}
             onPress={placeOrder}
             loading={submitting}
             disabled={
