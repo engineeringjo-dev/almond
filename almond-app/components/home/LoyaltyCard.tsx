@@ -44,21 +44,25 @@ export function LoyaltyCard() {
                 const remaining = Math.max(0, next.threshold - data.windowSpend);
                 return (
                   <Text variant="caption" color={colors.lightGold}>
-                    {t('home.toNextTier', {
-                      remaining: remaining.toFixed(0),
-                      tier: t(`tiers.${next.id}`),
-                    })}
+                    {remaining <= 30
+                      ? t('loyalty.tierClose', { tier: t(`tiers.${next.id}`) })
+                      : t('home.toNextTier', {
+                          remaining: remaining.toFixed(0),
+                          tier: t(`tiers.${next.id}`),
+                        })}
                   </Text>
                 );
               })()}
             </View>
             <View style={styles.right}>
               <Cup current={data.cup.current} target={data.cup.target} size={96} />
-              <Text variant="caption" color={colors.lightGold} style={styles.cupLabel}>
-                {t('loyalty.cupProgress', {
-                  current: Math.floor(data.cup.current),
-                  target: data.cup.target,
-                })}
+              <Text variant="caption" color={colors.lightGold} center style={styles.cupLabel}>
+                {data.cup.target - data.cup.current <= 3 && data.cup.current < data.cup.target
+                  ? t('loyalty.cupClose')
+                  : t('loyalty.cupProgress', {
+                      current: Math.floor(data.cup.current),
+                      target: data.cup.target,
+                    })}
               </Text>
             </View>
           </>

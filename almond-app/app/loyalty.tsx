@@ -79,10 +79,13 @@ export default function LoyaltyScreen() {
           <View style={styles.cupInfo}>
             <Text variant="title">{t('loyalty.cupTitle')}</Text>
             <Text variant="h2" color={colors.gold}>
-              {t('loyalty.cupProgress', {
-                current: Math.floor(balance.cup.current),
-                target: balance.cup.target,
-              })}
+              {balance.cup.target - balance.cup.current <= 3 &&
+              balance.cup.current < balance.cup.target
+                ? t('loyalty.cupClose')
+                : t('loyalty.cupProgress', {
+                    current: Math.floor(balance.cup.current),
+                    target: balance.cup.target,
+                  })}
             </Text>
             <Text variant="caption" color={colors.warmGray}>
               {t('loyalty.cupHint')}
