@@ -125,7 +125,10 @@
   "orderType": {
     "pickup": "استلام",
     "dinein": "في المقهى",
-    "delivery": "توصيل"
+    "delivery": "توصيل",
+    "choose": "اختر نوع الطلب",
+    "pickupDesc": "اطلب واستلم من الفرع",
+    "deliveryDesc": "عبر موقعنا وشركائنا"
   },
   "confirm": {
     "title": "تم استلام طلبك!",

@@ -125,7 +125,10 @@
   "orderType": {
     "pickup": "Pickup",
     "dinein": "Dine-in",
-    "delivery": "Delivery"
+    "delivery": "Delivery",
+    "choose": "Choose order type",
+    "pickupDesc": "Order and pick up at the branch",
+    "deliveryDesc": "Via our website and partners"
   },
   "confirm": {
     "title": "Order received!",
