@@ -1,6 +1,7 @@
 import * as Location from 'expo-location';
 import * as TaskManager from 'expo-task-manager';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Platform } from 'react-native';
 
 import { config } from '@/constants/config';
 import { branches } from '@/services/seed';
@@ -16,30 +17,34 @@ import { notificationService } from '@/services/notification.service';
 export const GEOFENCE_TASK = 'almond-geofence-task';
 const USER_KEY = 'almond.geofence.userId';
 
-// The task must be defined at module scope so the OS can invoke it in the background.
-TaskManager.defineTask(GEOFENCE_TASK, async ({ data, error }) => {
-  if (error) return;
-  const { eventType, region } = (data ?? {}) as {
-    eventType?: Location.GeofencingEventType;
-    region?: Location.LocationRegion & { identifier?: string };
-  };
-  if (eventType !== Location.GeofencingEventType.Enter) return;
+// Background geofencing is native-only; the task must be defined at module
+// scope so the OS can invoke it. Web has no TaskManager — skip registration.
+if (Platform.OS !== 'web') {
+  TaskManager.defineTask(GEOFENCE_TASK, async ({ data, error }) => {
+    if (error) return;
+    const { eventType, region } = (data ?? {}) as {
+      eventType?: Location.GeofencingEventType;
+      region?: Location.LocationRegion & { identifier?: string };
+    };
+    if (eventType !== Location.GeofencingEventType.Enter) return;
 
-  try {
-    const userId = (await AsyncStorage.getItem(USER_KEY)) ?? 'guest';
-    const branchId = region?.identifier ?? '';
-    // Server enforces the once-per-day cap and sends the balance push.
-    await notificationService.geofenceTriggered(userId, branchId);
-  } catch {
-    // swallow — background task must not throw
-  }
-});
+    try {
+      const userId = (await AsyncStorage.getItem(USER_KEY)) ?? 'guest';
+      const branchId = region?.identifier ?? '';
+      // Server enforces the once-per-day cap and sends the balance push.
+      await notificationService.geofenceTriggered(userId, branchId);
+    } catch {
+      // swallow — background task must not throw
+    }
+  });
+}
 
 /**
  * Start geofencing. Requires background-location permission + explicit opt-in
  * (handled by the pre-permission explainer screen, section 14.2).
  */
 export async function startGeofencing(userId: string): Promise<boolean> {
+  if (Platform.OS === 'web') return false; // no background geofencing on web
   try {
     const fg = await Location.requestForegroundPermissionsAsync();
     if (fg.status !== 'granted') return false;
