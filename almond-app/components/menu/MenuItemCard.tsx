@@ -91,7 +91,7 @@ const styles = StyleSheet.create({
   },
   brText: { fontWeight: '700' },
   soldOut: {
-    ...StyleSheet.absoluteFillObject,
+    position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
     backgroundColor: 'rgba(28,18,8,0.55)',
     alignItems: 'center',
     justifyContent: 'center',
