@@ -10,6 +10,7 @@ import { VisitRewardBanner } from '@/components/home/VisitRewardBanner';
 import { NearestBranchButton } from '@/components/home/NearestBranchButton';
 import { OrderNowButton } from '@/components/home/OrderNowButton';
 import { WalletCard } from '@/components/home/WalletCard';
+import { PayCollectFab } from '@/components/home/PayCollectFab';
 import { FeaturedRow } from '@/components/home/FeaturedRow';
 import { PromoCarousel } from '@/components/home/PromoCarousel';
 import { BranchCard } from '@/components/branch/BranchCard';
@@ -38,7 +39,7 @@ export default function HomeScreen() {
   const name = user && !user.isGuest ? user.name : t('home.guest');
 
   return (
-    <>
+    <View style={styles.root}>
       <Screen
         loading={loading}
         error={error}
@@ -116,6 +117,9 @@ export default function HomeScreen() {
         </View>
       </Screen>
 
+      {/* Sticky floating Pay & earn button — stays fixed over the scrolling content */}
+      <PayCollectFab />
+
       <BranchPicker
         visible={pickerOpen}
         onClose={() => setPickerOpen(false)}
@@ -123,11 +127,12 @@ export default function HomeScreen() {
         selectedId={activeBranch?.id}
         onSelect={(b) => setBranch(b.id)}
       />
-    </>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  root: { flex: 1 },
   greeting: { marginBottom: spacing.lg },
   section: { marginBottom: spacing.xl + spacing.xs },
   heroSection: { marginBottom: spacing.xl + spacing.sm },
