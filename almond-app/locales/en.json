@@ -69,7 +69,10 @@
     "nearestBranches": "Nearest to you",
     "viewAll": "View all",
     "noBranchLocation": "Enable location to find the nearest branch",
-    "selectBranch": "Select a branch"
+    "selectBranch": "Select a branch",
+    "myNearestBranch": "My nearest branch",
+    "pickupHere": "Pick up from this branch",
+    "directions": "Directions on the map"
   },
   "menu": {
     "title": "Menu",

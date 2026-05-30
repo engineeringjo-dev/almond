@@ -1,16 +1,20 @@
 import { View, StyleSheet, Pressable } from 'react-native';
 import { Text } from '@/components/ui/Text';
+import { Icon } from '@/components/ui/Icon';
 import { colors, spacing, radius, shadow } from '@/constants/theme';
 import { useI18n } from '@/hooks/useI18n';
+import { openDirections } from '@/lib/maps';
 import type { Branch } from '@/types';
 
 interface Props {
   branch: Branch;
   onPress?: () => void;
   selected?: boolean;
+  /** Show the Google Maps directions button (Revision Pack §I). */
+  showDirections?: boolean;
 }
 
-export function BranchCard({ branch, onPress, selected }: Props) {
+export function BranchCard({ branch, onPress, selected, showDirections = true }: Props) {
   const { t, lang } = useI18n();
   const name = lang === 'ar' ? branch.nameAr : branch.nameEn;
   const area = lang === 'ar' ? branch.areaAr : branch.areaEn;
@@ -26,7 +30,7 @@ export function BranchCard({ branch, onPress, selected }: Props) {
       accessibilityRole="button"
     >
       <View style={styles.pin}>
-        <Text style={styles.pinEmoji}>📍</Text>
+        <Icon name="map-pin" size={22} color={colors.brown} />
       </View>
       <View style={styles.body}>
         <Text variant="bodyBold">{name}</Text>
@@ -40,6 +44,16 @@ export function BranchCard({ branch, onPress, selected }: Props) {
           {branch.isOpen ? t('common.open') : t('common.closed')}
         </Text>
       </View>
+      {showDirections ? (
+        <Pressable
+          style={styles.mapBtn}
+          onPress={() => openDirections(branch.lat, branch.lng)}
+          hitSlop={8}
+          accessibilityLabel={t('home.directions')}
+        >
+          <Icon name="navigation" size={18} color={colors.gold} />
+        </Pressable>
+      ) : null}
     </Pressable>
   );
 }
@@ -70,5 +84,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
     paddingVertical: 4,
     borderRadius: radius.pill,
+  },
+  mapBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: radius.md,
+    backgroundColor: colors.cream,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });

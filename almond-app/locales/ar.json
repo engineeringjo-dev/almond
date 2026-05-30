@@ -69,7 +69,10 @@
     "nearestBranches": "الأقرب إليك",
     "viewAll": "عرض الكل",
     "noBranchLocation": "فعّل الموقع لإيجاد أقرب فرع",
-    "selectBranch": "اختر فرعاً"
+    "selectBranch": "اختر فرعاً",
+    "myNearestBranch": "أقرب فرع لي",
+    "pickupHere": "استلام من هذا الفرع",
+    "directions": "الموقع على الخريطة"
   },
   "menu": {
     "title": "القائمة",
