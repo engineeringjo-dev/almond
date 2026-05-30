@@ -9,6 +9,7 @@ import { colors, spacing, radius, shadow } from '@/constants/theme';
 import { useI18n } from '@/hooks/useI18n';
 import { formatNumber } from '@/lib/format';
 import { useLoyaltyBalance } from '@/hooks/useLoyalty';
+import { nextTier } from '@/services/seed';
 
 /** Home loyalty card: points + cup progress + tier badge (section 4.4 #4). */
 export function LoyaltyCard() {
@@ -36,6 +37,20 @@ export function LoyaltyCard() {
                 {formatNumber(data.points, lang)}
               </Text>
               <TierBadge tier={data.tier} />
+              {(() => {
+                // Progress sense (§O): how much left to the next tier.
+                const next = nextTier(data.windowSpend);
+                if (!next) return null;
+                const remaining = Math.max(0, next.threshold - data.windowSpend);
+                return (
+                  <Text variant="caption" color={colors.lightGold}>
+                    {t('home.toNextTier', {
+                      remaining: remaining.toFixed(0),
+                      tier: t(`tiers.${next.id}`),
+                    })}
+                  </Text>
+                );
+              })()}
             </View>
             <View style={styles.right}>
               <Cup current={data.cup.current} target={data.cup.target} size={80} />

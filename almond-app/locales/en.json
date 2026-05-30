@@ -60,6 +60,7 @@
     "usualOrder": "Your Usual",
     "usualOrderCta": "Add with one tap",
     "loyaltyPoints": "Your points",
+    "toNextTier": "{{remaining}} JOD to {{tier}}",
     "cupProgress": "Your cup",
     "quickOrder": "Order Now",
     "trackOrder": "Track Order",

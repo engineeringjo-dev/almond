@@ -60,6 +60,7 @@
     "usualOrder": "طلبك المعتاد",
     "usualOrderCta": "أضف للسلة بنقرة",
     "loyaltyPoints": "نقاطك",
+    "toNextTier": "باقٍ {{remaining}} د.أ لـ{{tier}}",
     "cupProgress": "كوبك",
     "quickOrder": "اطلب الآن",
     "trackOrder": "تتبع طلبي",
