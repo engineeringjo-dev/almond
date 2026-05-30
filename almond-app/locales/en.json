@@ -124,7 +124,8 @@
     "remove": "Remove",
     "pointsBalance": "You have {{points}} points",
     "pointsUse": "Invoice paid with {{points}} points (100 pts = 1 JOD)",
-    "pointsInsufficient": "Not enough points for this order"
+    "pointsInsufficient": "Not enough points for this order",
+    "earnAllMethods": "Earn points with every payment method ⭐"
   },
   "payment": {
     "cash": "Cash",

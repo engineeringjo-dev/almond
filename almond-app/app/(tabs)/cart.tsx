@@ -204,6 +204,9 @@ export default function CartScreen() {
               <Text variant="title" style={styles.sectionTitle}>
                 {t('cart.paymentMethod')}
               </Text>
+              <Text variant="caption" color={colors.green} style={styles.earnNote}>
+                {t('cart.earnAllMethods')}
+              </Text>
               <PaymentMethods
                 value={paymentMethod}
                 onChange={setPaymentMethod}
@@ -247,6 +250,7 @@ const styles = StyleSheet.create({
   title: { marginBottom: spacing.lg },
   section: { marginTop: spacing.lg },
   sectionTitle: { marginBottom: spacing.md },
+  earnNote: { marginBottom: spacing.md, marginTop: -spacing.sm },
   lines: { gap: spacing.md },
   empty: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: spacing.md },
   emptyEmoji: { fontSize: 64 },

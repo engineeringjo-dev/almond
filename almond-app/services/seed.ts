@@ -276,13 +276,14 @@ export const branches: Branch[] = [
   { id: 'umm-summaq', nameAr: 'أم السماق', nameEn: 'Umm Al-Summaq', areaAr: 'أم السماق', areaEn: 'Umm Al-Summaq', lat: 31.9760, lng: 35.8480, hours: { open: '07:00', close: '24:00' } },
 ];
 
+// Ordered by local popularity (UX §2): wallet + CliQ first, then cards, then points.
 export const paymentMethods: PaymentMethod[] = [
-  { id: 'cash', nameAr: 'نقداً', nameEn: 'Cash', emoji: '💵' },
+  { id: 'wallet', nameAr: 'رصيد المحفظة', nameEn: 'Wallet', emoji: '💰' },
   { id: 'cliq', nameAr: 'كليك', nameEn: 'CliQ', emoji: '📱' },
+  { id: 'cash', nameAr: 'نقداً', nameEn: 'Cash', emoji: '💵' },
   { id: 'visa', nameAr: 'فيزا', nameEn: 'Visa', emoji: '💳' },
   { id: 'mastercard', nameAr: 'ماستركارد', nameEn: 'Mastercard', emoji: '💳' },
   { id: 'paypal', nameAr: 'باي بال', nameEn: 'PayPal', emoji: '🅿️' },
-  { id: 'wallet', nameAr: 'رصيد المحفظة', nameEn: 'Wallet', emoji: '💰' },
   { id: 'points', nameAr: 'ادفع بالنقاط', nameEn: 'Pay with points', emoji: '⭐' },
 ];
 
