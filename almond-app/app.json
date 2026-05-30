@@ -38,7 +38,8 @@
         {
           "locationAlwaysAndWhenInUsePermission": "نرسل لك عرضاً عندما تكون قريباً من فروعنا."
         }
-      ]
+      ],
+      "expo-brightness"
     ],
     "experiments": {
       "typedRoutes": true

@@ -71,6 +71,7 @@ export default function RootLayout() {
             />
             <Stack.Screen name="order/[id]" />
             <Stack.Screen name="loyalty" />
+            <Stack.Screen name="pay" options={{ presentation: 'modal' }} />
             <Stack.Screen
               name="notifications"
               options={{ presentation: 'modal' }}

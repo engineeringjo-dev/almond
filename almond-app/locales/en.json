@@ -159,6 +159,20 @@
     "modifyOrder": "Modify order",
     "cancelled": "Order cancelled"
   },
+  "pay": {
+    "fabLabel": "Pay & earn points",
+    "title": "Pay & earn points",
+    "instruction": "Show this code at checkout to earn your points",
+    "scanReady": "Ready to scan",
+    "scanned": "Scanned successfully ✓",
+    "yourPoints": "Your points",
+    "worth": "Worth {{jod}} JOD",
+    "redeem": "Redeem points",
+    "redeemHint": "100 points = 1 JOD",
+    "redeemDone": "Redeemed {{jod}} JOD to your wallet",
+    "history": "Points history",
+    "memberId": "Member ID"
+  },
   "track": {
     "title": "Track Order",
     "noOrders": "No active orders",
