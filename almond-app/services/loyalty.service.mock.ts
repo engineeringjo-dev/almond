@@ -15,9 +15,15 @@ import { tierFromSpend } from './seed';
 import { delay, genId } from './util';
 import { defaultSpinConfig, pickWeightedPrize } from './spinDefaults';
 
+interface SpendEntry {
+  amount: number;
+  at: number; // epoch ms
+}
+
 interface LoyaltyUser {
   points: number;
-  lifetimeSpend: number;
+  /** Every qualifying purchase with its timestamp → rolling-12m tier (§A). */
+  spendLog: SpendEntry[];
   cup: CupState;
   walletBalance: number;
   vouchers: Voucher[];
@@ -28,6 +34,15 @@ interface LoyaltyUser {
   hasReferralRewardEver: boolean;
   referralCode: string;
   phone: string;
+}
+
+const ROLLING_WINDOW_MS = 365 * 86400000;
+
+/** Sum of qualifying spend within the last 365 days (Revision Pack §A). */
+function rolling12mSpend(u: LoyaltyUser, now = Date.now()): number {
+  return u.spendLog
+    .filter((e) => e.at >= now - ROLLING_WINDOW_MS)
+    .reduce((s, e) => s + e.amount, 0);
 }
 
 const store = new Map<string, LoyaltyUser>();
@@ -42,7 +57,14 @@ function ensureUser(userId: string): LoyaltyUser {
     // Demo-friendly starting state: Silver tier, head-start cup, one spin.
     u = {
       points: 1240,
-      lifetimeSpend: 250,
+      // Rolling-12m spend ≈ 150 JOD → Silver. The 400-day-old entry is OUTSIDE
+      // the window and intentionally does not count (§A — tier can drop).
+      spendLog: [
+        { amount: 60, at: Date.now() - 86400000 * 30 },
+        { amount: 50, at: Date.now() - 86400000 * 120 },
+        { amount: 40, at: Date.now() - 86400000 * 300 },
+        { amount: 200, at: Date.now() - 86400000 * 400 },
+      ],
       cup: { current: config.CUP_HEAD_START, target: config.CUP_TARGET },
       walletBalance: 12.5,
       vouchers: [
@@ -71,11 +93,12 @@ function ensureUser(userId: string): LoyaltyUser {
 }
 
 function buildBalance(userId: string, u: LoyaltyUser): LoyaltyBalance {
-  const tier = tierFromSpend(u.lifetimeSpend);
+  const windowSpend = rolling12mSpend(u);
+  const tier = tierFromSpend(windowSpend);
   return {
     userId,
     points: u.points,
-    lifetimeSpend: u.lifetimeSpend,
+    windowSpend,
     tier: tier.id,
     multiplier: tier.multiplier,
     cup: u.cup,
@@ -125,10 +148,25 @@ export const mockLoyaltyService: LoyaltyService = {
     return delay({ points: u.points, walletBalance: u.walletBalance });
   },
 
+  // Pay-with-points at checkout (§K): deduct points used on the invoice.
+  spendPoints: (userId, points) => {
+    const u = ensureUser(userId);
+    if (points > u.points) return Promise.reject(new Error('Not enough points'));
+    u.points -= points;
+    const jod = points / config.POINTS_PER_JOD_REDEEM;
+    u.history.unshift({
+      id: genId('log'), deltaPoints: -points,
+      reasonAr: `دفع بالنقاط (${jod.toFixed(3)} د.أ)`, reasonEn: `Paid with points (${jod.toFixed(3)} JOD)`,
+      createdAt: new Date().toISOString(),
+    });
+    return delay({ points: u.points });
+  },
+
   // Mirror of section 8.2 earn calculation.
   earn: ({ userId, invoiceAmount, paidFromBalance, isFriday }: EarnInput) => {
     const u = ensureUser(userId);
-    const tier = tierFromSpend(u.lifetimeSpend);
+    // Tier multiplier uses the rolling-12-month spend (§A).
+    const tier = tierFromSpend(rolling12mSpend(u));
     const basePoints = invoiceAmount * config.POINTS_PER_JOD;
     const tierBonus = basePoints * (tier.multiplier - 1);
     const friday = isFriday ?? new Date().getDay() === 5;
@@ -136,7 +174,7 @@ export const mockLoyaltyService: LoyaltyService = {
     const pointsEarned = Math.round(basePoints + tierBonus + fridayBonus);
 
     u.points += pointsEarned;
-    u.lifetimeSpend += invoiceAmount;
+    u.spendLog.push({ amount: invoiceAmount, at: Date.now() });
     u.visits += 1;
 
     // Cup fill (pay-from-balance = 1.5 beans).

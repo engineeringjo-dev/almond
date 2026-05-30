@@ -1,10 +1,11 @@
+import { useState } from 'react';
 import { View, StyleSheet, Pressable } from 'react-native';
 import { router } from 'expo-router';
 
 import { Text } from '@/components/ui/Text';
+import { OrderTypeSheet } from '@/components/order/OrderTypeSheet';
 import { colors, spacing, radius, shadow } from '@/constants/theme';
 import { useI18n } from '@/hooks/useI18n';
-import { useCartStore } from '@/stores/cartStore';
 
 interface Action {
   key: string;
@@ -12,42 +13,38 @@ interface Action {
   onPress: () => void;
 }
 
-/** Quick actions 2×2 (section 4.4 #5). */
+/** Quick actions 2×2 (section 4.4 #5). "اطلب الآن" opens the type chooser (§H). */
 export function QuickActions() {
   const { t } = useI18n();
-  const setOrderType = useCartStore((s) => s.setOrderType);
+  const [orderSheetOpen, setOrderSheetOpen] = useState(false);
 
   const actions: Action[] = [
-    {
-      key: 'home.quickOrder',
-      emoji: '🛍️',
-      onPress: () => {
-        setOrderType('pickup');
-        router.push('/(tabs)/menu');
-      },
-    },
+    { key: 'home.quickOrder', emoji: '🛍️', onPress: () => setOrderSheetOpen(true) },
     { key: 'home.trackOrder', emoji: '📍', onPress: () => router.push('/(tabs)/track') },
     { key: 'home.rewards', emoji: '🎁', onPress: () => router.push('/loyalty') },
     { key: 'home.spinWheel', emoji: '🎡', onPress: () => router.push('/spin') },
   ];
 
   return (
-    <View style={styles.grid}>
-      {actions.map((a) => (
-        <Pressable
-          key={a.key}
-          style={({ pressed }) => [styles.tile, pressed && styles.pressed]}
-          onPress={a.onPress}
-          accessibilityRole="button"
-          accessibilityLabel={t(a.key)}
-        >
-          <Text style={styles.emoji}>{a.emoji}</Text>
-          <Text variant="bodyBold" center>
-            {t(a.key)}
-          </Text>
-        </Pressable>
-      ))}
-    </View>
+    <>
+      <View style={styles.grid}>
+        {actions.map((a) => (
+          <Pressable
+            key={a.key}
+            style={({ pressed }) => [styles.tile, pressed && styles.pressed]}
+            onPress={a.onPress}
+            accessibilityRole="button"
+            accessibilityLabel={t(a.key)}
+          >
+            <Text style={styles.emoji}>{a.emoji}</Text>
+            <Text variant="bodyBold" center>
+              {t(a.key)}
+            </Text>
+          </Pressable>
+        ))}
+      </View>
+      <OrderTypeSheet visible={orderSheetOpen} onClose={() => setOrderSheetOpen(false)} />
+    </>
   );
 }
 

@@ -2,9 +2,9 @@ import { View, StyleSheet } from 'react-native';
 import { Stack } from 'expo-router';
 
 import { Screen } from '@/components/ui/Screen';
-import { Text } from '@/components/ui/Text';
 import { VoucherCard } from '@/components/loyalty/VoucherCard';
-import { colors, spacing } from '@/constants/theme';
+import { EmptyState } from '@/components/ui/EmptyState';
+import { spacing } from '@/constants/theme';
 import { useI18n } from '@/hooks/useI18n';
 import { useVouchers } from '@/hooks/useLoyalty';
 import type { Voucher } from '@/types';
@@ -24,12 +24,7 @@ export default function VouchersScreen() {
             ))}
           </View>
         ) : (
-          <View style={styles.empty}>
-            <Text style={styles.emptyEmoji}>🎁</Text>
-            <Text variant="body" color={colors.warmGray}>
-              {t('loyalty.noVouchers')}
-            </Text>
-          </View>
+          <EmptyState icon="gift" title={t('loyalty.noVouchers')} />
         )}
       </Screen>
     </>

@@ -1,13 +1,15 @@
 import { useMemo, useState, useEffect } from 'react';
-import { View, StyleSheet, Pressable } from 'react-native';
+import { View, StyleSheet, Pressable, Image } from 'react-native';
 
 import { BottomSheet } from '@/components/ui/BottomSheet';
 import { Text } from '@/components/ui/Text';
 import { Button } from '@/components/ui/Button';
 import { Stepper } from '@/components/ui/Stepper';
+import { Icon } from '@/components/ui/Icon';
 import { colors, spacing, radius } from '@/constants/theme';
 import { useI18n } from '@/hooks/useI18n';
 import { formatJOD } from '@/lib/format';
+import { iconForCategory } from '@/lib/productIcon';
 import { useCartStore } from '@/stores/cartStore';
 import type { MenuItem, ItemSize, CartCustomization } from '@/types';
 
@@ -89,7 +91,11 @@ export function ItemModal({ item, visible, onClose }: Props) {
     >
       <View style={styles.header}>
         <View style={styles.thumb}>
-          <Text style={styles.emoji}>{item.emoji}</Text>
+          {item.imageUrl ? (
+            <Image source={{ uri: item.imageUrl }} style={styles.photo} resizeMode="cover" />
+          ) : (
+            <Icon name={iconForCategory(item.categoryId)} size={52} color={colors.brown} strokeWidth={1.6} />
+          )}
         </View>
         <Text variant="h2">{lang === 'ar' ? item.nameAr : item.nameEn}</Text>
         <Text variant="caption" color={colors.warmGray}>
@@ -174,10 +180,10 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 const styles = StyleSheet.create({
   header: { alignItems: 'center', gap: 2, marginBottom: spacing.md },
   thumb: {
-    width: 96, height: 96, borderRadius: radius.lg, backgroundColor: colors.cardBg,
-    alignItems: 'center', justifyContent: 'center', marginBottom: spacing.sm,
+    width: 96, height: 96, borderRadius: radius.lg, backgroundColor: colors.cream,
+    alignItems: 'center', justifyContent: 'center', marginBottom: spacing.sm, overflow: 'hidden',
   },
-  emoji: { fontSize: 56 },
+  photo: { width: '100%', height: '100%' },
   desc: { marginTop: spacing.sm },
   brunchBanner: {
     backgroundColor: colors.lightGold,

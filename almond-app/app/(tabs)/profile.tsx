@@ -64,7 +64,12 @@ export default function ProfileScreen() {
             value={wallet != null ? formatJOD(wallet, lang) : undefined}
             onPress={() => router.push('/profile/wallet')}
           />
-          <ListRow emoji="👥" label={t('profile.referral')} onPress={() => router.push('/referral')} />
+          <ListRow
+            emoji="👥"
+            label={t('profile.referral')}
+            value={t('profile.referralReward')}
+            onPress={() => router.push('/referral')}
+          />
           <ListRow emoji="🔔" label={t('profile.notifications')} onPress={() => router.push('/notifications')} />
           <ListRow
             emoji="🌐"

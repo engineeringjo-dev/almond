@@ -42,7 +42,9 @@ export interface MenuItem {
   nameEn: string;
   descAr?: string;
   descEn?: string;
-  emoji: string; // placeholder when no photo (operating rule 0.1)
+  emoji: string; // legacy placeholder (kept for data; UI uses the icon set, §M)
+  /** Real product photo when available; falls back to the category icon (§M). */
+  imageUrl?: string;
   sizes: ItemSize[];
   customizations: CustomizationGroup[];
   isBrunch?: boolean;
@@ -86,7 +88,8 @@ export type PaymentMethodId =
   | 'visa'
   | 'mastercard'
   | 'paypal'
-  | 'wallet';
+  | 'wallet'
+  | 'points'; // pay with loyalty points (Revision Pack §K)
 
 export interface PaymentMethod {
   id: PaymentMethodId;
@@ -162,7 +165,8 @@ export interface CupState {
 export interface LoyaltyBalance {
   userId: string;
   points: number;
-  lifetimeSpend: number;
+  /** Qualifying spend within the rolling 12-month window (Revision Pack §A). */
+  windowSpend: number;
   tier: TierId;
   multiplier: number;
   cup: CupState;

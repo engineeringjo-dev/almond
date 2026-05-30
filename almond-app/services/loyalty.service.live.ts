@@ -38,6 +38,8 @@ export const liveLoyaltyService: LoyaltyService = {
   getVouchers: (userId) => get<Voucher[]>(`/loyalty/vouchers/${userId}`),
   redeem: (userId, points) =>
     post<{ points: number; walletBalance: number }>(`/loyalty/redeem`, { userId, points }),
+  spendPoints: (userId, points) =>
+    post<{ points: number }>(`/loyalty/spend-points`, { userId, points }),
   earn: (input: EarnInput) => post<EarnResult>(`/loyalty/earn`, input),
   getHistory: (userId) => get<PointsLogEntry[]>(`/loyalty/history/${userId}`),
 

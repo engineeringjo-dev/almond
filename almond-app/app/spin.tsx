@@ -85,6 +85,10 @@ export default function SpinScreen() {
             </View>
           ) : (
             <>
+              <Text variant="h1" center color={colors.gold} style={styles.winFree}>
+                {t('loyalty.winFree')}
+              </Text>
+
               <View style={styles.wheelArea}>
                 <View style={styles.pointer} />
                 <Wheel ref={wheelRef} prizes={enabledPrizes} size={300} lang={lang} />
@@ -146,6 +150,7 @@ export default function SpinScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, alignItems: 'center', justifyContent: 'space-around', paddingVertical: spacing.xl },
+  winFree: {},
   wheelArea: { alignItems: 'center', justifyContent: 'center' },
   pointer: {
     position: 'absolute',

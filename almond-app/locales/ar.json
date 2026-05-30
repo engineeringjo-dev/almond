@@ -60,6 +60,7 @@
     "usualOrder": "طلبك المعتاد",
     "usualOrderCta": "أضف للسلة بنقرة",
     "loyaltyPoints": "نقاطك",
+    "toNextTier": "باقٍ {{remaining}} د.أ لـ{{tier}}",
     "cupProgress": "كوبك",
     "quickOrder": "اطلب الآن",
     "trackOrder": "تتبع طلبي",
@@ -69,7 +70,13 @@
     "nearestBranches": "الأقرب إليك",
     "viewAll": "عرض الكل",
     "noBranchLocation": "فعّل الموقع لإيجاد أقرب فرع",
-    "selectBranch": "اختر فرعاً"
+    "selectBranch": "اختر فرعاً",
+    "myNearestBranch": "أقرب فرع لي",
+    "pickupHere": "استلام من هذا الفرع",
+    "directions": "الموقع على الخريطة",
+    "walletBalance": "رصيد محفظتك",
+    "topUpWallet": "اشحن محفظتك",
+    "walletHint": "ادفع من رصيدك واملأ كوبك بمعدّل 1.5× أسرع"
   },
   "menu": {
     "title": "القائمة",
@@ -92,6 +99,7 @@
   "cart": {
     "title": "السلة",
     "empty": "سلتك فارغة",
+    "emptyHint": "اكتشف قهوتك المفضّلة وأضِفها بضغطة",
     "emptyCta": "تصفّح القائمة",
     "pickup": "استلام",
     "dinein": "في المقهى",
@@ -112,7 +120,10 @@
     "total": "الإجمالي",
     "paymentMethod": "طريقة الدفع",
     "placeOrder": "تأكيد الطلب",
-    "remove": "حذف"
+    "remove": "حذف",
+    "pointsBalance": "رصيدك {{points}} نقطة",
+    "pointsUse": "ستُدفع الفاتورة بـ {{points}} نقطة (100 نقطة = 1 د.أ)",
+    "pointsInsufficient": "نقاطك لا تكفي لهذا الطلب"
   },
   "payment": {
     "cash": "نقداً",
@@ -125,7 +136,10 @@
   "orderType": {
     "pickup": "استلام",
     "dinein": "في المقهى",
-    "delivery": "توصيل"
+    "delivery": "توصيل",
+    "choose": "اختر نوع الطلب",
+    "pickupDesc": "اطلب واستلم من الفرع",
+    "deliveryDesc": "عبر موقعنا وشركائنا"
   },
   "confirm": {
     "title": "تم استلام طلبك!",
@@ -137,6 +151,7 @@
   "track": {
     "title": "تتبع الطلب",
     "noOrders": "لا توجد طلبات نشطة",
+    "noOrdersHint": "اطلب الآن وتابع تحضير طلبك هنا لحظة بلحظة",
     "noOrdersCta": "اطلب الآن",
     "received": "تم الاستلام",
     "preparing": "جارٍ التحضير",
@@ -159,10 +174,12 @@
     "cupProgress": "{{current}} من {{target}}",
     "cupHint": "اجمع 10 مشروبات واحصل على مشروب مجاني",
     "tier": "فئتك",
-    "tierProgress": "أنفق {{remaining}} د.أ للوصول إلى {{nextTier}}",
+    "tierProgress": "أنفق {{remaining}} د.أ خلال آخر 12 شهر للوصول إلى {{nextTier}}",
     "tierMax": "وصلت إلى أعلى فئة 👑",
+    "windowNote": "بناءً على إنفاقك في آخر 12 شهراً",
     "spin": "عجلة الحظ",
     "spinCta": "جرّب حظك!",
+    "winFree": "اربح مجاناً 🎁",
     "vouchers": "قسائمك",
     "noVouchers": "لا توجد قسائم نشطة",
     "history": "سجل النقاط",
@@ -194,6 +211,7 @@
     "payments": "طرق الدفع",
     "wallet": "رصيدي/المحفظة",
     "referral": "ادعُ أصحابك",
+    "referralReward": "واربح 50 نقطة",
     "notifications": "الإشعارات",
     "language": "اللغة",
     "help": "المساعدة",

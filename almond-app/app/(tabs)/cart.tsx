@@ -6,6 +6,7 @@ import * as WebBrowser from 'expo-web-browser';
 import { Screen } from '@/components/ui/Screen';
 import { Text } from '@/components/ui/Text';
 import { Button } from '@/components/ui/Button';
+import { EmptyState } from '@/components/ui/EmptyState';
 import { OrderTypeTabs } from '@/components/cart/OrderTypeTabs';
 import { CartLine } from '@/components/cart/CartLine';
 import { PickupInfo } from '@/components/cart/PickupInfo';
@@ -21,7 +22,7 @@ import { useCartStore, computeTotals } from '@/stores/cartStore';
 import { useNearestBranch } from '@/hooks/useNearestBranch';
 import { useAuthStore, useUserId } from '@/stores/authStore';
 import { useCreateOrder } from '@/hooks/useOrder';
-import { useWallet, useInvalidateLoyalty } from '@/hooks/useLoyalty';
+import { useWallet, useLoyaltyBalance, useInvalidateLoyalty } from '@/hooks/useLoyalty';
 import { computePickupEstimate } from '@/lib/pickup';
 import { paymentService } from '@/services/payment.service';
 import { loyaltyService } from '@/services/loyalty.service';
@@ -45,6 +46,7 @@ export default function CartScreen() {
   const userId = useUserId();
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const { data: walletBalance } = useWallet();
+  const { data: loyaltyBalance } = useLoyaltyBalance();
   const createOrder = useCreateOrder();
   const invalidateLoyalty = useInvalidateLoyalty();
 
@@ -69,6 +71,10 @@ export default function CartScreen() {
     [items, branch],
   );
 
+  // Pay-with-points (§K): points needed for the invoice (100 pts = 1 JOD).
+  const pointsNeeded = Math.ceil(totals.total * config.POINTS_PER_JOD_REDEEM);
+  const payingWithPoints = paymentMethod === 'points';
+
   const openDelivery = async () => {
     await WebBrowser.openBrowserAsync(aggregatorService.getRedirectUrl());
   };
@@ -81,8 +87,13 @@ export default function CartScreen() {
     if (!branch) return;
     setSubmitting(true);
     try {
-      const payment = await paymentService.pay(totals.total, paymentMethod);
-      if (!payment.success) return;
+      if (payingWithPoints) {
+        // Spend loyalty points directly on the invoice (§K).
+        await loyaltyService.spendPoints(userId, pointsNeeded);
+      } else {
+        const payment = await paymentService.pay(totals.total, paymentMethod);
+        if (!payment.success) return;
+      }
 
       const order = await createOrder.mutateAsync({
         userId,
@@ -121,19 +132,13 @@ export default function CartScreen() {
   if (items.length === 0) {
     return (
       <Screen scroll={false}>
-        <View style={styles.empty}>
-          <Text style={styles.emptyEmoji}>🛒</Text>
-          <Text variant="h2" center>
-            {t('cart.empty')}
-          </Text>
-          <Button
-            title={t('cart.emptyCta')}
-            onPress={() => router.push('/(tabs)/menu')}
-            fullWidth={false}
-            variant="outline"
-            style={{ marginTop: spacing.lg }}
-          />
-        </View>
+        <EmptyState
+          icon="cart"
+          title={t('cart.empty')}
+          subtitle={t('cart.emptyHint')}
+          ctaLabel={t('cart.emptyCta')}
+          onCta={() => router.push('/(tabs)/menu')}
+        />
       </Screen>
     );
   }
@@ -202,6 +207,8 @@ export default function CartScreen() {
                 value={paymentMethod}
                 onChange={setPaymentMethod}
                 walletBalance={walletBalance}
+                pointsBalance={loyaltyBalance?.points}
+                pointsNeeded={pointsNeeded}
               />
             </View>
           </>
@@ -216,7 +223,10 @@ export default function CartScreen() {
             title={t('cart.placeOrder')}
             onPress={placeOrder}
             loading={submitting}
-            disabled={!branch}
+            disabled={
+              !branch ||
+              (payingWithPoints && (loyaltyBalance?.points ?? 0) < pointsNeeded)
+            }
           />
         )}
       </View>

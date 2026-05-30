@@ -1,9 +1,11 @@
 import { View, StyleSheet, Pressable } from 'react-native';
 import { Text } from '@/components/ui/Text';
 import { Stepper } from '@/components/ui/Stepper';
+import { Icon } from '@/components/ui/Icon';
 import { colors, radius, spacing } from '@/constants/theme';
 import { useI18n } from '@/hooks/useI18n';
 import { formatJOD } from '@/lib/format';
+import { iconForItem } from '@/lib/productIcon';
 import { lineUnitPrice, useCartStore } from '@/stores/cartStore';
 import type { CartItem } from '@/types';
 
@@ -22,7 +24,7 @@ export function CartLine({ line }: { line: CartItem }) {
   return (
     <View style={styles.row}>
       <View style={styles.thumb}>
-        <Text style={styles.emoji}>{line.emoji}</Text>
+        <Icon name={iconForItem(line.itemId)} size={28} color={colors.brown} strokeWidth={1.7} />
       </View>
       <View style={styles.body}>
         <Text variant="bodyBold" numberOfLines={1}>
