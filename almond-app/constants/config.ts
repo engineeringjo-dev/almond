@@ -1,0 +1,21 @@
+/**
+ * Single config switch (section 6.1).
+ * Flip DATA_SOURCE to 'odoo' when the real API is ready — NOTHING else changes.
+ */
+export const config = {
+  DATA_SOURCE: 'mock' as 'mock' | 'odoo',
+  ODOO_BASE_URL: 'https://api.almond.jo/v1',
+  LOYALTY_BASE_URL: 'https://loyalty.almond.jo',
+  DELIVERY_REDIRECT_URL: 'https://almondcoffeehouse.com/order',
+
+  // Loyalty / pricing constants (section 2.4)
+  POINTS_PER_JOD: 5,
+  POINTS_PER_JOD_REDEEM: 100, // 100 pts = 1 JOD
+  TAX_RATE: 0.16, // 16% (section 4.6)
+  BRUNCH_COMBO_DISCOUNT: 1.0, // -1.000 JOD (section 5)
+  CUP_TARGET: 10,
+  CUP_HEAD_START: 1,
+  DEFAULT_PREP_MINUTES: 7, // section 7.3
+  AVG_SPEED_KMH: 30, // simple travel-time estimate
+  GEOFENCE_RADIUS_M: 1000, // section 14.2 (editable from admin)
+} as const;

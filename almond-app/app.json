@@ -1,0 +1,52 @@
+{
+  "expo": {
+    "name": "Almond Coffee House",
+    "slug": "almond-coffee-house",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "scheme": "almond",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "backgroundColor": "#1C1208",
+      "resizeMode": "contain"
+    },
+    "assetBundlePatterns": ["**/*"],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "jo.almond.coffeehouse",
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "نستخدم موقعك لإيجاد أقرب فرع لك.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "نرسل لك عرضاً عندما تكون قريباً من فروعنا.",
+        "UIBackgroundModes": ["location", "fetch", "remote-notification"]
+      }
+    },
+    "android": {
+      "package": "jo.almond.coffeehouse",
+      "permissions": [
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_BACKGROUND_LOCATION",
+        "RECEIVE_BOOT_COMPLETED"
+      ]
+    },
+    "plugins": [
+      "expo-router",
+      "expo-font",
+      "expo-localization",
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "نرسل لك عرضاً عندما تكون قريباً من فروعنا."
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true
+    },
+    "extra": {
+      "router": {
+        "origin": false
+      }
+    }
+  }
+}
