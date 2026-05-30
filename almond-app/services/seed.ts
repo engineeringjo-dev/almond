@@ -260,14 +260,19 @@ export const menuItems: MenuItem[] = [
   },
 ];
 
-// Branch coordinates approximate Amman areas (section 7.5).
+// Branches (Revision Pack §G — full 10-branch list). Default hours 07:00–24:00
+// (mall branches follow mall hours). Coordinates approximate Amman areas.
 export const branches: Branch[] = [
-  { id: 'khalda', nameAr: 'الخالدة', nameEn: 'Khalda', areaAr: 'شارع الخالدة', areaEn: 'Khalda St', lat: 31.9897, lng: 35.8412, hours: { open: '07:00', close: '24:00' } },
-  { id: 'rabya', nameAr: 'الرابية', nameEn: 'Al-Rabya', areaAr: 'شارع الرابية', areaEn: 'Al-Rabya St', lat: 31.9719, lng: 35.8665, hours: { open: '07:00', close: '24:00' } },
+  { id: 'mecca-st', nameAr: 'شارع مكة', nameEn: 'Mecca St', areaAr: 'شارع مكة', areaEn: 'Mecca St', lat: 31.9846, lng: 35.8631, hours: { open: '07:00', close: '24:00' } },
+  { id: 'rabya', nameAr: 'الرابية', nameEn: 'Al-Rabya', areaAr: 'الرابية', areaEn: 'Al-Rabya', lat: 31.9719, lng: 35.8665, hours: { open: '07:00', close: '24:00' } },
+  { id: 'khalda', nameAr: 'خلدا', nameEn: 'Khalda', areaAr: 'خلدا', areaEn: 'Khalda', lat: 31.9897, lng: 35.8412, hours: { open: '07:00', close: '24:00' } },
   { id: '8th-circle', nameAr: 'الدوار الثامن', nameEn: '8th Circle', areaAr: 'الدوار الثامن', areaEn: '8th Circle', lat: 31.9419, lng: 35.8389, hours: { open: '07:00', close: '24:00' } },
-  { id: 'mecca-mall', nameAr: 'ميكا مول', nameEn: 'Mecca Mall', areaAr: 'ميكا مول', areaEn: 'Mecca Mall', lat: 31.9776, lng: 35.8533, hours: { open: '09:00', close: '24:00' } },
-  { id: 'city-mall', nameAr: 'سيتي مول', nameEn: 'City Mall', areaAr: 'سيتي مول', areaEn: 'City Mall', lat: 31.9837, lng: 35.8276, hours: { open: '09:00', close: '24:00' } },
-  { id: 'uj', nameAr: 'الجامعة الأردنية', nameEn: 'Univ. of Jordan', areaAr: 'الجامعة الأردنية', areaEn: 'UJ', lat: 32.0136, lng: 35.8714, hours: { open: '08:00', close: '22:00' } },
+  { id: 'city-mall', nameAr: 'سيتي مول', nameEn: 'City Mall', areaAr: 'سيتي مول', areaEn: 'City Mall', lat: 31.9837, lng: 35.8276, hours: { open: '10:00', close: '22:00' } },
+  { id: 'university', nameAr: 'الجامعة', nameEn: 'University', areaAr: 'الجامعة الأردنية', areaEn: 'University of Jordan', lat: 32.0136, lng: 35.8714, hours: { open: '07:00', close: '24:00' } },
+  { id: 'shafa-badran', nameAr: 'شفا بدران', nameEn: 'Shafa Badran', areaAr: 'شفا بدران', areaEn: 'Shafa Badran', lat: 32.0556, lng: 35.9039, hours: { open: '07:00', close: '24:00' } },
+  { id: 'madina-st', nameAr: 'شارع المدينة المنورة', nameEn: 'Madina St', areaAr: 'شارع المدينة المنورة', areaEn: 'Madina St', lat: 31.9690, lng: 35.8730, hours: { open: '07:00', close: '24:00' } },
+  { id: 'deir-ghbar', nameAr: 'دير غبار', nameEn: 'Deir Ghbar', areaAr: 'دير غبار', areaEn: 'Deir Ghbar', lat: 31.9490, lng: 35.8720, hours: { open: '07:00', close: '24:00' } },
+  { id: 'umm-summaq', nameAr: 'أم السماق', nameEn: 'Umm Al-Summaq', areaAr: 'أم السماق', areaEn: 'Umm Al-Summaq', lat: 31.9760, lng: 35.8480, hours: { open: '07:00', close: '24:00' } },
 ];
 
 export const paymentMethods: PaymentMethod[] = [

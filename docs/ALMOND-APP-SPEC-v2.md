@@ -368,15 +368,21 @@ Apply the same pattern to: `authService`, `orderService`, `loyaltyService`, `bra
 - That site handles the aggregator (Talabat/Careem/Jahez) link
 - Add a short note in UI: "التوصيل عبر موقعنا وشركائنا"
 
-### 7.5 Branches (seed data)
-| Name AR | Name EN | Area | Hours |
-|---|---|---|---|
-| الخالدة | Khalda | Khalda St | 7:00–24:00 |
-| الرابية | Al-Rabya | Al-Rabya St | 7:00–24:00 |
-| الدوار الثامن | 8th Circle | 8th Circle | 7:00–24:00 |
-| ميكا مول | Mecca Mall | Mecca Mall | 9:00–24:00 |
-| سيتي مول | City Mall | City Mall | 9:00–24:00 |
-| الجامعة الأردنية | Univ. of Jordan | UJ | 8:00–22:00 |
+### 7.5 Branches (seed data — Revision Pack §G: full 10-branch list)
+Default hours 07:00–24:00 (7AM–midnight); mall branches follow mall hours. Each branch
+exposes lat/lng for a "directions on Google Maps" action (§I).
+| Name AR | Name EN | Hours |
+|---|---|---|
+| شارع مكة | Mecca St | 7:00–24:00 |
+| الرابية | Al-Rabya | 7:00–24:00 |
+| خلدا | Khalda | 7:00–24:00 |
+| الدوار الثامن | 8th Circle | 7:00–24:00 |
+| سيتي مول | City Mall | 10:00–22:00 (mall) |
+| الجامعة | University | 7:00–24:00 |
+| شفا بدران | Shafa Badran | 7:00–24:00 |
+| شارع المدينة المنورة | Madina St | 7:00–24:00 |
+| دير غبار | Deir Ghbar | 7:00–24:00 |
+| أم السماق | Umm Al-Summaq | 7:00–24:00 |
 
 ---
 
