@@ -148,6 +148,20 @@ export const mockLoyaltyService: LoyaltyService = {
     return delay({ points: u.points, walletBalance: u.walletBalance });
   },
 
+  // Pay-with-points at checkout (§K): deduct points used on the invoice.
+  spendPoints: (userId, points) => {
+    const u = ensureUser(userId);
+    if (points > u.points) return Promise.reject(new Error('Not enough points'));
+    u.points -= points;
+    const jod = points / config.POINTS_PER_JOD_REDEEM;
+    u.history.unshift({
+      id: genId('log'), deltaPoints: -points,
+      reasonAr: `دفع بالنقاط (${jod.toFixed(3)} د.أ)`, reasonEn: `Paid with points (${jod.toFixed(3)} JOD)`,
+      createdAt: new Date().toISOString(),
+    });
+    return delay({ points: u.points });
+  },
+
   // Mirror of section 8.2 earn calculation.
   earn: ({ userId, invoiceAmount, paidFromBalance, isFriday }: EarnInput) => {
     const u = ensureUser(userId);

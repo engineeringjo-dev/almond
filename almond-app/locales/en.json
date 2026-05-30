@@ -118,7 +118,10 @@
     "total": "Total",
     "paymentMethod": "Payment method",
     "placeOrder": "Place Order",
-    "remove": "Remove"
+    "remove": "Remove",
+    "pointsBalance": "You have {{points}} points",
+    "pointsUse": "Invoice paid with {{points}} points (100 pts = 1 JOD)",
+    "pointsInsufficient": "Not enough points for this order"
   },
   "payment": {
     "cash": "Cash",

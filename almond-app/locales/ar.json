@@ -118,7 +118,10 @@
     "total": "الإجمالي",
     "paymentMethod": "طريقة الدفع",
     "placeOrder": "تأكيد الطلب",
-    "remove": "حذف"
+    "remove": "حذف",
+    "pointsBalance": "رصيدك {{points}} نقطة",
+    "pointsUse": "ستُدفع الفاتورة بـ {{points}} نقطة (100 نقطة = 1 د.أ)",
+    "pointsInsufficient": "نقاطك لا تكفي لهذا الطلب"
   },
   "payment": {
     "cash": "نقداً",

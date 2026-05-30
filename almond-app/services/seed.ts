@@ -282,6 +282,7 @@ export const paymentMethods: PaymentMethod[] = [
   { id: 'mastercard', nameAr: 'ماستركارد', nameEn: 'Mastercard', emoji: '💳' },
   { id: 'paypal', nameAr: 'باي بال', nameEn: 'PayPal', emoji: '🅿️' },
   { id: 'wallet', nameAr: 'رصيد المحفظة', nameEn: 'Wallet', emoji: '💰' },
+  { id: 'points', nameAr: 'ادفع بالنقاط', nameEn: 'Pay with points', emoji: '⭐' },
 ];
 
 // Tiers (Revision Pack §A): computed from ROLLING 12-MONTH spend (not lifetime).

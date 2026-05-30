@@ -23,6 +23,8 @@ export interface LoyaltyService {
   getBalance(userId: string): Promise<LoyaltyBalance>;
   getVouchers(userId: string): Promise<Voucher[]>;
   redeem(userId: string, points: number): Promise<{ points: number; walletBalance: number }>;
+  /** Spend points directly on an invoice at checkout (§K) — no wallet credit. */
+  spendPoints(userId: string, points: number): Promise<{ points: number }>;
   earn(input: EarnInput): Promise<EarnResult>;
   getHistory(userId: string): Promise<PointsLogEntry[]>;
 
