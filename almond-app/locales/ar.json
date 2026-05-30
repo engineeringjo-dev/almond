@@ -125,7 +125,10 @@
     "pointsBalance": "رصيدك {{points}} نقطة",
     "pointsUse": "ستُدفع الفاتورة بـ {{points}} نقطة (100 نقطة = 1 د.أ)",
     "pointsInsufficient": "نقاطك لا تكفي لهذا الطلب",
-    "earnAllMethods": "تكسب نقاطاً مع كل طرق الدفع ⭐"
+    "earnAllMethods": "تكسب نقاطاً مع كل طرق الدفع ⭐",
+    "reviewTitle": "راجع طلبك",
+    "reviewCta": "مراجعة الطلب",
+    "edit": "تعديل"
   },
   "payment": {
     "cash": "نقداً",

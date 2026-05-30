@@ -125,7 +125,10 @@
     "pointsBalance": "You have {{points}} points",
     "pointsUse": "Invoice paid with {{points}} points (100 pts = 1 JOD)",
     "pointsInsufficient": "Not enough points for this order",
-    "earnAllMethods": "Earn points with every payment method ⭐"
+    "earnAllMethods": "Earn points with every payment method ⭐",
+    "reviewTitle": "Review your order",
+    "reviewCta": "Review order",
+    "edit": "Edit"
   },
   "payment": {
     "cash": "Cash",
