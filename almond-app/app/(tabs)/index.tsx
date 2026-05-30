@@ -7,7 +7,6 @@ import { HomeTopBar } from '@/components/home/HomeTopBar';
 import { LoyaltyCard } from '@/components/home/LoyaltyCard';
 import { UsualOrderCard } from '@/components/home/UsualOrderCard';
 import { VisitRewardBanner } from '@/components/home/VisitRewardBanner';
-import { SpinHighlightCard } from '@/components/home/SpinHighlightCard';
 import { NearestBranchButton } from '@/components/home/NearestBranchButton';
 import { OrderNowButton } from '@/components/home/OrderNowButton';
 import { WalletCard } from '@/components/home/WalletCard';
@@ -82,10 +81,6 @@ export default function HomeScreen() {
 
         <View style={styles.section}>
           <FeaturedRow />
-        </View>
-
-        <View style={styles.section}>
-          <SpinHighlightCard />
         </View>
 
         <View style={styles.section}>
