@@ -44,21 +44,25 @@ export function LoyaltyCard() {
                 const remaining = Math.max(0, next.threshold - data.windowSpend);
                 return (
                   <Text variant="caption" color={colors.lightGold}>
-                    {t('home.toNextTier', {
-                      remaining: remaining.toFixed(0),
-                      tier: t(`tiers.${next.id}`),
-                    })}
+                    {remaining <= 30
+                      ? t('loyalty.tierClose', { tier: t(`tiers.${next.id}`) })
+                      : t('home.toNextTier', {
+                          remaining: remaining.toFixed(0),
+                          tier: t(`tiers.${next.id}`),
+                        })}
                   </Text>
                 );
               })()}
             </View>
             <View style={styles.right}>
-              <Cup current={data.cup.current} target={data.cup.target} size={80} />
-              <Text variant="caption" color={colors.lightGold} style={styles.cupLabel}>
-                {t('loyalty.cupProgress', {
-                  current: Math.floor(data.cup.current),
-                  target: data.cup.target,
-                })}
+              <Cup current={data.cup.current} target={data.cup.target} size={96} />
+              <Text variant="caption" color={colors.lightGold} center style={styles.cupLabel}>
+                {data.cup.target - data.cup.current <= 3 && data.cup.current < data.cup.target
+                  ? t('loyalty.cupClose')
+                  : t('loyalty.cupProgress', {
+                      current: Math.floor(data.cup.current),
+                      target: data.cup.target,
+                    })}
               </Text>
             </View>
           </>
@@ -69,14 +73,14 @@ export function LoyaltyCard() {
 }
 
 const styles = StyleSheet.create({
-  shadow: { borderRadius: radius.lg, ...shadow.raised },
+  shadow: { borderRadius: radius.xl, ...shadow.raised },
   card: {
-    borderRadius: radius.lg,
-    padding: spacing.lg,
+    borderRadius: radius.xl,
+    padding: spacing.xl,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    minHeight: 132,
+    minHeight: 168,
     overflow: 'hidden',
   },
   loading: { flex: 1, alignItems: 'center', justifyContent: 'center', minHeight: 100 },

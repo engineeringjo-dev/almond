@@ -130,10 +130,12 @@ These rules exist so you build the entire MVP **without stopping to ask question
 
 # 3. BRAND & DESIGN SYSTEM
 
-### 3.1 Colors (central theme file `constants/theme.ts`) — Revision Pack §L
-Deeper, richer, higher-contrast palette. Dark espresso bars/cards, brighter gold for
-accents only, warm cream background, white cards for clean contrast. Hero/loyalty/wallet/
-cup elements use warm gradients (`gradients` presets + `<Gradient>`).
+### 3.1 Colors (central theme file `constants/theme.ts`) — Master Pack §1
+**Single switchable theme.** `theme` selects the active palette from one place:
+`greenTheme` (experimental Starbucks-style comparison — ACTIVE now) or `almondTheme`
+(official espresso+gold launch identity). All `colors.*` derive from the active theme,
+so flipping `theme` re-skins every screen. Hero/loyalty/wallet/cup elements use warm
+gradients (`gradients` presets + `<Gradient>`). Switch to `almondTheme` for launch.
 ```typescript
 export const colors = {
   dark:      '#1A0F08',  // espresso — primary, dark bars & cards
@@ -646,5 +648,45 @@ All items below are implemented in the codebase (`docs/REVISION-PACK-v1.md` is t
 - **N. Empty states:** friendly `EmptyState` across cart/track/orders/vouchers/inbox.
 - **O. Success factors:** premium tier badges (exclusive Black) + progress-to-next-tier on Home.
 
+# MASTER PACK — APPLIED (consolidated design + details)
+
+Source: `docs/MASTER-PACK.md`. Builds on Revision Pack v1.
+
+**Part 1 — Design / Starbucks layout**
+- Single **switchable theme** (`greenTheme` active, `almondTheme` for launch) — flip in one place.
+- Home reordered Starbucks-style: rewards **hero** → big "Order now" CTA → wallet → nearest
+  branch → My Usual → **featured "most popular" horizontal row** → spin/promos → branches; generous spacing.
+- Unified **lucide icon set** across products, categories, tab bar, top bar, quick actions (no emoji chrome).
+
+**Part 2 — Success factors:** smooth browse→customize→pay→points flow; prominent pre-order;
+prepaid wallet + one-tap top-up; rich customization; personalization (My Usual + "most popular");
+rewards surfaced everywhere.
+
+**Part 3 — Failure-mode fixes:** clear "pay with points" (balance + JOD value); item **availability**
+state (out-of-stock not addable); **30-second cancel/modify window** with countdown; accurate Smart
+Pickup; points earned on **all** payment methods; consistent bottom-tab nav; simple phone+OTP+guest login.
+
+**Part 4 — Almond details (all already implemented in Revision Pack v1):** rolling-12m tiers
+100/300/750 + full ladder; gradient Cup; wheel "اربح مجاناً" (server-decided, 7-day non-cash expiry);
+referral + rating 50 pts (one-time); Friday "+50% ☕"; 10 branches; order-type-first; nearest-branch
++ Google Maps; wallet; redeem; all payment methods; brunch combo −1.000; Odoo/loyalty mock switch.
+
+# UX RESEARCH REFINEMENTS — APPLIED (Baymard + café research)
+
+Source: `docs/UX-RESEARCH-REFINEMENTS.md`.
+
+1. **Fewer steps:** single focused checkout; **sticky confirm button shows the total** (no scroll).
+2. **Payment prominence:** methods reordered (wallet, CliQ first, then cards, points);
+   "earn points with every payment method" reassurance.
+3. **Pre-order hero:** Smart Pickup copy "تخطَّ الطابور — جاهز عند وصولك ✨"; chooser marks Pickup recommended.
+4. **Visual review before confirm:** `ReviewSheet` shows each item (icon/photo) + size +
+   customizations + price + branch + ready time + payment + totals, with quick "Edit".
+5. **Warm microcopy:** Cup "اقتربت من قهوتك المجانية! ☕", tier "خطوة وتصير ذهبي ✨",
+   empty cart "كوبك ينتظرك — لنبدأ؟", post-order "تمام! نجهّز لك ألذ قهوة 🎉", gentle errors.
+6. **Personalization:** My Usual + one-tap reorder (prominent) + smart pairing suggestion
+   ("جرّب مع لاتيه؟") + name/time greeting.
+7. **Simplicity:** decluttered Home (removed redundant quick-actions), more breathing space,
+   consistent bottom-tab nav.
+
 *Almond Coffee House — Evora for Food & Beverages — Amman, Jordan*
-*Spec v2.0 + Revision Pack v1 — FINAL — May 2026*
+*Spec v2.0 + Revision Pack v1 + Master Pack + UX Refinements — FINAL — May 2026*

@@ -82,12 +82,14 @@ export function TierProgress({ tier, windowSpend }: Props) {
       </View>
 
       <Text variant="bodyBold" color={colors.dark} center style={styles.remaining}>
-        {next
-          ? t('loyalty.tierProgress', {
-              remaining: remaining.toFixed(0),
-              nextTier: t(`tiers.${next.id}`),
-            })
-          : t('loyalty.tierMax')}
+        {!next
+          ? t('loyalty.tierMax')
+          : remaining <= 30
+            ? t('loyalty.tierClose', { tier: t(`tiers.${next.id}`) })
+            : t('loyalty.tierProgress', {
+                remaining: remaining.toFixed(0),
+                nextTier: t(`tiers.${next.id}`),
+              })}
       </Text>
       <Text variant="caption" color={colors.warmGray} center>
         {t('loyalty.windowNote')}

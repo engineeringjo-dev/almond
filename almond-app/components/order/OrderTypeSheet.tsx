@@ -41,10 +41,17 @@ export function OrderTypeSheet({ visible, onClose, branchId }: Props) {
   return (
     <BottomSheet visible={visible} onClose={onClose} title={t('orderType.choose')}>
       <View style={styles.list}>
-        <Pressable style={({ pressed }) => [styles.option, pressed && styles.pressed]} onPress={choosePickup}>
+        <Pressable style={({ pressed }) => [styles.option, styles.optionHero, pressed && styles.pressed]} onPress={choosePickup}>
           <Text style={styles.emoji}>🏃</Text>
           <View style={styles.body}>
-            <Text variant="title">{t('orderType.pickup')}</Text>
+            <View style={styles.titleRow}>
+              <Text variant="title">{t('orderType.pickup')}</Text>
+              <View style={styles.recommended}>
+                <Text variant="caption" color={colors.dark}>
+                  {t('orderType.recommended')}
+                </Text>
+              </View>
+            </View>
             <Text variant="caption" color={colors.warmGray}>
               {t('orderType.pickupDesc')}
             </Text>
@@ -79,8 +86,16 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: colors.lightGold,
   },
+  optionHero: { borderColor: colors.gold, borderWidth: 2, backgroundColor: colors.neutralWarm },
   pressed: { opacity: 0.85 },
   emoji: { fontSize: 32 },
   body: { flex: 1, gap: 2 },
+  titleRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  recommended: {
+    backgroundColor: colors.gold,
+    borderRadius: radius.pill,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 1,
+  },
   chevron: { fontSize: 24, color: colors.gold },
 });

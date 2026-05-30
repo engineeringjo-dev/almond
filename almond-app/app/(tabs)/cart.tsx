@@ -13,6 +13,8 @@ import { PickupInfo } from '@/components/cart/PickupInfo';
 import { PromoInput } from '@/components/cart/PromoInput';
 import { Summary } from '@/components/cart/Summary';
 import { PaymentMethods } from '@/components/cart/PaymentMethods';
+import { ReviewSheet } from '@/components/cart/ReviewSheet';
+import { SuggestionRow } from '@/components/cart/SuggestionRow';
 import { BranchCard } from '@/components/branch/BranchCard';
 import { BranchPicker } from '@/components/branch/BranchPicker';
 import { colors, spacing } from '@/constants/theme';
@@ -24,6 +26,7 @@ import { useAuthStore, useUserId } from '@/stores/authStore';
 import { useCreateOrder } from '@/hooks/useOrder';
 import { useWallet, useLoyaltyBalance, useInvalidateLoyalty } from '@/hooks/useLoyalty';
 import { computePickupEstimate } from '@/lib/pickup';
+import { formatJOD } from '@/lib/format';
 import { paymentService } from '@/services/payment.service';
 import { loyaltyService } from '@/services/loyalty.service';
 import { aggregatorService } from '@/services/aggregator.service';
@@ -51,6 +54,7 @@ export default function CartScreen() {
   const invalidateLoyalty = useInvalidateLoyalty();
 
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [reviewOpen, setReviewOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
   // Auto-select nearest open branch for pickup (section 7.3 #2).
@@ -79,11 +83,16 @@ export default function CartScreen() {
     await WebBrowser.openBrowserAsync(aggregatorService.getRedirectUrl());
   };
 
-  const placeOrder = async () => {
+  // Open the visual review (UX §4); gate guests to login first.
+  const startCheckout = () => {
     if (!isAuthenticated) {
       router.push('/(auth)/login');
       return;
     }
+    setReviewOpen(true);
+  };
+
+  const placeOrder = async () => {
     if (!branch) return;
     setSubmitting(true);
     try {
@@ -187,6 +196,10 @@ export default function CartScreen() {
             </View>
 
             <View style={styles.section}>
+              <SuggestionRow items={items} />
+            </View>
+
+            <View style={styles.section}>
               <PromoInput
                 subtotal={totals.subtotal}
                 appliedCode={promoCode}
@@ -202,6 +215,9 @@ export default function CartScreen() {
             <View style={styles.section}>
               <Text variant="title" style={styles.sectionTitle}>
                 {t('cart.paymentMethod')}
+              </Text>
+              <Text variant="caption" color={colors.green} style={styles.earnNote}>
+                {t('cart.earnAllMethods')}
               </Text>
               <PaymentMethods
                 value={paymentMethod}
@@ -220,9 +236,8 @@ export default function CartScreen() {
           <Button title={t('cart.deliveryRedirect')} onPress={openDelivery} leadingEmoji="🛵" />
         ) : (
           <Button
-            title={t('cart.placeOrder')}
-            onPress={placeOrder}
-            loading={submitting}
+            title={`${t('cart.reviewCta')} · ${formatJOD(totals.total, lang)}`}
+            onPress={startCheckout}
             disabled={
               !branch ||
               (payingWithPoints && (loyaltyBalance?.points ?? 0) < pointsNeeded)
@@ -238,6 +253,19 @@ export default function CartScreen() {
         selectedId={branchId}
         onSelect={(b) => setBranch(b.id)}
       />
+
+      <ReviewSheet
+        visible={reviewOpen}
+        onClose={() => setReviewOpen(false)}
+        items={items}
+        totals={totals}
+        branch={branch}
+        estimate={estimate}
+        isPickup={orderType === 'pickup'}
+        paymentMethod={paymentMethod}
+        submitting={submitting}
+        onConfirm={placeOrder}
+      />
     </>
   );
 }
@@ -246,6 +274,7 @@ const styles = StyleSheet.create({
   title: { marginBottom: spacing.lg },
   section: { marginTop: spacing.lg },
   sectionTitle: { marginBottom: spacing.md },
+  earnNote: { marginBottom: spacing.md, marginTop: -spacing.sm },
   lines: { gap: spacing.md },
   empty: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: spacing.md },
   emptyEmoji: { fontSize: 64 },

@@ -26,6 +26,11 @@ npm start          # then press i / a, or scan with Expo Go
 npm run lint       # tsc --noEmit (type-check)
 ```
 
+### Switchable theme (one place)
+`constants/theme.ts` → `theme = greenTheme`. Flip to `almondTheme` to switch the entire
+palette to the official espresso+gold launch identity. Green is the active experimental
+(Starbucks-style) comparison theme; every `colors.*` token derives from the active theme.
+
 ### Mock vs. real backend — one switch
 `constants/config.ts` → `DATA_SOURCE: 'mock' | 'odoo'`.
 - `mock` (default): everything runs offline from the in-memory mock layer (`services/*.mock.ts`).

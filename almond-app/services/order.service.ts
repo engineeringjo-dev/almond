@@ -28,7 +28,12 @@ export interface OrderService {
   getHistory(userId: string): Promise<Order[]>;
   /** Advance the status (mock simulation of the KDS). */
   advanceStatus(id: string): Promise<Order | undefined>;
+  /** Cancel within the 30s grace window (Master Pack Part 3). */
+  cancelOrder(id: string): Promise<Order | undefined>;
 }
+
+/** Seconds after placing during which an order can be cancelled/modified. */
+export const CANCEL_WINDOW_SECONDS = 30;
 
 const STATUS_FLOW: OrderStatus[] = ['received', 'preparing', 'ready', 'completed'];
 
@@ -104,7 +109,9 @@ const mockOrderService: OrderService = {
     seedHistory(userId);
     return delay(
       [...orders.values()]
-        .filter((o) => o.userId === userId && o.status !== 'completed')
+        .filter(
+          (o) => o.userId === userId && o.status !== 'completed' && o.status !== 'cancelled',
+        )
         .sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
     );
   },
@@ -121,12 +128,28 @@ const mockOrderService: OrderService = {
   advanceStatus: (id) => {
     const order = orders.get(id);
     if (!order) return delay(undefined);
+    if (order.status === 'cancelled') return delay(order); // never advance a cancelled order
+    // Hold during the cancel/modify grace window — KDS starts after it (Part 3).
+    const age = (Date.now() - new Date(order.createdAt).getTime()) / 1000;
+    if (order.status === 'received' && age < CANCEL_WINDOW_SECONDS) return delay(order, 200);
     const idx = STATUS_FLOW.indexOf(order.status);
     if (idx < STATUS_FLOW.length - 1) {
       order.status = STATUS_FLOW[idx + 1];
       orders.set(id, order);
     }
     return delay(order, 200);
+  },
+
+  cancelOrder: (id) => {
+    const order = orders.get(id);
+    if (!order) return delay(undefined);
+    const age = (Date.now() - new Date(order.createdAt).getTime()) / 1000;
+    // Only cancellable inside the grace window and before prep starts.
+    if (order.status === 'received' && age <= CANCEL_WINDOW_SECONDS) {
+      order.status = 'cancelled';
+      orders.set(id, order);
+    }
+    return delay(order, 150);
   },
 };
 
@@ -137,6 +160,7 @@ const odooOrderService: OrderService = {
   getActiveOrders: mockOrderService.getActiveOrders,
   getHistory: mockOrderService.getHistory,
   advanceStatus: mockOrderService.advanceStatus,
+  cancelOrder: mockOrderService.cancelOrder,
 };
 
 export const orderService: OrderService =

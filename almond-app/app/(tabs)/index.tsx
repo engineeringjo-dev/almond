@@ -5,12 +5,13 @@ import { Screen } from '@/components/ui/Screen';
 import { Text } from '@/components/ui/Text';
 import { HomeTopBar } from '@/components/home/HomeTopBar';
 import { LoyaltyCard } from '@/components/home/LoyaltyCard';
-import { QuickActions } from '@/components/home/QuickActions';
 import { UsualOrderCard } from '@/components/home/UsualOrderCard';
 import { VisitRewardBanner } from '@/components/home/VisitRewardBanner';
 import { SpinHighlightCard } from '@/components/home/SpinHighlightCard';
 import { NearestBranchButton } from '@/components/home/NearestBranchButton';
+import { OrderNowButton } from '@/components/home/OrderNowButton';
 import { WalletCard } from '@/components/home/WalletCard';
+import { FeaturedRow } from '@/components/home/FeaturedRow';
 import { PromoCarousel } from '@/components/home/PromoCarousel';
 import { BranchCard } from '@/components/branch/BranchCard';
 import { BranchPicker } from '@/components/branch/BranchPicker';
@@ -53,20 +54,18 @@ export default function HomeScreen() {
           {t(greeting, { name })}
         </Text>
 
-        <View style={styles.section}>
-          <NearestBranchButton />
-        </View>
-
+        {/* Starbucks layout (Master Pack §2): rewards hero → order CTA → wallet
+            → usual → horizontal sections → branches, with generous spacing. */}
         <View style={styles.section}>
           <VisitRewardBanner />
         </View>
 
-        <View style={styles.section}>
-          <UsualOrderCard />
+        <View style={styles.heroSection}>
+          <LoyaltyCard />
         </View>
 
         <View style={styles.section}>
-          <LoyaltyCard />
+          <OrderNowButton />
         </View>
 
         <View style={styles.section}>
@@ -74,11 +73,19 @@ export default function HomeScreen() {
         </View>
 
         <View style={styles.section}>
-          <SpinHighlightCard />
+          <NearestBranchButton />
         </View>
 
         <View style={styles.section}>
-          <QuickActions />
+          <UsualOrderCard />
+        </View>
+
+        <View style={styles.section}>
+          <FeaturedRow />
+        </View>
+
+        <View style={styles.section}>
+          <SpinHighlightCard />
         </View>
 
         <View style={styles.section}>
@@ -127,7 +134,8 @@ export default function HomeScreen() {
 
 const styles = StyleSheet.create({
   greeting: { marginBottom: spacing.lg },
-  section: { marginBottom: spacing.xl },
+  section: { marginBottom: spacing.xl + spacing.xs },
+  heroSection: { marginBottom: spacing.xl + spacing.sm },
   branchHeader: {
     flexDirection: 'row',
     alignItems: 'center',
