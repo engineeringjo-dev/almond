@@ -128,7 +128,8 @@
     "earnAllMethods": "Earn points with every payment method ⭐",
     "reviewTitle": "Review your order",
     "reviewCta": "Review order",
-    "edit": "Edit"
+    "edit": "Edit",
+    "suggestion": "Try it with {{item}}?"
   },
   "payment": {
     "cash": "Cash",

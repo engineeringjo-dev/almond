@@ -128,7 +128,8 @@
     "earnAllMethods": "تكسب نقاطاً مع كل طرق الدفع ⭐",
     "reviewTitle": "راجع طلبك",
     "reviewCta": "مراجعة الطلب",
-    "edit": "تعديل"
+    "edit": "تعديل",
+    "suggestion": "جرّب مع {{item}}؟"
   },
   "payment": {
     "cash": "نقداً",
