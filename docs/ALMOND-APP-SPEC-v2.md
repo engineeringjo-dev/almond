@@ -130,18 +130,21 @@ These rules exist so you build the entire MVP **without stopping to ask question
 
 # 3. BRAND & DESIGN SYSTEM
 
-### 3.1 Colors (central theme file `constants/theme.ts`)
+### 3.1 Colors (central theme file `constants/theme.ts`) — Revision Pack §L
+Deeper, richer, higher-contrast palette. Dark espresso bars/cards, brighter gold for
+accents only, warm cream background, white cards for clean contrast. Hero/loyalty/wallet/
+cup elements use warm gradients (`gradients` presets + `<Gradient>`).
 ```typescript
 export const colors = {
-  dark:      '#1C1208',  // deep espresso — primary
-  brown:     '#6B3F1F',
-  gold:      '#C8962A',  // accent — CTAs, prices
-  lightGold: '#E8C86A',
-  cream:     '#F5EFE0',  // background
-  cardBg:    '#FDFAF4',
-  warmGray:  '#8C7B6B',
+  dark:      '#1A0F08',  // espresso — primary, dark bars & cards
+  brown:     '#5C3A21',  // mocha
+  gold:      '#D4A24E',  // accent — CTAs, prices, active states
+  lightGold: '#F0D89A',
+  cream:     '#F7F1E6',  // warm background
+  cardBg:    '#FFFFFF',  // clean contrast on cream
+  warmGray:  '#8A7A66',  // secondary text only
   green:     '#2D6A4F',  // success
-  red:       '#C0392B',  // error
+  red:       '#C0392B',  // error / closed
   // tier colors
   tierBean:   '#8C6239',
   tierSilver: '#9AA0A6',

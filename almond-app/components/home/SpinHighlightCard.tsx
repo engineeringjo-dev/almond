@@ -2,6 +2,7 @@ import { View, StyleSheet, Pressable } from 'react-native';
 import { router } from 'expo-router';
 
 import { Text } from '@/components/ui/Text';
+import { Gradient } from '@/components/ui/Gradient';
 import { colors, spacing, radius, shadow } from '@/constants/theme';
 import { useI18n } from '@/hooks/useI18n';
 import { useSpinEligibility } from '@/hooks/useLoyalty';
@@ -16,42 +17,44 @@ export function SpinHighlightCard() {
 
   return (
     <Pressable
-      style={({ pressed }) => [styles.card, pressed && styles.pressed]}
+      style={({ pressed }) => [styles.shadow, pressed && styles.pressed]}
       onPress={() => router.push('/spin')}
       accessibilityRole="button"
     >
-      <View style={styles.iconWrap}>
-        <Text style={styles.emoji}>🎡</Text>
-      </View>
-      <View style={styles.body}>
-        <Text variant="title" color={colors.cream}>
-          {t('home.spinWheel')}
-        </Text>
-        <Text variant="bodyBold" color={colors.gold}>
-          {t('loyalty.winFree')}
-        </Text>
-        {eligibility?.canSpin ? (
-          <Text variant="caption" color={colors.lightGold}>
-            {t('spin.spinsLeft', { count: eligibility.spinsAvailable })}
+      <Gradient preset="mocha" style={styles.card}>
+        <View style={styles.iconWrap}>
+          <Text style={styles.emoji}>🎡</Text>
+        </View>
+        <View style={styles.body}>
+          <Text variant="title" color={colors.cream}>
+            {t('home.spinWheel')}
           </Text>
-        ) : null}
-      </View>
-      <Text style={styles.chevron}>{lang === 'ar' ? '‹' : '›'}</Text>
+          <Text variant="bodyBold" color={colors.lightGold}>
+            {t('loyalty.winFree')}
+          </Text>
+          {eligibility?.canSpin ? (
+            <Text variant="caption" color={colors.lightGold}>
+              {t('spin.spinsLeft', { count: eligibility.spinsAvailable })}
+            </Text>
+          ) : null}
+        </View>
+        <Text style={styles.chevron}>{lang === 'ar' ? '‹' : '›'}</Text>
+      </Gradient>
     </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
+  shadow: { borderRadius: radius.lg, ...shadow.raised },
   card: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.md,
-    backgroundColor: colors.brown,
     borderRadius: radius.lg,
     padding: spacing.lg,
     borderWidth: 1,
     borderColor: colors.gold,
-    ...shadow.raised,
+    overflow: 'hidden',
   },
   pressed: { opacity: 0.9 },
   iconWrap: {

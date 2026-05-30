@@ -2,6 +2,7 @@ import { View, StyleSheet, Pressable, ActivityIndicator } from 'react-native';
 import { router } from 'expo-router';
 
 import { Text } from '@/components/ui/Text';
+import { Gradient } from '@/components/ui/Gradient';
 import { Cup } from '@/components/loyalty/Cup';
 import { TierBadge } from '@/components/loyalty/TierBadge';
 import { colors, spacing, radius, shadow } from '@/constants/theme';
@@ -16,50 +17,52 @@ export function LoyaltyCard() {
 
   return (
     <Pressable
-      style={styles.card}
+      style={styles.shadow}
       onPress={() => router.push('/loyalty')}
       accessibilityRole="button"
     >
-      {isLoading || !data ? (
-        <View style={styles.loading}>
-          <ActivityIndicator color={colors.gold} />
-        </View>
-      ) : (
-        <>
-          <View style={styles.left}>
-            <Text variant="caption" color={colors.lightGold}>
-              {t('home.loyaltyPoints')}
-            </Text>
-            <Text variant="display" color={colors.cream} style={styles.points}>
-              {formatNumber(data.points, lang)}
-            </Text>
-            <TierBadge tier={data.tier} />
+      <Gradient preset="dark" style={styles.card}>
+        {isLoading || !data ? (
+          <View style={styles.loading}>
+            <ActivityIndicator color={colors.gold} />
           </View>
-          <View style={styles.right}>
-            <Cup current={data.cup.current} target={data.cup.target} size={80} />
-            <Text variant="caption" color={colors.lightGold} style={styles.cupLabel}>
-              {t('loyalty.cupProgress', {
-                current: Math.floor(data.cup.current),
-                target: data.cup.target,
-              })}
-            </Text>
-          </View>
-        </>
-      )}
+        ) : (
+          <>
+            <View style={styles.left}>
+              <Text variant="caption" color={colors.lightGold}>
+                {t('home.loyaltyPoints')}
+              </Text>
+              <Text variant="display" color={colors.cream} style={styles.points}>
+                {formatNumber(data.points, lang)}
+              </Text>
+              <TierBadge tier={data.tier} />
+            </View>
+            <View style={styles.right}>
+              <Cup current={data.cup.current} target={data.cup.target} size={80} />
+              <Text variant="caption" color={colors.lightGold} style={styles.cupLabel}>
+                {t('loyalty.cupProgress', {
+                  current: Math.floor(data.cup.current),
+                  target: data.cup.target,
+                })}
+              </Text>
+            </View>
+          </>
+        )}
+      </Gradient>
     </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
+  shadow: { borderRadius: radius.lg, ...shadow.raised },
   card: {
-    backgroundColor: colors.dark,
     borderRadius: radius.lg,
     padding: spacing.lg,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     minHeight: 132,
-    ...shadow.raised,
+    overflow: 'hidden',
   },
   loading: { flex: 1, alignItems: 'center', justifyContent: 'center', minHeight: 100 },
   left: { gap: spacing.sm },

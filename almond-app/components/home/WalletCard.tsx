@@ -3,6 +3,7 @@ import { router } from 'expo-router';
 
 import { Text } from '@/components/ui/Text';
 import { Icon } from '@/components/ui/Icon';
+import { Gradient } from '@/components/ui/Gradient';
 import { colors, spacing, radius, shadow } from '@/constants/theme';
 import { useI18n } from '@/hooks/useI18n';
 import { formatJOD } from '@/lib/format';
@@ -17,7 +18,7 @@ export function WalletCard() {
   const { data: balance } = useWallet();
 
   return (
-    <View style={styles.card}>
+    <Gradient preset="dark" style={styles.card}>
       <View style={styles.topRow}>
         <View style={styles.iconWrap}>
           <Icon name="wallet" size={24} color={colors.gold} />
@@ -46,16 +47,16 @@ export function WalletCard() {
           {t('home.topUpWallet')}
         </Text>
       </Pressable>
-    </View>
+    </Gradient>
   );
 }
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: colors.dark,
     borderRadius: radius.lg,
     padding: spacing.lg,
     gap: spacing.md,
+    overflow: 'hidden',
     ...shadow.raised,
   },
   topRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
