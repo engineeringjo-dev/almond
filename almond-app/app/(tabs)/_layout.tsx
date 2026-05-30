@@ -38,14 +38,14 @@ export default function TabsLayout() {
         name="index"
         options={{
           title: t('tabs.home'),
-          tabBarIcon: ({ focused }) => <TabBarIcon emoji="🏠" focused={focused} />,
+          tabBarIcon: ({ focused }) => <TabBarIcon name="home" focused={focused} />,
         }}
       />
       <Tabs.Screen
         name="menu"
         options={{
           title: t('tabs.menu'),
-          tabBarIcon: ({ focused }) => <TabBarIcon emoji="📋" focused={focused} />,
+          tabBarIcon: ({ focused }) => <TabBarIcon name="menu" focused={focused} />,
         }}
       />
       <Tabs.Screen
@@ -54,21 +54,21 @@ export default function TabsLayout() {
           title: t('tabs.cart'),
           tabBarBadge: cartCount > 0 ? cartCount : undefined,
           tabBarBadgeStyle: { backgroundColor: colors.gold, color: colors.dark },
-          tabBarIcon: ({ focused }) => <TabBarIcon emoji="🛒" focused={focused} />,
+          tabBarIcon: ({ focused }) => <TabBarIcon name="cart" focused={focused} />,
         }}
       />
       <Tabs.Screen
         name="track"
         options={{
           title: t('tabs.track'),
-          tabBarIcon: ({ focused }) => <TabBarIcon emoji="📍" focused={focused} />,
+          tabBarIcon: ({ focused }) => <TabBarIcon name="track" focused={focused} />,
         }}
       />
       <Tabs.Screen
         name="profile"
         options={{
           title: t('tabs.profile'),
-          tabBarIcon: ({ focused }) => <TabBarIcon emoji="👤" focused={focused} />,
+          tabBarIcon: ({ focused }) => <TabBarIcon name="profile" focused={focused} />,
         }}
       />
     </Tabs>

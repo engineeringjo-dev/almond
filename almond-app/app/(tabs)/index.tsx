@@ -10,6 +10,7 @@ import { UsualOrderCard } from '@/components/home/UsualOrderCard';
 import { VisitRewardBanner } from '@/components/home/VisitRewardBanner';
 import { SpinHighlightCard } from '@/components/home/SpinHighlightCard';
 import { NearestBranchButton } from '@/components/home/NearestBranchButton';
+import { OrderNowButton } from '@/components/home/OrderNowButton';
 import { WalletCard } from '@/components/home/WalletCard';
 import { PromoCarousel } from '@/components/home/PromoCarousel';
 import { BranchCard } from '@/components/branch/BranchCard';
@@ -53,24 +54,30 @@ export default function HomeScreen() {
           {t(greeting, { name })}
         </Text>
 
+        {/* Starbucks layout (Master Pack §2): rewards hero → order CTA → wallet
+            → usual → horizontal sections → branches, with generous spacing. */}
+        <View style={styles.section}>
+          <VisitRewardBanner />
+        </View>
+
+        <View style={styles.heroSection}>
+          <LoyaltyCard />
+        </View>
+
+        <View style={styles.section}>
+          <OrderNowButton />
+        </View>
+
+        <View style={styles.section}>
+          <WalletCard />
+        </View>
+
         <View style={styles.section}>
           <NearestBranchButton />
         </View>
 
         <View style={styles.section}>
-          <VisitRewardBanner />
-        </View>
-
-        <View style={styles.section}>
           <UsualOrderCard />
-        </View>
-
-        <View style={styles.section}>
-          <LoyaltyCard />
-        </View>
-
-        <View style={styles.section}>
-          <WalletCard />
         </View>
 
         <View style={styles.section}>
@@ -128,6 +135,7 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   greeting: { marginBottom: spacing.lg },
   section: { marginBottom: spacing.xl },
+  heroSection: { marginBottom: spacing.xl + spacing.xs },
   branchHeader: {
     flexDirection: 'row',
     alignItems: 'center',

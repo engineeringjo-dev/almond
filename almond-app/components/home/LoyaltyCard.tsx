@@ -53,7 +53,7 @@ export function LoyaltyCard() {
               })()}
             </View>
             <View style={styles.right}>
-              <Cup current={data.cup.current} target={data.cup.target} size={80} />
+              <Cup current={data.cup.current} target={data.cup.target} size={96} />
               <Text variant="caption" color={colors.lightGold} style={styles.cupLabel}>
                 {t('loyalty.cupProgress', {
                   current: Math.floor(data.cup.current),
@@ -69,14 +69,14 @@ export function LoyaltyCard() {
 }
 
 const styles = StyleSheet.create({
-  shadow: { borderRadius: radius.lg, ...shadow.raised },
+  shadow: { borderRadius: radius.xl, ...shadow.raised },
   card: {
-    borderRadius: radius.lg,
-    padding: spacing.lg,
+    borderRadius: radius.xl,
+    padding: spacing.xl,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    minHeight: 132,
+    minHeight: 168,
     overflow: 'hidden',
   },
   loading: { flex: 1, alignItems: 'center', justifyContent: 'center', minHeight: 100 },

@@ -2,6 +2,7 @@ import { View, StyleSheet, Pressable } from 'react-native';
 import { router } from 'expo-router';
 
 import { Text } from '@/components/ui/Text';
+import { Icon } from '@/components/ui/Icon';
 import { colors, spacing, radius } from '@/constants/theme';
 import { useI18n } from '@/hooks/useI18n';
 import { useCartCount } from '@/stores/cartStore';
@@ -23,10 +24,12 @@ export function HomeTopBar({ branch, onBranchPress }: Props) {
 
   return (
     <View style={styles.bar}>
-      <Text style={styles.logo}>☕</Text>
+      <View style={styles.logo}>
+        <Icon name="coffee" size={26} color={colors.primary} strokeWidth={2.2} />
+      </View>
 
       <Pressable style={styles.chip} onPress={onBranchPress} hitSlop={6}>
-        <Text style={styles.pin}>📍</Text>
+        <Icon name="map-pin" size={15} color={colors.primary} />
         <Text variant="caption" color={colors.dark} numberOfLines={1} style={styles.chipText}>
           {branchName}
         </Text>
@@ -35,10 +38,10 @@ export function HomeTopBar({ branch, onBranchPress }: Props) {
 
       <View style={styles.actions}>
         <Pressable onPress={() => router.push('/notifications')} hitSlop={8} style={styles.iconBtn}>
-          <Text style={styles.icon}>🔔</Text>
+          <Icon name="bell" size={22} color={colors.dark} />
         </Pressable>
         <Pressable onPress={() => router.push('/(tabs)/cart')} hitSlop={8} style={styles.iconBtn}>
-          <Text style={styles.icon}>🛒</Text>
+          <Icon name="cart" size={22} color={colors.dark} />
           {cartCount > 0 ? (
             <View style={styles.badge}>
               <Text variant="caption" color={colors.dark} style={styles.badgeText}>
@@ -59,7 +62,7 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
     paddingBottom: spacing.md,
   },
-  logo: { fontSize: 28 },
+  logo: { width: 32, alignItems: 'center', justifyContent: 'center' },
   chip: {
     flex: 1,
     flexDirection: 'row',
