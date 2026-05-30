@@ -10,6 +10,7 @@ import { UsualOrderCard } from '@/components/home/UsualOrderCard';
 import { VisitRewardBanner } from '@/components/home/VisitRewardBanner';
 import { SpinHighlightCard } from '@/components/home/SpinHighlightCard';
 import { NearestBranchButton } from '@/components/home/NearestBranchButton';
+import { WalletCard } from '@/components/home/WalletCard';
 import { PromoCarousel } from '@/components/home/PromoCarousel';
 import { BranchCard } from '@/components/branch/BranchCard';
 import { BranchPicker } from '@/components/branch/BranchPicker';
@@ -66,6 +67,10 @@ export default function HomeScreen() {
 
         <View style={styles.section}>
           <LoyaltyCard />
+        </View>
+
+        <View style={styles.section}>
+          <WalletCard />
         </View>
 
         <View style={styles.section}>

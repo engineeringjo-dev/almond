@@ -72,7 +72,10 @@
     "selectBranch": "Select a branch",
     "myNearestBranch": "My nearest branch",
     "pickupHere": "Pick up from this branch",
-    "directions": "Directions on the map"
+    "directions": "Directions on the map",
+    "walletBalance": "Your wallet balance",
+    "topUpWallet": "Top up your wallet",
+    "walletHint": "Pay from balance and fill your cup 1.5× faster"
   },
   "menu": {
     "title": "Menu",

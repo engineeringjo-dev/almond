@@ -72,7 +72,10 @@
     "selectBranch": "اختر فرعاً",
     "myNearestBranch": "أقرب فرع لي",
     "pickupHere": "استلام من هذا الفرع",
-    "directions": "الموقع على الخريطة"
+    "directions": "الموقع على الخريطة",
+    "walletBalance": "رصيد محفظتك",
+    "topUpWallet": "اشحن محفظتك",
+    "walletHint": "ادفع من رصيدك واملأ كوبك بمعدّل 1.5× أسرع"
   },
   "menu": {
     "title": "القائمة",
