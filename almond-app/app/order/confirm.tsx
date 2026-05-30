@@ -1,5 +1,5 @@
-import { useEffect, useRef } from 'react';
-import { View, StyleSheet, Animated, Easing } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import { View, StyleSheet, Animated } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -7,14 +7,40 @@ import { Text } from '@/components/ui/Text';
 import { Button } from '@/components/ui/Button';
 import { colors, spacing, radius } from '@/constants/theme';
 import { useI18n } from '@/hooks/useI18n';
-import { useOrder } from '@/hooks/useOrder';
+import { useOrder, useCancelOrder } from '@/hooks/useOrder';
+import { useCartStore } from '@/stores/cartStore';
 import { formatTime } from '@/lib/format';
+import { CANCEL_WINDOW_SECONDS } from '@/services/order.service';
+import type { CartItem } from '@/types';
 
 export default function OrderConfirm() {
   const { t, lang } = useI18n();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { data: order } = useOrder(id ?? '');
+  const cancelOrder = useCancelOrder();
+  const addLine = useCartStore((s) => s.addLine);
   const scale = useRef(new Animated.Value(0)).current;
+
+  // 30s cancel/modify grace window (Master Pack Part 3).
+  const [secondsLeft, setSecondsLeft] = useState(CANCEL_WINDOW_SECONDS);
+  useEffect(() => {
+    if (secondsLeft <= 0) return;
+    const id = setInterval(() => setSecondsLeft((s) => (s > 0 ? s - 1 : 0)), 1000);
+    return () => clearInterval(id);
+  }, [secondsLeft]);
+
+  const canCancel = secondsLeft > 0 && order?.status === 'received';
+
+  const doCancel = async (modify: boolean) => {
+    if (!order) return;
+    await cancelOrder.mutateAsync(order.id);
+    if (modify) {
+      order.items.forEach((line: CartItem) => addLine({ ...line }));
+      router.replace('/(tabs)/cart');
+    } else {
+      router.replace('/(tabs)');
+    }
+  };
 
   useEffect(() => {
     Animated.spring(scale, {
@@ -49,6 +75,28 @@ export default function OrderConfirm() {
       </View>
 
       <View style={styles.footer}>
+        {canCancel ? (
+          <View style={styles.cancelBox}>
+            <Text variant="caption" color={colors.brown} center>
+              ⏱️ {t('confirm.cancelWindow', { seconds: secondsLeft })}
+            </Text>
+            <View style={styles.cancelRow}>
+              <Button
+                title={t('confirm.modifyOrder')}
+                variant="outline"
+                onPress={() => doCancel(true)}
+                style={styles.cancelBtn}
+              />
+              <Button
+                title={t('confirm.cancelOrder')}
+                variant="ghost"
+                onPress={() => doCancel(false)}
+                style={styles.cancelBtn}
+              />
+            </View>
+          </View>
+        ) : null}
+
         <Button
           title={t('confirm.trackOrder')}
           onPress={() => router.replace({ pathname: '/order/[id]', params: { id: id ?? '' } })}
@@ -99,4 +147,13 @@ const styles = StyleSheet.create({
   },
   row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   footer: { padding: spacing.xl, gap: spacing.sm },
+  cancelBox: {
+    backgroundColor: colors.neutralWarm,
+    borderRadius: radius.md,
+    padding: spacing.md,
+    gap: spacing.sm,
+    marginBottom: spacing.sm,
+  },
+  cancelRow: { flexDirection: 'row', gap: spacing.sm },
+  cancelBtn: { flex: 1 },
 });

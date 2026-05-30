@@ -147,7 +147,11 @@
     "orderNumber": "Order #",
     "readyAt": "Ready at",
     "trackOrder": "Track your order",
-    "backHome": "Back to home"
+    "backHome": "Back to home",
+    "cancelWindow": "You can cancel or modify within {{seconds}}s",
+    "cancelOrder": "Cancel order",
+    "modifyOrder": "Modify order",
+    "cancelled": "Order cancelled"
   },
   "track": {
     "title": "Track Order",

@@ -45,6 +45,14 @@ export function useAdvanceOrder() {
   });
 }
 
+export function useCancelOrder() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => orderService.cancelOrder(id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['orders'] }),
+  });
+}
+
 /**
  * "My Usual" (section 7.2): find the most-frequent line-item set from history.
  * Returns the items of the most recent occurrence of the top-frequency signature.

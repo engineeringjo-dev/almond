@@ -151,7 +151,8 @@ export const menuItems: MenuItem[] = [
   {
     id: 'frappuccino', categoryId: 'cold-drinks', nameAr: 'فرابتشينو', nameEn: 'Frappuccino',
     descAr: 'مشروب قهوة مخفوق ومثلّج', descEn: 'Blended iced coffee', emoji: '🥤',
-    sizes: single(3.5), customizations: coldDrinkCusts, isDrink: true, prepMinutes: 6, inStock: true,
+    // Demo of availability state (Master Pack Part 3 #2) — cannot be added.
+    sizes: single(3.5), customizations: coldDrinkCusts, isDrink: true, prepMinutes: 6, inStock: false,
   },
 
   // ---- Matcha ----
@@ -244,7 +245,7 @@ export const menuItems: MenuItem[] = [
   {
     id: 'full-english', categoryId: 'brunch', nameAr: 'فطور إنجليزي كامل', nameEn: 'Full English',
     descAr: 'فطور إنجليزي شامل', descEn: 'Complete English breakfast', emoji: '🍳',
-    sizes: single(7.5), customizations: [], isBrunch: true, isDrink: false, prepMinutes: 15, inStock: true,
+    sizes: single(7.5), customizations: [], isBrunch: true, isDrink: false, prepMinutes: 15, inStock: false,
   },
 
   // ---- Add-ons ----

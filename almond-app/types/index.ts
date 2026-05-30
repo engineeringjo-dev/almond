@@ -121,7 +121,8 @@ export type OrderStatus =
   | 'received'
   | 'preparing'
   | 'ready'
-  | 'completed';
+  | 'completed'
+  | 'cancelled'; // cancelled within the 30s grace window (Master Pack Part 3)
 
 export interface Order {
   id: string;

@@ -25,8 +25,9 @@ export default function OrderTracking() {
   const [ratingOpen, setRatingOpen] = useState(false);
 
   // Simulate the KDS advancing the order through the timeline (mock only).
+  // The service holds 'received' until the 30s grace window passes (Part 3).
   useEffect(() => {
-    if (!order || order.status === 'ready' || order.status === 'completed') return;
+    if (!order || order.status === 'ready' || order.status === 'completed' || order.status === 'cancelled') return;
     const timer = setTimeout(() => advance.mutate(order.id), 6000);
     return () => clearTimeout(timer);
   }, [order, advance]);
@@ -41,7 +42,7 @@ export default function OrderTracking() {
   }
 
   const branchName = lang === 'ar' ? order.branchNameAr : order.branchNameEn;
-  const showCountdown = order.status !== 'completed' && !done;
+  const showCountdown = order.status !== 'completed' && order.status !== 'cancelled' && !done;
 
   const reorder = () => {
     order.items.forEach((line: CartItem) => addLine({ ...line }));
@@ -79,9 +80,17 @@ export default function OrderTracking() {
           ) : null}
         </Card>
 
-        <Card style={styles.timelineCard}>
-          <StatusTimeline status={order.status} />
-        </Card>
+        {order.status === 'cancelled' ? (
+          <Card style={styles.cancelledCard}>
+            <Text variant="h2" center color={colors.red}>
+              {t('confirm.cancelled')}
+            </Text>
+          </Card>
+        ) : (
+          <Card style={styles.timelineCard}>
+            <StatusTimeline status={order.status} />
+          </Card>
+        )}
 
         {order.status === 'completed' ? (
           <View style={styles.completedActions}>
@@ -112,6 +121,7 @@ const styles = StyleSheet.create({
   branch: { alignItems: 'flex-end' },
   countdown: { alignItems: 'center', gap: spacing.xs },
   timelineCard: { marginTop: spacing.lg },
+  cancelledCard: { marginTop: spacing.lg, paddingVertical: spacing.xl },
   completedActions: { marginTop: spacing.lg, gap: spacing.md },
   rateLink: { alignSelf: 'center', padding: spacing.sm },
 });

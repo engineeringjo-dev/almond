@@ -147,7 +147,11 @@
     "orderNumber": "رقم الطلب",
     "readyAt": "جاهز في",
     "trackOrder": "تتبع طلبك",
-    "backHome": "العودة للرئيسية"
+    "backHome": "العودة للرئيسية",
+    "cancelWindow": "يمكنك الإلغاء أو التعديل خلال {{seconds}} ثانية",
+    "cancelOrder": "إلغاء الطلب",
+    "modifyOrder": "تعديل الطلب",
+    "cancelled": "تم إلغاء الطلب"
   },
   "track": {
     "title": "تتبع الطلب",
