@@ -7,6 +7,7 @@ import { SearchBar } from '@/components/ui/SearchBar';
 import { CategoryChips } from '@/components/menu/CategoryChips';
 import { MenuItemCard } from '@/components/menu/MenuItemCard';
 import { ItemModal } from '@/components/menu/ItemModal';
+import { FadeIn } from '@/components/ui/FadeIn';
 import { colors, spacing } from '@/constants/theme';
 import { useI18n } from '@/hooks/useI18n';
 import { useCategories, useMenuItems } from '@/hooks/useMenu';
@@ -70,8 +71,10 @@ export default function MenuScreen() {
         columnWrapperStyle={styles.column}
         contentContainerStyle={styles.list}
         showsVerticalScrollIndicator={false}
-        renderItem={({ item }) => (
-          <MenuItemCard item={item} onPress={() => setSelectedItem(item)} />
+        renderItem={({ item, index }) => (
+          <FadeIn delay={Math.min(index, 8) * 30} style={styles.cardWrap}>
+            <MenuItemCard item={item} onPress={() => setSelectedItem(item)} />
+          </FadeIn>
         )}
         ListEmptyComponent={
           <View style={styles.empty}>
@@ -99,6 +102,7 @@ const styles = StyleSheet.create({
   chips: { paddingHorizontal: spacing.lg, marginTop: spacing.md },
   list: { padding: spacing.lg, gap: spacing.md, paddingBottom: spacing.xxl * 2 },
   column: { gap: spacing.md },
+  cardWrap: { flex: 1 },
   empty: { alignItems: 'center', paddingVertical: spacing.xxl * 2, gap: spacing.md },
   emptyEmoji: { fontSize: 44 },
 });

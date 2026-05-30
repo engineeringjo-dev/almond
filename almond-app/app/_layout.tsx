@@ -10,6 +10,7 @@ import { initI18n } from '@/lib/i18n';
 import { useAppStore } from '@/stores/appStore';
 import { useAuthStore } from '@/stores/authStore';
 import { useAppFonts } from '@/constants/fonts';
+import { ErrorBoundary } from '@/components/ui/ErrorBoundary';
 import { colors } from '@/constants/theme';
 
 // Initialize i18n as early as possible (AR default).
@@ -51,6 +52,7 @@ export default function RootLayout() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
         <QueryClientProvider client={queryClient}>
+          <ErrorBoundary>
           <StatusBar style="light" />
           <Stack
             screenOptions={{
@@ -76,6 +78,7 @@ export default function RootLayout() {
             />
             <Stack.Screen name="referral" />
           </Stack>
+          </ErrorBoundary>
         </QueryClientProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>
