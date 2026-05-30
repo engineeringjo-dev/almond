@@ -6,6 +6,7 @@ import * as WebBrowser from 'expo-web-browser';
 import { Screen } from '@/components/ui/Screen';
 import { Text } from '@/components/ui/Text';
 import { Button } from '@/components/ui/Button';
+import { EmptyState } from '@/components/ui/EmptyState';
 import { OrderTypeTabs } from '@/components/cart/OrderTypeTabs';
 import { CartLine } from '@/components/cart/CartLine';
 import { PickupInfo } from '@/components/cart/PickupInfo';
@@ -131,19 +132,13 @@ export default function CartScreen() {
   if (items.length === 0) {
     return (
       <Screen scroll={false}>
-        <View style={styles.empty}>
-          <Text style={styles.emptyEmoji}>🛒</Text>
-          <Text variant="h2" center>
-            {t('cart.empty')}
-          </Text>
-          <Button
-            title={t('cart.emptyCta')}
-            onPress={() => router.push('/(tabs)/menu')}
-            fullWidth={false}
-            variant="outline"
-            style={{ marginTop: spacing.lg }}
-          />
-        </View>
+        <EmptyState
+          icon="cart"
+          title={t('cart.empty')}
+          subtitle={t('cart.emptyHint')}
+          ctaLabel={t('cart.emptyCta')}
+          onCta={() => router.push('/(tabs)/menu')}
+        />
       </Screen>
     );
   }

@@ -5,6 +5,7 @@ import { Stack, router } from 'expo-router';
 import { Screen } from '@/components/ui/Screen';
 import { Text } from '@/components/ui/Text';
 import { Card } from '@/components/ui/Card';
+import { EmptyState } from '@/components/ui/EmptyState';
 import { Toggle } from '@/components/ui/Toggle';
 import { colors, spacing, radius } from '@/constants/theme';
 import { useI18n } from '@/hooks/useI18n';
@@ -123,12 +124,7 @@ export default function NotificationsScreen() {
             ))}
           </View>
         ) : (
-          <View style={styles.empty}>
-            <Text style={styles.emptyEmoji}>🔔</Text>
-            <Text variant="body" color={colors.warmGray}>
-              {t('notifications.empty')}
-            </Text>
-          </View>
+          <EmptyState icon="bell" title={t('notifications.empty')} />
         )}
       </Screen>
 

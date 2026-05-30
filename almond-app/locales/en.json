@@ -98,6 +98,7 @@
   "cart": {
     "title": "Cart",
     "empty": "Your cart is empty",
+    "emptyHint": "Discover your favorite coffee and add it in a tap",
     "emptyCta": "Browse the menu",
     "pickup": "Pickup",
     "dinein": "Dine-in",
@@ -149,6 +150,7 @@
   "track": {
     "title": "Track Order",
     "noOrders": "No active orders",
+    "noOrdersHint": "Order now and follow your order live here",
     "noOrdersCta": "Order now",
     "received": "Received",
     "preparing": "Preparing",

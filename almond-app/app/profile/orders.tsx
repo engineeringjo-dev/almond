@@ -4,7 +4,7 @@ import { router, Stack } from 'expo-router';
 import { Screen } from '@/components/ui/Screen';
 import { Text } from '@/components/ui/Text';
 import { Card } from '@/components/ui/Card';
-import { Button } from '@/components/ui/Button';
+import { EmptyState } from '@/components/ui/EmptyState';
 import { colors, spacing, radius } from '@/constants/theme';
 import { useI18n } from '@/hooks/useI18n';
 import { formatJOD, formatDate } from '@/lib/format';
@@ -53,19 +53,12 @@ export default function OrdersHistory() {
             ))}
           </View>
         ) : (
-          <View style={styles.empty}>
-            <Text style={styles.emptyEmoji}>🧾</Text>
-            <Text variant="body" color={colors.warmGray}>
-              {t('profile.noOrders')}
-            </Text>
-            <Button
-              title={t('track.noOrdersCta')}
-              onPress={() => router.push('/(tabs)/menu')}
-              variant="outline"
-              fullWidth={false}
-              style={{ marginTop: spacing.md }}
-            />
-          </View>
+          <EmptyState
+            icon="menu"
+            title={t('profile.noOrders')}
+            ctaLabel={t('track.noOrdersCta')}
+            onCta={() => router.push('/(tabs)/menu')}
+          />
         )}
       </Screen>
     </>

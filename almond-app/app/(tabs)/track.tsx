@@ -3,7 +3,7 @@ import { router } from 'expo-router';
 
 import { Screen } from '@/components/ui/Screen';
 import { Text } from '@/components/ui/Text';
-import { Button } from '@/components/ui/Button';
+import { EmptyState } from '@/components/ui/EmptyState';
 import { Card } from '@/components/ui/Card';
 import { colors, spacing, radius } from '@/constants/theme';
 import { useI18n } from '@/hooks/useI18n';
@@ -29,19 +29,13 @@ export default function TrackScreen() {
   if (!orders || orders.length === 0) {
     return (
       <Screen scroll={false}>
-        <View style={styles.empty}>
-          <Text style={styles.emptyEmoji}>📍</Text>
-          <Text variant="h2" center>
-            {t('track.noOrders')}
-          </Text>
-          <Button
-            title={t('track.noOrdersCta')}
-            onPress={() => router.push('/(tabs)/menu')}
-            fullWidth={false}
-            variant="outline"
-            style={{ marginTop: spacing.lg }}
-          />
-        </View>
+        <EmptyState
+          icon="track"
+          title={t('track.noOrders')}
+          subtitle={t('track.noOrdersHint')}
+          ctaLabel={t('track.noOrdersCta')}
+          onCta={() => router.push('/(tabs)/menu')}
+        />
       </Screen>
     );
   }
