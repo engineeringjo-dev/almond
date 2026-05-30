@@ -8,6 +8,7 @@ import * as SplashScreen from 'expo-splash-screen';
 
 import { initI18n } from '@/lib/i18n';
 import { useAppStore } from '@/stores/appStore';
+import { useAuthStore } from '@/stores/authStore';
 import { useAppFonts } from '@/constants/fonts';
 import { colors } from '@/constants/theme';
 
@@ -29,11 +30,13 @@ export default function RootLayout() {
   const [fontsLoaded] = useAppFonts();
   const hydrate = useAppStore((s) => s.hydrate);
   const hydrated = useAppStore((s) => s.hydrated);
+  const hydrateAuth = useAuthStore((s) => s.hydrate);
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
     hydrate();
-  }, [hydrate]);
+    hydrateAuth();
+  }, [hydrate, hydrateAuth]);
 
   useEffect(() => {
     if ((fontsLoaded || fontsLoaded === undefined) && hydrated) {
