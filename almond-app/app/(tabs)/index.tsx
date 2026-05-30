@@ -5,7 +5,6 @@ import { Screen } from '@/components/ui/Screen';
 import { Text } from '@/components/ui/Text';
 import { HomeTopBar } from '@/components/home/HomeTopBar';
 import { LoyaltyCard } from '@/components/home/LoyaltyCard';
-import { QuickActions } from '@/components/home/QuickActions';
 import { UsualOrderCard } from '@/components/home/UsualOrderCard';
 import { VisitRewardBanner } from '@/components/home/VisitRewardBanner';
 import { SpinHighlightCard } from '@/components/home/SpinHighlightCard';
@@ -90,10 +89,6 @@ export default function HomeScreen() {
         </View>
 
         <View style={styles.section}>
-          <QuickActions />
-        </View>
-
-        <View style={styles.section}>
           <PromoCarousel />
         </View>
 
@@ -139,8 +134,8 @@ export default function HomeScreen() {
 
 const styles = StyleSheet.create({
   greeting: { marginBottom: spacing.lg },
-  section: { marginBottom: spacing.xl },
-  heroSection: { marginBottom: spacing.xl + spacing.xs },
+  section: { marginBottom: spacing.xl + spacing.xs },
+  heroSection: { marginBottom: spacing.xl + spacing.sm },
   branchHeader: {
     flexDirection: 'row',
     alignItems: 'center',
