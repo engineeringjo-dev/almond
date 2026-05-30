@@ -1,0 +1,55 @@
+:root {
+  --dark: #1c1208;
+  --brown: #6b3f1f;
+  --gold: #c8962a;
+  --light-gold: #e8c86a;
+  --cream: #f5efe0;
+  --card: #fdfaf4;
+  --warm-gray: #8c7b6b;
+  --green: #2d6a4f;
+  --red: #c0392b;
+  font-family: 'Tajawal', system-ui, -apple-system, 'Segoe UI', sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--cream);
+  color: var(--dark);
+}
+
+button {
+  font-family: inherit;
+  cursor: pointer;
+}
+
+input,
+select {
+  font-family: inherit;
+}
+
+input:focus,
+select:focus {
+  outline: 2px solid var(--gold);
+}
+
+h1,
+h2,
+h3 {
+  margin: 0;
+}
+
+a {
+  color: var(--gold);
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--warm-gray);
+  border-radius: 6px;
+}
