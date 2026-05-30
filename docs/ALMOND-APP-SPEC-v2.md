@@ -671,5 +671,22 @@ Pickup; points earned on **all** payment methods; consistent bottom-tab nav; sim
 referral + rating 50 pts (one-time); Friday "+50% ☕"; 10 branches; order-type-first; nearest-branch
 + Google Maps; wallet; redeem; all payment methods; brunch combo −1.000; Odoo/loyalty mock switch.
 
+# UX RESEARCH REFINEMENTS — APPLIED (Baymard + café research)
+
+Source: `docs/UX-RESEARCH-REFINEMENTS.md`.
+
+1. **Fewer steps:** single focused checkout; **sticky confirm button shows the total** (no scroll).
+2. **Payment prominence:** methods reordered (wallet, CliQ first, then cards, points);
+   "earn points with every payment method" reassurance.
+3. **Pre-order hero:** Smart Pickup copy "تخطَّ الطابور — جاهز عند وصولك ✨"; chooser marks Pickup recommended.
+4. **Visual review before confirm:** `ReviewSheet` shows each item (icon/photo) + size +
+   customizations + price + branch + ready time + payment + totals, with quick "Edit".
+5. **Warm microcopy:** Cup "اقتربت من قهوتك المجانية! ☕", tier "خطوة وتصير ذهبي ✨",
+   empty cart "كوبك ينتظرك — لنبدأ؟", post-order "تمام! نجهّز لك ألذ قهوة 🎉", gentle errors.
+6. **Personalization:** My Usual + one-tap reorder (prominent) + smart pairing suggestion
+   ("جرّب مع لاتيه؟") + name/time greeting.
+7. **Simplicity:** decluttered Home (removed redundant quick-actions), more breathing space,
+   consistent bottom-tab nav.
+
 *Almond Coffee House — Evora for Food & Beverages — Amman, Jordan*
-*Spec v2.0 + Revision Pack v1 + Master Pack — FINAL — May 2026*
+*Spec v2.0 + Revision Pack v1 + Master Pack + UX Refinements — FINAL — May 2026*
