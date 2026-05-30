@@ -1,8 +1,10 @@
-import { Pressable, StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View, Image } from 'react-native';
 import { Text } from '@/components/ui/Text';
+import { Icon } from '@/components/ui/Icon';
 import { colors, radius, spacing, shadow } from '@/constants/theme';
 import { useI18n } from '@/hooks/useI18n';
 import { formatJOD } from '@/lib/format';
+import { iconForCategory } from '@/lib/productIcon';
 import type { MenuItem } from '@/types';
 
 interface Props {
@@ -24,7 +26,11 @@ export function MenuItemCard({ item, onPress }: Props) {
       accessibilityRole="button"
     >
       <View style={styles.thumb}>
-        <Text style={styles.emoji}>{item.emoji}</Text>
+        {item.imageUrl ? (
+          <Image source={{ uri: item.imageUrl }} style={styles.photo} resizeMode="cover" />
+        ) : (
+          <Icon name={iconForCategory(item.categoryId)} size={44} color={colors.brown} strokeWidth={1.6} />
+        )}
         {item.isBrunch ? (
           <View style={styles.brBadge}>
             <Text variant="caption" color={colors.dark} style={styles.brText}>
@@ -71,8 +77,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: spacing.sm,
+    overflow: 'hidden',
   },
-  emoji: { fontSize: 48 },
+  photo: { width: '100%', height: '100%' },
   brBadge: {
     position: 'absolute',
     top: spacing.sm,

@@ -161,10 +161,14 @@ export const colors = {
 
 ### 3.3 Design Principles
 - Warm premium coffee-house aesthetic
-- Cards: 16px radius, subtle shadow, cream/card backgrounds
+- Cards: 16px radius, soft deep shadow, white cards on warm cream; warm gradients on hero cards
 - Gold accents only on CTAs, prices, active states
 - Animations: 300ms ease; spring for the wheel & cup fill
 - RTL-first; mirror everything for English
+- **Icons (Revision Pack §M):** one unified line-icon family (`lucide-react-native`)
+  via `<Icon>` for products, categories, and UI — no mixed/broken emoji. Each
+  category maps to a consistent icon. `MenuItem.imageUrl` is reserved for real
+  product photos (falls back to the category icon).
 
 ---
 

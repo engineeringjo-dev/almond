@@ -1,7 +1,9 @@
 import { ScrollView, Pressable, StyleSheet } from 'react-native';
 import { Text } from '@/components/ui/Text';
+import { Icon } from '@/components/ui/Icon';
 import { colors, radius, spacing } from '@/constants/theme';
 import { useI18n } from '@/hooks/useI18n';
+import { iconForCategory } from '@/lib/productIcon';
 import type { Category } from '@/types';
 
 interface Props {
@@ -28,6 +30,12 @@ export function CategoryChips({ categories, activeId, onSelect }: Props) {
             accessibilityRole="button"
             accessibilityState={{ selected: active }}
           >
+            <Icon
+              name={iconForCategory(c.id)}
+              size={16}
+              color={active ? colors.dark : colors.warmGray}
+              strokeWidth={2}
+            />
             <Text variant="bodyBold" color={active ? colors.dark : colors.warmGray}>
               {lang === 'ar' ? c.nameAr : c.nameEn}
             </Text>
@@ -41,6 +49,9 @@ export function CategoryChips({ categories, activeId, onSelect }: Props) {
 const styles = StyleSheet.create({
   row: { gap: spacing.sm, paddingVertical: spacing.xs, paddingEnd: spacing.lg },
   chip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.sm,
     borderRadius: radius.pill,

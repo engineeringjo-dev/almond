@@ -2,10 +2,12 @@ import { View, StyleSheet, Pressable } from 'react-native';
 import { router } from 'expo-router';
 
 import { Text } from '@/components/ui/Text';
+import { Icon } from '@/components/ui/Icon';
 import { colors, spacing, radius, shadow } from '@/constants/theme';
 import { useI18n } from '@/hooks/useI18n';
 import { useUsualOrder } from '@/hooks/useOrder';
 import { useCartStore, lineUnitPrice } from '@/stores/cartStore';
+import { iconForItem } from '@/lib/productIcon';
 import { formatJOD } from '@/lib/format';
 
 /** "طلبك المعتاد" one-tap reorder card (section 4.4 #3, 7.2). */
@@ -33,7 +35,7 @@ export function UsualOrderCard() {
       accessibilityRole="button"
     >
       <View style={styles.iconWrap}>
-        <Text style={styles.emoji}>{usual.items[0]?.emoji ?? '☕'}</Text>
+        <Icon name={iconForItem(usual.items[0]?.itemId ?? '')} size={26} color={colors.brown} strokeWidth={1.7} />
       </View>
       <View style={styles.body}>
         <Text variant="caption" color={colors.gold}>

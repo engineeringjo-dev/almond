@@ -42,7 +42,9 @@ export interface MenuItem {
   nameEn: string;
   descAr?: string;
   descEn?: string;
-  emoji: string; // placeholder when no photo (operating rule 0.1)
+  emoji: string; // legacy placeholder (kept for data; UI uses the icon set, §M)
+  /** Real product photo when available; falls back to the category icon (§M). */
+  imageUrl?: string;
   sizes: ItemSize[];
   customizations: CustomizationGroup[];
   isBrunch?: boolean;
