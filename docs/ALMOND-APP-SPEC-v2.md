@@ -626,5 +626,25 @@ without pausing.
 
 ---
 
+# REVISION PACK v1 — APPLIED (post PR #1)
+
+All items below are implemented in the codebase (`docs/REVISION-PACK-v1.md` is the source):
+
+- **A. Tiers:** rolling 12-month spend window; thresholds Bean 0 / Silver 100 / Gold 300 / Black 750 (`services/seed.ts`, `loyalty.service.mock.ts`).
+- **B. Loyalty display:** full 4-stop tier ladder with per-tier remaining + "last 12 months" note (`TierProgress`).
+- **C. Cup:** SVG gradient cup with spring fill + glow (`components/loyalty/Cup.tsx`).
+- **D. Spin:** "اربح مجاناً 🎁" on the spin screen + prominent `SpinHighlightCard` on Home.
+- **E. Referral:** "واربح 50 نقطة" hint on Profile; prominent headline in referral screen.
+- **F. Friday:** user copy "+50% نقاط كل جمعة ☕" (logic stays ×1.5).
+- **G. Branches:** full 10-branch list (`services/seed.ts`); 7AM–midnight default, malls follow mall hours.
+- **H. Order flow:** choose type first via `OrderTypeSheet` (pickup in-app / delivery external).
+- **I. Nearest branch:** "أقرب فرع لي" button + 3 actions; Google Maps directions per branch (`lib/maps.ts`).
+- **J. Wallet:** prominent `WalletCard` on Home with top-up CTA + pay-from-balance hint.
+- **K. Redeem:** "ادفع بالنقاط" payment method at checkout (`spendPoints`, 100 pts = 1 JOD).
+- **L. Colors:** deeper high-contrast palette + warm gradients on hero cards (`constants/theme.ts`, `<Gradient>`).
+- **M. Icons:** unified lucide icon set (`<Icon>`, `lib/productIcon.ts`); `MenuItem.imageUrl` reserved for photos.
+- **N. Empty states:** friendly `EmptyState` across cart/track/orders/vouchers/inbox.
+- **O. Success factors:** premium tier badges (exclusive Black) + progress-to-next-tier on Home.
+
 *Almond Coffee House — Evora for Food & Beverages — Amman, Jordan*
-*Spec v2.0 — FINAL — May 2026*
+*Spec v2.0 + Revision Pack v1 — FINAL — May 2026*
