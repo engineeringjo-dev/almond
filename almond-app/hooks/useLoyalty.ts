@@ -35,22 +35,7 @@ export function useWallet() {
   });
 }
 
-export function useSpinConfig() {
-  return useQuery({
-    queryKey: ['loyalty', 'spin', 'config'],
-    queryFn: () => loyaltyService.getSpinConfig(),
-  });
-}
-
-export function useSpinEligibility() {
-  const userId = useUserId();
-  return useQuery({
-    queryKey: ['loyalty', 'spin', 'eligibility', userId],
-    queryFn: () => loyaltyService.getSpinEligibility(userId),
-  });
-}
-
-/** Invalidate all loyalty queries (after earn/spin/redeem/topup). */
+/** Invalidate all loyalty queries (after earn/redeem/topup). */
 export function useInvalidateLoyalty() {
   const qc = useQueryClient();
   const userId = useUserId();

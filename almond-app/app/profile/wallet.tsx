@@ -43,20 +43,15 @@ export default function WalletScreen() {
               <Text variant="h2" color={colors.gold}>
                 {formatJOD(amount, lang)}
               </Text>
-              {amount >= 50 ? (
-                <Text variant="caption" color={colors.green}>
-                  🎡 +{t('home.spinWheel')}
-                </Text>
-              ) : null}
             </Pressable>
           ))}
         </View>
 
         <Text variant="caption" color={colors.warmGray} style={styles.note}>
-          {/* Pay-from-balance bonus + 50 JOD top-up spin (section 2.4). */}
+          {/* Pay-from-balance fills the cup 1.5× faster (section 2.4). */}
           {lang === 'ar'
-            ? 'الدفع من الرصيد يملأ كوبك بمعدل 1.5، وشحن 50 د.أ يمنحك دورة بعجلة الحظ.'
-            : 'Paying from balance fills your cup at 1.5×, and a 50 JOD top-up grants a wheel spin.'}
+            ? 'الدفع من رصيدك يملأ كوبك بمعدل 1.5× أسرع.'
+            : 'Paying from your balance fills your cup 1.5× faster.'}
         </Text>
       </Screen>
     </>

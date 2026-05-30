@@ -1,5 +1,5 @@
-import { View, StyleSheet, Pressable } from 'react-native';
-import { router, Stack } from 'expo-router';
+import { View, StyleSheet } from 'react-native';
+import { Stack } from 'expo-router';
 
 import { Screen } from '@/components/ui/Screen';
 import { Text } from '@/components/ui/Text';
@@ -9,7 +9,7 @@ import { Cup } from '@/components/loyalty/Cup';
 import { TierBadge } from '@/components/loyalty/TierBadge';
 import { TierProgress } from '@/components/loyalty/TierProgress';
 import { VoucherCard } from '@/components/loyalty/VoucherCard';
-import { colors, spacing, radius, shadow } from '@/constants/theme';
+import { colors, spacing } from '@/constants/theme';
 import { config } from '@/constants/config';
 import { useI18n } from '@/hooks/useI18n';
 import { formatNumber, formatDate } from '@/lib/format';
@@ -17,7 +17,6 @@ import {
   useLoyaltyBalance,
   useVouchers,
   usePointsHistory,
-  useSpinEligibility,
   useRedeem,
 } from '@/hooks/useLoyalty';
 import type { Voucher, PointsLogEntry } from '@/types';
@@ -27,7 +26,6 @@ export default function LoyaltyScreen() {
   const balanceQ = useLoyaltyBalance();
   const vouchersQ = useVouchers();
   const historyQ = usePointsHistory();
-  const eligibilityQ = useSpinEligibility();
   const redeem = useRedeem();
 
   const loading = balanceQ.isLoading;
@@ -101,24 +99,6 @@ export default function LoyaltyScreen() {
           <TierProgress tier={balance.tier} windowSpend={balance.windowSpend} />
         </Card>
 
-        {/* Spin CTA */}
-        <Pressable onPress={() => router.push('/spin')} accessibilityRole="button">
-          <View style={styles.spinCard}>
-            <Text style={styles.spinEmoji}>🎡</Text>
-            <View style={styles.spinBody}>
-              <Text variant="title" color={colors.cream}>
-                {t('loyalty.spin')}
-              </Text>
-              <Text variant="caption" color={colors.lightGold}>
-                {eligibilityQ.data?.canSpin
-                  ? t('spin.spinsLeft', { count: eligibilityQ.data.spinsAvailable })
-                  : t('loyalty.spinCta')}
-              </Text>
-            </View>
-            <Text style={styles.chevron}>{lang === 'ar' ? '‹' : '›'}</Text>
-          </View>
-        </Pressable>
-
         {/* Vouchers */}
         <View style={styles.section}>
           <Text variant="title" style={styles.sectionTitle}>
@@ -189,19 +169,6 @@ const styles = StyleSheet.create({
   cupInfo: { flex: 1, gap: spacing.xs },
   section: { marginTop: spacing.lg },
   sectionTitle: { marginBottom: spacing.md },
-  spinCard: {
-    marginTop: spacing.lg,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
-    backgroundColor: colors.brown,
-    borderRadius: radius.lg,
-    padding: spacing.lg,
-    ...shadow.card,
-  },
-  spinEmoji: { fontSize: 40 },
-  spinBody: { flex: 1, gap: 2 },
-  chevron: { fontSize: 28, color: colors.lightGold },
   list: { gap: spacing.md },
   historyCard: { overflow: 'hidden' },
   historyRow: {

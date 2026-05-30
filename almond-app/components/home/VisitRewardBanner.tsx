@@ -28,12 +28,13 @@ export function VisitRewardBanner() {
   const use = async () => {
     await notificationService.redeemVisitReward(userId, reward.id);
     qc.invalidateQueries({ queryKey: ['rewards', 'visit', userId] });
-    router.push(reward.type === 'spin' ? '/spin' : '/(tabs)/menu');
+    // Spin wheel removed; non-discount rewards open the rewards screen.
+    router.push(reward.type === 'discount' ? '/(tabs)/menu' : '/loyalty');
   };
 
   return (
     <Pressable style={styles.card} onPress={use} accessibilityRole="button">
-      <Text style={styles.emoji}>{reward.type === 'spin' ? '🎡' : '🏷️'}</Text>
+      <Text style={styles.emoji}>🎁</Text>
       <View style={styles.body}>
         <Text variant="bodyBold" color={colors.cream}>
           {title}
