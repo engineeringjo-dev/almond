@@ -279,12 +279,13 @@ export const paymentMethods: PaymentMethod[] = [
   { id: 'wallet', nameAr: 'رصيد المحفظة', nameEn: 'Wallet', emoji: '💰' },
 ];
 
-// Tiers (section 2.4): Bean(0) → Silver(200) → Gold(600) → Black(1500).
+// Tiers (Revision Pack §A): computed from ROLLING 12-MONTH spend (not lifetime).
+// Thresholds: Bean(0) → Silver(100) → Gold(300) → Black(750).
 export const tiers: Tier[] = [
   { id: 'bean', nameAr: 'بين', nameEn: 'Bean', threshold: 0, multiplier: 1.0, color: '#8C6239' },
-  { id: 'silver', nameAr: 'فضي', nameEn: 'Silver', threshold: 200, multiplier: 1.25, color: '#9AA0A6' },
-  { id: 'gold', nameAr: 'ذهبي', nameEn: 'Gold', threshold: 600, multiplier: 1.5, color: '#C9A06A' },
-  { id: 'black', nameAr: 'أسود', nameEn: 'Black', threshold: 1500, multiplier: 2.0, color: '#2B2B2B' },
+  { id: 'silver', nameAr: 'فضي', nameEn: 'Silver', threshold: 100, multiplier: 1.25, color: '#9AA0A6' },
+  { id: 'gold', nameAr: 'ذهبي', nameEn: 'Gold', threshold: 300, multiplier: 1.5, color: '#C9A06A' },
+  { id: 'black', nameAr: 'أسود', nameEn: 'Black', threshold: 750, multiplier: 2.0, color: '#2B2B2B' },
 ];
 
 export function tierFromSpend(spend: number): Tier {

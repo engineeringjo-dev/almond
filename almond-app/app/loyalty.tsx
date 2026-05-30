@@ -95,7 +95,7 @@ export default function LoyaltyScreen() {
           <Text variant="title" style={styles.sectionTitle}>
             {t('loyalty.tier')}
           </Text>
-          <TierProgress tier={balance.tier} lifetimeSpend={balance.lifetimeSpend} />
+          <TierProgress tier={balance.tier} windowSpend={balance.windowSpend} />
         </Card>
 
         {/* Spin CTA */}

@@ -162,7 +162,8 @@ export interface CupState {
 export interface LoyaltyBalance {
   userId: string;
   points: number;
-  lifetimeSpend: number;
+  /** Qualifying spend within the rolling 12-month window (Revision Pack §A). */
+  windowSpend: number;
   tier: TierId;
   multiplier: number;
   cup: CupState;
