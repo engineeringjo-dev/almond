@@ -13,7 +13,7 @@ import { Button } from './Button';
 import { useI18n } from '@/hooks/useI18n';
 
 interface Props {
-  children: ReactNode;
+  children?: ReactNode;
   scroll?: boolean;
   loading?: boolean;
   error?: boolean;
