@@ -148,36 +148,39 @@ export default function CartScreen() {
         <OrderTypeTabs value={orderType} onChange={setOrderType} />
 
         {orderType === 'delivery' ? (
+          // Delivery is handled entirely off-app (section 7.4): no in-app cart,
+          // payment, or summary — just a clear explainer + external hand-off.
           <View style={styles.deliveryBox}>
             <Text style={styles.deliveryEmoji}>🛵</Text>
+            <Text variant="title" center>
+              {t('cart.delivery')}
+            </Text>
             <Text variant="body" color={colors.warmGray} center>
               {t('cart.deliveryNote')}
             </Text>
           </View>
         ) : (
-          <View style={styles.section}>
-            {orderType === 'pickup' ? (
-              <PickupInfo
-                branch={branch}
-                estimate={estimate}
-                onChangeBranch={() => setPickerOpen(true)}
-              />
-            ) : (
-              <BranchCard branch={branch!} onPress={() => setPickerOpen(true)} />
-            )}
-          </View>
-        )}
-
-        <View style={styles.section}>
-          <View style={styles.lines}>
-            {items.map((line) => (
-              <CartLine key={line.lineId} line={line} />
-            ))}
-          </View>
-        </View>
-
-        {orderType !== 'delivery' ? (
           <>
+            <View style={styles.section}>
+              {orderType === 'pickup' ? (
+                <PickupInfo
+                  branch={branch}
+                  estimate={estimate}
+                  onChangeBranch={() => setPickerOpen(true)}
+                />
+              ) : (
+                <BranchCard branch={branch!} onPress={() => setPickerOpen(true)} />
+              )}
+            </View>
+
+            <View style={styles.section}>
+              <View style={styles.lines}>
+                {items.map((line) => (
+                  <CartLine key={line.lineId} line={line} />
+                ))}
+              </View>
+            </View>
+
             <View style={styles.section}>
               <PromoInput
                 subtotal={totals.subtotal}
@@ -202,7 +205,7 @@ export default function CartScreen() {
               />
             </View>
           </>
-        ) : null}
+        )}
       </Screen>
 
       <View style={styles.footer}>
