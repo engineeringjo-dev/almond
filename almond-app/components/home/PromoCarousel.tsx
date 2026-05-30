@@ -18,7 +18,7 @@ interface Promo {
 // the admin campaign engine (section 14.1).
 const promos: Promo[] = [
   { id: 'brunch', emoji: '🍳', titleAr: 'عرض البرانش — وفّر 1.000 د.أ', titleEn: 'Brunch combo — save 1.000 JOD', bg: colors.brown, onPress: () => router.push('/(tabs)/menu') },
-  { id: 'friday', emoji: '✨', titleAr: 'جمعة ألموند: نقاط ×1.5', titleEn: 'Almond Friday: 1.5× points', bg: colors.dark, onPress: () => router.push('/loyalty') },
+  { id: 'friday', emoji: '☕', titleAr: '+50% نقاط كل جمعة ☕', titleEn: '+50% points every Friday ☕', bg: colors.dark, onPress: () => router.push('/loyalty') },
   { id: 'spin', emoji: '🎡', titleAr: 'جرّب عجلة الحظ', titleEn: 'Try the lucky wheel', bg: colors.gold, onPress: () => router.push('/spin') },
 ];
 
