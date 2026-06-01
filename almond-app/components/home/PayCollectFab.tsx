@@ -21,8 +21,8 @@ export function PayCollectFab() {
       accessibilityRole="button"
       accessibilityLabel={t('pay.fabLabel')}
     >
-      <Icon name="qr" size={22} color={colors.dark} />
-      <Text variant="bodyBold" color={colors.dark} style={styles.label}>
+      <Icon name="qr" size={22} color={colors.white} />
+      <Text variant="bodyBold" color={colors.white} style={styles.label}>
         {t('pay.fabLabel')}
       </Text>
     </Pressable>
@@ -39,7 +39,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
-    backgroundColor: colors.gold,
+    // Black & white for maximum contrast against the warm background (clear signifier).
+    backgroundColor: '#000000',
+    borderWidth: 1.5,
+    borderColor: '#FFFFFF',
     borderRadius: radius.pill,
     paddingVertical: spacing.md,
     paddingHorizontal: spacing.lg,
