@@ -115,11 +115,16 @@ export const shadow = {
   },
 } as const;
 
-// Gradient presets derived from the active theme (used with <Gradient>).
+// Gradient presets. gold/dark/mocha derive from the active theme; rainbow +
+// purple are fixed brand gradients (from the design PDF) used on hero blocks.
 export const gradients = {
   gold: ['#E0B868', theme.accent] as const,
   dark: [theme.primary, theme.primaryDark] as const,
   mocha: [theme.secondary, theme.primaryDark] as const,
+  // Points / loyalty hero — soft pastel rainbow (light → purple).
+  rainbow: ['#EAF4EC', '#F7F1D4', '#F3D9B6', '#E6A2AF', '#C796C1'] as const,
+  // All other hero blocks — lavender → blue.
+  purple: ['#C2B9DB', '#9DAAD1', '#6E9AC4', '#4A8EBB'] as const,
 };
 
 /**

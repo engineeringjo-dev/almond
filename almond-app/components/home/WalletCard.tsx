@@ -18,32 +18,33 @@ export function WalletCard() {
   const { data: balance } = useWallet();
 
   return (
-    <Gradient preset="dark" style={styles.card}>
+    <Gradient preset="purple" style={styles.card}>
       <View style={styles.topRow}>
         <View style={styles.iconWrap}>
-          <Icon name="wallet" size={24} color={colors.gold} />
+          <Icon name="wallet" size={24} color={colors.white} />
         </View>
         <View style={styles.balanceBox}>
-          <Text variant="caption" color={colors.lightGold}>
+          <Text variant="caption" color={colors.white}>
             {t('home.walletBalance')}
           </Text>
-          <Text variant="h1" color={colors.cream}>
+          <Text variant="h1" color={colors.white}>
             {formatJOD(balance ?? 0, lang)}
           </Text>
         </View>
       </View>
 
-      <Text variant="caption" color={colors.lightGold} style={styles.hint}>
+      <Text variant="caption" color={colors.white} style={styles.hint}>
         {t('home.walletHint')}
       </Text>
 
+      {/* Gold button → white background, black text (per design). */}
       <Pressable
         style={({ pressed }) => [styles.cta, pressed && styles.pressed]}
         onPress={() => router.push('/profile/wallet')}
         accessibilityRole="button"
       >
-        <Icon name="plus" size={18} color={colors.dark} />
-        <Text variant="bodyBold" color={colors.dark}>
+        <Icon name="plus" size={18} color="#000000" />
+        <Text variant="bodyBold" color="#000000">
           {t('home.topUpWallet')}
         </Text>
       </Pressable>
@@ -64,7 +65,7 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: radius.md,
-    backgroundColor: colors.brown,
+    backgroundColor: 'rgba(255,255,255,0.18)',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -75,7 +76,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: spacing.sm,
-    backgroundColor: colors.gold,
+    backgroundColor: '#FFFFFF',
     borderRadius: radius.md,
     paddingVertical: spacing.md,
   },

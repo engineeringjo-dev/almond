@@ -22,18 +22,19 @@ export function LoyaltyCard() {
       onPress={() => router.push('/loyalty')}
       accessibilityRole="button"
     >
-      <Gradient preset="dark" style={styles.card}>
+      {/* Points hero uses the pastel rainbow gradient → dark text for contrast. */}
+      <Gradient preset="rainbow" style={styles.card}>
         {isLoading || !data ? (
           <View style={styles.loading}>
-            <ActivityIndicator color={colors.gold} />
+            <ActivityIndicator color={colors.dark} />
           </View>
         ) : (
           <>
             <View style={styles.left}>
-              <Text variant="caption" color={colors.lightGold}>
+              <Text variant="caption" color={colors.brown}>
                 {t('home.loyaltyPoints')}
               </Text>
-              <Text variant="display" color={colors.cream} style={styles.points}>
+              <Text variant="display" color={colors.dark} style={styles.points}>
                 {formatNumber(data.points, lang)}
               </Text>
               <TierBadge tier={data.tier} />
@@ -43,7 +44,7 @@ export function LoyaltyCard() {
                 if (!next) return null;
                 const remaining = Math.max(0, next.threshold - data.windowSpend);
                 return (
-                  <Text variant="caption" color={colors.lightGold}>
+                  <Text variant="caption" color={colors.brown}>
                     {remaining <= 30
                       ? t('loyalty.tierClose', { tier: t(`tiers.${next.id}`) })
                       : t('home.toNextTier', {
@@ -56,7 +57,7 @@ export function LoyaltyCard() {
             </View>
             <View style={styles.right}>
               <Cup current={data.cup.current} target={data.cup.target} size={96} />
-              <Text variant="caption" color={colors.lightGold} center style={styles.cupLabel}>
+              <Text variant="caption" color={colors.brown} center style={styles.cupLabel}>
                 {data.cup.target - data.cup.current <= 3 && data.cup.current < data.cup.target
                   ? t('loyalty.cupClose')
                   : t('loyalty.cupProgress', {

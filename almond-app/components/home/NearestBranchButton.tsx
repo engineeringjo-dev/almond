@@ -49,12 +49,12 @@ export function NearestBranchButton() {
         accessibilityRole="button"
       >
         <View style={styles.iconWrap}>
-          <Icon name="map-pin" size={22} color={colors.dark} />
+          <Icon name="map-pin" size={22} color="#000000" />
         </View>
-        <Text variant="title" color={colors.dark} style={styles.btnLabel}>
+        <Text variant="title" color="#000000" style={styles.btnLabel}>
           {t('home.myNearestBranch')}
         </Text>
-        <Icon name="navigation" size={20} color={colors.dark} />
+        <Icon name="navigation" size={20} color="#000000" />
       </Pressable>
 
       <BottomSheet visible={open} onClose={() => setOpen(false)} title={t('home.myNearestBranch')}>
@@ -97,7 +97,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.md,
-    backgroundColor: colors.gold,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1.5,
+    borderColor: '#000000',
     borderRadius: radius.lg,
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.md,
@@ -108,7 +110,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: radius.md,
-    backgroundColor: colors.lightGold,
+    backgroundColor: colors.cream,
     alignItems: 'center',
     justifyContent: 'center',
   },
