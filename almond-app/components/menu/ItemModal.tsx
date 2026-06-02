@@ -10,6 +10,7 @@ import { colors, spacing, radius } from '@/constants/theme';
 import { useI18n } from '@/hooks/useI18n';
 import { formatJOD } from '@/lib/format';
 import { iconForCategory } from '@/lib/productIcon';
+import { getSizeUpsell, getItemPairings } from '@/lib/recommendations';
 import { useCartStore } from '@/stores/cartStore';
 import type { MenuItem, ItemSize, CartCustomization } from '@/types';
 
@@ -26,6 +27,7 @@ export function ItemModal({ item, visible, onClose }: Props) {
   const [sizeId, setSizeId] = useState<ItemSize['id']>('M');
   const [selected, setSelected] = useState<Record<string, string[]>>({});
   const [qty, setQty] = useState(1);
+  const [pairAdded, setPairAdded] = useState<Record<string, boolean>>({});
 
   // Reset state whenever a new item opens; default single-choice to first option.
   useEffect(() => {
@@ -60,6 +62,10 @@ export function ItemModal({ item, visible, onClose }: Props) {
   const total = unit * qty;
 
   if (!item || !size) return null;
+
+  // Upsell + cross-sell (Starbucks-style).
+  const upsell = getSizeUpsell(item, sizeId);
+  const pairings = getItemPairings(item, 4);
 
   const toggle = (groupId: string, optId: string, multiple: boolean) => {
     setSelected((prev) => {
@@ -137,6 +143,19 @@ export function ItemModal({ item, visible, onClose }: Props) {
         </Section>
       ) : null}
 
+      {/* Size upsell (Starbucks "upsize") */}
+      {upsell ? (
+        <Pressable style={styles.upsell} onPress={() => setSizeId(upsell.size.id)}>
+          <Text style={styles.upsellIcon}>⬆️</Text>
+          <Text variant="bodyBold" color={colors.dark} style={styles.flex}>
+            {t('menu.upsize', {
+              size: lang === 'ar' ? upsell.size.nameAr : upsell.size.nameEn,
+              delta: formatJOD(upsell.delta, lang),
+            })}
+          </Text>
+        </Pressable>
+      ) : null}
+
       {item.customizations.map((g) => (
         <Section key={g.id} title={lang === 'ar' ? g.nameAr : g.nameEn}>
           <View style={styles.optionWrap}>
@@ -162,6 +181,35 @@ export function ItemModal({ item, visible, onClose }: Props) {
       <Section title={t('menu.quantity')}>
         <Stepper value={qty} onChange={setQty} />
       </Section>
+
+      {/* Cross-sell: goes great with */}
+      {pairings.length > 0 ? (
+        <Section title={t('menu.pairsWith')}>
+          <View style={styles.pairWrap}>
+            {pairings.map((p) => {
+              const isAdded = pairAdded[p.id];
+              return (
+                <Pressable
+                  key={p.id}
+                  style={[styles.pairChip, isAdded && styles.pairChipAdded]}
+                  onPress={() => {
+                    addItem(p, p.sizes[0], [], 1);
+                    setPairAdded((prev) => ({ ...prev, [p.id]: true }));
+                  }}
+                >
+                  <Icon name={iconForCategory(p.categoryId)} size={18} color={isAdded ? colors.white : colors.primary} strokeWidth={1.8} />
+                  <Text variant="caption" color={isAdded ? colors.white : colors.dark}>
+                    {lang === 'ar' ? p.nameAr : p.nameEn}
+                  </Text>
+                  <Text variant="caption" color={isAdded ? colors.white : colors.gold}>
+                    {isAdded ? t('menu.added') : `+${formatJOD(Math.min(...p.sizes.map((s) => s.price)), lang)}`}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+        </Section>
+      ) : null}
     </BottomSheet>
   );
 }
@@ -191,6 +239,30 @@ const styles = StyleSheet.create({
     padding: spacing.md,
     marginBottom: spacing.md,
   },
+  flex: { flex: 1 },
+  upsell: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    backgroundColor: colors.lightGold,
+    borderRadius: radius.md,
+    padding: spacing.md,
+    marginBottom: spacing.lg,
+  },
+  upsellIcon: { fontSize: 16 },
+  pairWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
+  pairChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    backgroundColor: colors.cardBg,
+    borderWidth: 1.5,
+    borderColor: colors.lightGold,
+    borderRadius: radius.pill,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+  },
+  pairChipAdded: { backgroundColor: colors.green, borderColor: colors.green },
   section: { marginBottom: spacing.lg },
   sectionTitle: { marginBottom: spacing.sm },
   optionRow: { flexDirection: 'row', gap: spacing.sm },

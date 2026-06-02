@@ -5,11 +5,12 @@ import { Screen } from '@/components/ui/Screen';
 import { Text } from '@/components/ui/Text';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
+import { Gradient } from '@/components/ui/Gradient';
 import { Cup } from '@/components/loyalty/Cup';
 import { TierBadge } from '@/components/loyalty/TierBadge';
 import { TierProgress } from '@/components/loyalty/TierProgress';
 import { VoucherCard } from '@/components/loyalty/VoucherCard';
-import { colors, spacing } from '@/constants/theme';
+import { colors, spacing, radius, shadow } from '@/constants/theme';
 import { config } from '@/constants/config';
 import { useI18n } from '@/hooks/useI18n';
 import { formatNumber, formatDate } from '@/lib/format';
@@ -46,15 +47,15 @@ export default function LoyaltyScreen() {
     <>
       <Stack.Screen options={{ headerShown: true, title: t('loyalty.title') }} />
       <Screen onRefresh={balanceQ.refetch}>
-        {/* Points balance */}
-        <Card style={styles.pointsCard}>
-          <Text variant="caption" color={colors.lightGold}>
+        {/* Points balance — pastel rainbow hero, dark text for contrast */}
+        <Gradient preset="rainbow" style={styles.pointsCard}>
+          <Text variant="caption" color={colors.brown}>
             {t('loyalty.yourPoints')}
           </Text>
-          <Text variant="display" color={colors.cream}>
+          <Text variant="display" color={colors.dark}>
             {formatNumber(balance.points, lang)}
           </Text>
-          <Text variant="caption" color={colors.lightGold}>
+          <Text variant="caption" color={colors.brown}>
             {t('loyalty.worth', { jod: worth })}
           </Text>
           <View style={styles.tierRow}>
@@ -63,13 +64,13 @@ export default function LoyaltyScreen() {
           {redeemable >= 100 ? (
             <Button
               title={`${t('loyalty.redeem')} (${redeemable} → ${(redeemable / 100).toFixed(0)} ${t('common.currency')})`}
-              variant="outline"
+              variant="primary"
               onPress={() => redeem.mutate(redeemable)}
               loading={redeem.isPending}
               style={styles.redeemBtn}
             />
           ) : null}
-        </Card>
+        </Gradient>
 
         {/* Cup */}
         <Card style={styles.cupCard}>
@@ -157,7 +158,14 @@ export default function LoyaltyScreen() {
 }
 
 const styles = StyleSheet.create({
-  pointsCard: { backgroundColor: colors.dark, alignItems: 'center', gap: spacing.xs },
+  pointsCard: {
+    alignItems: 'center',
+    gap: spacing.xs,
+    borderRadius: radius.lg,
+    padding: spacing.lg,
+    overflow: 'hidden',
+    ...shadow.card,
+  },
   tierRow: { marginTop: spacing.sm },
   redeemBtn: { marginTop: spacing.md, alignSelf: 'stretch' },
   cupCard: {

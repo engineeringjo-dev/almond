@@ -48,7 +48,7 @@ export function Button({
       accessibilityState={{ disabled: isDisabled }}
     >
       {loading ? (
-        <ActivityIndicator color={variant === 'primary' ? colors.dark : colors.gold} />
+        <ActivityIndicator color={variant === 'primary' ? '#000000' : colors.gold} />
       ) : (
         <View style={styles.row}>
           {leadingEmoji ? <Text style={styles.emoji}>{leadingEmoji} </Text> : null}
@@ -60,7 +60,7 @@ export function Button({
 }
 
 const labelColor: Record<Variant, { color: string }> = {
-  primary: { color: colors.dark },
+  primary: { color: '#000000' }, // black text on the white primary button
   secondary: { color: colors.cream },
   outline: { color: colors.gold },
   ghost: { color: colors.brown },
@@ -76,7 +76,12 @@ const styles = StyleSheet.create({
   },
   fullWidth: { alignSelf: 'stretch' },
   row: { flexDirection: 'row', alignItems: 'center' },
-  primary: { backgroundColor: colors.gold },
+  // Gold button → white background, black text, thin border for definition on cream.
+  primary: {
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1.5,
+    borderColor: '#000000',
+  },
   secondary: { backgroundColor: colors.dark },
   outline: { borderWidth: 1.5, borderColor: colors.gold, backgroundColor: 'transparent' },
   ghost: { backgroundColor: 'transparent' },

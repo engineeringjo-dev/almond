@@ -14,7 +14,7 @@ import { PromoInput } from '@/components/cart/PromoInput';
 import { Summary } from '@/components/cart/Summary';
 import { PaymentMethods } from '@/components/cart/PaymentMethods';
 import { ReviewSheet } from '@/components/cart/ReviewSheet';
-import { SuggestionRow } from '@/components/cart/SuggestionRow';
+import { CrossSellRow } from '@/components/cart/CrossSellRow';
 import { BranchCard } from '@/components/branch/BranchCard';
 import { BranchPicker } from '@/components/branch/BranchPicker';
 import { colors, spacing } from '@/constants/theme';
@@ -196,7 +196,7 @@ export default function CartScreen() {
             </View>
 
             <View style={styles.section}>
-              <SuggestionRow items={items} />
+              <CrossSellRow items={items} />
             </View>
 
             <View style={styles.section}>

@@ -115,26 +115,32 @@ export const shadow = {
   },
 } as const;
 
-// Gradient presets derived from the active theme (used with <Gradient>).
+// Gradient presets. gold/dark/mocha derive from the active theme; rainbow +
+// purple are fixed brand gradients (from the design PDF) used on hero blocks.
 export const gradients = {
   gold: ['#E0B868', theme.accent] as const,
   dark: [theme.primary, theme.primaryDark] as const,
   mocha: [theme.secondary, theme.primaryDark] as const,
+  // Points / loyalty hero — soft pastel rainbow (light → purple).
+  rainbow: ['#EAF4EC', '#F7F1D4', '#F3D9B6', '#E6A2AF', '#C796C1'] as const,
+  // All other hero blocks — lavender → blue.
+  purple: ['#C2B9DB', '#9DAAD1', '#6E9AC4', '#4A8EBB'] as const,
 };
 
 /**
- * Font families. Arabic body: Tajawal. English headings: Playfair Display.
- * English body: Inter. Keys map to loaded font names in constants/fonts.ts.
+ * Font families — Helvetica Neue (bilingual Arabic+Latin). Only Light/Roman/Bold
+ * weights exist, so 'medium' maps to Bold for emphasis. Keys map to loaded font
+ * names in constants/fonts.ts.
  */
 export const fontFamily = {
-  light: 'Tajawal_300Light',
-  regular: 'Tajawal_400Regular',
-  medium: 'Tajawal_500Medium',
-  bold: 'Tajawal_700Bold',
-  serif: 'PlayfairDisplay_700Bold', // English headings
-  serifRegular: 'PlayfairDisplay_400Regular',
-  inter: 'Inter_400Regular',
-  interBold: 'Inter_600SemiBold',
+  light: 'HelveticaNeueArabic-Light',
+  regular: 'HelveticaNeueArabic-Roman',
+  medium: 'HelveticaNeueArabic-Bold',
+  bold: 'HelveticaNeueArabic-Bold',
+  serif: 'HelveticaNeueArabic-Bold', // headings (Helvetica is sans — no serif)
+  serifRegular: 'HelveticaNeueArabic-Roman',
+  inter: 'HelveticaNeueArabic-Roman',
+  interBold: 'HelveticaNeueArabic-Bold',
 } as const;
 
 export const fontSize = {
