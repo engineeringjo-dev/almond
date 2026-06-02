@@ -3,6 +3,7 @@ import { router } from 'expo-router';
 import { useQueryClient } from '@tanstack/react-query';
 
 import { Text } from '@/components/ui/Text';
+import { Gradient } from '@/components/ui/Gradient';
 import { colors, spacing, radius, shadow } from '@/constants/theme';
 import { useI18n } from '@/hooks/useI18n';
 import { useCountdown } from '@/hooks/useCountdown';
@@ -33,39 +34,41 @@ export function VisitRewardBanner() {
   };
 
   return (
-    <Pressable style={styles.card} onPress={use} accessibilityRole="button">
-      <Text style={styles.emoji}>🎁</Text>
-      <View style={styles.body}>
-        <Text variant="bodyBold" color={colors.cream}>
-          {title}
-        </Text>
-        <Text variant="caption" color={colors.lightGold}>
-          {t('visitReward.validFor')} {label}
-        </Text>
-      </View>
-      <View style={styles.cta}>
-        <Text variant="bodyBold" color={colors.dark}>
-          {t('visitReward.use')}
-        </Text>
-      </View>
+    <Pressable style={styles.shadow} onPress={use} accessibilityRole="button">
+      <Gradient preset="purple" style={styles.card}>
+        <Text style={styles.emoji}>🎁</Text>
+        <View style={styles.body}>
+          <Text variant="bodyBold" color={colors.white}>
+            {title}
+          </Text>
+          <Text variant="caption" color={colors.white}>
+            {t('visitReward.validFor')} {label}
+          </Text>
+        </View>
+        <View style={styles.cta}>
+          <Text variant="bodyBold" color="#000000">
+            {t('visitReward.use')}
+          </Text>
+        </View>
+      </Gradient>
     </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
+  shadow: { borderRadius: radius.lg, ...shadow.card },
   card: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.md,
-    backgroundColor: colors.green,
     borderRadius: radius.lg,
     padding: spacing.md,
-    ...shadow.card,
+    overflow: 'hidden',
   },
   emoji: { fontSize: 28 },
   body: { flex: 1, gap: 2 },
   cta: {
-    backgroundColor: colors.lightGold,
+    backgroundColor: '#FFFFFF',
     borderRadius: radius.pill,
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.sm,

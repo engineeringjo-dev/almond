@@ -5,10 +5,11 @@ import { router } from 'expo-router';
 import { Screen } from '@/components/ui/Screen';
 import { Text } from '@/components/ui/Text';
 import { Card } from '@/components/ui/Card';
+import { Gradient } from '@/components/ui/Gradient';
 import { ListRow } from '@/components/ui/ListRow';
 import { TierBadge } from '@/components/loyalty/TierBadge';
 import { LanguageSheet } from '@/components/profile/LanguageSheet';
-import { colors, spacing } from '@/constants/theme';
+import { colors, spacing, radius, shadow } from '@/constants/theme';
 import { useI18n } from '@/hooks/useI18n';
 import { formatJOD } from '@/lib/format';
 import { useAuthStore } from '@/stores/authStore';
@@ -36,21 +37,21 @@ export default function ProfileScreen() {
           {t('profile.title')}
         </Text>
 
-        {/* Header card */}
-        <Card style={styles.header}>
+        {/* Header card — purple identity hero */}
+        <Gradient preset="purple" style={styles.header}>
           <View style={styles.avatar}>
             <Text style={styles.avatarText}>{isGuest ? '👤' : '☕'}</Text>
           </View>
           <View style={styles.headerBody}>
-            <Text variant="h2">{isGuest ? t('home.guest') : user?.name}</Text>
+            <Text variant="h2" color={colors.white}>{isGuest ? t('home.guest') : user?.name}</Text>
             {!isGuest && user?.phone ? (
-              <Text variant="caption" color={colors.warmGray}>
+              <Text variant="caption" color={colors.white}>
                 {user.phone}
               </Text>
             ) : null}
             {balance ? <TierBadge tier={balance.tier} small /> : null}
           </View>
-        </Card>
+        </Gradient>
 
         {/* Menu */}
         <Card padded={false} style={styles.menu}>
@@ -92,12 +93,20 @@ export default function ProfileScreen() {
 
 const styles = StyleSheet.create({
   title: { marginBottom: spacing.lg },
-  header: { flexDirection: 'row', alignItems: 'center', gap: spacing.lg },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.lg,
+    borderRadius: radius.lg,
+    padding: spacing.lg,
+    overflow: 'hidden',
+    ...shadow.card,
+  },
   avatar: {
     width: 64,
     height: 64,
     borderRadius: 32,
-    backgroundColor: colors.cream,
+    backgroundColor: 'rgba(255,255,255,0.22)',
     alignItems: 'center',
     justifyContent: 'center',
   },

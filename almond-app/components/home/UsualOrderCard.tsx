@@ -3,6 +3,7 @@ import { router } from 'expo-router';
 
 import { Text } from '@/components/ui/Text';
 import { Icon } from '@/components/ui/Icon';
+import { Gradient } from '@/components/ui/Gradient';
 import { colors, spacing, radius, shadow } from '@/constants/theme';
 import { useI18n } from '@/hooks/useI18n';
 import { useUsualOrder } from '@/hooks/useOrder';
@@ -30,51 +31,51 @@ export function UsualOrderCard() {
 
   return (
     <Pressable
-      style={({ pressed }) => [styles.card, pressed && styles.pressed]}
+      style={({ pressed }) => [styles.shadow, pressed && styles.pressed]}
       onPress={addAll}
       accessibilityRole="button"
     >
-      <View style={styles.iconWrap}>
-        <Icon name={iconForItem(usual.items[0]?.itemId ?? '')} size={26} color={colors.brown} strokeWidth={1.7} />
-      </View>
-      <View style={styles.body}>
-        <Text variant="caption" color={colors.gold}>
-          {t('home.usualOrder')}
-        </Text>
-        <Text variant="bodyBold" numberOfLines={1}>
-          {summary}
-        </Text>
-        <Text variant="caption" color={colors.warmGray}>
-          {t('home.usualOrderCta')} · {formatJOD(total, lang)}
-        </Text>
-      </View>
-      <Text style={styles.plus}>＋</Text>
+      <Gradient preset="purple" style={styles.card}>
+        <View style={styles.iconWrap}>
+          <Icon name={iconForItem(usual.items[0]?.itemId ?? '')} size={26} color={colors.white} strokeWidth={1.7} />
+        </View>
+        <View style={styles.body}>
+          <Text variant="caption" color={colors.white} style={styles.label}>
+            {t('home.usualOrder')}
+          </Text>
+          <Text variant="bodyBold" color={colors.white} numberOfLines={1}>
+            {summary}
+          </Text>
+          <Text variant="caption" color={colors.white}>
+            {t('home.usualOrderCta')} · {formatJOD(total, lang)}
+          </Text>
+        </View>
+        <Text style={styles.plus}>＋</Text>
+      </Gradient>
     </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
+  shadow: { borderRadius: radius.lg, ...shadow.card },
   card: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.cardBg,
     borderRadius: radius.lg,
     padding: spacing.md,
     gap: spacing.md,
-    borderWidth: 1,
-    borderColor: colors.lightGold,
-    ...shadow.card,
+    overflow: 'hidden',
   },
   pressed: { opacity: 0.85 },
   iconWrap: {
     width: 52,
     height: 52,
     borderRadius: radius.md,
-    backgroundColor: colors.cream,
+    backgroundColor: 'rgba(255,255,255,0.2)',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  emoji: { fontSize: 28 },
+  label: { opacity: 0.85 },
   body: { flex: 1, gap: 2 },
-  plus: { fontSize: 28, color: colors.gold, paddingHorizontal: spacing.sm },
+  plus: { fontSize: 28, color: colors.white, paddingHorizontal: spacing.sm },
 });

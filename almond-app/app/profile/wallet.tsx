@@ -4,6 +4,7 @@ import { Stack } from 'expo-router';
 import { Screen } from '@/components/ui/Screen';
 import { Text } from '@/components/ui/Text';
 import { Card } from '@/components/ui/Card';
+import { Gradient } from '@/components/ui/Gradient';
 import { colors, spacing, radius, shadow } from '@/constants/theme';
 import { useI18n } from '@/hooks/useI18n';
 import { formatJOD } from '@/lib/format';
@@ -20,14 +21,14 @@ export default function WalletScreen() {
     <>
       <Stack.Screen options={{ title: t('profile.wallet') }} />
       <Screen loading={isLoading} error={isError} onRetry={refetch}>
-        <Card style={styles.balanceCard}>
-          <Text variant="caption" color={colors.lightGold}>
+        <Gradient preset="purple" style={styles.balanceCard}>
+          <Text variant="caption" color={colors.white}>
             {t('profile.walletBalance')}
           </Text>
-          <Text variant="display" color={colors.cream}>
+          <Text variant="display" color={colors.white}>
             {formatJOD(balance ?? 0, lang)}
           </Text>
-        </Card>
+        </Gradient>
 
         <Text variant="title" style={styles.heading}>
           {t('profile.topUp')}
@@ -59,7 +60,14 @@ export default function WalletScreen() {
 }
 
 const styles = StyleSheet.create({
-  balanceCard: { backgroundColor: colors.dark, alignItems: 'center', gap: spacing.xs },
+  balanceCard: {
+    alignItems: 'center',
+    gap: spacing.xs,
+    borderRadius: radius.lg,
+    padding: spacing.lg,
+    overflow: 'hidden',
+    ...shadow.card,
+  },
   heading: { marginTop: spacing.xl, marginBottom: spacing.md },
   options: { flexDirection: 'row', gap: spacing.md },
   option: {
