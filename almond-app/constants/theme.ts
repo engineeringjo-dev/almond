@@ -21,19 +21,21 @@ export interface AppTheme {
   error: string;
 }
 
-// Experimental green theme (Starbucks-style comparison).
+// Active brand theme — violet/purple identity (matches the gradient design).
+// Greens are replaced by violet across the app; success stays green for
+// open/closed semantics, accent stays gold for prices/highlights.
 export const greenTheme: AppTheme = {
-  primary: '#00704A',
-  primaryDark: '#1E3932',
-  accent: '#D4A24E',
+  primary: '#6C5CB4', // violet — tab active, brand icons, active states
+  primaryDark: '#2E2552', // deep violet — primary text + dark surfaces
+  accent: '#D4A24E', // gold — prices / small highlights
   accentLight: '#F0D89A',
-  secondary: '#2A5A47',
-  neutralWarm: '#D4E9E2',
+  secondary: '#8478C0', // lighter violet
+  neutralWarm: '#E7E3F0', // soft lavender tint (icon chips / thumbs)
   cream: '#F7F4EF',
   cardBg: '#FFFFFF',
-  textPrimary: '#1E3932',
-  textSecondary: '#6B7B74',
-  success: '#00704A',
+  textPrimary: '#2E2552',
+  textSecondary: '#7A7390', // muted violet-gray secondary text
+  success: '#2D6A4F', // green kept for open/closed + success
   error: '#C0392B',
 };
 
