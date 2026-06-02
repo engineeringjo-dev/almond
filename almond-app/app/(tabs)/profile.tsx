@@ -6,6 +6,8 @@ import { Screen } from '@/components/ui/Screen';
 import { Text } from '@/components/ui/Text';
 import { Card } from '@/components/ui/Card';
 import { Gradient } from '@/components/ui/Gradient';
+import { Logo } from '@/components/ui/Logo';
+import { Icon } from '@/components/ui/Icon';
 import { ListRow } from '@/components/ui/ListRow';
 import { TierBadge } from '@/components/loyalty/TierBadge';
 import { LanguageSheet } from '@/components/profile/LanguageSheet';
@@ -40,7 +42,11 @@ export default function ProfileScreen() {
         {/* Header card — purple identity hero */}
         <Gradient preset="purple" style={styles.header}>
           <View style={styles.avatar}>
-            <Text style={styles.avatarText}>{isGuest ? '👤' : '☕'}</Text>
+            {isGuest ? (
+              <Icon name="user" size={30} color={colors.white} />
+            ) : (
+              <Logo variant="badge" tone="light" size={40} />
+            )}
           </View>
           <View style={styles.headerBody}>
             <Text variant="h2" color={colors.white}>{isGuest ? t('home.guest') : user?.name}</Text>

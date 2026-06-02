@@ -12,6 +12,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Text } from '@/components/ui/Text';
 import { Button } from '@/components/ui/Button';
+import { Logo } from '@/components/ui/Logo';
 import { colors, spacing, radius, fontFamily, fontSize } from '@/constants/theme';
 import { useI18n } from '@/hooks/useI18n';
 import { authService } from '@/services/auth.service';
@@ -49,7 +50,7 @@ export default function Login() {
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
         <View style={styles.content}>
-          <Text style={styles.logo}>☕</Text>
+          <Logo variant="wordmark" tone="dark" size={240} style={styles.logo} />
           <Text variant="h1" center style={styles.title}>
             {t('auth.phoneTitle')}
           </Text>
@@ -96,7 +97,7 @@ const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.cream },
   flex: { flex: 1 },
   content: { flex: 1, justifyContent: 'center', padding: spacing.xl },
-  logo: { fontSize: 64, textAlign: 'center', marginBottom: spacing.lg },
+  logo: { alignSelf: 'center', marginBottom: spacing.lg },
   title: { marginBottom: spacing.sm },
   subtitle: { marginBottom: spacing.xl },
   inputRow: {

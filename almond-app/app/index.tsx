@@ -5,6 +5,7 @@ import { router } from 'expo-router';
 import { colors, spacing, radius } from '@/constants/theme';
 import { Text } from '@/components/ui/Text';
 import { Gradient } from '@/components/ui/Gradient';
+import { Logo } from '@/components/ui/Logo';
 import { useAppStore } from '@/stores/appStore';
 
 /**
@@ -34,12 +35,9 @@ export default function Splash() {
 
   return (
     <Gradient preset="rainbow" style={styles.container}>
-      <Text style={styles.logo}>☕</Text>
-      <Text variant="h1" color={colors.dark} center style={styles.title}>
-        ألموند كوفي هاوس
-      </Text>
+      <Logo variant="wordmark" tone="dark" size={260} style={styles.logo} />
       <Text variant="caption" color={colors.brown} center>
-        Almond Coffee House
+        ألموند كوفي هاوس
       </Text>
       <View style={styles.barTrack}>
         <Animated.View style={[styles.barFill, { width }]} />
@@ -55,8 +53,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     padding: spacing.xl,
   },
-  logo: { fontSize: 88, marginBottom: spacing.lg },
-  title: { marginBottom: spacing.xs },
+  logo: { marginBottom: spacing.md },
   barTrack: {
     marginTop: spacing.xxl,
     height: 6,

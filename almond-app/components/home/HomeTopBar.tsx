@@ -3,6 +3,7 @@ import { router } from 'expo-router';
 
 import { Text } from '@/components/ui/Text';
 import { Icon } from '@/components/ui/Icon';
+import { Logo } from '@/components/ui/Logo';
 import { colors, spacing, radius } from '@/constants/theme';
 import { useI18n } from '@/hooks/useI18n';
 import { useCartCount } from '@/stores/cartStore';
@@ -25,7 +26,7 @@ export function HomeTopBar({ branch, onBranchPress }: Props) {
   return (
     <View style={styles.bar}>
       <View style={styles.logo}>
-        <Icon name="coffee" size={26} color={colors.primary} strokeWidth={2.2} />
+        <Logo variant="badge" tone="dark" size={34} />
       </View>
 
       <Pressable style={styles.chip} onPress={onBranchPress} hitSlop={6}>
@@ -62,7 +63,7 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
     paddingBottom: spacing.md,
   },
-  logo: { width: 32, alignItems: 'center', justifyContent: 'center' },
+  logo: { width: 38, alignItems: 'center', justifyContent: 'center' },
   chip: {
     flex: 1,
     flexDirection: 'row',
