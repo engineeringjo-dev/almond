@@ -1,0 +1,7 @@
+# Root-level junk must never be committed. Each app has its own package.json
+# inside its folder (almond-app/, admin-panel/).
+node_modules/
+/package.json
+/package-lock.json
+.DS_Store
+*.log
