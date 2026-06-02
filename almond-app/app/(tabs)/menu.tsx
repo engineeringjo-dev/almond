@@ -7,6 +7,7 @@ import { SearchBar } from '@/components/ui/SearchBar';
 import { CategoryChips } from '@/components/menu/CategoryChips';
 import { MenuItemCard } from '@/components/menu/MenuItemCard';
 import { ItemModal } from '@/components/menu/ItemModal';
+import { Logo } from '@/components/ui/Logo';
 import { FadeIn } from '@/components/ui/FadeIn';
 import { colors, spacing } from '@/constants/theme';
 import { useI18n } from '@/hooks/useI18n';
@@ -48,9 +49,12 @@ export default function MenuScreen() {
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
       <View style={styles.header}>
-        <Text variant="h1" style={styles.title}>
-          {t('menu.title')}
-        </Text>
+        <View style={styles.titleRow}>
+          <Logo variant="badge" tone="dark" size={28} />
+          <Text variant="h1" style={styles.title}>
+            {t('menu.title')}
+          </Text>
+        </View>
         <SearchBar value={query} onChangeText={setQuery} placeholder={t('menu.searchPlaceholder')} />
       </View>
 
@@ -98,6 +102,7 @@ export default function MenuScreen() {
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.cream },
   header: { paddingHorizontal: spacing.lg, paddingTop: spacing.sm, gap: spacing.md },
+  titleRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   title: {},
   chips: { paddingHorizontal: spacing.lg, marginTop: spacing.md },
   list: { padding: spacing.lg, gap: spacing.md, paddingBottom: spacing.xxl * 2 },

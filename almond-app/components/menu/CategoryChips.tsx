@@ -33,10 +33,10 @@ export function CategoryChips({ categories, activeId, onSelect }: Props) {
             <Icon
               name={iconForCategory(c.id)}
               size={16}
-              color={active ? colors.dark : colors.warmGray}
+              color={active ? colors.white : colors.warmGray}
               strokeWidth={2}
             />
-            <Text variant="bodyBold" color={active ? colors.dark : colors.warmGray}>
+            <Text variant="bodyBold" color={active ? colors.white : colors.warmGray}>
               {lang === 'ar' ? c.nameAr : c.nameEn}
             </Text>
           </Pressable>
@@ -57,5 +57,5 @@ const styles = StyleSheet.create({
     borderRadius: radius.pill,
     backgroundColor: colors.cardBg,
   },
-  chipActive: { backgroundColor: colors.gold },
+  chipActive: { backgroundColor: colors.primary },
 });

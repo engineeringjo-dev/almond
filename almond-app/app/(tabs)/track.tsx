@@ -9,6 +9,7 @@ import { colors, spacing, radius } from '@/constants/theme';
 import { useI18n } from '@/hooks/useI18n';
 import { useActiveOrders } from '@/hooks/useOrder';
 import { formatTime } from '@/lib/format';
+import { Logo } from '@/components/ui/Logo';
 import type { Order } from '@/types';
 
 const STATUS_EMOJI: Record<string, string> = {
@@ -42,9 +43,12 @@ export default function TrackScreen() {
 
   return (
     <Screen onRefresh={refetch}>
-      <Text variant="h1" style={styles.title}>
-        {t('track.title')}
-      </Text>
+      <View style={styles.titleRow}>
+        <Logo variant="badge" tone="dark" size={28} />
+        <Text variant="h1" style={styles.title}>
+          {t('track.title')}
+        </Text>
+      </View>
       <View style={styles.list}>
         {orders.map((o: Order) => (
           <Pressable
@@ -82,7 +86,8 @@ export default function TrackScreen() {
 }
 
 const styles = StyleSheet.create({
-  title: { marginBottom: spacing.lg },
+  titleRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginBottom: spacing.lg },
+  title: {},
   list: { gap: spacing.md },
   row: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
   statusBadge: {

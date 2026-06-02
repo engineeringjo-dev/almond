@@ -6,9 +6,10 @@ import { Screen } from '@/components/ui/Screen';
 import { Text } from '@/components/ui/Text';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
+import { Gradient } from '@/components/ui/Gradient';
 import { StatusTimeline } from '@/components/order/StatusTimeline';
 import { RatingSheet } from '@/components/order/RatingSheet';
-import { colors, spacing } from '@/constants/theme';
+import { colors, spacing, radius, shadow } from '@/constants/theme';
 import { useI18n } from '@/hooks/useI18n';
 import { useOrder, useAdvanceOrder } from '@/hooks/useOrder';
 import { useCountdown } from '@/hooks/useCountdown';
@@ -53,32 +54,34 @@ export default function OrderTracking() {
     <>
       <Stack.Screen options={{ headerShown: true, title: t('track.title'), headerBackTitle: t('common.back') }} />
       <Screen>
-        <Card style={styles.headerCard}>
-          <View style={styles.headerRow}>
-            <View>
-              <Text variant="caption" color={colors.warmGray}>
-                {t('track.orderNumber')}
-              </Text>
-              <Text variant="h2">{order.id.slice(-6).toUpperCase()}</Text>
+        <View style={styles.headerShadow}>
+          <Gradient preset="purple" style={styles.headerCard}>
+            <View style={styles.headerRow}>
+              <View>
+                <Text variant="caption" color={colors.white}>
+                  {t('track.orderNumber')}
+                </Text>
+                <Text variant="h2" color={colors.white}>{order.id.slice(-6).toUpperCase()}</Text>
+              </View>
+              <View style={styles.branch}>
+                <Text variant="caption" color={colors.white}>
+                  📍 {branchName}
+                </Text>
+              </View>
             </View>
-            <View style={styles.branch}>
-              <Text variant="caption" color={colors.warmGray}>
-                📍 {branchName}
-              </Text>
-            </View>
-          </View>
 
-          {showCountdown ? (
-            <View style={styles.countdown}>
-              <Text variant="caption" color={colors.warmGray}>
-                {t('track.readyIn')}
-              </Text>
-              <Text variant="display" color={colors.gold}>
-                {label}
-              </Text>
-            </View>
-          ) : null}
-        </Card>
+            {showCountdown ? (
+              <View style={styles.countdown}>
+                <Text variant="caption" color={colors.white}>
+                  {t('track.readyIn')}
+                </Text>
+                <Text variant="display" color={colors.white}>
+                  {label}
+                </Text>
+              </View>
+            ) : null}
+          </Gradient>
+        </View>
 
         {order.status === 'cancelled' ? (
           <Card style={styles.cancelledCard}>
@@ -116,7 +119,8 @@ export default function OrderTracking() {
 }
 
 const styles = StyleSheet.create({
-  headerCard: { gap: spacing.lg },
+  headerShadow: { borderRadius: radius.lg, ...shadow.card },
+  headerCard: { gap: spacing.lg, borderRadius: radius.lg, padding: spacing.lg, overflow: 'hidden' },
   headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
   branch: { alignItems: 'flex-end' },
   countdown: { alignItems: 'center', gap: spacing.xs },
