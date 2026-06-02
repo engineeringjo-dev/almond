@@ -89,7 +89,10 @@
     "customize": "خصّص طلبك",
     "total": "الإجمالي",
     "brunchOffer": "عرض البرانش: أضف مشروباً ووفّر 1.000 د.أ",
-    "outOfStock": "غير متوفر حالياً"
+    "outOfStock": "غير متوفر حالياً",
+    "pairsWith": "يُطلب عادةً مع",
+    "upsize": "كبّرها إلى {{size}} بـ +{{delta}}",
+    "added": "تمت الإضافة ✓"
   },
   "customization": {
     "milk": "الحليب",
@@ -129,7 +132,8 @@
     "reviewTitle": "راجع طلبك",
     "reviewCta": "مراجعة الطلب",
     "edit": "تعديل",
-    "suggestion": "جرّب مع {{item}}؟"
+    "suggestion": "جرّب مع {{item}}؟",
+    "crossSellTitle": "أكمل طلبك ☕"
   },
   "payment": {
     "cash": "نقداً",

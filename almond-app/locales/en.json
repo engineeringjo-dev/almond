@@ -89,7 +89,10 @@
     "customize": "Customize",
     "total": "Total",
     "brunchOffer": "Brunch offer: add a drink and save 1.000 JOD",
-    "outOfStock": "Out of stock"
+    "outOfStock": "Out of stock",
+    "pairsWith": "Goes great with",
+    "upsize": "Upsize to {{size}} for +{{delta}}",
+    "added": "Added ✓"
   },
   "customization": {
     "milk": "Milk",
@@ -129,7 +132,8 @@
     "reviewTitle": "Review your order",
     "reviewCta": "Review order",
     "edit": "Edit",
-    "suggestion": "Try it with {{item}}?"
+    "suggestion": "Try it with {{item}}?",
+    "crossSellTitle": "Complete your order ☕"
   },
   "payment": {
     "cash": "Cash",
