@@ -1,6 +1,8 @@
 import { View, StyleSheet, Pressable } from 'react-native';
 import { Text } from '@/components/ui/Text';
-import { colors, radius, spacing } from '@/constants/theme';
+import { Gradient } from '@/components/ui/Gradient';
+import { Icon } from '@/components/ui/Icon';
+import { colors, radius, spacing, shadow } from '@/constants/theme';
 import { useI18n } from '@/hooks/useI18n';
 import type { Branch } from '@/types';
 import type { PickupEstimate } from '@/lib/pickup';
@@ -11,53 +13,66 @@ interface Props {
   onChangeBranch: () => void;
 }
 
-/** Smart-pickup branch + ready-time estimate (sections 4.6, 7.3). */
+/** Smart-pickup branch + ready-time estimate — purple gradient hero (matches design). */
 export function PickupInfo({ branch, estimate, onChangeBranch }: Props) {
   const { t, lang } = useI18n();
   return (
-    <View style={styles.card}>
-      <View style={styles.branchRow}>
-        <View style={styles.left}>
-          <Text variant="caption" color={colors.warmGray}>
-            {t('cart.branch')}
-          </Text>
-          <Text variant="bodyBold">
-            📍 {branch ? (lang === 'ar' ? branch.nameAr : branch.nameEn) : '—'}
+    <View style={styles.shadow}>
+      <Gradient preset="purple" style={styles.card}>
+        <View style={styles.branchRow}>
+          <View style={styles.left}>
+            <Text variant="caption" color={colors.white}>
+              {t('cart.branch')}
+            </Text>
+            <View style={styles.branchName}>
+              <Icon name="map-pin" size={16} color={colors.white} />
+              <Text variant="bodyBold" color={colors.white}>
+                {branch ? (lang === 'ar' ? branch.nameAr : branch.nameEn) : '—'}
+              </Text>
+            </View>
+          </View>
+          <Pressable onPress={onChangeBranch} hitSlop={8} style={styles.changeBtn}>
+            <Text variant="caption" color="#000000">
+              {t('cart.change')}
+            </Text>
+          </Pressable>
+        </View>
+
+        <View style={styles.estimate}>
+          <Text style={styles.sparkle}>{estimate.readyOnArrival ? '✨' : '⏱️'}</Text>
+          <Text variant="bodyBold" color="#000000" style={styles.estimateText}>
+            {estimate.readyOnArrival
+              ? t('cart.readyOnArrival')
+              : t('cart.readyIn', { min: estimate.prepMinutes })}
           </Text>
         </View>
-        <Pressable onPress={onChangeBranch} hitSlop={8}>
-          <Text variant="caption" color={colors.gold}>
-            {t('cart.change')}
-          </Text>
-        </Pressable>
-      </View>
-
-      <View style={styles.estimate}>
-        <Text style={styles.sparkle}>{estimate.readyOnArrival ? '✨' : '⏱️'}</Text>
-        <Text variant="bodyBold" color={colors.dark} style={styles.estimateText}>
-          {estimate.readyOnArrival
-            ? t('cart.readyOnArrival')
-            : t('cart.readyIn', { min: estimate.prepMinutes })}
-        </Text>
-      </View>
+      </Gradient>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
+  shadow: { borderRadius: radius.lg, ...shadow.card },
   card: {
-    backgroundColor: colors.cardBg,
     borderRadius: radius.lg,
     padding: spacing.lg,
     gap: spacing.md,
+    overflow: 'hidden',
   },
   branchRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   left: { gap: 2 },
+  branchName: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
+  changeBtn: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: radius.pill,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+  },
   estimate: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
-    backgroundColor: colors.lightGold,
+    backgroundColor: '#FFFFFF',
     borderRadius: radius.md,
     padding: spacing.md,
   },

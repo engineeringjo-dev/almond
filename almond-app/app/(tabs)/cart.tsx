@@ -17,6 +17,7 @@ import { ReviewSheet } from '@/components/cart/ReviewSheet';
 import { CrossSellRow } from '@/components/cart/CrossSellRow';
 import { BranchCard } from '@/components/branch/BranchCard';
 import { BranchPicker } from '@/components/branch/BranchPicker';
+import { Logo } from '@/components/ui/Logo';
 import { colors, spacing } from '@/constants/theme';
 import { config } from '@/constants/config';
 import { useI18n } from '@/hooks/useI18n';
@@ -155,9 +156,12 @@ export default function CartScreen() {
   return (
     <>
       <Screen>
-        <Text variant="h1" style={styles.title}>
-          {t('cart.title')}
-        </Text>
+        <View style={styles.titleRow}>
+          <Logo variant="badge" tone="dark" size={28} />
+          <Text variant="h1" style={styles.title}>
+            {t('cart.title')}
+          </Text>
+        </View>
 
         <OrderTypeTabs value={orderType} onChange={setOrderType} />
 
@@ -271,7 +275,8 @@ export default function CartScreen() {
 }
 
 const styles = StyleSheet.create({
-  title: { marginBottom: spacing.lg },
+  titleRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginBottom: spacing.lg },
+  title: {},
   section: { marginTop: spacing.lg },
   sectionTitle: { marginBottom: spacing.md },
   earnNote: { marginBottom: spacing.md, marginTop: -spacing.sm },
