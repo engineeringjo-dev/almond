@@ -7,7 +7,7 @@
     "scheme": "almond",
     "userInterfaceStyle": "light",
     "splash": {
-      "backgroundColor": "#1C1208",
+      "backgroundColor": "#F7F4EF",
       "resizeMode": "contain"
     },
     "assetBundlePatterns": ["**/*"],
