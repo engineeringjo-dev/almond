@@ -301,7 +301,13 @@ export type GiftOccasion =
   | 'thankyou'
   | 'congrats'
   | 'celebration'
-  | 'loveyou';
+  | 'loveyou'
+  | 'eid'
+  | 'ramadan'
+  | 'graduation'
+  | 'wedding'
+  | 'newbaby'
+  | 'getwell';
 
 export interface GiftCard {
   id: string;
