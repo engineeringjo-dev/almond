@@ -9,6 +9,7 @@ import type {
   PaymentMethodId,
 } from '@/types';
 import { config } from '@/constants/config';
+import { useToastStore } from './toastStore';
 
 interface CartState {
   items: CartItem[];
@@ -54,8 +55,10 @@ export const useCartStore = create<CartState>((set) => ({
   promoCode: null,
   promoDiscount: 0,
 
-  addItem: (item, size, customizations, qty) =>
-    set((state) => {
+  addItem: (item, size, customizations, qty) => {
+    // Visual "added to cart" confirmation (Spec §4.2).
+    useToastStore.getState().showAdded({ itemId: item.id, nameAr: item.nameAr, nameEn: item.nameEn });
+    return set((state) => {
       const lineId = buildLineId(item.id, size.id, customizations);
       const existing = state.items.find((l) => l.lineId === lineId);
       if (existing) {
@@ -82,7 +85,8 @@ export const useCartStore = create<CartState>((set) => ({
         prepMinutes: item.prepMinutes,
       };
       return { items: [...state.items, line] };
-    }),
+    });
+  },
 
   addLine: (line) =>
     set((state) => {
