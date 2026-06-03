@@ -171,6 +171,8 @@ export interface LoyaltyBalance {
   tier: TierId;
   multiplier: number;
   cup: CupState;
+  /** When the current beans expire (null = never, for Gold/Black). */
+  beansExpireAt?: string | null;
 }
 
 export type VoucherType = 'credit' | 'free-item' | 'discount';

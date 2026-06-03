@@ -278,7 +278,9 @@
     "statusSubAbove": "{{spend}}+ JOD a year",
     "routineTitle": "Get rewarded for your routine",
     "routineSub": "As your status grows, so do your benefits",
-    "maxValueHint": "Value is a max — pay the difference if the item costs more"
+    "maxValueHint": "Value is a max — pay the difference if the item costs more",
+    "beansNeverExpire": "Your beans never expire ✓",
+    "beansExpire": "Your beans are active until {{date}}"
   },
   "rewardItems": {
     "smallDrink": "Free small drink",
@@ -373,5 +375,11 @@
     "validFor": "Valid for",
     "spinTitle": "You got a free wheel spin!",
     "use": "Use now"
+  },
+  "bonusDay": {
+    "title": "{{label}} today!",
+    "body": "Activate to earn {{mult}}× beans on today's order",
+    "activate": "Activate now",
+    "activated": "Activated ✓ — {{mult}}× beans today"
   }
 }

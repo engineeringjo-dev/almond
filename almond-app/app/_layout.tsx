@@ -10,6 +10,7 @@ import { initI18n } from '@/lib/i18n';
 import { useAppStore } from '@/stores/appStore';
 import { useAuthStore } from '@/stores/authStore';
 import { useFavouritesStore } from '@/stores/favouritesStore';
+import { usePromoStore } from '@/stores/promoStore';
 import { useAppFonts } from '@/constants/fonts';
 import { ErrorBoundary } from '@/components/ui/ErrorBoundary';
 import { CartToast } from '@/components/ui/CartToast';
@@ -35,13 +36,15 @@ export default function RootLayout() {
   const hydrated = useAppStore((s) => s.hydrated);
   const hydrateAuth = useAuthStore((s) => s.hydrate);
   const hydrateFavourites = useFavouritesStore((s) => s.hydrate);
+  const hydratePromo = usePromoStore((s) => s.hydrate);
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
     hydrate();
     hydrateAuth();
     hydrateFavourites();
-  }, [hydrate, hydrateAuth, hydrateFavourites]);
+    hydratePromo();
+  }, [hydrate, hydrateAuth, hydrateFavourites, hydratePromo]);
 
   useEffect(() => {
     if ((fontsLoaded || fontsLoaded === undefined) && hydrated) {

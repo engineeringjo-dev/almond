@@ -17,6 +17,8 @@ export interface EarnInput {
   invoiceAmount: number;
   paidFromBalance: boolean;
   isFriday?: boolean;
+  /** Extra multiplier from an activated bonus-bean day (e.g. 2 = double). */
+  bonusMultiplier?: number;
 }
 
 export interface LoyaltyService {

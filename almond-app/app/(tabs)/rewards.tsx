@@ -18,10 +18,11 @@ import { Icon, type IconName } from '@/components/ui/Icon';
 import { Gradient } from '@/components/ui/Gradient';
 import { Logo } from '@/components/ui/Logo';
 import { TierBadge } from '@/components/loyalty/TierBadge';
+import { BonusDayBanner } from '@/components/loyalty/BonusDayBanner';
 import { colors, spacing, radius, shadow } from '@/constants/theme';
 import { config } from '@/constants/config';
 import { useI18n } from '@/hooks/useI18n';
-import { formatNumber } from '@/lib/format';
+import { formatNumber, formatDate } from '@/lib/format';
 import { useLoyaltyBalance, useRedeem } from '@/hooks/useLoyalty';
 import { tiers, tierFromSpend, nextTier } from '@/services/seed';
 import type { TierId } from '@/types';
@@ -102,6 +103,11 @@ export default function RewardsScreen() {
         <Text variant="h1">{t('rewards.title')}</Text>
       </View>
 
+      {/* Activatable Double Beans Day (only renders when today qualifies) */}
+      <View style={styles.bannerWrap}>
+        <BonusDayBanner />
+      </View>
+
       {/* Beans balance — pastel rainbow hero, dark text for contrast */}
       <Gradient preset="rainbow" style={styles.pointsCard}>
         <Text variant="caption" color={colors.brown}>
@@ -112,6 +118,11 @@ export default function RewardsScreen() {
         </Text>
         <Text variant="caption" color={colors.brown}>
           {t('pay.worth', { jod: worth })}
+        </Text>
+        <Text variant="caption" color={colors.brown}>
+          {balance.beansExpireAt
+            ? t('rewards.beansExpire', { date: formatDate(balance.beansExpireAt, lang) })
+            : t('rewards.beansNeverExpire')}
         </Text>
         <View style={styles.tierRow}>
           <TierBadge tier={balance.tier} />
@@ -289,6 +300,7 @@ export default function RewardsScreen() {
 
 const styles = StyleSheet.create({
   titleRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginBottom: spacing.lg },
+  bannerWrap: { marginBottom: spacing.lg },
   flex: { flex: 1 },
   pointsCard: {
     alignItems: 'center',

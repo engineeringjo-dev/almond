@@ -31,6 +31,8 @@ import { computePickupEstimate } from '@/lib/pickup';
 import { formatJOD } from '@/lib/format';
 import { paymentService } from '@/services/payment.service';
 import { loyaltyService } from '@/services/loyalty.service';
+import { usePromoStore } from '@/stores/promoStore';
+import { activeBonusDay } from '@/lib/bonusDay';
 import { aggregatorService } from '@/services/aggregator.service';
 
 export default function CartScreen() {
@@ -124,11 +126,14 @@ export default function CartScreen() {
         promoCode: promoCode ?? undefined,
       });
 
-      // Award loyalty points + cup beans (section 8.2). Server does this in prod.
+      // Award loyalty beans + cup (section 8.2). Server does this in prod.
+      const bonusDay = activeBonusDay();
+      const bonusActive = !!bonusDay && usePromoStore.getState().isActivatedToday();
       await loyaltyService.earn({
         userId,
         invoiceAmount: totals.total,
         paidFromBalance: paymentMethod === 'wallet',
+        bonusMultiplier: bonusActive ? bonusDay!.multiplier : 1,
       });
       invalidateLoyalty();
 

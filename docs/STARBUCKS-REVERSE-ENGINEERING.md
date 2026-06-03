@@ -160,22 +160,26 @@ We take **mechanics only** — never their copy, marks, or "Stars". Mapped to Al
 - **"Beans don't expire" as a top-tier perk** → loss-aversion flipped into a
   reward (Gold/Black benefit line). Positive framing, no punishment of regulars.
 
-### Documented for later ⬜ (deliberate, not built now)
-- **Two-balance model**: a *tier* balance (earned in the 12-month window, can
-  reset/drop) separate from the *redeemable* balance. We already approximate
-  this (tier from rolling spend vs redeemable beans); formalize when on Odoo.
-- **Bean expiry + activity extension**: low tiers' beans expire after inactivity
-  unless a purchase/redeem/reload extends them; top tiers never expire. Keep the
-  window **generous** (our §5 rule: never punish the regular). Configurable.
-- **Double/Triple Bean Days** (activatable promo days) — use the existing admin
-  campaign engine; surface an "Activate" banner. Not a game.
-- **Free customization once a month** (à la "Free Mod Mondays") — recurring
-  reciprocity perk via a monthly voucher.
-- **Bring-your-own-cup → double beans** — eco perk that fits Almond; needs POS
-  support to flag the transaction.
+### Adopted now ✅ (second pass)
+- **Double Beans Day (activatable)**: config-driven `BONUS_BEAN_DAY` (weekdays +
+  multiplier); member taps **Activate** (persisted per day) and the bonus
+  multiplies the order's base beans, stacking before the tier multiplier. Banner
+  on the Rewards screen. Variable-reward lever, not a game.
+- **Gentle bean expiry**: `BEAN_EXPIRY_MONTHS` (12) — Bean/Silver beans stay
+  active for a year after the last earn/reload; **Gold/Black never expire**.
+  Status shown under the beans balance ("active until …" / "never expire ✓").
+  Generous window so it nudges without punishing (§5).
+- **Guest checkout earns nothing** — already enforced (earning is gated to signed-in).
+
+### Documented for later ⬜ (need POS / voucher-application infra — don't half-ship)
+- **Two-balance model**: a *tier* balance separate from the *redeemable* balance.
+  We approximate it (tier from rolling spend vs redeemable beans); formalize on Odoo.
+- **Free customization once a month** ("Free Mod Mondays") — needs end-to-end
+  voucher application at checkout/POS to ship cleanly.
+- **Bring-your-own-cup → double beans** — eco perk that fits Almond; needs POS to
+  verify the cup at the counter (declaring it in-app alone is abusable).
 - **Returns deduct beans** (can go negative) — data-integrity rule for the Odoo
   earn/void sync.
-- **Guest checkout earns nothing** — already enforced (we gate earning to signed-in).
 
 ### Flag / product decision ⚠️
 - Starbucks Stars **have no cash value** and aren't redeemable for cash. Our beans
