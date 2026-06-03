@@ -66,7 +66,7 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: radius.md,
-    backgroundColor: colors.cream,
+    backgroundColor: colors.neutralWarm,
     alignItems: 'center',
     justifyContent: 'center',
   },

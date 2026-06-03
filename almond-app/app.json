@@ -8,7 +8,7 @@
     "userInterfaceStyle": "light",
     "icon": "./assets/icon.png",
     "splash": {
-      "backgroundColor": "#F7F4EF",
+      "backgroundColor": "#FFFFFF",
       "resizeMode": "contain"
     },
     "assetBundlePatterns": ["**/*"],

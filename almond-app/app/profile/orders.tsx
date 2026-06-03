@@ -74,7 +74,7 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-start',
     paddingTop: spacing.sm,
     borderTopWidth: 1,
-    borderTopColor: colors.cream,
+    borderTopColor: colors.neutralWarm,
     width: '100%',
   },
   empty: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: spacing.md, paddingTop: spacing.xxl },

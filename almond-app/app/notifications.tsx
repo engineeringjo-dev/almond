@@ -196,7 +196,7 @@ const styles = StyleSheet.create({
     padding: spacing.md,
     gap: spacing.md,
   },
-  settingBorder: { borderTopWidth: 1, borderTopColor: colors.cream },
+  settingBorder: { borderTopWidth: 1, borderTopColor: colors.neutralWarm },
   settingLabel: { flex: 1, gap: 2 },
   list: { gap: spacing.md },
   notif: { flexDirection: 'row', gap: spacing.md, alignItems: 'flex-start' },
@@ -208,7 +208,7 @@ const styles = StyleSheet.create({
   emptyEmoji: { fontSize: 56 },
   explainerOverlay: {
     position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
-    backgroundColor: 'rgba(28,18,8,0.6)',
+    backgroundColor: 'rgba(46,37,82,0.6)',
     alignItems: 'center',
     justifyContent: 'center',
     padding: spacing.xl,

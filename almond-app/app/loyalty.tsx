@@ -167,5 +167,5 @@ const styles = StyleSheet.create({
     padding: spacing.md,
   },
   historyBody: { gap: 2 },
-  historyBorder: { borderTopWidth: 1, borderTopColor: colors.cream },
+  historyBorder: { borderTopWidth: 1, borderTopColor: colors.neutralWarm },
 });

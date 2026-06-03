@@ -23,20 +23,20 @@ export interface GiftDesign {
 export const GIFT_DESIGNS: GiftDesign[] = [
   // Anytime
   { id: 'anytime-almond', occasion: 'anytime', greetingAr: 'قهوة على ذوقك', greetingEn: 'Coffee, your way', gradient: 'purple', icon: 'coffee', tone: 'light' },
-  { id: 'anytime-treat', occasion: 'anytime', greetingAr: 'القهوة عليّ', greetingEn: "It's my treat", gradient: 'gold', icon: 'coffee', tone: 'dark' },
+  { id: 'anytime-treat', occasion: 'anytime', greetingAr: 'القهوة عليّ', greetingEn: "It's my treat", gradient: 'gold', icon: 'coffee', tone: 'light' },
   // Birthday
   { id: 'birthday-cake', occasion: 'birthday', greetingAr: 'كل عام وأنت بخير 🎂', greetingEn: 'Happy Birthday', gradient: 'rainbow', icon: 'gift', tone: 'dark' },
   { id: 'birthday-celebrate', occasion: 'birthday', greetingAr: 'نحتفل فيك اليوم', greetingEn: "Let's celebrate you", gradient: 'purple', icon: 'sparkles', tone: 'light' },
   // Thank you
   { id: 'thankyou-heart', occasion: 'thankyou', greetingAr: 'شكراً لك ❤️', greetingEn: 'Thank you', gradient: 'mocha', icon: 'heart', tone: 'light' },
-  { id: 'thankyou-star', occasion: 'thankyou', greetingAr: 'أنت رائع', greetingEn: "You're a star", gradient: 'gold', icon: 'bean', tone: 'dark' },
+  { id: 'thankyou-star', occasion: 'thankyou', greetingAr: 'أنت رائع', greetingEn: "You're a star", gradient: 'gold', icon: 'bean', tone: 'light' },
   // Congrats
   { id: 'congrats-yay', occasion: 'congrats', greetingAr: 'مبروك! 🎉', greetingEn: 'Congrats!', gradient: 'rainbow', icon: 'sparkles', tone: 'dark' },
   { id: 'congrats-proud', occasion: 'congrats', greetingAr: 'فخورون فيك', greetingEn: "You did it", gradient: 'purple', icon: 'gift', tone: 'light' },
   // Celebration
   { id: 'celebration-cheers', occasion: 'celebration', greetingAr: 'بصحتك ☕', greetingEn: 'Cheers to you', gradient: 'mocha', icon: 'coffee', tone: 'light' },
   // Love you
-  { id: 'loveyou-care', occasion: 'loveyou', greetingAr: 'يومك أحلى بقهوة', greetingEn: 'A better day with coffee', gradient: 'gold', icon: 'heart', tone: 'dark' },
+  { id: 'loveyou-care', occasion: 'loveyou', greetingAr: 'يومك أحلى بقهوة', greetingEn: 'A better day with coffee', gradient: 'gold', icon: 'heart', tone: 'light' },
 ];
 
 /** Occasions in display order, with their section titles. */

@@ -21,21 +21,21 @@ export interface AppTheme {
   error: string;
 }
 
-// Active brand theme — violet/purple identity (matches the gradient design).
-// Greens are replaced by violet across the app; success stays green for
-// open/closed semantics, accent stays gold for prices/highlights.
+// Active brand theme — violet identity, ALL gold + green removed (per request).
+// Accents are violet, success is violet, backgrounds are pure white (no beige),
+// buttons are white/black, heroes use the violet gradients below.
 export const greenTheme: AppTheme = {
   primary: '#6C5CB4', // violet — tab active, brand icons, active states
   primaryDark: '#2E2552', // deep violet — primary text + dark surfaces
-  accent: '#D4A24E', // gold — prices / small highlights
-  accentLight: '#F0D89A',
+  accent: '#6C5CB4', // violet — prices / highlights (was gold)
+  accentLight: '#E3DEF3', // light violet (was light gold)
   secondary: '#8478C0', // lighter violet
-  neutralWarm: '#E7E3F0', // soft lavender tint (icon chips / thumbs)
-  cream: '#F7F4EF',
+  neutralWarm: '#ECE7F6', // soft lavender tint (icon chips / thumbs / dividers)
+  cream: '#FFFFFF', // pure white backgrounds (was beige)
   cardBg: '#FFFFFF',
   textPrimary: '#2E2552',
   textSecondary: '#7A7390', // muted violet-gray secondary text
-  success: '#2D6A4F', // green kept for open/closed + success
+  success: '#6C5CB4', // violet (was green) — success/added/open
   error: '#C0392B',
 };
 
@@ -75,11 +75,11 @@ export const colors = {
   white: '#FFFFFF',
   neutralWarm: theme.neutralWarm,
   primary: theme.primary, // brand primary (active state / brand fills)
-  // tier colors (brand-independent)
-  tierBean: '#8C6239',
-  tierSilver: '#9AA0A6',
-  tierGold: '#C9A06A',
-  tierBlack: '#2B2B2B',
+  // tier colors — a violet ramp (no gold/green), all dark enough for white text
+  tierBean: '#8478C0',
+  tierSilver: '#8A8F96',
+  tierGold: '#5E51A0',
+  tierBlack: '#2E2552',
 } as const;
 
 export const spacing = {
@@ -120,13 +120,14 @@ export const shadow = {
 // Gradient presets. gold/dark/mocha derive from the active theme; rainbow +
 // purple are fixed brand gradients (from the design PDF) used on hero blocks.
 export const gradients = {
-  gold: ['#E0B868', theme.accent] as const,
+  gold: ['#8478C0', theme.primary] as const, // (no gold) violet gradient
   dark: [theme.primary, theme.primaryDark] as const,
   mocha: [theme.secondary, theme.primaryDark] as const,
-  // Points / loyalty hero — soft pastel rainbow (light → purple).
-  rainbow: ['#EAF4EC', '#F7F1D4', '#F3D9B6', '#E6A2AF', '#C796C1'] as const,
-  // All other hero blocks — lavender → blue.
-  purple: ['#C2B9DB', '#9DAAD1', '#6E9AC4', '#4A8EBB'] as const,
+  // Hero / loading gradient — soft light violet pastels (dark text stays
+  // readable; no green/gold/yellow).
+  rainbow: ['#F4EFFB', '#EADFF5', '#E0CFEF', '#D7C0EA', '#CDB1E4'] as const,
+  // All other hero blocks — lavender → violet-blue.
+  purple: ['#C2B9DB', '#9DAAD1', '#7E84C8', '#6C5CB4'] as const,
 };
 
 /**

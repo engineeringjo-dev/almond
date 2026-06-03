@@ -78,7 +78,7 @@ const styles = StyleSheet.create({
   codeCard: { alignItems: 'center', gap: spacing.sm, marginBottom: spacing.lg },
   code: { letterSpacing: 4 },
   statusPill: {
-    backgroundColor: colors.cream,
+    backgroundColor: colors.neutralWarm,
     borderRadius: radius.pill,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.xs,

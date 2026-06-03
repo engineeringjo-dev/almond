@@ -166,7 +166,7 @@ const styles = StyleSheet.create({
     bottom: 0,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(45,106,79,0.92)',
+    backgroundColor: 'rgba(46,37,82,0.92)',
     borderRadius: radius.lg,
   },
   successBadge: {

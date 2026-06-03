@@ -17,9 +17,9 @@ export function TierBadge({ tier, small }: { tier: TierId; small?: boolean }) {
 
   const isBlack = tier === 'black';
   const bg = isBlack ? colors.dark : def.color;
-  const fg = isBlack ? colors.gold : colors.white;
-  const border = isBlack ? colors.gold : def.color;
-  const iconColor = isBlack ? colors.gold : colors.white;
+  const fg = colors.white;
+  const border = isBlack ? colors.dark : def.color;
+  const iconColor = colors.white;
   const exclusive = tier === 'gold' || tier === 'black';
 
   return (

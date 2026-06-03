@@ -269,8 +269,7 @@ export default function RewardsScreen() {
       >
         {tiers.map((tr) => {
           const isCurrent = tr.id === currentTier.id;
-          const isBlack = tr.id === 'black';
-          const fg = isBlack ? colors.gold : colors.white;
+          const fg = colors.white; // tier colours are all dark enough for white text
           const sub = tr.id === 'bean'
             ? t('rewards.statusSubBelow', { spend: tiers[1].threshold })
             : t('rewards.statusSubAbove', { spend: tr.threshold });
@@ -376,7 +375,7 @@ const styles = StyleSheet.create({
     width: 64,
     height: 64,
     borderRadius: 32,
-    backgroundColor: colors.cream,
+    backgroundColor: colors.neutralWarm,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: spacing.xs,
@@ -389,8 +388,8 @@ const styles = StyleSheet.create({
     paddingVertical: 2,
     borderRadius: radius.pill,
   },
-  rewardStatusOn: { backgroundColor: 'rgba(45,106,79,0.12)' },
-  rewardStatusOff: { backgroundColor: colors.cream },
+  rewardStatusOn: { backgroundColor: 'rgba(108,92,180,0.12)' },
+  rewardStatusOff: { backgroundColor: colors.neutralWarm },
   maxHint: { marginTop: spacing.sm },
 
   // Status carousel
