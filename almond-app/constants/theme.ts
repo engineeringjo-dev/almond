@@ -123,9 +123,9 @@ export const gradients = {
   gold: ['#8478C0', theme.primary] as const, // (no gold) violet gradient
   dark: [theme.primary, theme.primaryDark] as const,
   mocha: [theme.secondary, theme.primaryDark] as const,
-  // Hero / loading gradient — soft light violet pastels (dark text stays
-  // readable; no green/gold/yellow).
-  rainbow: ['#F4EFFB', '#EADFF5', '#E0CFEF', '#D7C0EA', '#CDB1E4'] as const,
+  // Signature colourful banner/hero + splash (the one exception to the
+  // violet-only rule — kept colourful per request). Dark text stays readable.
+  rainbow: ['#EAF4EC', '#F7F1D4', '#F3D9B6', '#E6A2AF', '#C796C1'] as const,
   // All other hero blocks — lavender → violet-blue.
   purple: ['#C2B9DB', '#9DAAD1', '#7E84C8', '#6C5CB4'] as const,
 };
