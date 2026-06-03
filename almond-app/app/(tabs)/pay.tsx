@@ -13,14 +13,12 @@ import * as Brightness from 'expo-brightness';
 
 import { Screen } from '@/components/ui/Screen';
 import { Text } from '@/components/ui/Text';
-import { Button } from '@/components/ui/Button';
 import { Icon } from '@/components/ui/Icon';
 import { Logo } from '@/components/ui/Logo';
 import { colors, spacing, radius, shadow } from '@/constants/theme';
 import { useI18n } from '@/hooks/useI18n';
 import { formatNumber } from '@/lib/format';
-import { config } from '@/constants/config';
-import { useLoyaltyBalance, useRedeem } from '@/hooks/useLoyalty';
+import { useLoyaltyBalance } from '@/hooks/useLoyalty';
 import { useUserId } from '@/stores/authStore';
 
 /**
@@ -38,7 +36,6 @@ export default function PayScreen() {
   const userId = useUserId();
   const { width } = useWindowDimensions();
   const { data: balance } = useLoyaltyBalance();
-  const redeem = useRedeem();
 
   // Personal member token encoded in the QR (TODO: replace with Odoo POS token).
   const qrValue = `ALMOND|MEMBER|${userId}`;
@@ -89,8 +86,6 @@ export default function PayScreen() {
   const [scanned] = useState(false);
 
   const points = balance?.points ?? 0;
-  const redeemable = Math.floor(points / 100) * 100;
-  const worth = (points / config.POINTS_PER_JOD_REDEEM).toFixed(3);
 
   return (
     <Screen contentStyle={styles.content}>
@@ -125,26 +120,18 @@ export default function PayScreen() {
         {t('pay.memberId')}: {userId.slice(-8).toUpperCase()}
       </Text>
 
-      {/* Points + redeem */}
-      <View style={styles.pointsCard}>
+      {/* Beans balance — redemption happens in the Rewards screen (no cash) */}
+      <Pressable style={styles.pointsCard} onPress={() => router.push('/(tabs)/rewards')}>
         <Text variant="caption" color={colors.warmGray}>
           {t('pay.yourPoints')}
         </Text>
         <Text variant="display" color={colors.primary}>
-          {formatNumber(points, lang)}
+          {formatNumber(points, lang)} ☕
         </Text>
-        <Text variant="caption" color={colors.warmGray}>
-          {t('pay.worth', { jod: worth })}
+        <Text variant="caption" color={colors.brown}>
+          {t('pay.seeRewards')}
         </Text>
-
-        <Button
-          title={`${t('pay.redeem')} · ${t('pay.redeemHint')}`}
-          onPress={() => redeemable >= 100 && redeem.mutate(redeemable)}
-          disabled={redeemable < 100}
-          loading={redeem.isPending}
-          style={styles.redeemBtn}
-        />
-      </View>
+      </Pressable>
 
       {/* Secondary, uncluttered */}
       <Pressable
@@ -203,7 +190,6 @@ const styles = StyleSheet.create({
     marginTop: spacing.xl,
     ...shadow.card,
   },
-  redeemBtn: { alignSelf: 'stretch', marginTop: spacing.md },
   historyLink: {
     flexDirection: 'row',
     alignItems: 'center',

@@ -209,7 +209,8 @@
     "redeemHint": "100 beans = 1 JOD",
     "redeemDone": "Redeemed {{jod}} JOD to your wallet",
     "history": "Beans history",
-    "memberId": "Member ID"
+    "memberId": "Member ID",
+    "seeRewards": "Redeem your beans in Rewards"
   },
   "track": {
     "title": "Track Order",
@@ -270,7 +271,23 @@
     "progressToNext": "Spend {{remaining}} JOD to reach {{tier}}",
     "tierMax": "You've reached the top tier 👑",
     "benefitsTitle": "Your tier benefits",
-    "viewHistory": "Beans history"
+    "viewHistory": "Beans history",
+    "inheritsPrevious": "+ all lower-tier benefits",
+    "headline": "Free coffee is just the beginning",
+    "headlineSub": "Collect beans and unlock more of what you love",
+    "statusSubBelow": "Less than {{spend}} JOD a year",
+    "statusSubAbove": "{{spend}}+ JOD a year",
+    "routineTitle": "Get rewarded for your routine",
+    "routineSub": "As your status grows, so do your benefits",
+    "maxValueHint": "Value is a max — pay the difference if the item costs more",
+    "beansNeverExpire": "Your beans never expire ✓",
+    "beansExpire": "Your beans are active until {{date}}",
+    "confirmTitle": "Confirm redemption",
+    "confirmBody": "Redeem “{{item}}” for {{beans}} beans?",
+    "redeemCta": "Redeem",
+    "redeemedTitle": "Redeemed 🎉",
+    "redeemedBody": "We added “{{item}}” to your vouchers — show your barcode at the counter",
+    "notEnough": "Not enough beans for this reward"
   },
   "rewardItems": {
     "smallDrink": "Free small drink",
@@ -278,19 +295,23 @@
     "largeCombo": "Large drink + pastry",
     "anyPastry": "Any pastry free",
     "freeCake": "Free slice of cake",
-    "flatDiscount": "Flat discount on any item"
+    "flatDiscount": "Flat discount on any item",
+    "customization": "Free customization (shot/syrup)",
+    "brewedCoffee": "Coffee or bakery",
+    "handcraftedDrink": "Handcrafted drink",
+    "brunchPlate": "Brunch plate",
+    "packagedCoffee": "Packaged coffee or gift"
   },
   "tierBenefits": {
-    "bean1": "Earn a bean per JOD",
+    "bean1": "Earn 5 beans per JOD",
     "bean2": "Free cup every 10 drinks",
-    "silver1": "Earn 1.25× faster",
-    "silver2": "Exclusive Silver offers",
-    "gold1": "Earn 1.5× faster",
-    "gold2": "Birthday welcome drink",
-    "gold3": "Priority preparation",
-    "black1": "Double 2× beans",
-    "black2": "Exclusive perks & surprises",
-    "black3": "Premium customer care"
+    "silver1": "Earn 1.25× beans (6.25/JOD)",
+    "silver2": "Exclusive menu offers",
+    "gold1": "Earn 1.5× beans (7.5/JOD)",
+    "gold2": "+50% beans every Friday",
+    "black1": "Earn 2× beans (10/JOD)",
+    "black2": "Exclusive rewards & surprises",
+    "gold3": "Your beans never expire while Gold or Black"
   },
   "tiers": {
     "bean": "Bean",
@@ -326,7 +347,9 @@
     "topUp": "Top up",
     "noOrders": "No past orders",
     "noAddresses": "No saved addresses",
-    "addAddress": "Add address"
+    "addAddress": "Add address",
+    "reloadBonus": "+{{beans}} bonus beans",
+    "reloadBonusNote": "Reload more and earn bonus beans instantly ☕"
   },
   "referral": {
     "title": "Invite friends",
@@ -359,5 +382,11 @@
     "validFor": "Valid for",
     "spinTitle": "You got a free wheel spin!",
     "use": "Use now"
+  },
+  "bonusDay": {
+    "title": "{{label}} today!",
+    "body": "Activate to earn {{mult}}× beans on today's order",
+    "activate": "Activate now",
+    "activated": "Activated ✓ — {{mult}}× beans today"
   }
 }

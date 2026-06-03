@@ -143,3 +143,56 @@ the next visit cheaper (in effort) and more rewarding.
 - (04, 09, 10, 12, 14, 15 — additional rewards/gift/featured frames)
 
 *Starbucks screenshots are third-party, kept only as an internal design reference.*
+
+---
+
+## 7. Lessons mined from the Starbucks Rewards Terms of Use (2026)
+
+We take **mechanics only** — never their copy, marks, or "Stars". Mapped to Almond:
+
+### Adopted now ✅
+- **Digital reload bonus** → bonus **beans** on wallet top-up (≥20 JOD → +50, ≥35
+  JOD → +120, highest tier applies, admin-set `WALLET_RELOAD_BONUS`). Strong
+  pre-commitment / sunk-cost lever; shown on the wallet screen.
+- **Redemption tiers = max value, pay the difference** → each reward is a *max*
+  value; if the item costs more, the member pays the difference (hint on the
+  rewards menu). Keeps fixed-cost tiers fair and flexible.
+- **"Beans don't expire" as a top-tier perk** → loss-aversion flipped into a
+  reward (Gold/Black benefit line). Positive framing, no punishment of regulars.
+
+### Adopted now ✅ (second pass)
+- **Double Beans Day (activatable)**: config-driven `BONUS_BEAN_DAY` (weekdays +
+  multiplier); member taps **Activate** (persisted per day) and the bonus
+  multiplies the order's base beans, stacking before the tier multiplier. Banner
+  on the Rewards screen. Variable-reward lever, not a game.
+- **Gentle bean expiry**: `BEAN_EXPIRY_MONTHS` (12) — Bean/Silver beans stay
+  active for a year after the last earn/reload; **Gold/Black never expire**.
+  Status shown under the beans balance ("active until …" / "never expire ✓").
+  Generous window so it nudges without punishing (§5).
+- **Guest checkout earns nothing** — already enforced (earning is gated to signed-in).
+
+### Documented for later ⬜ (need POS / voucher-application infra — don't half-ship)
+- **Two-balance model**: a *tier* balance separate from the *redeemable* balance.
+  We approximate it (tier from rolling spend vs redeemable beans); formalize on Odoo.
+- **Free customization once a month** ("Free Mod Mondays") — needs end-to-end
+  voucher application at checkout/POS to ship cleanly.
+- **Bring-your-own-cup → double beans** — eco perk that fits Almond; needs POS to
+  verify the cup at the counter (declaring it in-app alone is abusable).
+- **Returns deduct beans** (can go negative) — data-integrity rule for the Odoo
+  earn/void sync.
+
+### Resolved — beans follow the Starbucks model (no cash value) ✅
+- Decision taken: **beans have no cash value** and are **never** converted to
+  wallet money. They redeem only for catalog **Rewards** (vouchers) from the
+  tiered ladder. Implemented:
+  - `redeem` (beans→wallet) and `spendPoints` (pay-with-beans) **removed** from
+    the service, hook, and all screens; replaced by `redeemReward` → issues a
+    voucher and deducts beans.
+  - **Pay-with-beans** removed as a checkout payment method.
+  - Rewards-menu cards are now tappable → confirm → redeem → voucher added
+    ("show your barcode at the counter").
+  - Cash-worth lines and redeem-to-wallet buttons removed from the Rewards,
+    Pay (barcode), and Loyalty screens; beans shown as a ☕ count.
+  - Wallet keeps its real-money role (top-up, pay-from-balance +50%, reload bonus).
+- **Out of scope (prior decisions):** birthday reward, games/secret menu, full
+  gift-card system — kept out per the Order & Wallet specs.

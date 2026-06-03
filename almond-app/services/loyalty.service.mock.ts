@@ -14,6 +14,7 @@ import { config } from '@/constants/config';
 import { tierFromSpend } from './seed';
 import { delay, genId } from './util';
 import { defaultSpinConfig, pickWeightedPrize } from './spinDefaults';
+import { reloadBonusBeans } from '@/lib/walletBonus';
 
 interface SpendEntry {
   amount: number;
@@ -29,6 +30,8 @@ interface LoyaltyUser {
   vouchers: Voucher[];
   history: PointsLogEntry[];
   visits: number;
+  /** Epoch ms of the last bean-earning activity (drives gentle expiry). */
+  lastEarnAt: number;
   spinsAvailable: number;
   hasRatedBranchEver: boolean;
   hasReferralRewardEver: boolean;
@@ -81,6 +84,7 @@ function ensureUser(userId: string): LoyaltyUser {
         { id: genId('log'), deltaPoints: 15, reasonAr: 'طلب لاتيه', reasonEn: 'Latte order', createdAt: new Date(Date.now() - 86400000 * 7).toISOString() },
       ],
       visits: 4,
+      lastEarnAt: Date.now() - 86400000 * 7, // last earned a week ago
       spinsAvailable: 1,
       hasRatedBranchEver: false,
       hasReferralRewardEver: false,
@@ -92,9 +96,21 @@ function ensureUser(userId: string): LoyaltyUser {
   return u;
 }
 
+const EXPIRY_MS = config.BEAN_EXPIRY_MONTHS * 30 * 86400000;
+
+/** Top tiers (Gold/Black) never expire; lower tiers expire after inactivity. */
+function beansExpireAt(u: LoyaltyUser, tierId: string): string | null {
+  if (tierId === 'gold' || tierId === 'black') return null;
+  return new Date(u.lastEarnAt + EXPIRY_MS).toISOString();
+}
+
 function buildBalance(userId: string, u: LoyaltyUser): LoyaltyBalance {
   const windowSpend = rolling12mSpend(u);
   const tier = tierFromSpend(windowSpend);
+  // Enforce gentle expiry: lower tiers lose beans after a long inactivity gap.
+  if (tier.id !== 'gold' && tier.id !== 'black' && Date.now() > u.lastEarnAt + EXPIRY_MS) {
+    u.points = 0;
+  }
   return {
     userId,
     points: u.points,
@@ -102,6 +118,7 @@ function buildBalance(userId: string, u: LoyaltyUser): LoyaltyBalance {
     tier: tier.id,
     multiplier: tier.multiplier,
     cup: u.cup,
+    beansExpireAt: beansExpireAt(u, tier.id),
   };
 }
 
@@ -134,48 +151,46 @@ export const mockLoyaltyService: LoyaltyService = {
     return delay(active);
   },
 
-  redeem: (userId, points) => {
+  // Redeem beans for a catalog Reward → issue a voucher. Beans have NO cash
+  // value and are never moved to the wallet (Starbucks model).
+  redeemReward: (userId, input) => {
     const u = ensureUser(userId);
-    if (points > u.points) return Promise.reject(new Error('Not enough points'));
-    u.points -= points;
-    const jod = points / config.POINTS_PER_JOD_REDEEM; // 100 pts = 1 JOD
-    u.walletBalance += jod;
+    if (input.beans > u.points) return Promise.reject(new Error('Not enough beans'));
+    u.points -= input.beans;
+    const voucher: Voucher = {
+      id: genId('vch'),
+      titleAr: input.titleAr,
+      titleEn: input.titleEn,
+      type: input.type,
+      value: input.value,
+      expiresAt: new Date(Date.now() + 86400000 * 30).toISOString(),
+    };
+    u.vouchers.unshift(voucher);
     u.history.unshift({
-      id: genId('log'), deltaPoints: -points,
-      reasonAr: `استبدال ${jod.toFixed(3)} د.أ`, reasonEn: `Redeemed ${jod.toFixed(3)} JOD`,
+      id: genId('log'), deltaPoints: -input.beans,
+      reasonAr: `استبدال مكافأة: ${input.titleAr}`,
+      reasonEn: `Redeemed reward: ${input.titleEn}`,
       createdAt: new Date().toISOString(),
     });
-    return delay({ points: u.points, walletBalance: u.walletBalance });
-  },
-
-  // Pay-with-points at checkout (§K): deduct points used on the invoice.
-  spendPoints: (userId, points) => {
-    const u = ensureUser(userId);
-    if (points > u.points) return Promise.reject(new Error('Not enough points'));
-    u.points -= points;
-    const jod = points / config.POINTS_PER_JOD_REDEEM;
-    u.history.unshift({
-      id: genId('log'), deltaPoints: -points,
-      reasonAr: `دفع بالنقاط (${jod.toFixed(3)} د.أ)`, reasonEn: `Paid with points (${jod.toFixed(3)} JOD)`,
-      createdAt: new Date().toISOString(),
-    });
-    return delay({ points: u.points });
+    return delay({ points: u.points, voucher });
   },
 
   // Mirror of section 8.2 earn calculation.
-  earn: ({ userId, invoiceAmount, paidFromBalance, isFriday }: EarnInput) => {
+  earn: ({ userId, invoiceAmount, paidFromBalance, isFriday, bonusMultiplier }: EarnInput) => {
     const u = ensureUser(userId);
     // Tier multiplier uses the rolling-12-month spend (§A).
     const tier = tierFromSpend(rolling12mSpend(u));
-    // Pay-from-wallet ×1.5 applies to ALL beans, BEFORE the tier multiplier;
-    // the tier then stacks on top (Wallet spec §1.2). E.g. Gold + wallet =
-    // ×1.5 × ×1.5 = ×2.25 overall.
+    // Pay-from-wallet ×1.5 and an activated bonus-day multiplier both apply to
+    // ALL beans BEFORE the tier multiplier; the tier then stacks on top
+    // (Wallet spec §1.2). E.g. Gold + wallet + double-day = ×1.5 × ×2 × ×1.5.
     const walletMult = paidFromBalance ? config.WALLET_EARN_MULTIPLIER : 1;
-    const basePoints = invoiceAmount * config.POINTS_PER_JOD * walletMult;
+    const bonusMult = bonusMultiplier && bonusMultiplier > 1 ? bonusMultiplier : 1;
+    const basePoints = invoiceAmount * config.POINTS_PER_JOD * walletMult * bonusMult;
     const tierBonus = basePoints * (tier.multiplier - 1);
     const friday = isFriday ?? new Date().getDay() === 5;
     const fridayBonus = friday ? basePoints * 0.5 : 0;
     const pointsEarned = Math.round(basePoints + tierBonus + fridayBonus);
+    u.lastEarnAt = Date.now();
 
     u.points += pointsEarned;
     u.spendLog.push({ amount: invoiceAmount, at: Date.now() });
@@ -249,6 +264,19 @@ export const mockLoyaltyService: LoyaltyService = {
   topUp: (userId, amount) => {
     const u = ensureUser(userId);
     u.walletBalance += amount;
+    // Digital reload bonus beans (pre-commitment lever): grant the highest
+    // qualifying tier's bonus and log it.
+    const bonus = reloadBonusBeans(amount);
+    if (bonus > 0) {
+      u.points += bonus;
+      u.history.unshift({
+        id: genId('log'), deltaPoints: bonus,
+        reasonAr: `مكافأة شحن المحفظة (+${bonus} حبة)`,
+        reasonEn: `Wallet reload bonus (+${bonus} beans)`,
+        createdAt: new Date().toISOString(),
+      });
+    }
+    u.lastEarnAt = Date.now(); // a reload counts as activity (extends beans)
     // Top-up of the configured amount grants a spin (section 2.4).
     if (amount >= spinConfig.eligibility.topupAmount) u.spinsAvailable += 1;
     return delay(u.walletBalance);

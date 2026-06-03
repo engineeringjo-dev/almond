@@ -3,7 +3,6 @@ import { Stack } from 'expo-router';
 
 import { Screen } from '@/components/ui/Screen';
 import { Text } from '@/components/ui/Text';
-import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Gradient } from '@/components/ui/Gradient';
 import { Cup } from '@/components/loyalty/Cup';
@@ -11,14 +10,12 @@ import { TierBadge } from '@/components/loyalty/TierBadge';
 import { TierProgress } from '@/components/loyalty/TierProgress';
 import { VoucherCard } from '@/components/loyalty/VoucherCard';
 import { colors, spacing, radius, shadow } from '@/constants/theme';
-import { config } from '@/constants/config';
 import { useI18n } from '@/hooks/useI18n';
 import { formatNumber, formatDate } from '@/lib/format';
 import {
   useLoyaltyBalance,
   useVouchers,
   usePointsHistory,
-  useRedeem,
 } from '@/hooks/useLoyalty';
 import type { Voucher, PointsLogEntry } from '@/types';
 
@@ -27,7 +24,6 @@ export default function LoyaltyScreen() {
   const balanceQ = useLoyaltyBalance();
   const vouchersQ = useVouchers();
   const historyQ = usePointsHistory();
-  const redeem = useRedeem();
 
   const loading = balanceQ.isLoading;
   if (loading || balanceQ.isError || !balanceQ.data) {
@@ -40,8 +36,6 @@ export default function LoyaltyScreen() {
   }
 
   const balance = balanceQ.data;
-  const worth = (balance.points / config.POINTS_PER_JOD_REDEEM).toFixed(3);
-  const redeemable = Math.floor(balance.points / 100) * 100;
 
   return (
     <>
@@ -53,23 +47,11 @@ export default function LoyaltyScreen() {
             {t('loyalty.yourPoints')}
           </Text>
           <Text variant="display" color={colors.dark}>
-            {formatNumber(balance.points, lang)}
-          </Text>
-          <Text variant="caption" color={colors.brown}>
-            {t('loyalty.worth', { jod: worth })}
+            {formatNumber(balance.points, lang)} ☕
           </Text>
           <View style={styles.tierRow}>
             <TierBadge tier={balance.tier} />
           </View>
-          {redeemable >= 100 ? (
-            <Button
-              title={`${t('loyalty.redeem')} (${redeemable} → ${(redeemable / 100).toFixed(0)} ${t('common.currency')})`}
-              variant="primary"
-              onPress={() => redeem.mutate(redeemable)}
-              loading={redeem.isPending}
-              style={styles.redeemBtn}
-            />
-          ) : null}
         </Gradient>
 
         {/* Cup */}
@@ -167,7 +149,6 @@ const styles = StyleSheet.create({
     ...shadow.card,
   },
   tierRow: { marginTop: spacing.sm },
-  redeemBtn: { marginTop: spacing.md, alignSelf: 'stretch' },
   cupCard: {
     marginTop: spacing.lg,
     flexDirection: 'row',
