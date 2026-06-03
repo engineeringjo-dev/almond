@@ -50,11 +50,17 @@ export const GIFT_DESIGNS: GiftDesign[] = [
   { id: 'baby-welcome', occasion: 'newbaby', greetingAr: 'مبروك المولود 🍼', greetingEn: 'Welcome, little one', gradient: 'rainbow', icon: 'heart', tone: 'dark' },
   // Get well
   { id: 'getwell-soon', occasion: 'getwell', greetingAr: 'سلامتك ❤️', greetingEn: 'Get well soon', gradient: 'mocha', icon: 'heart', tone: 'light' },
+  // Blessed Friday
+  { id: 'friday-blessed', occasion: 'friday', greetingAr: 'جمعة مباركة 🤍', greetingEn: 'Blessed Friday', gradient: 'purple', icon: 'sparkles', tone: 'light' },
+  // Just for fun
+  { id: 'fun-wakeup', occasion: 'fun', greetingAr: 'صحصح حبيبي ☕', greetingEn: 'Wake up, buddy ☕', gradient: 'gold', icon: 'coffee', tone: 'light' },
 ];
 
 /** Occasions in display order, with their section titles. */
 export const GIFT_OCCASIONS: { id: GiftOccasion; titleAr: string; titleEn: string }[] = [
   { id: 'anytime', titleAr: 'في أي وقت', titleEn: 'Anytime' },
+  { id: 'fun', titleAr: 'فرفشة', titleEn: 'Just for fun' },
+  { id: 'friday', titleAr: 'جمعة مباركة', titleEn: 'Blessed Friday' },
   { id: 'birthday', titleAr: 'عيد ميلاد', titleEn: 'Birthday' },
   { id: 'eid', titleAr: 'العيد', titleEn: 'Eid' },
   { id: 'ramadan', titleAr: 'رمضان', titleEn: 'Ramadan' },
