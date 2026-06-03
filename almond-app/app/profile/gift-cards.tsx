@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { View, StyleSheet, ScrollView, Pressable } from 'react-native';
+import { View, StyleSheet, ScrollView, Pressable, Share } from 'react-native';
 import { Stack } from 'expo-router';
 
 import { Screen } from '@/components/ui/Screen';
@@ -76,7 +76,16 @@ export default function GiftCardsScreen() {
             <Text variant="title" style={styles.occTitle}>{t('gift.history')}</Text>
             <Card padded={false} style={styles.historyCard}>
               {sentGifts.map((g, i) => (
-                <View key={g.id} style={[styles.historyRow, i > 0 && styles.historyBorder]}>
+                <Pressable
+                  key={g.id}
+                  style={[styles.historyRow, i > 0 && styles.historyBorder]}
+                  onPress={() =>
+                    Share.share({
+                      message: t('gift.shareMessage', { jod: formatJOD(g.amount, lang), code: g.code }),
+                    }).catch(() => {})
+                  }
+                  accessibilityRole="button"
+                >
                   <View style={styles.flex}>
                     <Text variant="bodyBold">{t('gift.toName', { name: g.recipientName })}</Text>
                     <Text variant="caption" color={colors.warmGray}>
@@ -84,7 +93,8 @@ export default function GiftCardsScreen() {
                     </Text>
                   </View>
                   <Text variant="price">{formatJOD(g.amount, lang)}</Text>
-                </View>
+                  <Icon name="navigation" size={16} color={colors.primary} />
+                </Pressable>
               ))}
             </Card>
           </View>

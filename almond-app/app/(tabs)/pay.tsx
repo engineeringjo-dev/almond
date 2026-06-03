@@ -18,6 +18,7 @@ import { Logo } from '@/components/ui/Logo';
 import { colors, spacing, radius, shadow } from '@/constants/theme';
 import { useI18n } from '@/hooks/useI18n';
 import { formatNumber } from '@/lib/format';
+import { config } from '@/constants/config';
 import { useLoyaltyBalance } from '@/hooks/useLoyalty';
 import { useUserId } from '@/stores/authStore';
 
@@ -37,9 +38,14 @@ export default function PayScreen() {
   const { width } = useWindowDimensions();
   const { data: balance } = useLoyaltyBalance();
 
-  // Personal member token encoded in the QR (TODO: replace with Odoo POS token).
-  const qrValue = `ALMOND|MEMBER|${userId}`;
+  // Scan & Pay (earn + pay) vs Scan only (earn without paying) — the QR encodes
+  // the mode so the POS knows whether to charge (Starbucks pattern).
+  const [mode, setMode] = useState<'pay' | 'earn'>('pay');
+  const qrValue = `ALMOND|MEMBER|${userId}|MODE=${mode === 'pay' ? 'PAY' : 'EARN'}`;
   const qrSize = Math.min(width - spacing.lg * 2 - spacing.xl * 2, 300);
+
+  // Earn-rate label scales with the tier multiplier (e.g. Gold ×1.5).
+  const earnRate = config.POINTS_PER_JOD * (balance?.multiplier ?? 1);
 
   // Max out brightness while the tab is focused; restore on blur/exit (§4.3).
   useFocusEffect(
@@ -97,6 +103,26 @@ export default function PayScreen() {
         {t('pay.instruction')}
       </Text>
 
+      {/* Scan & Pay vs Scan only */}
+      <View style={styles.modeRow}>
+        {(['pay', 'earn'] as const).map((m) => {
+          const active = mode === m;
+          return (
+            <Pressable
+              key={m}
+              style={[styles.modeChip, active && styles.modeActive]}
+              onPress={() => setMode(m)}
+              accessibilityRole="button"
+              accessibilityState={{ selected: active }}
+            >
+              <Text variant="bodyBold" color={active ? colors.white : colors.warmGray}>
+                {m === 'pay' ? t('pay.scanAndPay') : t('pay.scanOnly')}
+              </Text>
+            </Pressable>
+          );
+        })}
+      </View>
+
       {/* Hero: personal QR, black on white */}
       <Animated.View style={[styles.qrCard, { transform: [{ scale: pulseScale }] }]}>
         <QRCode value={qrValue} size={qrSize} color="#000000" backgroundColor="#FFFFFF" />
@@ -119,6 +145,12 @@ export default function PayScreen() {
       <Text variant="caption" color={colors.warmGray} center style={styles.memberId}>
         {t('pay.memberId')}: {userId.slice(-8).toUpperCase()}
       </Text>
+      <View style={styles.earnRate}>
+        <Icon name="bean" size={14} color={colors.primary} strokeWidth={2} />
+        <Text variant="caption" color={colors.primary}>
+          {t('pay.earnRate', { n: Number.isInteger(earnRate) ? earnRate : earnRate.toFixed(2) })}
+        </Text>
+      </View>
 
       {/* Beans balance — redemption happens in the Rewards screen (no cash) */}
       <Pressable style={styles.pointsCard} onPress={() => router.push('/(tabs)/rewards')}>
@@ -151,7 +183,22 @@ export default function PayScreen() {
 const styles = StyleSheet.create({
   content: { alignItems: 'center', paddingTop: spacing.md },
   titleRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginBottom: spacing.sm },
-  instruction: { marginBottom: spacing.lg, maxWidth: 300 },
+  instruction: { marginBottom: spacing.md, maxWidth: 300 },
+  modeRow: {
+    flexDirection: 'row',
+    gap: spacing.xs,
+    backgroundColor: colors.neutralWarm,
+    borderRadius: radius.pill,
+    padding: 3,
+    marginBottom: spacing.lg,
+  },
+  modeChip: {
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.lg,
+    borderRadius: radius.pill,
+  },
+  modeActive: { backgroundColor: colors.primary },
+  earnRate: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs, marginTop: spacing.xs },
   qrCard: {
     backgroundColor: '#FFFFFF',
     borderRadius: radius.lg,

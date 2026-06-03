@@ -19,6 +19,8 @@ export interface CreateOrderInput {
   /** Travel time estimate in minutes (smart pickup, section 7.3). */
   travelMinutes: number;
   promoCode?: string;
+  curbside?: boolean;
+  carInfo?: string;
 }
 
 export interface OrderService {
@@ -98,6 +100,8 @@ const mockOrderService: OrderService = {
       targetReadyAt: new Date(now.getTime() + leadMinutes * 60000).toISOString(),
       prepMinutes: input.prepMinutes,
       promoCode: input.promoCode,
+      curbside: input.curbside,
+      carInfo: input.carInfo,
     };
     orders.set(order.id, order);
     return delay(order);

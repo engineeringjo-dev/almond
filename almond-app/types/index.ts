@@ -142,6 +142,9 @@ export interface Order {
   targetReadyAt: string; // ISO — KDS times to arrival (section 7.3)
   prepMinutes: number;
   promoCode?: string;
+  /** Curbside pickup + the car details to find the customer. */
+  curbside?: boolean;
+  carInfo?: string;
 }
 
 // ---------- Loyalty ----------

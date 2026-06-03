@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { View, StyleSheet, Pressable } from 'react-native';
+import { View, StyleSheet, Pressable, TextInput } from 'react-native';
 import { router } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
 
@@ -7,6 +7,7 @@ import { Screen } from '@/components/ui/Screen';
 import { Text } from '@/components/ui/Text';
 import { Button } from '@/components/ui/Button';
 import { EmptyState } from '@/components/ui/EmptyState';
+import { Toggle } from '@/components/ui/Toggle';
 import { OrderTypeTabs } from '@/components/cart/OrderTypeTabs';
 import { CartLine } from '@/components/cart/CartLine';
 import { PickupInfo } from '@/components/cart/PickupInfo';
@@ -19,7 +20,7 @@ import { BranchCard } from '@/components/branch/BranchCard';
 import { BranchPicker } from '@/components/branch/BranchPicker';
 import { Logo } from '@/components/ui/Logo';
 import { Icon } from '@/components/ui/Icon';
-import { colors, spacing, radius } from '@/constants/theme';
+import { colors, spacing, radius, shadow } from '@/constants/theme';
 import { useI18n } from '@/hooks/useI18n';
 import { useCartStore, computeTotals } from '@/stores/cartStore';
 import { useNearestBranch } from '@/hooks/useNearestBranch';
@@ -46,6 +47,10 @@ export default function CartScreen() {
   const promoCode = useCartStore((s) => s.promoCode);
   const promoDiscount = useCartStore((s) => s.promoDiscount);
   const setPromo = useCartStore((s) => s.setPromo);
+  const curbside = useCartStore((s) => s.curbside);
+  const setCurbside = useCartStore((s) => s.setCurbside);
+  const carInfo = useCartStore((s) => s.carInfo);
+  const setCarInfo = useCartStore((s) => s.setCarInfo);
   const clear = useCartStore((s) => s.clear);
 
   const { branches } = useNearestBranch();
@@ -113,6 +118,8 @@ export default function CartScreen() {
         prepMinutes: estimate.prepMinutes,
         travelMinutes: estimate.travelMinutes,
         promoCode: promoCode ?? undefined,
+        curbside: orderType === 'pickup' ? curbside : undefined,
+        carInfo: orderType === 'pickup' && curbside ? carInfo.trim() || undefined : undefined,
       });
 
       // Award loyalty beans + cup (section 8.2). Server does this in prod.
@@ -185,6 +192,28 @@ export default function CartScreen() {
                 <BranchCard branch={branch!} onPress={() => setPickerOpen(true)} />
               )}
             </View>
+
+            {/* Curbside pickup (Starbucks Curbside) — only for pickup orders */}
+            {orderType === 'pickup' ? (
+              <View style={styles.section}>
+                <View style={styles.curbRow}>
+                  <View style={styles.flex}>
+                    <Text variant="bodyBold">{t('cart.curbside')}</Text>
+                    <Text variant="caption" color={colors.warmGray}>{t('cart.curbsideHint')}</Text>
+                  </View>
+                  <Toggle value={curbside} onValueChange={setCurbside} />
+                </View>
+                {curbside ? (
+                  <TextInput
+                    style={styles.carInput}
+                    value={carInfo}
+                    onChangeText={setCarInfo}
+                    placeholder={t('cart.carInfoPh')}
+                    placeholderTextColor={colors.warmGray}
+                  />
+                ) : null}
+              </View>
+            ) : null}
 
             <View style={styles.section}>
               <View style={styles.lines}>
@@ -296,6 +325,18 @@ const styles = StyleSheet.create({
   sectionTitle: { marginBottom: spacing.md },
   earnNote: { marginBottom: spacing.md, marginTop: -spacing.sm },
   flex: { flex: 1 },
+  curbRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
+  carInput: {
+    marginTop: spacing.md,
+    backgroundColor: colors.cardBg,
+    borderRadius: radius.md,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.md,
+    fontSize: 16,
+    color: colors.dark,
+    textAlign: 'auto',
+    ...shadow.card,
+  },
   walletUpsell: {
     flexDirection: 'row',
     alignItems: 'center',

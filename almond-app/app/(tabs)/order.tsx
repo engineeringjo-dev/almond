@@ -9,6 +9,7 @@ import { SearchBar } from '@/components/ui/SearchBar';
 import { CategoryChips } from '@/components/menu/CategoryChips';
 import { MenuItemCard } from '@/components/menu/MenuItemCard';
 import { ItemModal } from '@/components/menu/ItemModal';
+import { PickupCartBar } from '@/components/order/PickupCartBar';
 import { Logo } from '@/components/ui/Logo';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
@@ -104,6 +105,9 @@ export default function OrderScreen() {
         visible={!!selectedItem}
         onClose={() => setSelectedItem(null)}
       />
+
+      {/* Persistent pickup-store + cart bar (Starbucks pattern) */}
+      <PickupCartBar />
     </SafeAreaView>
   );
 }
@@ -421,8 +425,9 @@ const styles = StyleSheet.create({
   trendPhoto: { width: '100%', height: '100%' },
   trendLabel: { textAlign: 'center' },
 
-  list: { padding: spacing.lg, gap: spacing.md, paddingBottom: spacing.xxl * 2 },
-  scrollList: { padding: spacing.lg, paddingBottom: spacing.xxl * 2 },
+  // extra bottom room so content clears the pinned pickup/cart bar
+  list: { padding: spacing.lg, gap: spacing.md, paddingBottom: spacing.xxl * 4 },
+  scrollList: { padding: spacing.lg, paddingBottom: spacing.xxl * 4 },
   column: { gap: spacing.md },
   cardWrap: { flex: 1 },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.md },

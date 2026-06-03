@@ -9,11 +9,17 @@ import { GiftCardTile } from './GiftCardTile';
 import { colors, spacing, radius } from '@/constants/theme';
 import { useI18n } from '@/hooks/useI18n';
 import { formatJOD } from '@/lib/format';
-import { useSendGift } from '@/hooks/useLoyalty';
+import { useSendGift, useWallet } from '@/hooks/useLoyalty';
 import type { GiftDesign } from '@/lib/giftDesigns';
 import type { GiftCard } from '@/types';
 
 const AMOUNTS = [5, 10, 15, 25];
+const MAX_RECIPIENTS = 10;
+
+interface Recipient {
+  name: string;
+  phone: string;
+}
 
 interface Props {
   design: GiftDesign | null;
@@ -24,55 +30,85 @@ interface Props {
 export function GiftSendSheet({ design, visible, onClose }: Props) {
   const { t, lang } = useI18n();
   const sendGift = useSendGift();
+  const { data: wallet } = useWallet();
   const [amount, setAmount] = useState(10);
-  const [name, setName] = useState('');
-  const [phone, setPhone] = useState('');
+  const [recipients, setRecipients] = useState<Recipient[]>([{ name: '', phone: '' }]);
   const [message, setMessage] = useState('');
-  const [sent, setSent] = useState<GiftCard | null>(null);
+  const [sent, setSent] = useState<GiftCard[] | null>(null);
+  const [submitting, setSubmitting] = useState(false);
 
   if (!design) return null;
 
+  const valid = recipients.filter((r) => r.name.trim());
+  const total = amount * Math.max(1, valid.length);
+
   const reset = () => {
-    setAmount(10); setName(''); setPhone(''); setMessage(''); setSent(null);
+    setAmount(10); setRecipients([{ name: '', phone: '' }]); setMessage(''); setSent(null);
   };
   const close = () => { reset(); onClose(); };
 
-  const onSend = () => {
-    if (!name.trim() || sendGift.isPending) return;
-    sendGift.mutate(
-      { designId: design.id, amount, recipientName: name.trim(), recipientPhone: phone.trim() || undefined, message: message.trim() || undefined },
-      { onSuccess: (gift) => setSent(gift) },
-    );
+  const setRecipient = (i: number, patch: Partial<Recipient>) =>
+    setRecipients((prev) => prev.map((r, idx) => (idx === i ? { ...r, ...patch } : r)));
+  const addRecipient = () =>
+    setRecipients((prev) => (prev.length >= MAX_RECIPIENTS ? prev : [...prev, { name: '', phone: '' }]));
+  const removeRecipient = (i: number) =>
+    setRecipients((prev) => prev.filter((_, idx) => idx !== i));
+
+  const onSend = async () => {
+    if (valid.length === 0 || submitting) return;
+    setSubmitting(true);
+    try {
+      const results: GiftCard[] = [];
+      for (const r of valid) {
+        const g = await sendGift.mutateAsync({
+          designId: design.id,
+          amount,
+          recipientName: r.name.trim(),
+          recipientPhone: r.phone.trim() || undefined,
+          message: message.trim() || undefined,
+        });
+        results.push(g);
+      }
+      setSent(results);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
-  const onShare = () => {
-    if (!sent) return;
-    Share.share({ message: t('gift.shareMessage', { jod: formatJOD(sent.amount, lang), code: sent.code }) }).catch(() => {});
+  const shareGift = (g: GiftCard) => {
+    Share.share({
+      message: t('gift.shareMessage', { jod: formatJOD(g.amount, lang), code: g.code }),
+    }).catch(() => {});
   };
 
-  // Success state
+  // ---------- Success ----------
   if (sent) {
     return (
       <BottomSheet visible={visible} onClose={close} title={t('gift.sentTitle')}
         footer={<Button title={t('gift.done')} onPress={close} />}>
         <View style={styles.center}>
-          <GiftCardTile design={design} size="featured" amount={sent.amount} />
+          <GiftCardTile design={design} size="featured" amount={amount} />
           <Text variant="body" color={colors.warmGray} center style={styles.sentBody}>
-            {t('gift.sentBody', { name: sent.recipientName })}
+            {t('gift.sentCount', { count: sent.length })}
           </Text>
-          <View style={styles.codeBox}>
-            <Text variant="caption" color={colors.warmGray}>{t('gift.code')}</Text>
-            <Text variant="h2" color={colors.dark}>{sent.code}</Text>
-          </View>
-          <Pressable style={styles.shareBtn} onPress={onShare}>
-            <Icon name="navigation" size={18} color={colors.primary} />
-            <Text variant="bodyBold" color={colors.primary}>{t('gift.share')}</Text>
-          </Pressable>
+          {sent.map((g) => (
+            <View key={g.id} style={styles.codeBox}>
+              <View style={styles.flex}>
+                <Text variant="bodyBold">{t('gift.toName', { name: g.recipientName })}</Text>
+                <Text variant="caption" color={colors.warmGray}>{g.code}</Text>
+              </View>
+              <Pressable style={styles.shareBtn} onPress={() => shareGift(g)} hitSlop={6}>
+                <Icon name="navigation" size={16} color={colors.primary} />
+                <Text variant="caption" color={colors.primary}>{t('gift.share')}</Text>
+              </Pressable>
+            </View>
+          ))}
         </View>
       </BottomSheet>
     );
   }
 
+  // ---------- Compose ----------
   return (
     <BottomSheet
       visible={visible}
@@ -80,10 +116,10 @@ export function GiftSendSheet({ design, visible, onClose }: Props) {
       title={t('gift.sendTitle')}
       footer={
         <Button
-          title={`${t('gift.send')} · ${formatJOD(amount, lang)}`}
+          title={`${t('gift.send')} · ${formatJOD(total, lang)}`}
           onPress={onSend}
-          loading={sendGift.isPending}
-          disabled={!name.trim()}
+          loading={submitting}
+          disabled={valid.length === 0}
         />
       }
     >
@@ -105,24 +141,42 @@ export function GiftSendSheet({ design, visible, onClose }: Props) {
         })}
       </View>
 
-      <Text variant="bodyBold" style={styles.label}>{t('gift.recipientName')}</Text>
-      <TextInput
-        style={styles.input}
-        value={name}
-        onChangeText={setName}
-        placeholder={t('gift.recipientNamePh')}
-        placeholderTextColor={colors.warmGray}
-      />
-
-      <Text variant="bodyBold" style={styles.label}>{t('gift.phoneOptional')}</Text>
-      <TextInput
-        style={styles.input}
-        value={phone}
-        onChangeText={setPhone}
-        keyboardType="phone-pad"
-        placeholder={t('auth.phonePlaceholder')}
-        placeholderTextColor={colors.warmGray}
-      />
+      {/* Recipients (group gifting up to 10) */}
+      <View style={styles.recipHead}>
+        <Text variant="bodyBold">{t('gift.recipients')}</Text>
+        {recipients.length < MAX_RECIPIENTS ? (
+          <Pressable style={styles.addRecip} onPress={addRecipient} hitSlop={6}>
+            <Icon name="plus" size={16} color={colors.primary} />
+            <Text variant="caption" color={colors.primary}>{t('gift.addRecipient')}</Text>
+          </Pressable>
+        ) : null}
+      </View>
+      {recipients.map((r, i) => (
+        <View key={i} style={styles.recipRow}>
+          <View style={styles.flex}>
+            <TextInput
+              style={styles.input}
+              value={r.name}
+              onChangeText={(v) => setRecipient(i, { name: v })}
+              placeholder={t('gift.recipientNamePh')}
+              placeholderTextColor={colors.warmGray}
+            />
+            <TextInput
+              style={[styles.input, styles.phoneInput]}
+              value={r.phone}
+              onChangeText={(v) => setRecipient(i, { phone: v })}
+              keyboardType="phone-pad"
+              placeholder={t('gift.phoneOptional')}
+              placeholderTextColor={colors.warmGray}
+            />
+          </View>
+          {recipients.length > 1 ? (
+            <Pressable onPress={() => removeRecipient(i)} hitSlop={8} style={styles.removeBtn}>
+              <Icon name="close" size={18} color={colors.warmGray} />
+            </Pressable>
+          ) : null}
+        </View>
+      ))}
 
       <Text variant="bodyBold" style={styles.label}>{t('gift.message')}</Text>
       <TextInput
@@ -133,46 +187,48 @@ export function GiftSendSheet({ design, visible, onClose }: Props) {
         placeholderTextColor={colors.warmGray}
         multiline
       />
+
+      <Text variant="caption" color={colors.warmGray} style={styles.payNote}>
+        {t('gift.payNote', { jod: formatJOD(wallet ?? 0, lang) })}
+      </Text>
     </BottomSheet>
   );
 }
 
 const styles = StyleSheet.create({
   preview: { marginBottom: spacing.lg },
+  flex: { flex: 1 },
   label: { marginTop: spacing.md, marginBottom: spacing.sm },
   amounts: { flexDirection: 'row', gap: spacing.sm },
   amountChip: {
-    flex: 1,
-    alignItems: 'center',
-    paddingVertical: spacing.md,
-    borderRadius: radius.md,
-    backgroundColor: colors.cardBg,
-    borderWidth: 1.5,
-    borderColor: 'transparent',
+    flex: 1, alignItems: 'center', paddingVertical: spacing.md,
+    borderRadius: radius.md, backgroundColor: colors.cardBg,
+    borderWidth: 1.5, borderColor: 'transparent',
   },
-  amountActive: { borderColor: colors.gold, backgroundColor: colors.lightGold },
+  amountActive: { borderColor: colors.primary, backgroundColor: colors.lightGold },
+  recipHead: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    marginTop: spacing.lg, marginBottom: spacing.sm,
+  },
+  addRecip: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
+  recipRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginBottom: spacing.sm },
   input: {
-    backgroundColor: colors.cardBg,
-    borderRadius: radius.md,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.md,
-    fontSize: 16,
-    color: colors.dark,
-    textAlign: 'auto',
+    backgroundColor: colors.cardBg, borderRadius: radius.md,
+    paddingHorizontal: spacing.md, paddingVertical: spacing.md,
+    fontSize: 16, color: colors.dark, textAlign: 'auto',
   },
-  messageInput: { minHeight: 72, textAlignVertical: 'top' },
+  phoneInput: { marginTop: spacing.xs },
+  messageInput: { minHeight: 64, textAlignVertical: 'top' },
+  removeBtn: { padding: spacing.xs },
+  payNote: { marginTop: spacing.md, textAlign: 'center' },
   center: { alignItems: 'center', gap: spacing.md },
   sentBody: { marginTop: spacing.sm },
   codeBox: {
+    flexDirection: 'row', alignItems: 'center', gap: spacing.md,
     alignSelf: 'stretch',
-    alignItems: 'center',
-    gap: 2,
-    backgroundColor: colors.cardBg,
-    borderRadius: radius.md,
-    paddingVertical: spacing.md,
-    borderWidth: 1.5,
-    borderColor: colors.lightGold,
-    borderStyle: 'dashed',
+    backgroundColor: colors.cardBg, borderRadius: radius.md,
+    paddingVertical: spacing.md, paddingHorizontal: spacing.md,
+    borderWidth: 1.5, borderColor: colors.lightGold, borderStyle: 'dashed',
   },
-  shareBtn: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, padding: spacing.sm },
+  shareBtn: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
 });

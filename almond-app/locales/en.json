@@ -81,7 +81,10 @@
     "emptyFavHint": "Tap ♥ on any drink to save it here",
     "favAdd": "Add to favourites",
     "favRemove": "Remove from favourites",
-    "addedReady": "Ready in your cart ✓"
+    "addedReady": "Ready in your cart ✓",
+    "pickupFrom": "Pickup from",
+    "chooseBranch": "Choose a branch",
+    "viewCart": "Cart"
   },
   "home": {
     "greetingMorning": "Good morning, {{name}}",
@@ -107,7 +110,10 @@
     "directions": "Directions on the map",
     "walletBalance": "Your wallet balance",
     "topUpWallet": "Top up your wallet",
-    "walletHint": "Pay from balance and earn +50% beans (×1.5) ☕"
+    "walletHint": "Pay from balance and earn +50% beans (×1.5) ☕",
+    "welcomeTitle": "Welcome gift 🎁",
+    "welcomeBody": "A free drink on your first order",
+    "welcomeCta": "Order now"
   },
   "menu": {
     "title": "Menu",
@@ -122,7 +128,12 @@
     "outOfStock": "Out of stock",
     "pairsWith": "Goes great with",
     "upsize": "Upsize to {{size}} for +{{delta}}",
-    "added": "Added ✓"
+    "added": "Added ✓",
+    "calories": "{{n}} cal",
+    "sugar": "{{n}}g sugar",
+    "glutenFree": "Gluten-free",
+    "containsGluten": "Contains gluten",
+    "nutritionNote": "Approximate values"
   },
   "customization": {
     "milk": "Milk",
@@ -167,7 +178,10 @@
     "walletUpsell": "Pay from your wallet and earn +50% beans on this order",
     "walletEarnBonus": "+50% beans when you pay from balance ☕",
     "brunchComboTitle": "Add a brunch dish and save 1.000 JOD",
-    "addCombo": "Add & save"
+    "addCombo": "Add & save",
+    "curbside": "Curbside pickup 🚗",
+    "curbsideHint": "We'll bring your order to your car",
+    "carInfoPh": "Car colour, model & plate number"
   },
   "payment": {
     "cash": "Cash",
@@ -210,7 +224,10 @@
     "redeemDone": "Redeemed {{jod}} JOD to your wallet",
     "history": "Beans history",
     "memberId": "Member ID",
-    "seeRewards": "Redeem your beans in Rewards"
+    "seeRewards": "Redeem your beans in Rewards",
+    "scanAndPay": "Scan & Pay",
+    "scanOnly": "Scan only",
+    "earnRate": "Earn {{n}} beans per 1 JOD"
   },
   "track": {
     "title": "Track Order",
@@ -429,6 +446,10 @@
     "toName": "To {{name}}",
     "about": "About gift cards",
     "aboutBody": "A gift card is coffee balance you send digitally. The recipient redeems the code into their Almond wallet, pays from it and earns beans.",
-    "shareMessage": "I sent you an Almond gift of {{jod}} JOD! Use code {{code}} in the Almond app ☕"
+    "shareMessage": "I sent you an Almond gift of {{jod}} JOD! Use code {{code}} in the Almond app ☕",
+    "recipients": "Recipients",
+    "addRecipient": "Add a person",
+    "sentCount": "Sent {{count}} gift(s) 🎉",
+    "payNote": "Paid from your wallet (balance {{jod}} JOD)"
   }
 }

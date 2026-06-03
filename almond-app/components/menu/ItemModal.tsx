@@ -10,6 +10,7 @@ import { colors, spacing, radius } from '@/constants/theme';
 import { useI18n } from '@/hooks/useI18n';
 import { formatJOD } from '@/lib/format';
 import { iconForCategory } from '@/lib/productIcon';
+import { nutritionFor } from '@/lib/nutrition';
 import { getSizeUpsell, getItemPairings } from '@/lib/recommendations';
 import { useCartStore } from '@/stores/cartStore';
 import { useFavouritesStore } from '@/stores/favouritesStore';
@@ -126,6 +127,26 @@ export function ItemModal({ item, visible, onClose }: Props) {
             {lang === 'ar' ? item.descAr : item.descEn}
           </Text>
         ) : null}
+
+        {/* Nutrition (approx.) — calories, sugar, gluten (Almond health focus) */}
+        {(() => {
+          const n = nutritionFor(item);
+          return (
+            <View style={styles.nutrition}>
+              <View style={styles.nutriPill}>
+                <Text variant="caption" color={colors.dark}>🔥 {t('menu.calories', { n: n.calories })}</Text>
+              </View>
+              <View style={styles.nutriPill}>
+                <Text variant="caption" color={colors.dark}>🍬 {t('menu.sugar', { n: n.sugarG })}</Text>
+              </View>
+              <View style={[styles.nutriPill, n.glutenFree && styles.nutriPillGood]}>
+                <Text variant="caption" color={n.glutenFree ? colors.green : colors.warmGray}>
+                  🌾 {n.glutenFree ? t('menu.glutenFree') : t('menu.containsGluten')}
+                </Text>
+              </View>
+            </View>
+          );
+        })()}
       </View>
 
       {item.isBrunch ? (
@@ -259,6 +280,14 @@ const styles = StyleSheet.create({
   },
   photo: { width: '100%', height: '100%' },
   desc: { marginTop: spacing.sm },
+  nutrition: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: spacing.sm, marginTop: spacing.md },
+  nutriPill: {
+    backgroundColor: colors.neutralWarm,
+    borderRadius: radius.pill,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+  },
+  nutriPillGood: { backgroundColor: 'rgba(108,92,180,0.12)' },
   brunchBanner: {
     backgroundColor: colors.lightGold,
     borderRadius: radius.md,
