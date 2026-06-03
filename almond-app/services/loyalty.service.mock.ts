@@ -355,6 +355,22 @@ export const mockLoyaltyService: LoyaltyService = {
     return delay({ amount: gift.amount, walletBalance: u.walletBalance });
   },
 
+  chargeWallet: (userId, amount) => {
+    const u = ensureUser(userId);
+    if (amount > u.walletBalance) return Promise.reject(new Error('Insufficient wallet balance'));
+    u.walletBalance -= amount;
+    u.history.unshift({
+      id: genId('log'), deltaPoints: 0,
+      reasonAr: `دفع من المحفظة (-${amount.toFixed(3)} د.أ)`,
+      reasonEn: `Wallet payment (-${amount.toFixed(3)} JOD)`,
+      createdAt: new Date().toISOString(),
+    });
+    return delay({ walletBalance: u.walletBalance });
+  },
+
+  // POS not connected in the mock — the till never reports a scan.
+  getScanStatus: () => delay({ scanned: false }),
+
   getReferralCode: (userId) => {
     const u = ensureUser(userId);
     return delay({ code: u.referralCode, alreadyRewarded: u.hasReferralRewardEver });

@@ -31,6 +31,13 @@ export interface SendGiftInput {
   message?: string;
 }
 
+/** POS scan confirmation polled by the barcode screen (Odoo POS → server). */
+export interface ScanStatus {
+  scanned: boolean;
+  /** Earn result the till reported, if any (beans earned + cup). */
+  result?: EarnResult;
+}
+
 /** Redeeming beans for a catalog Reward — issues a voucher (no cash value). */
 export interface RedeemRewardInput {
   beans: number;
@@ -60,6 +67,12 @@ export interface LoyaltyService {
   // Wallet / stored value (section 2.2 / 11)
   getWallet(userId: string): Promise<number>;
   topUp(userId: string, amount: number): Promise<number>;
+  /** Deduct from the e-wallet (in-app wallet payment or POS charge). */
+  chargeWallet(userId: string, amount: number): Promise<{ walletBalance: number }>;
+
+  // POS integration: app polls after showing the barcode; the till reports the
+  // scan + earn/redeem/charge it performed (Odoo POS → loyalty server).
+  getScanStatus(userId: string): Promise<ScanStatus>;
 
   // Gift cards / eGifts — feed the wallet (Wallet spec §1.1 "gift" source)
   sendGift(input: SendGiftInput): Promise<GiftCard>;

@@ -19,7 +19,7 @@ import { colors, spacing, radius, shadow } from '@/constants/theme';
 import { useI18n } from '@/hooks/useI18n';
 import { formatNumber } from '@/lib/format';
 import { config } from '@/constants/config';
-import { useLoyaltyBalance } from '@/hooks/useLoyalty';
+import { useLoyaltyBalance, useScanStatus } from '@/hooks/useLoyalty';
 import { useUserId } from '@/stores/authStore';
 
 /**
@@ -87,9 +87,10 @@ export default function PayScreen() {
   );
   const pulseScale = pulse.interpolate({ inputRange: [0, 1], outputRange: [1, 1.04] });
 
-  // Success feedback scaffold — set true when the POS confirms a scan.
-  // TODO: flip via the Odoo POS / loyalty-server scan webhook.
-  const [scanned] = useState(false);
+  // Success feedback — driven by the POS scan-status poll once Odoo is wired
+  // (constants/integration.ts). Stays false under mock (poll disabled).
+  const scanStatus = useScanStatus();
+  const scanned = scanStatus.data?.scanned ?? false;
 
   const points = balance?.points ?? 0;
 

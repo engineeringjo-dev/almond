@@ -31,6 +31,7 @@ import { computePickupEstimate } from '@/lib/pickup';
 import { formatJOD } from '@/lib/format';
 import { paymentService } from '@/services/payment.service';
 import { loyaltyService } from '@/services/loyalty.service';
+import { integration } from '@/constants/integration';
 import { usePromoStore } from '@/stores/promoStore';
 import { activeBonusDay } from '@/lib/bonusDay';
 import { aggregatorService } from '@/services/aggregator.service';
@@ -99,8 +100,13 @@ export default function CartScreen() {
     if (!branch) return;
     setSubmitting(true);
     try {
-      const payment = await paymentService.pay(totals.total, paymentMethod);
-      if (!payment.success) return;
+      if (paymentMethod === 'wallet' && integration.enabled.wallet) {
+        // Deduct from the stored-value e-wallet on the loyalty server (Odoo).
+        await loyaltyService.chargeWallet(userId, totals.total);
+      } else {
+        const payment = await paymentService.pay(totals.total, paymentMethod);
+        if (!payment.success) return;
+      }
 
       const order = await createOrder.mutateAsync({
         userId,

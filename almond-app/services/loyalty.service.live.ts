@@ -9,53 +9,48 @@ import type {
   ReferralInfo,
   GiftCard,
 } from '@/types';
-import type { LoyaltyService, EarnInput } from './loyalty.service';
-import { config } from '@/constants/config';
+import type { LoyaltyService, EarnInput, ScanStatus } from './loyalty.service';
+import { integration, loyaltyAuthHeaders } from '@/constants/integration';
+import { apiGet, apiPost } from '@/lib/apiClient';
 
 /**
- * Live loyalty client — talks to the separate Node.js loyalty server
- * (section 8) at config.LOYALTY_BASE_URL. Endpoint paths match section 8.1.
+ * Live loyalty / e-wallet / gift / POS client. Talks to the standalone loyalty
+ * server (config.LOYALTY_BASE_URL) using the central endpoint map + bearer auth
+ * from constants/integration.ts. Inactive until DATA_SOURCE === 'odoo'.
+ * Contract: docs/ODOO-INTEGRATION.md.
  */
-const BASE = config.LOYALTY_BASE_URL;
-
-async function get<T>(path: string): Promise<T> {
-  const res = await fetch(`${BASE}${path}`);
-  if (!res.ok) throw new Error(`Loyalty GET ${path} failed: ${res.status}`);
-  return res.json() as Promise<T>;
-}
-
-async function post<T>(path: string, body: unknown): Promise<T> {
-  const res = await fetch(`${BASE}${path}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-  });
-  if (!res.ok) throw new Error(`Loyalty POST ${path} failed: ${res.status}`);
-  return res.json() as Promise<T>;
-}
+const BASE = integration.baseUrls.loyalty;
+const E = integration.endpoints;
+const get = <T>(path: string) => apiGet<T>(BASE, path, loyaltyAuthHeaders());
+const post = <T>(path: string, body: unknown) => apiPost<T>(BASE, path, body, loyaltyAuthHeaders());
 
 export const liveLoyaltyService: LoyaltyService = {
-  getBalance: (userId) => get<LoyaltyBalance>(`/loyalty/balance/${userId}`),
-  getVouchers: (userId) => get<Voucher[]>(`/loyalty/vouchers/${userId}`),
+  getBalance: (userId) => get<LoyaltyBalance>(E.balance(userId)),
+  getVouchers: (userId) => get<Voucher[]>(E.vouchers(userId)),
   redeemReward: (userId, input) =>
-    post<{ points: number; voucher: Voucher }>(`/loyalty/redeem-reward`, { userId, ...input }),
-  earn: (input: EarnInput) => post<EarnResult>(`/loyalty/earn`, input),
-  getHistory: (userId) => get<PointsLogEntry[]>(`/loyalty/history/${userId}`),
+    post<{ points: number; voucher: Voucher }>(E.redeemReward, { userId, ...input }),
+  earn: (input: EarnInput) => post<EarnResult>(E.earn, input),
+  getHistory: (userId) => get<PointsLogEntry[]>(E.history(userId)),
 
   getSpinConfig: () => get<SpinConfig>(`/loyalty/spin/config`),
   getSpinEligibility: (userId) => get<SpinEligibility>(`/loyalty/spin/eligibility/${userId}`),
   spin: (userId) => post<SpinResult>(`/loyalty/spin`, { userId }),
 
-  // TODO: confirm loyalty-server wallet endpoints.
-  getWallet: (userId) => get<{ balance: number }>(`/loyalty/wallet/${userId}`).then((r) => r.balance),
+  // ---- E-wallet ----
+  getWallet: (userId) => get<{ balance: number }>(E.wallet(userId)).then((r) => r.balance),
   topUp: (userId, amount) =>
-    post<{ balance: number }>(`/loyalty/wallet/topup`, { userId, amount }).then((r) => r.balance),
+    post<{ balance: number }>(E.walletTopup, { userId, amount }).then((r) => r.balance),
+  chargeWallet: (userId, amount) =>
+    post<{ walletBalance: number }>(E.walletCharge, { userId, amount }),
 
-  // TODO: confirm gift-card endpoints on the loyalty server.
-  sendGift: (input) => post<GiftCard>(`/loyalty/gifts/send`, input),
-  getSentGifts: (userId) => get<GiftCard[]>(`/loyalty/gifts/sent/${userId}`),
+  // ---- Gift cards ----
+  sendGift: (input) => post<GiftCard>(E.giftSend, input),
+  getSentGifts: (userId) => get<GiftCard[]>(E.giftSent(userId)),
   redeemGiftCode: (userId, code) =>
-    post<{ amount: number; walletBalance: number }>(`/loyalty/gifts/redeem`, { userId, code }),
+    post<{ amount: number; walletBalance: number }>(E.giftRedeem, { userId, code }),
+
+  // ---- POS scan confirmation ----
+  getScanStatus: (userId) => get<ScanStatus>(E.scanStatus(userId)),
 
   getReferralCode: (userId) => get<ReferralInfo>(`/loyalty/referral/code/${userId}`),
   claimReferral: (referrerId, referredPhone) =>
