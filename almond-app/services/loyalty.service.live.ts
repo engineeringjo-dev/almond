@@ -7,6 +7,7 @@ import type {
   SpinEligibility,
   SpinResult,
   ReferralInfo,
+  GiftCard,
 } from '@/types';
 import type { LoyaltyService, EarnInput } from './loyalty.service';
 import { config } from '@/constants/config';
@@ -49,6 +50,12 @@ export const liveLoyaltyService: LoyaltyService = {
   getWallet: (userId) => get<{ balance: number }>(`/loyalty/wallet/${userId}`).then((r) => r.balance),
   topUp: (userId, amount) =>
     post<{ balance: number }>(`/loyalty/wallet/topup`, { userId, amount }).then((r) => r.balance),
+
+  // TODO: confirm gift-card endpoints on the loyalty server.
+  sendGift: (input) => post<GiftCard>(`/loyalty/gifts/send`, input),
+  getSentGifts: (userId) => get<GiftCard[]>(`/loyalty/gifts/sent/${userId}`),
+  redeemGiftCode: (userId, code) =>
+    post<{ amount: number; walletBalance: number }>(`/loyalty/gifts/redeem`, { userId, code }),
 
   getReferralCode: (userId) => get<ReferralInfo>(`/loyalty/referral/code/${userId}`),
   claimReferral: (referrerId, referredPhone) =>

@@ -54,14 +54,33 @@ const TIER_COLOR: Record<TierId, string> = {
   black: colors.tierBlack,
 };
 
-// Tier perks are fair and cumulative: every higher tier inherits all lower-tier
-// benefits (shown via the "inheritsPrevious" note). No service-speed or
-// service-quality differentiation between tiers — only earning rate + offers.
-const TIER_BENEFITS: Record<TierId, string[]> = {
-  bean: ['tierBenefits.bean1', 'tierBenefits.bean2'],
-  silver: ['tierBenefits.silver1', 'tierBenefits.silver2'],
-  gold: ['tierBenefits.gold1', 'tierBenefits.gold2', 'tierBenefits.gold3'],
-  black: ['tierBenefits.black1', 'tierBenefits.black2'],
+// Full per-tier benefit lists (each card is self-contained, Starbucks-style).
+// Tiers differ ONLY by reward generosity (earn rate, no-expiry, extra bonus
+// days, exclusive perks) — never by service/treatment. Shared benefits (free
+// monthly customization, birthday drink, personalized offers, reload bonus,
+// personal-cup bonus) are identical for everyone — no treatment discrimination.
+type Benefit = { icon: IconName; key: string };
+const B = {
+  birthday: { icon: 'gift', key: 'tierBenefits.birthday' } as Benefit,
+  freeMod: { icon: 'sparkles', key: 'tierBenefits.freeMod' } as Benefit,
+  offers: { icon: 'ticket', key: 'tierBenefits.offers' } as Benefit,
+  reload: { icon: 'coins', key: 'tierBenefits.reloadBonus' } as Benefit,
+  cup: { icon: 'coffee', key: 'tierBenefits.cupBonus' } as Benefit,
+  noExpire: { icon: 'history', key: 'tierBenefits.noExpire' } as Benefit,
+};
+const SHARED: Benefit[] = [B.birthday, B.freeMod, B.offers, B.reload, B.cup];
+const earn = (key: string): Benefit => ({ icon: 'bean', key });
+
+const TIER_BENEFITS: Record<TierId, Benefit[]> = {
+  bean: [earn('tierBenefits.earnBean'), ...SHARED],
+  silver: [earn('tierBenefits.earnSilver'), ...SHARED],
+  gold: [earn('tierBenefits.earnGold'), B.noExpire, ...SHARED, { icon: 'sparkles', key: 'tierBenefits.doubleDays4' }],
+  black: [
+    earn('tierBenefits.earnBlack'), B.noExpire, ...SHARED,
+    { icon: 'globe', key: 'tierBenefits.experiences' },
+    { icon: 'card', key: 'tierBenefits.memberCard' },
+    { icon: 'sparkles', key: 'tierBenefits.doubleDays6' },
+  ],
 };
 
 const STEPS: { icon: IconName; titleKey: string; bodyKey: string }[] = [
@@ -285,18 +304,13 @@ export default function RewardsScreen() {
 
               <View style={styles.benefits}>
                 {TIER_BENEFITS[tr.id].map((b) => (
-                  <View key={b} style={styles.benefitRow}>
-                    <Icon name="bean" size={15} color={fg} strokeWidth={2} />
+                  <View key={b.key} style={styles.benefitRow}>
+                    <Icon name={b.icon} size={16} color={fg} strokeWidth={1.9} />
                     <Text variant="caption" color={fg} style={styles.flex}>
-                      {t(b)}
+                      {t(b.key)}
                     </Text>
                   </View>
                 ))}
-                {tr.id !== 'bean' ? (
-                  <Text variant="caption" color={fg} style={styles.inherits}>
-                    {t('rewards.inheritsPrevious')}
-                  </Text>
-                ) : null}
               </View>
             </View>
           );
@@ -407,8 +421,7 @@ const styles = StyleSheet.create({
   },
   progressFill: { height: '100%', borderRadius: 4, backgroundColor: '#FFFFFF' },
   benefits: { gap: spacing.sm, marginTop: spacing.xs },
-  benefitRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
-  inherits: { marginTop: spacing.xs, fontStyle: 'italic', opacity: 0.9 },
+  benefitRow: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.sm },
 
   dots: { flexDirection: 'row', justifyContent: 'center', gap: spacing.xs, marginTop: spacing.md },
   dot: { width: 7, height: 7, borderRadius: 4, backgroundColor: colors.neutralWarm },

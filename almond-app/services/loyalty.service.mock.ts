@@ -9,6 +9,7 @@ import type {
   ReferralInfo,
   CupState,
 } from '@/types';
+import type { GiftCard } from '@/types';
 import type { LoyaltyService, EarnInput } from './loyalty.service';
 import { config } from '@/constants/config';
 import { tierFromSpend } from './seed';
@@ -49,6 +50,23 @@ function rolling12mSpend(u: LoyaltyUser, now = Date.now()): number {
 }
 
 const store = new Map<string, LoyaltyUser>();
+// eGift cards keyed by code. Seeded with one demo code so redeem works out of
+// the box (TODO: real gift issuance + delivery + payment on the server).
+const gifts = new Map<string, GiftCard>();
+let giftsSeeded = false;
+function seedGifts() {
+  if (giftsSeeded) return;
+  giftsSeeded = true;
+  gifts.set('ALM-GIFT-2026', {
+    id: genId('gift'), code: 'ALM-GIFT-2026', designId: 'anytime-treat', amount: 5,
+    recipientName: '', senderId: 'demo', createdAt: new Date().toISOString(), redeemed: false,
+  });
+}
+
+function genGiftCode(): string {
+  const part = () => Math.random().toString(36).slice(2, 6).toUpperCase();
+  return `ALM-${part()}-${part()}`;
+}
 // Track every phone the system has seen (anti-abuse for referrals, section 8.1.1).
 const knownPhones = new Set<string>();
 // Spin config (mirrors what the admin panel would push to the loyalty server).
@@ -280,6 +298,49 @@ export const mockLoyaltyService: LoyaltyService = {
     // Top-up of the configured amount grants a spin (section 2.4).
     if (amount >= spinConfig.eligibility.topupAmount) u.spinsAvailable += 1;
     return delay(u.walletBalance);
+  },
+
+  sendGift: (input) => {
+    seedGifts();
+    const gift: GiftCard = {
+      id: genId('gift'),
+      code: genGiftCode(),
+      designId: input.designId,
+      amount: input.amount,
+      recipientName: input.recipientName,
+      recipientPhone: input.recipientPhone,
+      message: input.message,
+      senderId: input.senderId,
+      createdAt: new Date().toISOString(),
+      redeemed: false,
+    };
+    gifts.set(gift.code, gift);
+    return delay(gift, 400);
+  },
+
+  getSentGifts: (userId) => {
+    seedGifts();
+    const list = [...gifts.values()]
+      .filter((g) => g.senderId === userId)
+      .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+    return delay(list);
+  },
+
+  redeemGiftCode: (userId, code) => {
+    seedGifts();
+    const gift = gifts.get(code.trim().toUpperCase());
+    if (!gift) return Promise.reject(new Error('Invalid gift code'));
+    if (gift.redeemed) return Promise.reject(new Error('Gift already redeemed'));
+    gift.redeemed = true;
+    const u = ensureUser(userId);
+    u.walletBalance += gift.amount; // gift balance flows into the wallet
+    u.history.unshift({
+      id: genId('log'), deltaPoints: 0,
+      reasonAr: `بطاقة هدية (+${gift.amount.toFixed(3)} د.أ)`,
+      reasonEn: `Gift card (+${gift.amount.toFixed(3)} JOD)`,
+      createdAt: new Date().toISOString(),
+    });
+    return delay({ amount: gift.amount, walletBalance: u.walletBalance });
   },
 
   getReferralCode: (userId) => {

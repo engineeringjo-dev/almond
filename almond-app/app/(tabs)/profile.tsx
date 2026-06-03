@@ -63,6 +63,7 @@ export default function ProfileScreen() {
         <Card padded={false} style={styles.menu}>
           <ListRow emoji="🧾" label={t('profile.orders')} onPress={() => router.push('/profile/orders')} />
           <ListRow emoji="🎁" label={t('profile.vouchers')} onPress={() => router.push('/profile/vouchers')} />
+          <ListRow emoji="🎀" label={t('profile.giftCards')} onPress={() => router.push('/profile/gift-cards')} />
           <ListRow emoji="📍" label={t('profile.addresses')} onPress={() => router.push('/profile/addresses')} />
           <ListRow emoji="💳" label={t('profile.payments')} onPress={() => router.push('/profile/payments')} />
           <ListRow
