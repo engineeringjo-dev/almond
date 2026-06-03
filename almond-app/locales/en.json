@@ -304,7 +304,9 @@
     "redeemCta": "Redeem",
     "redeemedTitle": "Redeemed 🎉",
     "redeemedBody": "We added “{{item}}” to your vouchers — show your barcode at the counter",
-    "notEnough": "Not enough beans for this reward"
+    "notEnough": "Not enough beans for this reward",
+    "swipeTiers": "Swipe to explore all 4 tiers",
+    "tierCounter": "{{n}} of {{total}}"
   },
   "rewardItems": {
     "smallDrink": "Free small drink",

@@ -310,7 +310,9 @@
     "redeemCta": "استبدل",
     "redeemedTitle": "تم الاستبدال 🎉",
     "redeemedBody": "أضفنا «{{item}}» إلى قسائمك — أظهر الباركود عند الكاونتر",
-    "notEnough": "ينقصك حبات لهذه المكافأة"
+    "notEnough": "ينقصك حبات لهذه المكافأة",
+    "swipeTiers": "اسحب لاستكشاف الفئات الأربع",
+    "tierCounter": "{{n}} من {{total}}"
   },
   "rewardItems": {
     "smallDrink": "مشروب صغير مجاني",
