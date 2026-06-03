@@ -10,6 +10,7 @@ import { VisitRewardBanner } from '@/components/home/VisitRewardBanner';
 import { NearestBranchButton } from '@/components/home/NearestBranchButton';
 import { OrderNowButton } from '@/components/home/OrderNowButton';
 import { WalletCard } from '@/components/home/WalletCard';
+import { GiftCardHome } from '@/components/home/GiftCardHome';
 import { WelcomeOffer } from '@/components/home/WelcomeOffer';
 import { FeaturedRow } from '@/components/home/FeaturedRow';
 import { PromoCarousel } from '@/components/home/PromoCarousel';
@@ -74,6 +75,10 @@ export default function HomeScreen() {
 
         <View style={styles.section}>
           <WalletCard />
+        </View>
+
+        <View style={styles.section}>
+          <GiftCardHome />
         </View>
 
         <View style={styles.section}>
