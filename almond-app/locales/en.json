@@ -271,7 +271,13 @@
     "tierMax": "You've reached the top tier 👑",
     "benefitsTitle": "Your tier benefits",
     "viewHistory": "Beans history",
-    "inheritsPrevious": "+ all lower-tier benefits"
+    "inheritsPrevious": "+ all lower-tier benefits",
+    "headline": "Free coffee is just the beginning",
+    "headlineSub": "Collect beans and unlock more of what you love",
+    "statusSubBelow": "Less than {{spend}} JOD a year",
+    "statusSubAbove": "{{spend}}+ JOD a year",
+    "routineTitle": "Get rewarded for your routine",
+    "routineSub": "As your status grows, so do your benefits"
   },
   "rewardItems": {
     "smallDrink": "Free small drink",
@@ -279,16 +285,21 @@
     "largeCombo": "Large drink + pastry",
     "anyPastry": "Any pastry free",
     "freeCake": "Free slice of cake",
-    "flatDiscount": "Flat discount on any item"
+    "flatDiscount": "Flat discount on any item",
+    "customization": "Free customization (shot/syrup)",
+    "brewedCoffee": "Coffee or bakery",
+    "handcraftedDrink": "Handcrafted drink",
+    "brunchPlate": "Brunch plate",
+    "packagedCoffee": "Packaged coffee or gift"
   },
   "tierBenefits": {
-    "bean1": "Earn a bean per JOD",
+    "bean1": "Earn 5 beans per JOD",
     "bean2": "Free cup every 10 drinks",
-    "silver1": "Earn 1.25× beans",
+    "silver1": "Earn 1.25× beans (6.25/JOD)",
     "silver2": "Exclusive menu offers",
-    "gold1": "Earn 1.5× beans",
+    "gold1": "Earn 1.5× beans (7.5/JOD)",
     "gold2": "+50% beans every Friday",
-    "black1": "Double 2× beans",
+    "black1": "Earn 2× beans (10/JOD)",
     "black2": "Exclusive rewards & surprises"
   },
   "tiers": {
