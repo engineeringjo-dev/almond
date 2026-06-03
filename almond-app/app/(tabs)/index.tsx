@@ -11,6 +11,7 @@ import { NearestBranchButton } from '@/components/home/NearestBranchButton';
 import { OrderNowButton } from '@/components/home/OrderNowButton';
 import { WalletCard } from '@/components/home/WalletCard';
 import { GiftCardHome } from '@/components/home/GiftCardHome';
+import { ActiveOrderBanner } from '@/components/home/ActiveOrderBanner';
 import { WelcomeOffer } from '@/components/home/WelcomeOffer';
 import { FeaturedRow } from '@/components/home/FeaturedRow';
 import { PromoCarousel } from '@/components/home/PromoCarousel';
@@ -54,6 +55,11 @@ export default function HomeScreen() {
         <Text variant="h1" style={styles.greeting}>
           {t(greeting, { name })}
         </Text>
+
+        {/* Live active-order status, front-and-centre (Starbucks pattern) */}
+        <View style={styles.section}>
+          <ActiveOrderBanner />
+        </View>
 
         {/* Starbucks layout (Master Pack §2): rewards hero → order CTA → wallet
             → usual → horizontal sections → branches, with generous spacing. */}

@@ -17,6 +17,7 @@ import { Card } from '@/components/ui/Card';
 import { Icon, type IconName } from '@/components/ui/Icon';
 import { Gradient } from '@/components/ui/Gradient';
 import { Logo } from '@/components/ui/Logo';
+import { Skeleton } from '@/components/ui/Skeleton';
 import { TierBadge } from '@/components/loyalty/TierBadge';
 import { BonusDayBanner } from '@/components/loyalty/BonusDayBanner';
 import { colors, spacing, radius, shadow } from '@/constants/theme';
@@ -96,8 +97,27 @@ export default function RewardsScreen() {
   const redeemReward = useRedeemReward();
   const [statusPage, setStatusPage] = useState(0);
 
-  if (balanceQ.isLoading || balanceQ.isError || !balanceQ.data) {
-    return <Screen loading={balanceQ.isLoading} error={balanceQ.isError} onRetry={balanceQ.refetch} />;
+  if (balanceQ.isError) {
+    return <Screen error onRetry={balanceQ.refetch} />;
+  }
+  if (balanceQ.isLoading || !balanceQ.data) {
+    return (
+      <Screen>
+        <View style={styles.titleRow}>
+          <Logo variant="badge" tone="dark" size={28} />
+          <Text variant="h1">{t('rewards.title')}</Text>
+        </View>
+        <Skeleton height={180} style={styles.skelHero} />
+        <Skeleton width="55%" height={22} style={styles.skelLine} />
+        <View style={styles.rewardGrid}>
+          {Array.from({ length: 6 }).map((_, i) => (
+            <View key={i} style={styles.rewardCell}>
+              <Skeleton height={150} />
+            </View>
+          ))}
+        </View>
+      </Screen>
+    );
   }
 
   const balance = balanceQ.data;
@@ -338,6 +358,8 @@ const styles = StyleSheet.create({
   titleRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginBottom: spacing.lg },
   bannerWrap: { marginBottom: spacing.lg },
   flex: { flex: 1 },
+  skelHero: { marginBottom: spacing.lg },
+  skelLine: { marginBottom: spacing.md },
   pointsCard: {
     alignItems: 'center',
     gap: spacing.xs,

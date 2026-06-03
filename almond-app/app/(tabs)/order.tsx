@@ -15,6 +15,7 @@ import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { FadeIn } from '@/components/ui/FadeIn';
+import { Skeleton } from '@/components/ui/Skeleton';
 import { Screen } from '@/components/ui/Screen';
 import { colors, spacing, radius, shadow } from '@/constants/theme';
 import { useI18n } from '@/hooks/useI18n';
@@ -51,8 +52,33 @@ export default function OrderScreen() {
   const loading = categoriesQuery.isLoading || itemsQuery.isLoading;
   const error = categoriesQuery.isError || itemsQuery.isError;
 
-  if (loading || error) {
-    return <Screen loading={loading} error={error} onRetry={itemsQuery.refetch} />;
+  if (error) {
+    return <Screen error onRetry={itemsQuery.refetch} />;
+  }
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.safe} edges={['top']}>
+        <View style={styles.header}>
+          <View style={styles.titleRow}>
+            <Logo variant="badge" tone="dark" size={28} />
+            <Text variant="h1">{t('tabs.order')}</Text>
+          </View>
+        </View>
+        <View style={styles.skeletonWrap}>
+          <Skeleton height={46} pill />
+          <View style={styles.skelChips}>
+            {[0, 1, 2, 3].map((i) => <Skeleton key={i} width={76} height={32} pill />)}
+          </View>
+          <View style={styles.grid}>
+            {Array.from({ length: 6 }).map((_, i) => (
+              <View key={i} style={styles.gridCell}>
+                <Skeleton height={150} />
+              </View>
+            ))}
+          </View>
+        </View>
+      </SafeAreaView>
+    );
   }
 
   const items: MenuItem[] = itemsQuery.data ?? [];
@@ -432,6 +458,8 @@ const styles = StyleSheet.create({
   cardWrap: { flex: 1 },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.md },
   gridCell: { width: '47.5%', flexGrow: 1 },
+  skeletonWrap: { padding: spacing.lg, gap: spacing.lg },
+  skelChips: { flexDirection: 'row', gap: spacing.sm },
 
   empty: { alignItems: 'center', paddingVertical: spacing.xxl * 2, gap: spacing.md },
   emptyEmoji: { fontSize: 44 },
