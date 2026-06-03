@@ -290,6 +290,29 @@ export interface VisitReward {
   redeemed?: boolean;
 }
 
+// ---------- Gift cards (eGifts) ----------
+
+export type GiftOccasion =
+  | 'anytime'
+  | 'birthday'
+  | 'thankyou'
+  | 'congrats'
+  | 'celebration'
+  | 'loveyou';
+
+export interface GiftCard {
+  id: string;
+  code: string;
+  designId: string;
+  amount: number;
+  recipientName: string;
+  recipientPhone?: string;
+  message?: string;
+  senderId: string;
+  createdAt: string;
+  redeemed?: boolean;
+}
+
 // ---------- Auth / user ----------
 
 export interface User {

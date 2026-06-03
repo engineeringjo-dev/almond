@@ -7,6 +7,7 @@ import type {
   SpinEligibility,
   SpinResult,
   ReferralInfo,
+  GiftCard,
 } from '@/types';
 import { config } from '@/constants/config';
 import { mockLoyaltyService } from './loyalty.service.mock';
@@ -19,6 +20,15 @@ export interface EarnInput {
   isFriday?: boolean;
   /** Extra multiplier from an activated bonus-bean day (e.g. 2 = double). */
   bonusMultiplier?: number;
+}
+
+export interface SendGiftInput {
+  senderId: string;
+  designId: string;
+  amount: number;
+  recipientName: string;
+  recipientPhone?: string;
+  message?: string;
 }
 
 /** Redeeming beans for a catalog Reward — issues a voucher (no cash value). */
@@ -50,6 +60,12 @@ export interface LoyaltyService {
   // Wallet / stored value (section 2.2 / 11)
   getWallet(userId: string): Promise<number>;
   topUp(userId: string, amount: number): Promise<number>;
+
+  // Gift cards / eGifts — feed the wallet (Wallet spec §1.1 "gift" source)
+  sendGift(input: SendGiftInput): Promise<GiftCard>;
+  getSentGifts(userId: string): Promise<GiftCard[]>;
+  /** Redeem a gift code → adds its amount to the wallet (no reload bonus). */
+  redeemGiftCode(userId: string, code: string): Promise<{ amount: number; walletBalance: number }>;
 
   // Growth rewards (section 2.4.1)
   getReferralCode(userId: string): Promise<ReferralInfo>;

@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
-import { loyaltyService, type RedeemRewardInput } from '@/services/loyalty.service';
+import { loyaltyService, type RedeemRewardInput, type SendGiftInput } from '@/services/loyalty.service';
 import { useUserId } from '@/stores/authStore';
 
 export function useLoyaltyBalance() {
@@ -60,6 +60,35 @@ export function useTopUp() {
   const invalidate = useInvalidateLoyalty();
   return useMutation({
     mutationFn: (amount: number) => loyaltyService.topUp(userId, amount),
+    onSuccess: invalidate,
+  });
+}
+
+// ---------- Gift cards (eGifts) ----------
+
+export function useSentGifts() {
+  const userId = useUserId();
+  return useQuery({
+    queryKey: ['gifts', 'sent', userId],
+    queryFn: () => loyaltyService.getSentGifts(userId),
+  });
+}
+
+export function useSendGift() {
+  const userId = useUserId();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: Omit<SendGiftInput, 'senderId'>) =>
+      loyaltyService.sendGift({ ...input, senderId: userId }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['gifts'] }),
+  });
+}
+
+export function useRedeemGift() {
+  const userId = useUserId();
+  const invalidate = useInvalidateLoyalty();
+  return useMutation({
+    mutationFn: (code: string) => loyaltyService.redeemGiftCode(userId, code),
     onSuccess: invalidate,
   });
 }

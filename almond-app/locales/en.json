@@ -349,7 +349,8 @@
     "noAddresses": "No saved addresses",
     "addAddress": "Add address",
     "reloadBonus": "+{{beans}} bonus beans",
-    "reloadBonusNote": "Reload more and earn bonus beans instantly ☕"
+    "reloadBonusNote": "Reload more and earn bonus beans instantly ☕",
+    "giftCards": "Gift cards"
   },
   "referral": {
     "title": "Invite friends",
@@ -388,5 +389,41 @@
     "body": "Activate to earn {{mult}}× beans on today's order",
     "activate": "Activate now",
     "activated": "Activated ✓ — {{mult}}× beans today"
+  },
+  "gift": {
+    "title": "Gift cards",
+    "subtitle": "Gift coffee to someone you love ☕",
+    "addHave": "Got a gift card? Add it here",
+    "featured": "Featured",
+    "sendTitle": "Send a gift card",
+    "preview": "Preview",
+    "amount": "Amount",
+    "recipientName": "Recipient name",
+    "recipientNamePh": "e.g. Ahmad",
+    "phoneOptional": "Phone (optional)",
+    "message": "Message (optional)",
+    "messagePh": "Write a kind note...",
+    "send": "Send gift",
+    "sending": "Sending...",
+    "sentTitle": "Sent 🎉",
+    "sentBody": "Share this code with {{name}} to claim the gift",
+    "code": "Gift code",
+    "share": "Share",
+    "done": "Done",
+    "needName": "Enter the recipient's name",
+    "redeemTitle": "Add a gift card",
+    "redeemHint": "Enter the card code to add its value to your wallet",
+    "codePh": "ALM-XXXX-XXXX",
+    "redeemCta": "Add to balance",
+    "redeeming": "Adding...",
+    "redeemedTitle": "Added 🎉",
+    "redeemedBody": "We added {{jod}} JOD to your wallet",
+    "invalidCode": "Invalid or already-used code",
+    "history": "My sent gifts",
+    "noHistory": "No gifts sent yet",
+    "toName": "To {{name}}",
+    "about": "About gift cards",
+    "aboutBody": "A gift card is coffee balance you send digitally. The recipient redeems the code into their Almond wallet, pays from it and earns beans.",
+    "shareMessage": "I sent you an Almond gift of {{jod}} JOD! Use code {{code}} in the Almond app ☕"
   }
 }
