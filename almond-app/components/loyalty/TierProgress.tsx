@@ -109,7 +109,7 @@ const styles = StyleSheet.create({
     end: STOP / 2,
     height: 8,
     borderRadius: radius.pill,
-    backgroundColor: colors.cream,
+    backgroundColor: colors.neutralWarm,
   },
   fill: {
     position: 'absolute',
@@ -127,7 +127,7 @@ const styles = StyleSheet.create({
     borderRadius: STOP / 2,
     backgroundColor: colors.cardBg,
     borderWidth: 2,
-    borderColor: colors.cream,
+    borderColor: colors.neutralWarm,
     alignItems: 'center',
     justifyContent: 'center',
   },

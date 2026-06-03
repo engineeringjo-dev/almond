@@ -38,7 +38,7 @@ export default function PaymentsScreen() {
 const styles = StyleSheet.create({
   menu: { paddingVertical: spacing.xs },
   row: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, padding: spacing.md },
-  border: { borderTopWidth: 1, borderTopColor: colors.cream },
+  border: { borderTopWidth: 1, borderTopColor: colors.neutralWarm },
   emoji: { fontSize: 22 },
   label: { flex: 1 },
   note: { marginTop: spacing.lg, textAlign: 'center' },

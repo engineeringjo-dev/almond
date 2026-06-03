@@ -117,5 +117,5 @@ const styles = StyleSheet.create({
   row: { gap: spacing.md, paddingEnd: spacing.lg },
   historyCard: { overflow: 'hidden' },
   historyRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, padding: spacing.md },
-  historyBorder: { borderTopWidth: 1, borderTopColor: colors.cream },
+  historyBorder: { borderTopWidth: 1, borderTopColor: colors.neutralWarm },
 });

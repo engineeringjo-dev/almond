@@ -73,7 +73,7 @@ const styles = StyleSheet.create({
   thumb: {
     height: 96,
     borderRadius: radius.md,
-    backgroundColor: colors.cream,
+    backgroundColor: colors.neutralWarm,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: spacing.sm,
@@ -92,7 +92,7 @@ const styles = StyleSheet.create({
   brText: { fontWeight: '700' },
   soldOut: {
     position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
-    backgroundColor: 'rgba(28,18,8,0.55)',
+    backgroundColor: 'rgba(46,37,82,0.55)',
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: radius.md,

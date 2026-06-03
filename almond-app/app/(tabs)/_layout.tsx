@@ -31,7 +31,7 @@ export default function TabsLayout() {
         tabBarInactiveTintColor: colors.warmGray,
         tabBarStyle: {
           backgroundColor: colors.cardBg,
-          borderTopColor: colors.cream,
+          borderTopColor: colors.neutralWarm,
           height: 64,
           paddingBottom: 8,
           paddingTop: 6,
