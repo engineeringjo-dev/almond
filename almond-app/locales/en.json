@@ -303,15 +303,20 @@
     "packagedCoffee": "Packaged coffee or gift"
   },
   "tierBenefits": {
-    "bean1": "Earn 5 beans per JOD",
-    "bean2": "Free cup every 10 drinks",
-    "silver1": "Earn 1.25× beans (6.25/JOD)",
-    "silver2": "Exclusive menu offers",
-    "gold1": "Earn 1.5× beans (7.5/JOD)",
-    "gold2": "+50% beans every Friday",
-    "black1": "Earn 2× beans (10/JOD)",
-    "black2": "Exclusive rewards & surprises",
-    "gold3": "Your beans never expire while Gold or Black"
+    "birthday": "A free drink on your birthday",
+    "earnBean": "Earn 5 beans per 1 JOD",
+    "earnSilver": "Earn 6.25 beans per 1 JOD",
+    "earnGold": "Earn 7.5 beans per 1 JOD",
+    "earnBlack": "Earn 10 beans per 1 JOD",
+    "noExpire": "Your beans never expire",
+    "freeMod": "Free drink customization once a month, on us",
+    "offers": "Personalized offers made for you",
+    "reloadBonus": "Bonus beans on wallet reloads",
+    "cupBonus": "Double beans with your personal cup",
+    "doubleDays4": "4 more Double Beans Days per year",
+    "doubleDays6": "6 more Double Beans Days per year",
+    "experiences": "Access to exclusive coffee experiences",
+    "memberCard": "A personalized premium member card"
   },
   "tiers": {
     "bean": "Bean",
