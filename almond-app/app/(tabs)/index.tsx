@@ -10,6 +10,7 @@ import { VisitRewardBanner } from '@/components/home/VisitRewardBanner';
 import { NearestBranchButton } from '@/components/home/NearestBranchButton';
 import { OrderNowButton } from '@/components/home/OrderNowButton';
 import { WalletCard } from '@/components/home/WalletCard';
+import { WelcomeOffer } from '@/components/home/WelcomeOffer';
 import { FeaturedRow } from '@/components/home/FeaturedRow';
 import { PromoCarousel } from '@/components/home/PromoCarousel';
 import { BranchCard } from '@/components/branch/BranchCard';
@@ -55,6 +56,10 @@ export default function HomeScreen() {
 
         {/* Starbucks layout (Master Pack §2): rewards hero → order CTA → wallet
             → usual → horizontal sections → branches, with generous spacing. */}
+        <View style={styles.section}>
+          <WelcomeOffer />
+        </View>
+
         <View style={styles.section}>
           <VisitRewardBanner />
         </View>

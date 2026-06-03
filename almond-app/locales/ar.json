@@ -81,7 +81,10 @@
     "emptyFavHint": "اضغط على ♥ في أي مشروب لحفظه هنا",
     "favAdd": "أضف للمفضّلة",
     "favRemove": "إزالة من المفضّلة",
-    "addedReady": "جاهز في سلتك ✓"
+    "addedReady": "جاهز في سلتك ✓",
+    "pickupFrom": "استلام من",
+    "chooseBranch": "اختر فرعاً",
+    "viewCart": "السلة"
   },
   "home": {
     "greetingMorning": "صباح الكيف، {{name}}",
@@ -107,7 +110,10 @@
     "directions": "الموقع على الخريطة",
     "walletBalance": "رصيد محفظتك",
     "topUpWallet": "اشحن محفظتك",
-    "walletHint": "ادفع من رصيدك واكسب +50% حبات (×1.5) ☕"
+    "walletHint": "ادفع من رصيدك واكسب +50% حبات (×1.5) ☕",
+    "welcomeTitle": "هديتنا الترحيبية 🎁",
+    "welcomeBody": "مشروب مجاني مع أول طلب لك",
+    "welcomeCta": "اطلب الآن"
   },
   "menu": {
     "title": "القائمة",
@@ -122,7 +128,12 @@
     "outOfStock": "غير متوفر حالياً",
     "pairsWith": "يُطلب عادةً مع",
     "upsize": "كبّرها إلى {{size}} بـ +{{delta}}",
-    "added": "تمت الإضافة ✓"
+    "added": "تمت الإضافة ✓",
+    "calories": "{{n}} سعرة",
+    "sugar": "{{n}}غ سكر",
+    "glutenFree": "خالٍ من الجلوتين",
+    "containsGluten": "يحتوي جلوتين",
+    "nutritionNote": "القيم تقريبية"
   },
   "customization": {
     "milk": "الحليب",
@@ -167,7 +178,10 @@
     "walletUpsell": "ادفع من رصيد محفظتك واكسب +50% حبات على هذا الطلب",
     "walletEarnBonus": "+50% حبات عند الدفع من الرصيد ☕",
     "brunchComboTitle": "أضف طبق برانش ووفّر 1.000 د.أ",
-    "addCombo": "أضف ووفّر"
+    "addCombo": "أضف ووفّر",
+    "curbside": "استلام من السيارة 🚗",
+    "curbsideHint": "نجيب طلبك لسيارتك عند وصولك",
+    "carInfoPh": "لون وموديل السيارة ورقم اللوحة"
   },
   "payment": {
     "cash": "نقداً",
@@ -210,7 +224,10 @@
     "redeemDone": "تم صرف {{jod}} د.أ إلى محفظتك",
     "history": "سجل الحبات",
     "memberId": "رقم العضوية",
-    "seeRewards": "اصرف حباتك من شاشة المكافآت"
+    "seeRewards": "اصرف حباتك من شاشة المكافآت",
+    "scanAndPay": "امسح وادفع",
+    "scanOnly": "امسح فقط",
+    "earnRate": "تكسب {{n}} حبة لكل دينار"
   },
   "track": {
     "title": "تتبع الطلب",

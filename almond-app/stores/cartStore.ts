@@ -19,6 +19,9 @@ interface CartState {
   paidFromBalance: boolean;
   promoCode: string | null;
   promoDiscount: number;
+  /** Curbside pickup: bring the order to the car (Starbucks Curbside). */
+  curbside: boolean;
+  carInfo: string;
 
   addItem: (
     item: MenuItem,
@@ -34,6 +37,8 @@ interface CartState {
   setBranch: (id: string) => void;
   setPaymentMethod: (m: PaymentMethodId) => void;
   setPromo: (code: string | null, discount: number) => void;
+  setCurbside: (on: boolean) => void;
+  setCarInfo: (info: string) => void;
   clear: () => void;
 }
 
@@ -54,6 +59,8 @@ export const useCartStore = create<CartState>((set) => ({
   paidFromBalance: false,
   promoCode: null,
   promoDiscount: 0,
+  curbside: false,
+  carInfo: '',
 
   addItem: (item, size, customizations, qty) => {
     // Visual "added to cart" confirmation (Spec §4.2).
@@ -121,8 +128,10 @@ export const useCartStore = create<CartState>((set) => ({
   setPaymentMethod: (paymentMethod) =>
     set({ paymentMethod, paidFromBalance: paymentMethod === 'wallet' }),
   setPromo: (promoCode, promoDiscount) => set({ promoCode, promoDiscount }),
+  setCurbside: (curbside) => set({ curbside }),
+  setCarInfo: (carInfo) => set({ carInfo }),
   clear: () =>
-    set({ items: [], promoCode: null, promoDiscount: 0, paidFromBalance: false }),
+    set({ items: [], promoCode: null, promoDiscount: 0, paidFromBalance: false, curbside: false, carInfo: '' }),
 }));
 
 /** Total item count for the cart tab badge. */
