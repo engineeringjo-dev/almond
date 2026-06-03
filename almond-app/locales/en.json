@@ -270,7 +270,8 @@
     "progressToNext": "Spend {{remaining}} JOD to reach {{tier}}",
     "tierMax": "You've reached the top tier 👑",
     "benefitsTitle": "Your tier benefits",
-    "viewHistory": "Beans history"
+    "viewHistory": "Beans history",
+    "inheritsPrevious": "+ all lower-tier benefits"
   },
   "rewardItems": {
     "smallDrink": "Free small drink",
@@ -283,14 +284,12 @@
   "tierBenefits": {
     "bean1": "Earn a bean per JOD",
     "bean2": "Free cup every 10 drinks",
-    "silver1": "Earn 1.25× faster",
-    "silver2": "Exclusive Silver offers",
-    "gold1": "Earn 1.5× faster",
-    "gold2": "Birthday welcome drink",
-    "gold3": "Priority preparation",
+    "silver1": "Earn 1.25× beans",
+    "silver2": "Exclusive menu offers",
+    "gold1": "Earn 1.5× beans",
+    "gold2": "+50% beans every Friday",
     "black1": "Double 2× beans",
-    "black2": "Exclusive perks & surprises",
-    "black3": "Premium customer care"
+    "black2": "Exclusive rewards & surprises"
   },
   "tiers": {
     "bean": "Bean",

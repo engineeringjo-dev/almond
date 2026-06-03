@@ -34,11 +34,14 @@ const TIER_COLOR: Record<TierId, string> = {
   black: colors.tierBlack,
 };
 
+// Tier perks are fair and cumulative: every higher tier inherits all lower-tier
+// benefits (shown via the "inheritsPrevious" note). No service-speed or
+// service-quality differentiation between tiers — only earning rate + offers.
 const TIER_BENEFITS: Record<TierId, string[]> = {
   bean: ['tierBenefits.bean1', 'tierBenefits.bean2'],
   silver: ['tierBenefits.silver1', 'tierBenefits.silver2'],
-  gold: ['tierBenefits.gold1', 'tierBenefits.gold2', 'tierBenefits.gold3'],
-  black: ['tierBenefits.black1', 'tierBenefits.black2', 'tierBenefits.black3'],
+  gold: ['tierBenefits.gold1', 'tierBenefits.gold2'],
+  black: ['tierBenefits.black1', 'tierBenefits.black2'],
 };
 
 const STEPS: { icon: IconName; titleKey: string; bodyKey: string }[] = [
@@ -224,6 +227,11 @@ export default function RewardsScreen() {
                     </Text>
                   </View>
                 ))}
+                {tr.id !== 'bean' ? (
+                  <Text variant="caption" color={colors.primary} style={styles.inherits}>
+                    {t('rewards.inheritsPrevious')}
+                  </Text>
+                ) : null}
               </View>
             </View>
           );
@@ -341,6 +349,7 @@ const styles = StyleSheet.create({
   progressFill: { height: '100%', borderRadius: 4 },
   benefits: { gap: spacing.xs },
   benefitRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  inherits: { marginTop: spacing.xs, fontStyle: 'italic' },
 
   historyLink: {
     flexDirection: 'row',
