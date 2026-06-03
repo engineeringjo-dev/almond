@@ -53,7 +53,7 @@ const TIER_COLOR: Record<TierId, string> = {
 const TIER_BENEFITS: Record<TierId, string[]> = {
   bean: ['tierBenefits.bean1', 'tierBenefits.bean2'],
   silver: ['tierBenefits.silver1', 'tierBenefits.silver2'],
-  gold: ['tierBenefits.gold1', 'tierBenefits.gold2'],
+  gold: ['tierBenefits.gold1', 'tierBenefits.gold2', 'tierBenefits.gold3'],
   black: ['tierBenefits.black1', 'tierBenefits.black2'],
 };
 
@@ -162,6 +162,7 @@ export default function RewardsScreen() {
         {t('rewards.rewardsMenuHint')}
       </Text>
       <View style={styles.rewardGrid}>
+        {/* Each reward is a max value; pay the difference if the item costs more */}
         {REWARD_MENU.map((r) => {
           const unlocked = points >= r.points;
           const jod = (r.points / config.POINTS_PER_JOD_REDEEM).toFixed(3);
@@ -191,6 +192,9 @@ export default function RewardsScreen() {
           );
         })}
       </View>
+      <Text variant="caption" color={colors.warmGray} style={styles.maxHint}>
+        {t('rewards.maxValueHint')}
+      </Text>
 
       {/* §3.3 Status — large, full-colour swipeable cards (Starbucks pattern) */}
       <Text variant="title" style={styles.sectionTitle}>
@@ -338,6 +342,7 @@ const styles = StyleSheet.create({
   },
   rewardStatusOn: { backgroundColor: 'rgba(45,106,79,0.12)' },
   rewardStatusOff: { backgroundColor: colors.cream },
+  maxHint: { marginTop: spacing.sm },
 
   // Status carousel
   statusScroll: { gap: spacing.md },

@@ -14,6 +14,7 @@ import { config } from '@/constants/config';
 import { tierFromSpend } from './seed';
 import { delay, genId } from './util';
 import { defaultSpinConfig, pickWeightedPrize } from './spinDefaults';
+import { reloadBonusBeans } from '@/lib/walletBonus';
 
 interface SpendEntry {
   amount: number;
@@ -249,6 +250,18 @@ export const mockLoyaltyService: LoyaltyService = {
   topUp: (userId, amount) => {
     const u = ensureUser(userId);
     u.walletBalance += amount;
+    // Digital reload bonus beans (pre-commitment lever): grant the highest
+    // qualifying tier's bonus and log it.
+    const bonus = reloadBonusBeans(amount);
+    if (bonus > 0) {
+      u.points += bonus;
+      u.history.unshift({
+        id: genId('log'), deltaPoints: bonus,
+        reasonAr: `مكافأة شحن المحفظة (+${bonus} حبة)`,
+        reasonEn: `Wallet reload bonus (+${bonus} beans)`,
+        createdAt: new Date().toISOString(),
+      });
+    }
     // Top-up of the configured amount grants a spin (section 2.4).
     if (amount >= spinConfig.eligibility.topupAmount) u.spinsAvailable += 1;
     return delay(u.walletBalance);

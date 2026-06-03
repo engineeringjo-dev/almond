@@ -277,7 +277,8 @@
     "statusSubBelow": "Less than {{spend}} JOD a year",
     "statusSubAbove": "{{spend}}+ JOD a year",
     "routineTitle": "Get rewarded for your routine",
-    "routineSub": "As your status grows, so do your benefits"
+    "routineSub": "As your status grows, so do your benefits",
+    "maxValueHint": "Value is a max — pay the difference if the item costs more"
   },
   "rewardItems": {
     "smallDrink": "Free small drink",
@@ -300,7 +301,8 @@
     "gold1": "Earn 1.5× beans (7.5/JOD)",
     "gold2": "+50% beans every Friday",
     "black1": "Earn 2× beans (10/JOD)",
-    "black2": "Exclusive rewards & surprises"
+    "black2": "Exclusive rewards & surprises",
+    "gold3": "Your beans never expire while Gold or Black"
   },
   "tiers": {
     "bean": "Bean",
@@ -336,7 +338,9 @@
     "topUp": "Top up",
     "noOrders": "No past orders",
     "noAddresses": "No saved addresses",
-    "addAddress": "Add address"
+    "addAddress": "Add address",
+    "reloadBonus": "+{{beans}} bonus beans",
+    "reloadBonusNote": "Reload more and earn bonus beans instantly ☕"
   },
   "referral": {
     "title": "Invite friends",

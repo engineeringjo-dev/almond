@@ -143,3 +143,45 @@ the next visit cheaper (in effort) and more rewarding.
 - (04, 09, 10, 12, 14, 15 — additional rewards/gift/featured frames)
 
 *Starbucks screenshots are third-party, kept only as an internal design reference.*
+
+---
+
+## 7. Lessons mined from the Starbucks Rewards Terms of Use (2026)
+
+We take **mechanics only** — never their copy, marks, or "Stars". Mapped to Almond:
+
+### Adopted now ✅
+- **Digital reload bonus** → bonus **beans** on wallet top-up (≥20 JOD → +50, ≥35
+  JOD → +120, highest tier applies, admin-set `WALLET_RELOAD_BONUS`). Strong
+  pre-commitment / sunk-cost lever; shown on the wallet screen.
+- **Redemption tiers = max value, pay the difference** → each reward is a *max*
+  value; if the item costs more, the member pays the difference (hint on the
+  rewards menu). Keeps fixed-cost tiers fair and flexible.
+- **"Beans don't expire" as a top-tier perk** → loss-aversion flipped into a
+  reward (Gold/Black benefit line). Positive framing, no punishment of regulars.
+
+### Documented for later ⬜ (deliberate, not built now)
+- **Two-balance model**: a *tier* balance (earned in the 12-month window, can
+  reset/drop) separate from the *redeemable* balance. We already approximate
+  this (tier from rolling spend vs redeemable beans); formalize when on Odoo.
+- **Bean expiry + activity extension**: low tiers' beans expire after inactivity
+  unless a purchase/redeem/reload extends them; top tiers never expire. Keep the
+  window **generous** (our §5 rule: never punish the regular). Configurable.
+- **Double/Triple Bean Days** (activatable promo days) — use the existing admin
+  campaign engine; surface an "Activate" banner. Not a game.
+- **Free customization once a month** (à la "Free Mod Mondays") — recurring
+  reciprocity perk via a monthly voucher.
+- **Bring-your-own-cup → double beans** — eco perk that fits Almond; needs POS
+  support to flag the transaction.
+- **Returns deduct beans** (can go negative) — data-integrity rule for the Odoo
+  earn/void sync.
+- **Guest checkout earns nothing** — already enforced (we gate earning to signed-in).
+
+### Flag / product decision ⚠️
+- Starbucks Stars **have no cash value** and aren't redeemable for cash. Our beans
+  currently redeem to **wallet JOD** (100 beans = 1 JOD), giving them cash-like
+  value — which can carry stored-value/tax implications and dilutes the "reward"
+  framing. Consider redeeming beans for **items/discounts only** (keep the wallet
+  for real money). Surfaced for a business decision; not changed unilaterally.
+- **Out of scope (prior decisions):** birthday reward, games/secret menu, full
+  gift-card system — kept out per the Order & Wallet specs.

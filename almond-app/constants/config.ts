@@ -14,6 +14,12 @@ export const config = {
   // Pay-from-wallet earns +50% beans (Wallet spec §1.2). Applied to the base
   // earn BEFORE the tier multiplier (tier stacks on top). Admin-configurable.
   WALLET_EARN_MULTIPLIER: 1.5,
+  // Digital reload bonus beans (pre-commitment lever, adapted from the SB ToU
+  // "Digital Reload Bonus Stars"). Highest qualifying tier applies. Admin-set.
+  WALLET_RELOAD_BONUS: [
+    { minJOD: 20, bonusBeans: 50 },
+    { minJOD: 35, bonusBeans: 120 },
+  ] as { minJOD: number; bonusBeans: number }[],
   TAX_RATE: 0.16, // 16% (section 4.6)
   BRUNCH_COMBO_DISCOUNT: 1.0, // -1.000 JOD (section 5)
   CUP_TARGET: 10,
