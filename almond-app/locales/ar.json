@@ -18,7 +18,7 @@
     "min": "دقيقة",
     "open": "مفتوح",
     "closed": "مغلق",
-    "points": "نقطة",
+    "points": "حبة",
     "free": "مجاناً",
     "add": "إضافة",
     "confirm": "تأكيد"
@@ -28,7 +28,7 @@
     "slide1Body": "قهوتك المفضلة على بُعد نقرة واحدة",
     "slide2Title": "اطلب واستلم بسرعة",
     "slide2Body": "طلبك جاهز عند وصولك تماماً",
-    "slide3Title": "اجمع نقاطك واربح",
+    "slide3Title": "اجمع حباتك واربح",
     "slide3Body": "مكافآت، أكواب مجانية، وعجلة الحظ",
     "start": "ابدأ الآن"
   },
@@ -51,7 +51,37 @@
     "menu": "القائمة",
     "cart": "السلة",
     "track": "تتبع",
-    "profile": "حسابي"
+    "profile": "حسابي",
+    "order": "اطلب",
+    "barcode": "الباركود",
+    "rewards": "المكافآت",
+    "more": "المزيد"
+  },
+  "order": {
+    "tabMenu": "القائمة",
+    "tabFeatured": "المميّز",
+    "tabPrevious": "السابقة",
+    "tabFavourites": "المفضّلة",
+    "trending": "الأكثر رواجاً 🔥",
+    "categories": "التصنيفات",
+    "featuredTitle": "تشكيلات موسمية",
+    "featuredSubtitle": "مختارة لك بعناية هذا الموسم",
+    "brunchTitle": "عروض البرانش 🍳",
+    "brunchSubtitle": "أضف مشروباً مع أي طبق برانش ووفّر 1.000 د.أ",
+    "previousTitle": "طلباتك السابقة",
+    "reorder": "أعد الطلب",
+    "reorderAll": "أضف كل الطلب للسلة",
+    "favouritesTitle": "مفضّلاتك",
+    "favouritesSubtitle": "مشروباتك المحفوظة بضغطة واحدة",
+    "emptyFeatured": "لا توجد عروض حالياً",
+    "emptyFeaturedHint": "تابعنا — تشكيلات جديدة في الطريق ✨",
+    "emptyPrevious": "لا توجد طلبات سابقة بعد",
+    "emptyPreviousHint": "أول طلب لك يبدأ من هنا ☕",
+    "emptyFav": "لا توجد مفضّلات بعد",
+    "emptyFavHint": "اضغط على ♥ في أي مشروب لحفظه هنا",
+    "favAdd": "أضف للمفضّلة",
+    "favRemove": "إزالة من المفضّلة",
+    "addedReady": "جاهز في سلتك ✓"
   },
   "home": {
     "greetingMorning": "صباح الكيف، {{name}}",
@@ -59,7 +89,7 @@
     "guest": "ضيف",
     "usualOrder": "طلبك المعتاد",
     "usualOrderCta": "أضف للسلة بنقرة",
-    "loyaltyPoints": "نقاطك",
+    "loyaltyPoints": "حباتك",
     "toNextTier": "باقٍ {{remaining}} د.أ لـ{{tier}}",
     "cupProgress": "كوبك",
     "quickOrder": "اطلب الآن",
@@ -77,7 +107,7 @@
     "directions": "الموقع على الخريطة",
     "walletBalance": "رصيد محفظتك",
     "topUpWallet": "اشحن محفظتك",
-    "walletHint": "ادفع من رصيدك واملأ كوبك بمعدّل 1.5× أسرع"
+    "walletHint": "ادفع من رصيدك واكسب +50% حبات (×1.5) ☕"
   },
   "menu": {
     "title": "القائمة",
@@ -125,15 +155,19 @@
     "paymentMethod": "طريقة الدفع",
     "placeOrder": "تأكيد الطلب",
     "remove": "حذف",
-    "pointsBalance": "رصيدك {{points}} نقطة",
-    "pointsUse": "ستُدفع الفاتورة بـ {{points}} نقطة (100 نقطة = 1 د.أ)",
-    "pointsInsufficient": "نقاطك لا تكفي لهذا الطلب",
-    "earnAllMethods": "تكسب نقاطاً مع كل طرق الدفع ⭐",
+    "pointsBalance": "رصيدك {{points}} حبة",
+    "pointsUse": "ستُدفع الفاتورة بـ {{points}} حبة (100 حبة = 1 د.أ)",
+    "pointsInsufficient": "حباتك لا تكفي لهذا الطلب",
+    "earnAllMethods": "تكسب حبات مع كل طرق الدفع ☕",
     "reviewTitle": "راجع طلبك",
     "reviewCta": "مراجعة الطلب",
     "edit": "تعديل",
     "suggestion": "جرّب مع {{item}}؟",
-    "crossSellTitle": "أكمل طلبك ☕"
+    "crossSellTitle": "أكمل طلبك ☕",
+    "walletUpsell": "ادفع من رصيد محفظتك واكسب +50% حبات على هذا الطلب",
+    "walletEarnBonus": "+50% حبات عند الدفع من الرصيد ☕",
+    "brunchComboTitle": "أضف طبق برانش ووفّر 1.000 د.أ",
+    "addCombo": "أضف ووفّر"
   },
   "payment": {
     "cash": "نقداً",
@@ -164,17 +198,17 @@
     "cancelled": "تم إلغاء الطلب"
   },
   "pay": {
-    "fabLabel": "ادفع واجمع نقاطك",
-    "title": "ادفع واجمع نقاطك",
-    "instruction": "أظهر هذا الرمز عند الدفع لتجمع نقاطك",
+    "fabLabel": "ادفع واجمع حباتك",
+    "title": "ادفع واجمع حباتك",
+    "instruction": "أظهر هذا الرمز عند الدفع لتجمع حباتك",
     "scanReady": "جاهز للمسح",
     "scanned": "تم المسح بنجاح ✓",
-    "yourPoints": "رصيد نقاطك",
+    "yourPoints": "رصيد حباتك",
     "worth": "تساوي {{jod}} د.أ",
-    "redeem": "اصرف نقاطك",
-    "redeemHint": "100 نقطة = 1 دينار",
+    "redeem": "اصرف حباتك",
+    "redeemHint": "100 حبة = 1 دينار",
     "redeemDone": "تم صرف {{jod}} د.أ إلى محفظتك",
-    "history": "سجل النقاط",
+    "history": "سجل الحبات",
     "memberId": "رقم العضوية"
   },
   "track": {
@@ -193,11 +227,11 @@
     "rateComment": "أضف تعليقاً (اختياري)",
     "rateSubmit": "إرسال التقييم",
     "rateThanks": "شكراً لتقييمك!",
-    "rateRewarded": "🎉 حصلت على 50 نقطة!"
+    "rateRewarded": "🎉 حصلت على 50 حبة!"
   },
   "loyalty": {
     "title": "المكافآت",
-    "yourPoints": "رصيد نقاطك",
+    "yourPoints": "رصيد حباتك",
     "worth": "تساوي {{jod}} د.أ",
     "cupTitle": "كوب ألموند",
     "cupProgress": "{{current}} من {{target}}",
@@ -213,8 +247,8 @@
     "winFree": "اربح مجاناً 🎁",
     "vouchers": "قسائمك",
     "noVouchers": "لا توجد قسائم نشطة",
-    "history": "سجل النقاط",
-    "redeem": "استبدال النقاط",
+    "history": "سجل الحبات",
+    "redeem": "استبدال الحبات",
     "expiresOn": "تنتهي في {{date}}"
   },
   "tiers": {
@@ -222,6 +256,47 @@
     "silver": "فضي",
     "gold": "ذهبي",
     "black": "أسود"
+  },
+  "rewards": {
+    "title": "المكافآت",
+    "howItWorks": "كيف تعمل المكافآت؟",
+    "step1Title": "اطلب واجمع",
+    "step1Body": "أظهر الباركود عند الدفع واجمع حبة عن كل دينار",
+    "step2Title": "راقب حباتك",
+    "step2Body": "كل 100 حبة تساوي 1 دينار من المكافآت",
+    "step3Title": "استبدل واستمتع",
+    "step3Body": "اصرف حباتك على مشروبك أو حلاك المفضّل",
+    "rewardsMenu": "قائمة المكافآت",
+    "rewardsMenuHint": "كل ما زادت حباتك، زادت مكافأتك",
+    "away": "ينقصك {{points}} حبة",
+    "unlocked": "متاح الآن ✓",
+    "redeemAt": "{{points}} حبة",
+    "statusTitle": "فئتك ومزاياك",
+    "currentTier": "فئتك الحالية",
+    "progressToNext": "أنفق {{remaining}} د.أ للوصول إلى {{tier}}",
+    "tierMax": "وصلت إلى أعلى فئة 👑",
+    "benefitsTitle": "مزايا فئتك",
+    "viewHistory": "سجل الحبات"
+  },
+  "rewardItems": {
+    "smallDrink": "مشروب صغير مجاني",
+    "mediumDrink": "مشروب وسط مجاني",
+    "largeCombo": "مشروب كبير + معجنات",
+    "anyPastry": "أي معجنات مجاناً",
+    "freeCake": "قطعة كيك مجانية",
+    "flatDiscount": "خصم ثابت على أي صنف"
+  },
+  "tierBenefits": {
+    "bean1": "اجمع حبة عن كل دينار",
+    "bean2": "كوب مجاني كل 10 مشروبات",
+    "silver1": "حبات أسرع بـ 1.25×",
+    "silver2": "عروض فضية حصرية",
+    "gold1": "حبات أسرع بـ 1.5×",
+    "gold2": "مشروب ترحيبي في عيد ميلادك",
+    "gold3": "أولوية في التحضير",
+    "black1": "حبات مضاعفة 2×",
+    "black2": "مكافآت ومفاجآت حصرية",
+    "black3": "خدمة عملاء مميّزة"
   },
   "spin": {
     "title": "عجلة الحظ",
@@ -242,7 +317,7 @@
     "payments": "طرق الدفع",
     "wallet": "رصيدي/المحفظة",
     "referral": "ادعُ أصحابك",
-    "referralReward": "واربح 50 نقطة",
+    "referralReward": "واربح 50 حبة",
     "notifications": "الإشعارات",
     "language": "اللغة",
     "help": "المساعدة",
@@ -255,12 +330,12 @@
   },
   "referral": {
     "title": "ادعُ أصحابك",
-    "headline": "ادعُ أصحابك واحصل على 50 نقطة",
+    "headline": "ادعُ أصحابك واحصل على 50 حبة",
     "yourCode": "رمز الدعوة الخاص بك",
     "share": "مشاركة",
     "shareMessage": "حمّل تطبيق ألموند: {{link}}?ref={{code}}",
     "notUsed": "لم تُستخدم بعد",
-    "rewarded": "✅ حصلت على 50 نقطة!",
+    "rewarded": "✅ حصلت على 50 حبة!",
     "thanks": "شكراً لدعوتك أصحابك ❤️"
   },
   "notifications": {

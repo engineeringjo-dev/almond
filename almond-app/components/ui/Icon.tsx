@@ -38,6 +38,9 @@ import {
   Bike,
   QrCode,
   History,
+  Menu as MenuBars,
+  Heart,
+  Bean,
   type LucideIcon,
 } from 'lucide-react-native';
 import { colors } from '@/constants/theme';
@@ -89,7 +92,10 @@ export type IconName =
   | 'pickup'
   | 'delivery'
   | 'qr'
-  | 'history';
+  | 'history'
+  | 'more'
+  | 'heart'
+  | 'bean';
 
 const REGISTRY: Record<IconName, LucideIcon> = {
   coffee: Coffee,
@@ -133,6 +139,9 @@ const REGISTRY: Record<IconName, LucideIcon> = {
   delivery: Bike,
   qr: QrCode,
   history: History,
+  more: MenuBars,
+  heart: Heart,
+  bean: Bean,
 };
 
 interface Props {

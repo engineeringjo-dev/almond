@@ -57,7 +57,7 @@ export default function OrdersHistory() {
             icon="menu"
             title={t('profile.noOrders')}
             ctaLabel={t('track.noOrdersCta')}
-            onCta={() => router.push('/(tabs)/menu')}
+            onCta={() => router.push('/(tabs)/order')}
           />
         )}
       </Screen>

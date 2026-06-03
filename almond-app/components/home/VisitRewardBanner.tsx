@@ -30,7 +30,7 @@ export function VisitRewardBanner() {
     await notificationService.redeemVisitReward(userId, reward.id);
     qc.invalidateQueries({ queryKey: ['rewards', 'visit', userId] });
     // Spin wheel removed; non-discount rewards open the rewards screen.
-    router.push(reward.type === 'discount' ? '/(tabs)/menu' : '/loyalty');
+    router.push(reward.type === 'discount' ? '/(tabs)/order' : '/(tabs)/rewards');
   };
 
   return (

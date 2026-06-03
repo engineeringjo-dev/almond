@@ -23,7 +23,7 @@ import type { AppNotification, NotifSettings } from '@/types';
 const CATEGORY_EMOJI: Record<string, string> = {
   order: '📦',
   promo: '🏷️',
-  points: '⭐',
+  points: '☕',
   location: '📍',
   'new-item': '✨',
 };

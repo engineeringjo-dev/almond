@@ -17,7 +17,7 @@ export function PayCollectFab() {
   return (
     <Pressable
       style={({ pressed }) => [styles.fab, pressed && styles.pressed]}
-      onPress={() => router.push('/pay')}
+      onPress={() => router.push('/(tabs)/pay')}
       accessibilityRole="button"
       accessibilityLabel={t('pay.fabLabel')}
     >

@@ -19,7 +19,7 @@ export function LoyaltyCard() {
   return (
     <Pressable
       style={styles.shadow}
-      onPress={() => router.push('/loyalty')}
+      onPress={() => router.push('/(tabs)/rewards')}
       accessibilityRole="button"
     >
       {/* Points hero uses the pastel rainbow gradient → dark text for contrast. */}

@@ -35,7 +35,7 @@ export default function TrackScreen() {
           title={t('track.noOrders')}
           subtitle={t('track.noOrdersHint')}
           ctaLabel={t('track.noOrdersCta')}
-          onCta={() => router.push('/(tabs)/menu')}
+          onCta={() => router.push('/(tabs)/order')}
         />
       </Screen>
     );

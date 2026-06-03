@@ -9,8 +9,10 @@ import * as SplashScreen from 'expo-splash-screen';
 import { initI18n } from '@/lib/i18n';
 import { useAppStore } from '@/stores/appStore';
 import { useAuthStore } from '@/stores/authStore';
+import { useFavouritesStore } from '@/stores/favouritesStore';
 import { useAppFonts } from '@/constants/fonts';
 import { ErrorBoundary } from '@/components/ui/ErrorBoundary';
+import { CartToast } from '@/components/ui/CartToast';
 import { colors } from '@/constants/theme';
 
 // Initialize i18n as early as possible (AR default).
@@ -32,12 +34,14 @@ export default function RootLayout() {
   const hydrate = useAppStore((s) => s.hydrate);
   const hydrated = useAppStore((s) => s.hydrated);
   const hydrateAuth = useAuthStore((s) => s.hydrate);
+  const hydrateFavourites = useFavouritesStore((s) => s.hydrate);
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
     hydrate();
     hydrateAuth();
-  }, [hydrate, hydrateAuth]);
+    hydrateFavourites();
+  }, [hydrate, hydrateAuth, hydrateFavourites]);
 
   useEffect(() => {
     if ((fontsLoaded || fontsLoaded === undefined) && hydrated) {
@@ -71,13 +75,13 @@ export default function RootLayout() {
             />
             <Stack.Screen name="order/[id]" />
             <Stack.Screen name="loyalty" />
-            <Stack.Screen name="pay" options={{ presentation: 'modal' }} />
             <Stack.Screen
               name="notifications"
               options={{ presentation: 'modal' }}
             />
             <Stack.Screen name="referral" />
           </Stack>
+          <CartToast />
           </ErrorBoundary>
         </QueryClientProvider>
       </SafeAreaProvider>
