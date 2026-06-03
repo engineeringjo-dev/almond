@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 import { loyaltyService, type RedeemRewardInput, type SendGiftInput } from '@/services/loyalty.service';
+import { integration } from '@/constants/integration';
 import { useUserId } from '@/stores/authStore';
 
 export function useLoyaltyBalance() {
@@ -90,5 +91,29 @@ export function useRedeemGift() {
   return useMutation({
     mutationFn: (code: string) => loyaltyService.redeemGiftCode(userId, code),
     onSuccess: invalidate,
+  });
+}
+
+/** Deduct from the e-wallet (in-app wallet payment / Odoo POS charge). */
+export function useChargeWallet() {
+  const userId = useUserId();
+  const invalidate = useInvalidateLoyalty();
+  return useMutation({
+    mutationFn: (amount: number) => loyaltyService.chargeWallet(userId, amount),
+    onSuccess: invalidate,
+  });
+}
+
+/**
+ * POS scan-status poll for the barcode screen. Inactive under mock — only polls
+ * when the POS integration is enabled (constants/integration.ts).
+ */
+export function useScanStatus() {
+  const userId = useUserId();
+  return useQuery({
+    queryKey: ['loyalty', 'scan', userId],
+    queryFn: () => loyaltyService.getScanStatus(userId),
+    enabled: integration.enabled.pos,
+    refetchInterval: integration.enabled.pos ? 3000 : false,
   });
 }
