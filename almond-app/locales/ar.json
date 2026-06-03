@@ -245,7 +245,8 @@
     "rateComment": "أضف تعليقاً (اختياري)",
     "rateSubmit": "إرسال التقييم",
     "rateThanks": "شكراً لتقييمك!",
-    "rateRewarded": "🎉 حصلت على 50 حبة!"
+    "rateRewarded": "🎉 حصلت على 50 حبة!",
+    "nowLive": "الآن • مباشر"
   },
   "loyalty": {
     "title": "المكافآت",
