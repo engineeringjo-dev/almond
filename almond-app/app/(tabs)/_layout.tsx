@@ -69,7 +69,7 @@ export default function TabsLayout() {
         name="rewards"
         options={{
           title: t('tabs.rewards'),
-          tabBarIcon: ({ focused }) => <TabBarIcon name="star" focused={focused} />,
+          tabBarIcon: ({ focused }) => <TabBarIcon name="bean" focused={focused} />,
         }}
       />
       <Tabs.Screen

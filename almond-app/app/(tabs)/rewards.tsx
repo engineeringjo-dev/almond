@@ -41,7 +41,7 @@ const TIER_BENEFITS: Record<TierId, string[]> = {
 
 const STEPS: { icon: IconName; titleKey: string; bodyKey: string }[] = [
   { icon: 'qr', titleKey: 'rewards.step1Title', bodyKey: 'rewards.step1Body' },
-  { icon: 'star', titleKey: 'rewards.step2Title', bodyKey: 'rewards.step2Body' },
+  { icon: 'bean', titleKey: 'rewards.step2Title', bodyKey: 'rewards.step2Body' },
   { icon: 'gift', titleKey: 'rewards.step3Title', bodyKey: 'rewards.step3Body' },
 ];
 
@@ -216,7 +216,7 @@ export default function RewardsScreen() {
               <View style={styles.benefits}>
                 {TIER_BENEFITS[tr.id].map((b) => (
                   <View key={b} style={styles.benefitRow}>
-                    <Icon name="star" size={13} color={TIER_COLOR[tr.id]} strokeWidth={2} />
+                    <Icon name="bean" size={13} color={TIER_COLOR[tr.id]} strokeWidth={2} />
                     <Text variant="caption" color={colors.warmGray} style={styles.flex}>
                       {t(b)}
                     </Text>

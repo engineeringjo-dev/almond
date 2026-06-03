@@ -8,7 +8,8 @@ import type { TierId } from '@/types';
 
 /**
  * Premium tier badge (Revision Pack §O): warm, exclusive feel. The Black tier
- * is gold-on-dark with a star to feel special; higher tiers get a star icon.
+ * is gold-on-dark to feel special; higher tiers get a coffee-bean icon (the
+ * loyalty currency — no stars per the Wallet/Loyalty spec §0).
  */
 export function TierBadge({ tier, small }: { tier: TierId; small?: boolean }) {
   const { t } = useI18n();
@@ -29,7 +30,7 @@ export function TierBadge({ tier, small }: { tier: TierId; small?: boolean }) {
         small && styles.small,
       ]}
     >
-      <Icon name={exclusive ? 'star' : 'coffee'} size={small ? 11 : 13} color={iconColor} strokeWidth={2.4} />
+      <Icon name={exclusive ? 'bean' : 'coffee'} size={small ? 11 : 13} color={iconColor} strokeWidth={2.4} />
       <Text variant="caption" color={fg} style={styles.label}>
         {t(`tiers.${tier}`)}
       </Text>
