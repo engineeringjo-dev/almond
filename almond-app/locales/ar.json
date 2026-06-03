@@ -283,7 +283,8 @@
     "mediumDrink": "مشروب وسط مجاني",
     "largeCombo": "مشروب كبير + معجنات",
     "anyPastry": "أي معجنات مجاناً",
-    "freeCake": "قطعة كيك مجانية"
+    "freeCake": "قطعة كيك مجانية",
+    "flatDiscount": "خصم ثابت على أي صنف"
   },
   "tierBenefits": {
     "bean1": "اجمع حبة عن كل دينار",

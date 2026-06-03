@@ -277,7 +277,8 @@
     "mediumDrink": "Free medium drink",
     "largeCombo": "Large drink + pastry",
     "anyPastry": "Any pastry free",
-    "freeCake": "Free slice of cake"
+    "freeCake": "Free slice of cake",
+    "flatDiscount": "Flat discount on any item"
   },
   "tierBenefits": {
     "bean1": "Earn a bean per JOD",

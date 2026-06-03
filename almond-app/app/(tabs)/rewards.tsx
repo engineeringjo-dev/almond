@@ -17,8 +17,10 @@ import { useLoyaltyBalance, useRedeem } from '@/hooks/useLoyalty';
 import { tiers, tierFromSpend, nextTier } from '@/services/seed';
 import type { TierId } from '@/types';
 
-/** Points reward catalog (Order Spec §3.2) — tiered by points cost. */
+/** Beans reward catalog (§3.2) — tiered by cost. The first entry is a simple
+ *  unified redemption (§4.3) and is intentionally cheap & achievable (§5.1). */
 const REWARD_MENU: { points: number; labelKey: string; icon: IconName }[] = [
+  { points: 60, labelKey: 'rewardItems.flatDiscount', icon: 'gift' },
   { points: 100, labelKey: 'rewardItems.smallDrink', icon: 'coffee' },
   { points: 250, labelKey: 'rewardItems.mediumDrink', icon: 'cold' },
   { points: 400, labelKey: 'rewardItems.anyPastry', icon: 'pastries' },
