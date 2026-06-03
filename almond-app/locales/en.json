@@ -245,7 +245,8 @@
     "rateComment": "Add a comment (optional)",
     "rateSubmit": "Submit rating",
     "rateThanks": "Thanks for your feedback!",
-    "rateRewarded": "🎉 You earned 50 beans!"
+    "rateRewarded": "🎉 You earned 50 beans!",
+    "nowLive": "Now • live"
   },
   "loyalty": {
     "title": "Rewards",
