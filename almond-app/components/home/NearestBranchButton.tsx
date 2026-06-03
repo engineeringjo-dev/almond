@@ -33,7 +33,7 @@ export function NearestBranchButton() {
       setOrderType('pickup');
     }
     setOpen(false);
-    router.push('/(tabs)/menu');
+    router.push('/(tabs)/order');
   };
 
   const delivery = async () => {

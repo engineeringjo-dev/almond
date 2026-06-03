@@ -12,6 +12,7 @@ import { formatJOD } from '@/lib/format';
 import { iconForCategory } from '@/lib/productIcon';
 import { getSizeUpsell, getItemPairings } from '@/lib/recommendations';
 import { useCartStore } from '@/stores/cartStore';
+import { useFavouritesStore } from '@/stores/favouritesStore';
 import type { MenuItem, ItemSize, CartCustomization } from '@/types';
 
 interface Props {
@@ -24,6 +25,9 @@ interface Props {
 export function ItemModal({ item, visible, onClose }: Props) {
   const { t, lang } = useI18n();
   const addItem = useCartStore((s) => s.addItem);
+  const favIds = useFavouritesStore((s) => s.ids);
+  const toggleFav = useFavouritesStore((s) => s.toggle);
+  const isFav = !!item && favIds.includes(item.id);
   const [sizeId, setSizeId] = useState<ItemSize['id']>('M');
   const [selected, setSelected] = useState<Record<string, string[]>>({});
   const [qty, setQty] = useState(1);
@@ -96,6 +100,16 @@ export function ItemModal({ item, visible, onClose }: Props) {
       }
     >
       <View style={styles.header}>
+        {/* Favourite ♥ — saves the drink to the Order › Favourites sub-tab (§2.4). */}
+        <Pressable
+          onPress={() => toggleFav(item.id)}
+          style={styles.favBtn}
+          hitSlop={8}
+          accessibilityRole="button"
+          accessibilityLabel={isFav ? t('order.favRemove') : t('order.favAdd')}
+        >
+          <Icon name="heart" size={22} color={isFav ? colors.red : colors.warmGray} strokeWidth={2} />
+        </Pressable>
         <View style={styles.thumb}>
           {item.imageUrl ? (
             <Image source={{ uri: item.imageUrl }} style={styles.photo} resizeMode="cover" />
@@ -227,6 +241,18 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 
 const styles = StyleSheet.create({
   header: { alignItems: 'center', gap: 2, marginBottom: spacing.md },
+  favBtn: {
+    position: 'absolute',
+    top: 0,
+    end: 0,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: colors.cream,
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 2,
+  },
   thumb: {
     width: 96, height: 96, borderRadius: radius.lg, backgroundColor: colors.cream,
     alignItems: 'center', justifyContent: 'center', marginBottom: spacing.sm, overflow: 'hidden',

@@ -34,8 +34,8 @@ function seedInbox(userId: string): AppNotification[] {
   let list = inbox.get(userId);
   if (!list) {
     list = [
-      { id: genId('ntf'), category: 'promo', titleAr: 'عرض البرانش', titleEn: 'Brunch offer', bodyAr: 'أضف مشروباً مع أي طبق برانش ووفّر 1.000 د.أ', bodyEn: 'Add a drink to any brunch and save 1.000 JOD', read: false, createdAt: new Date(Date.now() - 3600000).toISOString(), deepLink: '/(tabs)/menu' },
-      { id: genId('ntf'), category: 'points', titleAr: 'ربحت نقاطاً!', titleEn: 'You earned points!', bodyAr: 'حصلت على 15 نقطة من طلبك الأخير', bodyEn: 'You earned 15 points on your last order', read: true, createdAt: new Date(Date.now() - 86400000).toISOString(), deepLink: '/loyalty' },
+      { id: genId('ntf'), category: 'promo', titleAr: 'عرض البرانش', titleEn: 'Brunch offer', bodyAr: 'أضف مشروباً مع أي طبق برانش ووفّر 1.000 د.أ', bodyEn: 'Add a drink to any brunch and save 1.000 JOD', read: false, createdAt: new Date(Date.now() - 3600000).toISOString(), deepLink: '/(tabs)/order' },
+      { id: genId('ntf'), category: 'points', titleAr: 'ربحت نقاطاً!', titleEn: 'You earned points!', bodyAr: 'حصلت على 15 نقطة من طلبك الأخير', bodyEn: 'You earned 15 points on your last order', read: true, createdAt: new Date(Date.now() - 86400000).toISOString(), deepLink: '/(tabs)/rewards' },
     ];
     inbox.set(userId, list);
   }
@@ -73,7 +73,7 @@ const mockNotificationService: NotificationService = {
       id: genId('ntf'), category: 'location',
       titleAr: 'فرع ألموند قريب منك ☕', titleEn: 'An Almond branch is near you ☕',
       bodyAr: 'مرّ علينا واستخدم نقاطك 🎁', bodyEn: 'Drop by and use your points 🎁',
-      read: false, createdAt: new Date().toISOString(), deepLink: '/loyalty',
+      read: false, createdAt: new Date().toISOString(), deepLink: '/(tabs)/rewards',
     });
     return delay({ sent: true });
   },

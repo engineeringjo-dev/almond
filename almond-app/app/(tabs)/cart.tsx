@@ -147,7 +147,7 @@ export default function CartScreen() {
           title={t('cart.empty')}
           subtitle={t('cart.emptyHint')}
           ctaLabel={t('cart.emptyCta')}
-          onCta={() => router.push('/(tabs)/menu')}
+          onCta={() => router.push('/(tabs)/order')}
         />
       </Screen>
     );

@@ -4,13 +4,18 @@ import { useTranslation } from 'react-i18next';
 
 import { colors, fontFamily } from '@/constants/theme';
 import { TabBarIcon } from '@/components/ui/TabBarIcon';
-import { useCartCount } from '@/stores/cartStore';
+import { TabBarBarcodeButton } from '@/components/ui/TabBarBarcodeButton';
 import { useUserId } from '@/stores/authStore';
 import { registerForPush } from '@/lib/notifications';
 
+/**
+ * Five fixed sections (Order Spec §1): Home · Order · Barcode (raised centre) ·
+ * Rewards · More. Cart and Track stay as routes (reachable from the cart icon /
+ * deep links) but are hidden from the bar to keep it to five clear choices
+ * (Hick's Law). Menu is folded into the Order screen's first sub-tab.
+ */
 export default function TabsLayout() {
   const { t } = useTranslation();
-  const cartCount = useCartCount();
   const userId = useUserId();
 
   // Wire push registration once the user lands in the app (section 14).
@@ -22,7 +27,7 @@ export default function TabsLayout() {
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: colors.gold,
+        tabBarActiveTintColor: colors.primary,
         tabBarInactiveTintColor: colors.warmGray,
         tabBarStyle: {
           backgroundColor: colors.cardBg,
@@ -42,35 +47,43 @@ export default function TabsLayout() {
         }}
       />
       <Tabs.Screen
-        name="menu"
+        name="order"
         options={{
-          title: t('tabs.menu'),
-          tabBarIcon: ({ focused }) => <TabBarIcon name="menu" focused={focused} />,
+          title: t('tabs.order'),
+          tabBarIcon: ({ focused }) => <TabBarIcon name="coffee" focused={focused} />,
         }}
       />
       <Tabs.Screen
-        name="cart"
+        name="pay"
         options={{
-          title: t('tabs.cart'),
-          tabBarBadge: cartCount > 0 ? cartCount : undefined,
-          tabBarBadgeStyle: { backgroundColor: colors.gold, color: colors.dark },
-          tabBarIcon: ({ focused }) => <TabBarIcon name="cart" focused={focused} />,
+          title: t('tabs.barcode'),
+          tabBarButton: (props) => (
+            <TabBarBarcodeButton
+              focused={props.accessibilityState?.selected ?? false}
+              onPress={props.onPress}
+            />
+          ),
         }}
       />
       <Tabs.Screen
-        name="track"
+        name="rewards"
         options={{
-          title: t('tabs.track'),
-          tabBarIcon: ({ focused }) => <TabBarIcon name="track" focused={focused} />,
+          title: t('tabs.rewards'),
+          tabBarIcon: ({ focused }) => <TabBarIcon name="star" focused={focused} />,
         }}
       />
       <Tabs.Screen
         name="profile"
         options={{
-          title: t('tabs.profile'),
-          tabBarIcon: ({ focused }) => <TabBarIcon name="profile" focused={focused} />,
+          title: t('tabs.more'),
+          tabBarIcon: ({ focused }) => <TabBarIcon name="more" focused={focused} />,
         }}
       />
+
+      {/* Hidden routes — still navigable, not shown in the five-section bar. */}
+      <Tabs.Screen name="menu" options={{ href: null }} />
+      <Tabs.Screen name="cart" options={{ href: null }} />
+      <Tabs.Screen name="track" options={{ href: null }} />
     </Tabs>
   );
 }

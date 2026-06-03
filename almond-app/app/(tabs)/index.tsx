@@ -10,7 +10,6 @@ import { VisitRewardBanner } from '@/components/home/VisitRewardBanner';
 import { NearestBranchButton } from '@/components/home/NearestBranchButton';
 import { OrderNowButton } from '@/components/home/OrderNowButton';
 import { WalletCard } from '@/components/home/WalletCard';
-import { PayCollectFab } from '@/components/home/PayCollectFab';
 import { FeaturedRow } from '@/components/home/FeaturedRow';
 import { PromoCarousel } from '@/components/home/PromoCarousel';
 import { BranchCard } from '@/components/branch/BranchCard';
@@ -116,9 +115,6 @@ export default function HomeScreen() {
           </View>
         </View>
       </Screen>
-
-      {/* Sticky floating Pay & earn button — stays fixed over the scrolling content */}
-      <PayCollectFab />
 
       <BranchPicker
         visible={pickerOpen}

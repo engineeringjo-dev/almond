@@ -30,7 +30,7 @@ export function OrderTypeSheet({ visible, onClose, branchId }: Props) {
     setOrderType('pickup');
     if (branchId) setBranch(branchId);
     onClose();
-    router.push('/(tabs)/menu');
+    router.push('/(tabs)/order');
   };
 
   const chooseDelivery = async () => {
