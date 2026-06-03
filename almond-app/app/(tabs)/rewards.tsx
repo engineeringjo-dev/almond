@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import {
   View,
   StyleSheet,
@@ -154,11 +154,19 @@ export default function RewardsScreen() {
     ? Math.min(100, Math.max(0, ((balance.windowSpend - segFrom) / (segTo - segFrom)) * 100))
     : 100;
 
-  // Status carousel sizing (full-bleed cards with a peek of the next).
-  const cardW = width - spacing.lg * 2;
+  // Status carousel: cards are narrower than the screen so the NEXT tier card
+  // peeks in — a clear signal there's more than one. Arrows + dots reinforce it.
+  const statusRef = useRef<ScrollView>(null);
+  const cardW = width - spacing.lg * 2 - 40;
+  const step = cardW + spacing.md;
   const onStatusScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
-    const idx = Math.round(e.nativeEvent.contentOffset.x / (cardW + spacing.md));
+    const idx = Math.round(e.nativeEvent.contentOffset.x / step);
     if (idx !== statusPage) setStatusPage(idx);
+  };
+  const goToTier = (i: number) => {
+    const idx = Math.max(0, Math.min(tiers.length - 1, i));
+    statusRef.current?.scrollTo({ x: idx * step, animated: true });
+    setStatusPage(idx);
   };
 
   return (
@@ -274,14 +282,15 @@ export default function RewardsScreen() {
         {t('rewards.routineTitle')}
       </Text>
       <Text variant="caption" color={colors.warmGray} style={styles.sectionSub}>
-        {t('rewards.routineSub')}
+        {t('rewards.routineSub')} · {t('rewards.swipeTiers')}
       </Text>
 
       <ScrollView
+        ref={statusRef}
         horizontal
-        pagingEnabled
         decelerationRate="fast"
-        snapToInterval={cardW + spacing.md}
+        snapToInterval={step}
+        snapToAlignment="start"
         showsHorizontalScrollIndicator={false}
         onScroll={onStatusScroll}
         scrollEventThrottle={16}
@@ -336,12 +345,37 @@ export default function RewardsScreen() {
         })}
       </ScrollView>
 
-      {/* Page dots */}
-      <View style={styles.dots}>
-        {tiers.map((tr, i) => (
-          <View key={tr.id} style={[styles.dot, i === statusPage && styles.dotActive]} />
-        ))}
+      {/* Carousel controls: ‹ arrows + dots + › so 4 tiers are obvious */}
+      <View style={styles.carouselNav}>
+        <Pressable
+          onPress={() => goToTier(statusPage - 1)}
+          disabled={statusPage === 0}
+          hitSlop={10}
+          accessibilityRole="button"
+        >
+          <Text style={[styles.chevron, statusPage === 0 && styles.chevronOff]}>‹</Text>
+        </Pressable>
+
+        <View style={styles.dots}>
+          {tiers.map((tr, i) => (
+            <Pressable key={tr.id} onPress={() => goToTier(i)} hitSlop={8}>
+              <View style={[styles.dot, i === statusPage && styles.dotActive]} />
+            </Pressable>
+          ))}
+        </View>
+
+        <Pressable
+          onPress={() => goToTier(statusPage + 1)}
+          disabled={statusPage === tiers.length - 1}
+          hitSlop={10}
+          accessibilityRole="button"
+        >
+          <Text style={[styles.chevron, statusPage === tiers.length - 1 && styles.chevronOff]}>›</Text>
+        </Pressable>
       </View>
+      <Text variant="caption" color={colors.warmGray} center style={styles.counter}>
+        {t('rewards.tierCounter', { n: statusPage + 1, total: tiers.length })}
+      </Text>
 
       {/* History */}
       <Pressable style={styles.historyLink} onPress={() => router.push('/loyalty')} hitSlop={8}>
@@ -415,7 +449,6 @@ const styles = StyleSheet.create({
   maxHint: { marginTop: spacing.sm },
 
   // Status carousel
-  statusScroll: { gap: spacing.md },
   statusCard: {
     borderRadius: radius.lg,
     padding: spacing.xl,
@@ -444,9 +477,20 @@ const styles = StyleSheet.create({
   benefits: { gap: spacing.sm, marginTop: spacing.xs },
   benefitRow: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.sm },
 
-  dots: { flexDirection: 'row', justifyContent: 'center', gap: spacing.xs, marginTop: spacing.md },
-  dot: { width: 7, height: 7, borderRadius: 4, backgroundColor: colors.neutralWarm },
-  dotActive: { backgroundColor: colors.primary, width: 18 },
+  statusScroll: { gap: spacing.md, paddingEnd: 40 },
+  carouselNav: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.md,
+    marginTop: spacing.md,
+  },
+  chevron: { fontSize: 30, lineHeight: 34, color: colors.primary, paddingHorizontal: spacing.sm },
+  chevronOff: { color: colors.neutralWarm },
+  dots: { flexDirection: 'row', justifyContent: 'center', gap: spacing.sm },
+  dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: colors.neutralWarm },
+  dotActive: { backgroundColor: colors.primary, width: 22 },
+  counter: { marginTop: spacing.xs },
 
   historyLink: {
     flexDirection: 'row',
