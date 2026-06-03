@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { View, StyleSheet } from 'react-native';
+import { View, StyleSheet, Pressable } from 'react-native';
 import { router } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
 
@@ -18,7 +18,8 @@ import { CrossSellRow } from '@/components/cart/CrossSellRow';
 import { BranchCard } from '@/components/branch/BranchCard';
 import { BranchPicker } from '@/components/branch/BranchPicker';
 import { Logo } from '@/components/ui/Logo';
-import { colors, spacing } from '@/constants/theme';
+import { Icon } from '@/components/ui/Icon';
+import { colors, spacing, radius } from '@/constants/theme';
 import { config } from '@/constants/config';
 import { useI18n } from '@/hooks/useI18n';
 import { useCartStore, computeTotals } from '@/stores/cartStore';
@@ -223,6 +224,31 @@ export default function CartScreen() {
               <Text variant="caption" color={colors.green} style={styles.earnNote}>
                 {t('cart.earnAllMethods')}
               </Text>
+
+              {/* Pay-from-wallet upsell (Wallet spec §1.2): +50% beans. Shown as
+                  a one-tap nudge when not already paying from balance and the
+                  wallet covers the order; becomes a confirmation once selected. */}
+              {paymentMethod === 'wallet' ? (
+                <View style={styles.walletBonus}>
+                  <Icon name="bean" size={16} color={colors.green} strokeWidth={2} />
+                  <Text variant="caption" color={colors.green}>
+                    {t('cart.walletEarnBonus')}
+                  </Text>
+                </View>
+              ) : (walletBalance ?? 0) >= totals.total ? (
+                <Pressable
+                  style={styles.walletUpsell}
+                  onPress={() => setPaymentMethod('wallet')}
+                  accessibilityRole="button"
+                >
+                  <Icon name="wallet" size={18} color={colors.primary} strokeWidth={1.9} />
+                  <Text variant="caption" color={colors.dark} style={styles.flex}>
+                    {t('cart.walletUpsell')}
+                  </Text>
+                  <Icon name="plus" size={16} color={colors.primary} />
+                </Pressable>
+              ) : null}
+
               <PaymentMethods
                 value={paymentMethod}
                 onChange={setPaymentMethod}
@@ -280,6 +306,23 @@ const styles = StyleSheet.create({
   section: { marginTop: spacing.lg },
   sectionTitle: { marginBottom: spacing.md },
   earnNote: { marginBottom: spacing.md, marginTop: -spacing.sm },
+  flex: { flex: 1 },
+  walletUpsell: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    backgroundColor: colors.neutralWarm,
+    borderRadius: radius.md,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.md,
+    marginBottom: spacing.md,
+  },
+  walletBonus: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    marginBottom: spacing.md,
+  },
   lines: { gap: spacing.md },
   empty: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: spacing.md },
   emptyEmoji: { fontSize: 64 },

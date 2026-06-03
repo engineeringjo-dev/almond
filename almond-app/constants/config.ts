@@ -10,7 +10,10 @@ export const config = {
 
   // Loyalty / pricing constants (section 2.4)
   POINTS_PER_JOD: 5,
-  POINTS_PER_JOD_REDEEM: 100, // 100 pts = 1 JOD
+  POINTS_PER_JOD_REDEEM: 100, // 100 beans = 1 JOD
+  // Pay-from-wallet earns +50% beans (Wallet spec §1.2). Applied to the base
+  // earn BEFORE the tier multiplier (tier stacks on top). Admin-configurable.
+  WALLET_EARN_MULTIPLIER: 1.5,
   TAX_RATE: 0.16, // 16% (section 4.6)
   BRUNCH_COMBO_DISCOUNT: 1.0, // -1.000 JOD (section 5)
   CUP_TARGET: 10,

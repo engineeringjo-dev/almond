@@ -107,7 +107,7 @@
     "directions": "الموقع على الخريطة",
     "walletBalance": "رصيد محفظتك",
     "topUpWallet": "اشحن محفظتك",
-    "walletHint": "ادفع من رصيدك واملأ كوبك بمعدّل 1.5× أسرع"
+    "walletHint": "ادفع من رصيدك واكسب +50% حبات (×1.5) ☕"
   },
   "menu": {
     "title": "القائمة",
@@ -163,7 +163,9 @@
     "reviewCta": "مراجعة الطلب",
     "edit": "تعديل",
     "suggestion": "جرّب مع {{item}}؟",
-    "crossSellTitle": "أكمل طلبك ☕"
+    "crossSellTitle": "أكمل طلبك ☕",
+    "walletUpsell": "ادفع من رصيد محفظتك واكسب +50% حبات على هذا الطلب",
+    "walletEarnBonus": "+50% حبات عند الدفع من الرصيد ☕"
   },
   "payment": {
     "cash": "نقداً",

@@ -167,7 +167,11 @@ export const mockLoyaltyService: LoyaltyService = {
     const u = ensureUser(userId);
     // Tier multiplier uses the rolling-12-month spend (§A).
     const tier = tierFromSpend(rolling12mSpend(u));
-    const basePoints = invoiceAmount * config.POINTS_PER_JOD;
+    // Pay-from-wallet ×1.5 applies to ALL beans, BEFORE the tier multiplier;
+    // the tier then stacks on top (Wallet spec §1.2). E.g. Gold + wallet =
+    // ×1.5 × ×1.5 = ×2.25 overall.
+    const walletMult = paidFromBalance ? config.WALLET_EARN_MULTIPLIER : 1;
+    const basePoints = invoiceAmount * config.POINTS_PER_JOD * walletMult;
     const tierBonus = basePoints * (tier.multiplier - 1);
     const friday = isFriday ?? new Date().getDay() === 5;
     const fridayBonus = friday ? basePoints * 0.5 : 0;
@@ -177,8 +181,8 @@ export const mockLoyaltyService: LoyaltyService = {
     u.spendLog.push({ amount: invoiceAmount, at: Date.now() });
     u.visits += 1;
 
-    // Cup fill (pay-from-balance = 1.5 beans).
-    const cupBeans = paidFromBalance ? 1.5 : 1;
+    // Cup fill uses the same pay-from-balance multiplier for consistency.
+    const cupBeans = paidFromBalance ? config.WALLET_EARN_MULTIPLIER : 1;
     u.cup.current = Math.min(u.cup.target, u.cup.current + cupBeans);
     let freeDrinkIssued = false;
     if (u.cup.current >= u.cup.target) {
@@ -197,7 +201,9 @@ export const mockLoyaltyService: LoyaltyService = {
 
     u.history.unshift({
       id: genId('log'), deltaPoints: pointsEarned,
-      reasonAr: 'نقاط طلب', reasonEn: 'Order points', createdAt: new Date().toISOString(),
+      reasonAr: paidFromBalance ? 'حبات طلب (+50% دفع من الرصيد)' : 'حبات طلب',
+      reasonEn: paidFromBalance ? 'Order beans (+50% wallet)' : 'Order beans',
+      createdAt: new Date().toISOString(),
     });
 
     return delay({ pointsEarned, cup: { ...u.cup }, freeDrinkIssued });

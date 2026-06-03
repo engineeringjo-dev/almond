@@ -107,7 +107,7 @@
     "directions": "Directions on the map",
     "walletBalance": "Your wallet balance",
     "topUpWallet": "Top up your wallet",
-    "walletHint": "Pay from balance and fill your cup 1.5× faster"
+    "walletHint": "Pay from balance and earn +50% beans (×1.5) ☕"
   },
   "menu": {
     "title": "Menu",
@@ -163,7 +163,9 @@
     "reviewCta": "Review order",
     "edit": "Edit",
     "suggestion": "Try it with {{item}}?",
-    "crossSellTitle": "Complete your order ☕"
+    "crossSellTitle": "Complete your order ☕",
+    "walletUpsell": "Pay from your wallet and earn +50% beans on this order",
+    "walletEarnBonus": "+50% beans when you pay from balance ☕"
   },
   "payment": {
     "cash": "Cash",
