@@ -302,6 +302,18 @@ export const mockLoyaltyService: LoyaltyService = {
 
   sendGift: (input) => {
     seedGifts();
+    // Pay for the gift from the sender's wallet when it covers the amount
+    // (otherwise treated as an external card payment in the mock).
+    const sender = ensureUser(input.senderId);
+    if (sender.walletBalance >= input.amount) {
+      sender.walletBalance -= input.amount;
+      sender.history.unshift({
+        id: genId('log'), deltaPoints: 0,
+        reasonAr: `شراء بطاقة هدية (-${input.amount.toFixed(3)} د.أ)`,
+        reasonEn: `Gift card purchase (-${input.amount.toFixed(3)} JOD)`,
+        createdAt: new Date().toISOString(),
+      });
+    }
     const gift: GiftCard = {
       id: genId('gift'),
       code: genGiftCode(),

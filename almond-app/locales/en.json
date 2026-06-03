@@ -429,6 +429,10 @@
     "toName": "To {{name}}",
     "about": "About gift cards",
     "aboutBody": "A gift card is coffee balance you send digitally. The recipient redeems the code into their Almond wallet, pays from it and earns beans.",
-    "shareMessage": "I sent you an Almond gift of {{jod}} JOD! Use code {{code}} in the Almond app ☕"
+    "shareMessage": "I sent you an Almond gift of {{jod}} JOD! Use code {{code}} in the Almond app ☕",
+    "recipients": "Recipients",
+    "addRecipient": "Add a person",
+    "sentCount": "Sent {{count}} gift(s) 🎉",
+    "payNote": "Paid from your wallet (balance {{jod}} JOD)"
   }
 }
