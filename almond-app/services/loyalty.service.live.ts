@@ -36,10 +36,8 @@ async function post<T>(path: string, body: unknown): Promise<T> {
 export const liveLoyaltyService: LoyaltyService = {
   getBalance: (userId) => get<LoyaltyBalance>(`/loyalty/balance/${userId}`),
   getVouchers: (userId) => get<Voucher[]>(`/loyalty/vouchers/${userId}`),
-  redeem: (userId, points) =>
-    post<{ points: number; walletBalance: number }>(`/loyalty/redeem`, { userId, points }),
-  spendPoints: (userId, points) =>
-    post<{ points: number }>(`/loyalty/spend-points`, { userId, points }),
+  redeemReward: (userId, input) =>
+    post<{ points: number; voucher: Voucher }>(`/loyalty/redeem-reward`, { userId, ...input }),
   earn: (input: EarnInput) => post<EarnResult>(`/loyalty/earn`, input),
   getHistory: (userId) => get<PointsLogEntry[]>(`/loyalty/history/${userId}`),
 

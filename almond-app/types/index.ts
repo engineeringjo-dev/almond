@@ -88,8 +88,7 @@ export type PaymentMethodId =
   | 'visa'
   | 'mastercard'
   | 'paypal'
-  | 'wallet'
-  | 'points'; // pay with loyalty points (Revision Pack §K)
+  | 'wallet';
 
 export interface PaymentMethod {
   id: PaymentMethodId;

@@ -209,7 +209,8 @@
     "redeemHint": "100 beans = 1 JOD",
     "redeemDone": "Redeemed {{jod}} JOD to your wallet",
     "history": "Beans history",
-    "memberId": "Member ID"
+    "memberId": "Member ID",
+    "seeRewards": "Redeem your beans in Rewards"
   },
   "track": {
     "title": "Track Order",
@@ -280,7 +281,13 @@
     "routineSub": "As your status grows, so do your benefits",
     "maxValueHint": "Value is a max — pay the difference if the item costs more",
     "beansNeverExpire": "Your beans never expire ✓",
-    "beansExpire": "Your beans are active until {{date}}"
+    "beansExpire": "Your beans are active until {{date}}",
+    "confirmTitle": "Confirm redemption",
+    "confirmBody": "Redeem “{{item}}” for {{beans}} beans?",
+    "redeemCta": "Redeem",
+    "redeemedTitle": "Redeemed 🎉",
+    "redeemedBody": "We added “{{item}}” to your vouchers — show your barcode at the counter",
+    "notEnough": "Not enough beans for this reward"
   },
   "rewardItems": {
     "smallDrink": "Free small drink",

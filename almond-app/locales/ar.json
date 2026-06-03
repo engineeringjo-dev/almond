@@ -209,7 +209,8 @@
     "redeemHint": "100 حبة = 1 دينار",
     "redeemDone": "تم صرف {{jod}} د.أ إلى محفظتك",
     "history": "سجل الحبات",
-    "memberId": "رقم العضوية"
+    "memberId": "رقم العضوية",
+    "seeRewards": "اصرف حباتك من شاشة المكافآت"
   },
   "track": {
     "title": "تتبع الطلب",
@@ -286,7 +287,13 @@
     "routineSub": "كل ما ارتقت فئتك، زادت مزاياك",
     "maxValueHint": "القيمة كحد أقصى — تقدر تدفع الفرق إذا زاد سعر الصنف",
     "beansNeverExpire": "حباتك لا تنتهي ✓",
-    "beansExpire": "حباتك فعّالة حتى {{date}}"
+    "beansExpire": "حباتك فعّالة حتى {{date}}",
+    "confirmTitle": "تأكيد الاستبدال",
+    "confirmBody": "تستبدل «{{item}}» مقابل {{beans}} حبة؟",
+    "redeemCta": "استبدل",
+    "redeemedTitle": "تم الاستبدال 🎉",
+    "redeemedBody": "أضفنا «{{item}}» إلى قسائمك — أظهر الباركود عند الكاونتر",
+    "notEnough": "ينقصك حبات لهذه المكافأة"
   },
   "rewardItems": {
     "smallDrink": "مشروب صغير مجاني",

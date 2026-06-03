@@ -10,36 +10,22 @@ interface Props {
   value: PaymentMethodId;
   onChange: (m: PaymentMethodId) => void;
   walletBalance?: number;
-  /** Loyalty points balance + points needed for the invoice (§K). */
-  pointsBalance?: number;
-  pointsNeeded?: number;
 }
 
-export function PaymentMethods({
-  value,
-  onChange,
-  walletBalance,
-  pointsBalance,
-  pointsNeeded,
-}: Props) {
-  const { t, lang } = useI18n();
-  const insufficientPoints =
-    pointsBalance != null && pointsNeeded != null && pointsBalance < pointsNeeded;
+export function PaymentMethods({ value, onChange, walletBalance }: Props) {
+  const { lang } = useI18n();
 
   return (
     <View style={styles.wrap}>
       {paymentMethods.map((m) => {
         const active = m.id === value;
-        const isPoints = m.id === 'points';
-        const pointsDisabled = isPoints && insufficientPoints;
         return (
           <Pressable
             key={m.id}
-            style={[styles.row, active && styles.rowActive, pointsDisabled && styles.disabled]}
-            onPress={() => !pointsDisabled && onChange(m.id)}
-            disabled={pointsDisabled}
+            style={[styles.row, active && styles.rowActive]}
+            onPress={() => onChange(m.id)}
             accessibilityRole="radio"
-            accessibilityState={{ selected: active, disabled: pointsDisabled }}
+            accessibilityState={{ selected: active }}
           >
             <Text style={styles.emoji}>{m.emoji}</Text>
             <View style={styles.body}>
@@ -47,18 +33,6 @@ export function PaymentMethods({
               {m.id === 'wallet' && walletBalance != null ? (
                 <Text variant="caption" color={colors.warmGray}>
                   {formatJOD(walletBalance, lang)}
-                </Text>
-              ) : null}
-              {isPoints && pointsBalance != null ? (
-                <Text variant="caption" color={pointsDisabled ? colors.red : colors.warmGray}>
-                  {t('cart.pointsBalance', { points: pointsBalance })}
-                  {pointsDisabled ? ` · ${t('cart.pointsInsufficient')}` : ''}
-                </Text>
-              ) : null}
-              {/* When points selected, make the cost explicit (§K). */}
-              {isPoints && active && pointsNeeded != null && !pointsDisabled ? (
-                <Text variant="caption" color={colors.green}>
-                  {t('cart.pointsUse', { points: pointsNeeded })}
                 </Text>
               ) : null}
             </View>

@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
-import { loyaltyService } from '@/services/loyalty.service';
+import { loyaltyService, type RedeemRewardInput } from '@/services/loyalty.service';
 import { useUserId } from '@/stores/authStore';
 
 export function useLoyaltyBalance() {
@@ -45,11 +45,12 @@ export function useInvalidateLoyalty() {
   };
 }
 
-export function useRedeem() {
+/** Redeem beans for a catalog Reward (issues a voucher; no cash value). */
+export function useRedeemReward() {
   const userId = useUserId();
   const invalidate = useInvalidateLoyalty();
   return useMutation({
-    mutationFn: (points: number) => loyaltyService.redeem(userId, points),
+    mutationFn: (input: RedeemRewardInput) => loyaltyService.redeemReward(userId, input),
     onSuccess: invalidate,
   });
 }

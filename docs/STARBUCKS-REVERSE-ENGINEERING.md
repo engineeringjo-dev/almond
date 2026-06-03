@@ -181,11 +181,18 @@ We take **mechanics only** — never their copy, marks, or "Stars". Mapped to Al
 - **Returns deduct beans** (can go negative) — data-integrity rule for the Odoo
   earn/void sync.
 
-### Flag / product decision ⚠️
-- Starbucks Stars **have no cash value** and aren't redeemable for cash. Our beans
-  currently redeem to **wallet JOD** (100 beans = 1 JOD), giving them cash-like
-  value — which can carry stored-value/tax implications and dilutes the "reward"
-  framing. Consider redeeming beans for **items/discounts only** (keep the wallet
-  for real money). Surfaced for a business decision; not changed unilaterally.
+### Resolved — beans follow the Starbucks model (no cash value) ✅
+- Decision taken: **beans have no cash value** and are **never** converted to
+  wallet money. They redeem only for catalog **Rewards** (vouchers) from the
+  tiered ladder. Implemented:
+  - `redeem` (beans→wallet) and `spendPoints` (pay-with-beans) **removed** from
+    the service, hook, and all screens; replaced by `redeemReward` → issues a
+    voucher and deducts beans.
+  - **Pay-with-beans** removed as a checkout payment method.
+  - Rewards-menu cards are now tappable → confirm → redeem → voucher added
+    ("show your barcode at the counter").
+  - Cash-worth lines and redeem-to-wallet buttons removed from the Rewards,
+    Pay (barcode), and Loyalty screens; beans shown as a ☕ count.
+  - Wallet keeps its real-money role (top-up, pay-from-balance +50%, reload bonus).
 - **Out of scope (prior decisions):** birthday reward, games/secret menu, full
   gift-card system — kept out per the Order & Wallet specs.

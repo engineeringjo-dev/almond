@@ -20,13 +20,12 @@ import { BranchPicker } from '@/components/branch/BranchPicker';
 import { Logo } from '@/components/ui/Logo';
 import { Icon } from '@/components/ui/Icon';
 import { colors, spacing, radius } from '@/constants/theme';
-import { config } from '@/constants/config';
 import { useI18n } from '@/hooks/useI18n';
 import { useCartStore, computeTotals } from '@/stores/cartStore';
 import { useNearestBranch } from '@/hooks/useNearestBranch';
 import { useAuthStore, useUserId } from '@/stores/authStore';
 import { useCreateOrder } from '@/hooks/useOrder';
-import { useWallet, useLoyaltyBalance, useInvalidateLoyalty } from '@/hooks/useLoyalty';
+import { useWallet, useInvalidateLoyalty } from '@/hooks/useLoyalty';
 import { computePickupEstimate } from '@/lib/pickup';
 import { formatJOD } from '@/lib/format';
 import { paymentService } from '@/services/payment.service';
@@ -53,7 +52,6 @@ export default function CartScreen() {
   const userId = useUserId();
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const { data: walletBalance } = useWallet();
-  const { data: loyaltyBalance } = useLoyaltyBalance();
   const createOrder = useCreateOrder();
   const invalidateLoyalty = useInvalidateLoyalty();
 
@@ -79,10 +77,6 @@ export default function CartScreen() {
     [items, branch],
   );
 
-  // Pay-with-points (§K): points needed for the invoice (100 pts = 1 JOD).
-  const pointsNeeded = Math.ceil(totals.total * config.POINTS_PER_JOD_REDEEM);
-  const payingWithPoints = paymentMethod === 'points';
-
   const openDelivery = async () => {
     await WebBrowser.openBrowserAsync(aggregatorService.getRedirectUrl());
   };
@@ -100,13 +94,8 @@ export default function CartScreen() {
     if (!branch) return;
     setSubmitting(true);
     try {
-      if (payingWithPoints) {
-        // Spend loyalty points directly on the invoice (§K).
-        await loyaltyService.spendPoints(userId, pointsNeeded);
-      } else {
-        const payment = await paymentService.pay(totals.total, paymentMethod);
-        if (!payment.success) return;
-      }
+      const payment = await paymentService.pay(totals.total, paymentMethod);
+      if (!payment.success) return;
 
       const order = await createOrder.mutateAsync({
         userId,
@@ -258,8 +247,6 @@ export default function CartScreen() {
                 value={paymentMethod}
                 onChange={setPaymentMethod}
                 walletBalance={walletBalance}
-                pointsBalance={loyaltyBalance?.points}
-                pointsNeeded={pointsNeeded}
               />
             </View>
           </>
@@ -273,10 +260,7 @@ export default function CartScreen() {
           <Button
             title={`${t('cart.reviewCta')} · ${formatJOD(totals.total, lang)}`}
             onPress={startCheckout}
-            disabled={
-              !branch ||
-              (payingWithPoints && (loyaltyBalance?.points ?? 0) < pointsNeeded)
-            }
+            disabled={!branch}
           />
         )}
       </View>

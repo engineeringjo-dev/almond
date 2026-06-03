@@ -21,12 +21,24 @@ export interface EarnInput {
   bonusMultiplier?: number;
 }
 
+/** Redeeming beans for a catalog Reward — issues a voucher (no cash value). */
+export interface RedeemRewardInput {
+  beans: number;
+  titleAr: string;
+  titleEn: string;
+  type: 'free-item' | 'discount';
+  /** Reference value in JOD (for discount vouchers / display). */
+  value?: number;
+}
+
 export interface LoyaltyService {
   getBalance(userId: string): Promise<LoyaltyBalance>;
   getVouchers(userId: string): Promise<Voucher[]>;
-  redeem(userId: string, points: number): Promise<{ points: number; walletBalance: number }>;
-  /** Spend points directly on an invoice at checkout (§K) — no wallet credit. */
-  spendPoints(userId: string, points: number): Promise<{ points: number }>;
+  /**
+   * Redeem beans for a catalog Reward → issues a voucher. Beans have NO cash
+   * value and are never converted to wallet money (Starbucks model).
+   */
+  redeemReward(userId: string, input: RedeemRewardInput): Promise<{ points: number; voucher: Voucher }>;
   earn(input: EarnInput): Promise<EarnResult>;
   getHistory(userId: string): Promise<PointsLogEntry[]>;
 

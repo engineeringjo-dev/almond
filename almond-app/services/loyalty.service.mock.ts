@@ -151,32 +151,28 @@ export const mockLoyaltyService: LoyaltyService = {
     return delay(active);
   },
 
-  redeem: (userId, points) => {
+  // Redeem beans for a catalog Reward → issue a voucher. Beans have NO cash
+  // value and are never moved to the wallet (Starbucks model).
+  redeemReward: (userId, input) => {
     const u = ensureUser(userId);
-    if (points > u.points) return Promise.reject(new Error('Not enough points'));
-    u.points -= points;
-    const jod = points / config.POINTS_PER_JOD_REDEEM; // 100 pts = 1 JOD
-    u.walletBalance += jod;
+    if (input.beans > u.points) return Promise.reject(new Error('Not enough beans'));
+    u.points -= input.beans;
+    const voucher: Voucher = {
+      id: genId('vch'),
+      titleAr: input.titleAr,
+      titleEn: input.titleEn,
+      type: input.type,
+      value: input.value,
+      expiresAt: new Date(Date.now() + 86400000 * 30).toISOString(),
+    };
+    u.vouchers.unshift(voucher);
     u.history.unshift({
-      id: genId('log'), deltaPoints: -points,
-      reasonAr: `استبدال ${jod.toFixed(3)} د.أ`, reasonEn: `Redeemed ${jod.toFixed(3)} JOD`,
+      id: genId('log'), deltaPoints: -input.beans,
+      reasonAr: `استبدال مكافأة: ${input.titleAr}`,
+      reasonEn: `Redeemed reward: ${input.titleEn}`,
       createdAt: new Date().toISOString(),
     });
-    return delay({ points: u.points, walletBalance: u.walletBalance });
-  },
-
-  // Pay-with-points at checkout (§K): deduct points used on the invoice.
-  spendPoints: (userId, points) => {
-    const u = ensureUser(userId);
-    if (points > u.points) return Promise.reject(new Error('Not enough points'));
-    u.points -= points;
-    const jod = points / config.POINTS_PER_JOD_REDEEM;
-    u.history.unshift({
-      id: genId('log'), deltaPoints: -points,
-      reasonAr: `دفع بالنقاط (${jod.toFixed(3)} د.أ)`, reasonEn: `Paid with points (${jod.toFixed(3)} JOD)`,
-      createdAt: new Date().toISOString(),
-    });
-    return delay({ points: u.points });
+    return delay({ points: u.points, voucher });
   },
 
   // Mirror of section 8.2 earn calculation.
