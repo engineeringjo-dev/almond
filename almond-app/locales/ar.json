@@ -165,7 +165,9 @@
     "suggestion": "جرّب مع {{item}}؟",
     "crossSellTitle": "أكمل طلبك ☕",
     "walletUpsell": "ادفع من رصيد محفظتك واكسب +50% حبات على هذا الطلب",
-    "walletEarnBonus": "+50% حبات عند الدفع من الرصيد ☕"
+    "walletEarnBonus": "+50% حبات عند الدفع من الرصيد ☕",
+    "brunchComboTitle": "أضف طبق برانش ووفّر 1.000 د.أ",
+    "addCombo": "أضف ووفّر"
   },
   "payment": {
     "cash": "نقداً",

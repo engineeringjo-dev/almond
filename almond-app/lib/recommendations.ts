@@ -63,6 +63,21 @@ export function getCartCrossSell(items: CartItem[], max = 8): MenuItem[] {
   return pickFrom(targetCats, inCart, max);
 }
 
+/**
+ * Smart brunch combo cross-sell (§2.3 #3): when the cart has a drink but no
+ * brunch (BR) item, suggest the best brunch dish — adding it triggers the
+ * "drink + BR = -1.000 JOD" combo. Returns null when not applicable.
+ */
+export function getBrunchCrossSell(items: CartItem[]): MenuItem | null {
+  if (items.length === 0) return null;
+  const cats = items.map((i) => catOf(i.itemId));
+  const hasDrink = cats.some((c) => DRINK_CATS.includes(c));
+  const hasBrunch = items.some((i) => i.isBrunch) || cats.includes('brunch');
+  if (!hasDrink || hasBrunch) return null;
+  const inCart = new Set(items.map((i) => i.itemId));
+  return pickFrom(['brunch'], inCart, 1)[0] ?? null;
+}
+
 /** Cross-sell for the item modal: "goes great with" the item being viewed. */
 export function getItemPairings(item: MenuItem, max = 4): MenuItem[] {
   const isDrink = DRINK_CATS.includes(item.categoryId);

@@ -7,7 +7,7 @@ import { colors, spacing, radius, shadow } from '@/constants/theme';
 import { useI18n } from '@/hooks/useI18n';
 import { formatJOD } from '@/lib/format';
 import { iconForCategory } from '@/lib/productIcon';
-import { getCartCrossSell } from '@/lib/recommendations';
+import { getCartCrossSell, getBrunchCrossSell } from '@/lib/recommendations';
 import { useCartStore } from '@/stores/cartStore';
 import type { CartItem } from '@/types';
 
@@ -20,14 +20,39 @@ export function CrossSellRow({ items }: { items: CartItem[] }) {
   const addItem = useCartStore((s) => s.addItem);
   const [added, setAdded] = useState<Record<string, boolean>>({});
 
-  const suggestions = getCartCrossSell(items, 8);
-  if (suggestions.length === 0) return null;
+  // Golden rule §2.2 #2: show only 1–3 suggestions — more reduces conversion.
+  const suggestions = getCartCrossSell(items, 3);
+  const brunch = getBrunchCrossSell(items);
+  if (suggestions.length === 0 && !brunch) return null;
 
   return (
     <View>
       <Text variant="title" style={styles.heading}>
         {t('cart.crossSellTitle')}
       </Text>
+
+      {/* Smart brunch combo nudge (§2.3 #3): drink in cart, no BR → save 1 JOD */}
+      {brunch ? (
+        <Pressable
+          style={styles.comboBanner}
+          onPress={() => {
+            addItem(brunch, brunch.sizes[0], [], 1);
+            setAdded((p) => ({ ...p, [brunch.id]: true }));
+          }}
+          accessibilityRole="button"
+        >
+          <Text style={styles.comboEmoji}>🍳</Text>
+          <Text variant="bodyBold" color={colors.dark} style={styles.comboText}>
+            {t('cart.brunchComboTitle')}
+          </Text>
+          <View style={styles.comboCta}>
+            <Text variant="caption" color={colors.dark} style={styles.addLabel}>
+              {added[brunch.id] ? t('menu.added') : t('cart.addCombo')}
+            </Text>
+          </View>
+        </Pressable>
+      ) : null}
+      {suggestions.length > 0 ? (
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.row}>
         {suggestions.map((item) => {
           const isAdded = added[item.id];
@@ -59,12 +84,30 @@ export function CrossSellRow({ items }: { items: CartItem[] }) {
           );
         })}
       </ScrollView>
+      ) : null}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   heading: { marginBottom: spacing.md },
+  comboBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    backgroundColor: colors.lightGold,
+    borderRadius: radius.md,
+    padding: spacing.md,
+    marginBottom: spacing.md,
+  },
+  comboEmoji: { fontSize: 20 },
+  comboText: { flex: 1 },
+  comboCta: {
+    backgroundColor: colors.gold,
+    borderRadius: radius.sm,
+    paddingVertical: spacing.xs,
+    paddingHorizontal: spacing.md,
+  },
   row: { gap: spacing.md, paddingEnd: spacing.lg },
   card: {
     width: 124,
