@@ -39,7 +39,9 @@ const SUB_TABS: { id: SubTab; label: string }[] = [
 ];
 
 // A small, curated "trending" set for the Menu strip (§2.2).
-const TRENDING_IDS = ['latte', 'iced-latte', 'cappuccino', 'frappuccino', 'matcha-iced', 'cold-brew'];
+// Category-name keywords used to surface the Featured tab's collections.
+const SEASONAL_KW = /seasonal|new|autumn|spring|mother|ramadan|gift/i;
+const HIGHLIGHT_KW = /croissant|sandwich|manaqeesh|bagel|pizza|cake|dessert/i;
 
 export default function OrderScreen() {
   const { t } = useI18n();
@@ -120,7 +122,9 @@ export default function OrderScreen() {
           onSelect={setSelectedItem}
         />
       ) : null}
-      {tab === 'featured' ? <FeaturedTab items={items} onSelect={setSelectedItem} /> : null}
+      {tab === 'featured' ? (
+        <FeaturedTab items={items} categories={categoriesQuery.data ?? []} onSelect={setSelectedItem} />
+      ) : null}
       {tab === 'previous' ? <PreviousTab /> : null}
       {tab === 'favourites' ? (
         <FavouritesTab items={items} onSelect={setSelectedItem} onBrowse={() => setTab('menu')} />
@@ -153,10 +157,11 @@ function MenuTab({
   const [activeCat, setActiveCat] = useState('all');
   const [query, setQuery] = useState('');
 
-  const trending = useMemo(
-    () => TRENDING_IDS.map((id) => items.find((i) => i.id === id)).filter(Boolean) as MenuItem[],
-    [items],
-  );
+  // Trending = a handful of drinks (falls back to the first items).
+  const trending = useMemo(() => {
+    const drinks = items.filter((i) => i.isDrink);
+    return (drinks.length >= 6 ? drinks : items).slice(0, 8);
+  }, [items]);
 
   const displayed = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -234,22 +239,32 @@ function MenuTab({
 
 /* --------------------------- Featured sub-tab --------------------------- */
 
-function FeaturedTab({ items, onSelect }: { items: MenuItem[]; onSelect: (i: MenuItem) => void }) {
+function FeaturedTab({
+  items,
+  categories,
+  onSelect,
+}: {
+  items: MenuItem[];
+  categories: { id: string; nameAr: string; nameEn: string }[];
+  onSelect: (i: MenuItem) => void;
+}) {
   const { t } = useI18n();
-  const brunch = useMemo(() => items.filter((i) => i.isBrunch), [items]);
-  // "Seasonal collection": matcha + chocolate specials as a curated set.
-  const seasonal = useMemo(
-    () => items.filter((i) => i.categoryId === 'matcha' || i.categoryId === 'chocolate'),
-    [items],
+
+  const seasonalIds = useMemo(
+    () => new Set(categories.filter((c) => SEASONAL_KW.test(c.nameEn)).map((c) => c.id)),
+    [categories],
   );
+  const highlightIds = useMemo(
+    () => new Set(categories.filter((c) => HIGHLIGHT_KW.test(c.nameEn)).map((c) => c.id)),
+    [categories],
+  );
+  const seasonal = useMemo(() => items.filter((i) => seasonalIds.has(i.categoryId)).slice(0, 12), [items, seasonalIds]);
+  const highlights = useMemo(() => items.filter((i) => highlightIds.has(i.categoryId)).slice(0, 12), [items, highlightIds]);
 
   return (
     <ScrollView contentContainerStyle={styles.scrollList} showsVerticalScrollIndicator={false}>
-      {/* Seasonal collections */}
       <View style={styles.block}>
-        <Text variant="title" style={styles.blockTitle}>
-          {t('order.featuredTitle')}
-        </Text>
+        <Text variant="title" style={styles.blockTitle}>{t('order.featuredTitle')}</Text>
         <Text variant="caption" color={colors.warmGray} style={styles.blockSub}>
           {t('order.featuredSubtitle')}
         </Text>
@@ -262,28 +277,25 @@ function FeaturedTab({ items, onSelect }: { items: MenuItem[]; onSelect: (i: Men
             ))}
           </View>
         ) : (
-          <Text variant="caption" color={colors.warmGray}>
-            {t('order.emptyFeatured')}
-          </Text>
+          <Text variant="caption" color={colors.warmGray}>{t('order.emptyFeatured')}</Text>
         )}
       </View>
 
-      {/* Brunch BR offers */}
-      <View style={styles.block}>
-        <Text variant="title" style={styles.blockTitle}>
-          {t('order.brunchTitle')}
-        </Text>
-        <Text variant="caption" color={colors.warmGray} style={styles.blockSub}>
-          {t('order.brunchSubtitle')}
-        </Text>
-        <View style={styles.grid}>
-          {brunch.map((item) => (
-            <View key={item.id} style={styles.gridCell}>
-              <MenuItemCard item={item} onPress={() => onSelect(item)} />
-            </View>
-          ))}
+      {highlights.length > 0 ? (
+        <View style={styles.block}>
+          <Text variant="title" style={styles.blockTitle}>{t('order.brunchTitle')}</Text>
+          <Text variant="caption" color={colors.warmGray} style={styles.blockSub}>
+            {t('order.brunchSubtitle')}
+          </Text>
+          <View style={styles.grid}>
+            {highlights.map((item) => (
+              <View key={item.id} style={styles.gridCell}>
+                <MenuItemCard item={item} onPress={() => onSelect(item)} />
+              </View>
+            ))}
+          </View>
         </View>
-      </View>
+      ) : null}
     </ScrollView>
   );
 }

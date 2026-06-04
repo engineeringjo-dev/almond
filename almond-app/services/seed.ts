@@ -10,8 +10,9 @@ import type {
   Tier,
   CustomizationGroup,
 } from '@/types';
+import { generatedCategories, generatedMenuItems } from './menu.generated';
 
-export const categories: Category[] = [
+const legacyCategories: Category[] = [
   { id: 'all', nameAr: 'الكل', nameEn: 'All' },
   { id: 'hot-coffee', nameAr: 'القهوة الساخنة', nameEn: 'Hot Coffee' },
   { id: 'cold-drinks', nameAr: 'المشروبات الباردة', nameEn: 'Cold Drinks' },
@@ -94,7 +95,7 @@ function single(price: number) {
   return [{ id: 'M' as const, nameAr: 'عادي', nameEn: 'Regular', price }];
 }
 
-export const menuItems: MenuItem[] = [
+const legacyMenuItems: MenuItem[] = [
   // ---- Hot Coffee ----
   {
     id: 'espresso', categoryId: 'hot-coffee', nameAr: 'إسبرسو', nameEn: 'Espresso',
@@ -306,3 +307,10 @@ export function tierFromSpend(spend: number): Tier {
 export function nextTier(spend: number): Tier | null {
   return tiers.find((t) => t.threshold > spend) ?? null;
 }
+
+// Real menu (Talabat export) is the active source; legacy demo arrays kept
+// only as a fallback reference.
+void legacyCategories;
+void legacyMenuItems;
+export const categories: Category[] = generatedCategories;
+export const menuItems: MenuItem[] = generatedMenuItems;

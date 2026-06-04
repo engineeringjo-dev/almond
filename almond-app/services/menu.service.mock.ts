@@ -2,8 +2,11 @@ import type { MenuService } from './menu.service';
 import { categories, menuItems } from './seed';
 import { delay } from './util';
 
+// Prepend an "All" chip so the menu filter can reset to the full list.
+const ALL = { id: 'all', nameAr: 'الكل', nameEn: 'All' };
+
 export const mockMenuService: MenuService = {
-  getCategories: () => delay(categories),
+  getCategories: () => delay([ALL, ...categories]),
 
   getItems: (categoryId) => {
     if (!categoryId || categoryId === 'all') return delay(menuItems);
