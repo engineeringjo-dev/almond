@@ -20,9 +20,9 @@ export default function TabsLayout() {
   const userId = useUserId();
   const insets = useSafeAreaInsets();
   // Reserve room for the system gesture/nav bar (iOS home indicator / Android
-  // nav) so the bar shows and labels never clip on either platform. The web
-  // build pins the app to the small viewport height (see applyWebViewportFix),
-  // so the bar is always fully on-screen; this is just breathing room.
+  // nav) so the bar clears it and labels never clip. On web the served HTML
+  // sets viewport-fit=cover, so insets.bottom reflects the real system inset
+  // (read via env(safe-area-inset-bottom)); 16 is the minimum breathing room.
   const bottomPad = Math.max(insets.bottom, 16);
 
   // Wire push registration once the user lands in the app (section 14).
