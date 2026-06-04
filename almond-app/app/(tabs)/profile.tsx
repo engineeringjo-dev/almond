@@ -61,35 +61,35 @@ export default function ProfileScreen() {
 
         {/* Menu */}
         <Card padded={false} style={styles.menu}>
-          <ListRow emoji="🧾" label={t('profile.orders')} onPress={() => router.push('/profile/orders')} />
-          <ListRow emoji="🎁" label={t('profile.vouchers')} onPress={() => router.push('/profile/vouchers')} />
-          <ListRow emoji="🎀" label={t('profile.giftCards')} onPress={() => router.push('/profile/gift-cards')} />
-          <ListRow emoji="📍" label={t('profile.addresses')} onPress={() => router.push('/profile/addresses')} />
-          <ListRow emoji="💳" label={t('profile.payments')} onPress={() => router.push('/profile/payments')} />
+          <ListRow icon="history" label={t('profile.orders')} onPress={() => router.push('/profile/orders')} />
+          <ListRow icon="ticket" label={t('profile.vouchers')} onPress={() => router.push('/profile/vouchers')} />
+          <ListRow icon="gift" label={t('profile.giftCards')} onPress={() => router.push('/profile/gift-cards')} />
+          <ListRow icon="map-pin" label={t('profile.addresses')} onPress={() => router.push('/profile/addresses')} />
+          <ListRow icon="card" label={t('profile.payments')} onPress={() => router.push('/profile/payments')} />
           <ListRow
-            emoji="💰"
+            icon="wallet"
             label={t('profile.wallet')}
             value={wallet != null ? formatJOD(wallet, lang) : undefined}
             onPress={() => router.push('/profile/wallet')}
           />
           <ListRow
-            emoji="👥"
+            icon="user"
             label={t('profile.referral')}
             value={t('profile.referralReward')}
             onPress={() => router.push('/referral')}
           />
-          <ListRow emoji="🔔" label={t('profile.notifications')} onPress={() => router.push('/notifications')} />
+          <ListRow icon="bell" label={t('profile.notifications')} onPress={() => router.push('/notifications')} />
           <ListRow
-            emoji="🌐"
+            icon="globe"
             label={t('profile.language')}
             value={lang === 'ar' ? 'العربية' : 'English'}
             onPress={() => setLangOpen(true)}
           />
-          <ListRow emoji="❓" label={t('profile.help')} onPress={() => router.push('/profile/help')} />
+          <ListRow icon="help" label={t('profile.help')} onPress={() => router.push('/profile/help')} />
         </Card>
 
         <Card padded={false} style={styles.menu}>
-          <ListRow emoji="🚪" label={t('profile.logout')} danger onPress={onLogout} />
+          <ListRow icon="logout" label={t('profile.logout')} danger onPress={onLogout} />
         </Card>
       </Screen>
 

@@ -1,8 +1,10 @@
 import { View, StyleSheet, Pressable } from 'react-native';
 import { Text } from '@/components/ui/Text';
+import { Icon } from '@/components/ui/Icon';
 import { colors, radius, spacing } from '@/constants/theme';
 import { useI18n } from '@/hooks/useI18n';
 import { formatJOD } from '@/lib/format';
+import { paymentIcon } from '@/lib/paymentIcon';
 import { paymentMethods } from '@/services/seed';
 import type { PaymentMethodId } from '@/types';
 
@@ -27,7 +29,9 @@ export function PaymentMethods({ value, onChange, walletBalance }: Props) {
             accessibilityRole="radio"
             accessibilityState={{ selected: active }}
           >
-            <Text style={styles.emoji}>{m.emoji}</Text>
+            <View style={styles.iconWrap}>
+              <Icon name={paymentIcon(m.id)} size={20} color={colors.primary} strokeWidth={1.9} />
+            </View>
             <View style={styles.body}>
               <Text variant="bodyBold">{lang === 'ar' ? m.nameAr : m.nameEn}</Text>
               {m.id === 'wallet' && walletBalance != null ? (
@@ -60,7 +64,11 @@ const styles = StyleSheet.create({
   },
   rowActive: { borderColor: colors.gold },
   disabled: { opacity: 0.5 },
-  emoji: { fontSize: 22 },
+  iconWrap: {
+    width: 38, height: 38, borderRadius: radius.sm,
+    backgroundColor: colors.neutralWarm,
+    alignItems: 'center', justifyContent: 'center',
+  },
   body: { flex: 1 },
   radio: {
     width: 22,
