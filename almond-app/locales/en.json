@@ -113,7 +113,9 @@
     "walletHint": "Pay from balance and earn +50% beans (×1.5) ☕",
     "welcomeTitle": "Welcome gift 🎁",
     "welcomeBody": "A free drink on your first order",
-    "welcomeCta": "Order now"
+    "welcomeCta": "Order now",
+    "greetingMorningGuest": "Good morning ☕",
+    "greetingEveningGuest": "Good evening ☕"
   },
   "menu": {
     "title": "Menu",

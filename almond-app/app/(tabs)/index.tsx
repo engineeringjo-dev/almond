@@ -37,8 +37,12 @@ export default function HomeScreen() {
     [branches, selectedBranchId, nearest],
   );
 
-  const greeting = new Date().getHours() < 12 ? 'home.greetingMorning' : 'home.greetingEvening';
-  const name = user && !user.isGuest ? user.name : t('home.guest');
+  // Guests get a name-less greeting ("Good morning" — not "Good morning, Guest").
+  const isGuest = !user || user.isGuest;
+  const base = new Date().getHours() < 12 ? 'Morning' : 'Evening';
+  const greetingText = isGuest
+    ? t(`home.greeting${base}Guest`)
+    : t(`home.greeting${base}`, { name: user!.name });
 
   return (
     <View style={styles.root}>
@@ -53,7 +57,7 @@ export default function HomeScreen() {
         <HomeTopBar branch={activeBranch} onBranchPress={() => setPickerOpen(true)} />
 
         <Text variant="h1" style={styles.greeting}>
-          {t(greeting, { name })}
+          {greetingText}
         </Text>
 
         {/* Live active-order status, front-and-centre (Starbucks pattern) */}

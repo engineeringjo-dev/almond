@@ -113,7 +113,9 @@
     "walletHint": "ادفع من رصيدك واكسب +50% حبات (×1.5) ☕",
     "welcomeTitle": "هديتنا الترحيبية 🎁",
     "welcomeBody": "مشروب مجاني مع أول طلب لك",
-    "welcomeCta": "اطلب الآن"
+    "welcomeCta": "اطلب الآن",
+    "greetingMorningGuest": "صباح الكيف ☕",
+    "greetingEveningGuest": "مساء الكيف ☕"
   },
   "menu": {
     "title": "القائمة",
