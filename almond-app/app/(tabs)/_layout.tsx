@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { Platform } from 'react-native';
 import { Tabs } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -21,7 +22,15 @@ export default function TabsLayout() {
   const insets = useSafeAreaInsets();
   // Reserve room for the system gesture/nav bar (iOS home indicator / Android
   // nav) so the bar shows and labels never clip on either platform.
-  const bottomPad = Math.max(insets.bottom, 16);
+  //
+  // On mobile web, safe-area insets aren't exposed (a browser tab returns 0),
+  // yet the Android system bar still sits right at the dynamic-viewport edge —
+  // so we reserve a comfortable margin there so labels clear the back button.
+  const coarseWeb =
+    Platform.OS === 'web' &&
+    typeof window !== 'undefined' &&
+    !!window.matchMedia?.('(pointer: coarse)')?.matches;
+  const bottomPad = Math.max(insets.bottom, coarseWeb ? 34 : 16);
 
   // Wire push registration once the user lands in the app (section 14).
   useEffect(() => {
@@ -45,8 +54,9 @@ export default function TabsLayout() {
         tabBarLabelStyle: {
           fontFamily: fontFamily.medium,
           fontSize: 11,
-          lineHeight: 15,
-          marginTop: 4,
+          lineHeight: 18, // roomier so Arabic glyphs never clip at the bottom
+          marginTop: 3,
+          paddingBottom: 1,
         },
         tabBarItemStyle: { paddingVertical: 0 },
       }}
