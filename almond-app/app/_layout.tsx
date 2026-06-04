@@ -7,6 +7,7 @@ import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
 
 import { initI18n } from '@/lib/i18n';
+import { applyWebViewportFix } from '@/lib/webViewportFix';
 import { useAppStore } from '@/stores/appStore';
 import { useAuthStore } from '@/stores/authStore';
 import { useFavouritesStore } from '@/stores/favouritesStore';
@@ -18,6 +19,10 @@ import { colors } from '@/constants/theme';
 
 // Initialize i18n as early as possible (AR default).
 initI18n();
+
+// Web: pin the app to the dynamic viewport height so the bottom tab bar clears
+// the device's system navigation bar (no-op on native).
+applyWebViewportFix();
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
