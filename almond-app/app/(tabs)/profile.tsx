@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { View, StyleSheet } from 'react-native';
+import { View, StyleSheet, Platform } from 'react-native';
 import { router } from 'expo-router';
 
 import { Screen } from '@/components/ui/Screen';
@@ -18,7 +18,10 @@ import { useAuthStore } from '@/stores/authStore';
 import { useLoyaltyBalance, useWallet } from '@/hooks/useLoyalty';
 
 export default function ProfileScreen() {
-  const { t, lang } = useI18n();
+  const { t, lang, isRTL } = useI18n();
+  // Reading-start edge so the name + tier badge hug the correct side on web
+  // (native flips automatically).
+  const startEdge = Platform.OS === 'web' && isRTL ? 'flex-end' : 'flex-start';
   const user = useAuthStore((s) => s.user);
   const logout = useAuthStore((s) => s.logout);
   const { data: balance } = useLoyaltyBalance();
@@ -48,14 +51,19 @@ export default function ProfileScreen() {
               <Logo variant="badge" tone="light" size={40} />
             )}
           </View>
-          <View style={styles.headerBody}>
+          <View style={[styles.headerBody, { alignItems: startEdge }]}>
             <Text variant="h2" color={colors.white}>{isGuest ? t('home.guest') : user?.name}</Text>
             {!isGuest && user?.phone ? (
               <Text variant="caption" color={colors.white}>
                 {user.phone}
               </Text>
             ) : null}
-            {balance ? <TierBadge tier={balance.tier} small /> : null}
+            {/* Tier badge sits directly under the name */}
+            {balance ? (
+              <View style={{ alignSelf: startEdge }}>
+                <TierBadge tier={balance.tier} small />
+              </View>
+            ) : null}
           </View>
         </Gradient>
 
