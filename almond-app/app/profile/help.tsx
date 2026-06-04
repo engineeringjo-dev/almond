@@ -22,23 +22,23 @@ export default function HelpScreen() {
         </View>
         <Card padded={false}>
           <ListRow
-            emoji="📞"
+            icon="phone"
             label={lang === 'ar' ? 'اتصل بنا' : 'Call us'}
             value="+962 6 000 0000"
             onPress={() => Linking.openURL('tel:+96260000000')}
           />
           <ListRow
-            emoji="✉️"
+            icon="mail"
             label={lang === 'ar' ? 'راسلنا' : 'Email us'}
             onPress={() => Linking.openURL('mailto:hello@almondcoffeehouse.com')}
           />
           <ListRow
-            emoji="🌐"
+            icon="globe"
             label={lang === 'ar' ? 'موقعنا' : 'Our website'}
             onPress={() => Linking.openURL('https://almondcoffeehouse.com')}
           />
           <ListRow
-            emoji="📸"
+            icon="instagram"
             label="Instagram"
             onPress={() => Linking.openURL('https://instagram.com')}
           />
