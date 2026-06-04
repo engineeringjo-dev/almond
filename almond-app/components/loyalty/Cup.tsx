@@ -7,6 +7,7 @@ import Svg, {
   ClipPath,
   Path,
   Rect,
+  Line,
   G,
   Ellipse,
 } from 'react-native-svg';
@@ -21,24 +22,21 @@ interface Props {
 const AnimatedRect = Animated.createAnimatedComponent(Rect);
 const AnimatedEllipse = Animated.createAnimatedComponent(Ellipse);
 
-// Line-art paper coffee cup (Flaticon style): black outline cup + lid with a
-// three-bean coffee logo on the body. The body fills with coffee from the
-// bottom up as the user collects drinks toward the target (10 drinks).
-//
-// Geometry is authored in a 100×100 viewBox. The body is a tapered trapezoid:
-//   top edge  y = 30  (x 27 → 73)
-//   bottom    y = 88  (x 35 → 65)
+// Line-art paper coffee cup (matches the supplied Flaticon reference): flared
+// lid lip + band, a collar, a tapered ribbed body carrying a two-bean coffee
+// logo, and a flared base. Authored in a 120×150 viewBox (≈ the reference's
+// 0.8 aspect). The body fills with coffee from the bottom up as the user
+// collects drinks toward the target (10).
 const STROKE = '#1A0F08';
-const SW = 3; // outline stroke width
+const SW = 3.4; // outline stroke width
 
-// Body outline path (rounded bottom corners) used both for the visible cup and
-// as the clip region for the rising coffee.
+// Tapered body — used for the visible cup AND as the coffee clip region.
 const BODY_PATH =
-  'M27 30 L73 30 L66 84 Q65 88 61 88 L39 88 Q35 88 34 84 Z';
+  'M24 57 L96 57 L85 127 Q84 130 80 130 L40 130 Q36 130 35 127 Z';
 
-// Body interior is filled between y=30 (top, empty) and y=88 (bottom, full-ish).
-const FILL_TOP = 31;
-const FILL_BOTTOM = 87;
+// Coffee surface travels between these Y values (empty → full).
+const FILL_BOTTOM = 127;
+const FILL_TOP = 59;
 const FILL_RANGE = FILL_BOTTOM - FILL_TOP;
 
 export function Cup({ current, target, size = 96 }: Props) {
@@ -54,16 +52,18 @@ export function Cup({ current, target, size = 96 }: Props) {
     }).start();
   }, [pct, level]);
 
-  // Coffee surface rises from FILL_BOTTOM (empty) up to FILL_TOP (full).
   const fillY = level.interpolate({ inputRange: [0, 1], outputRange: [FILL_BOTTOM, FILL_TOP] });
   const fillH = level.interpolate({ inputRange: [0, 1], outputRange: [0, FILL_RANGE] });
   const surfaceOpacity = level.interpolate({ inputRange: [0, 0.04, 1], outputRange: [0, 1, 1] });
 
   const nearFull = pct >= 0.9;
+  // Keep the cup's natural 0.8 aspect inside the square slot it's given.
+  const w = size * 0.8;
+  const h = size;
 
   return (
-    <View style={[styles.wrap, { width: size, height: size }, nearFull && styles.glow]}>
-      <Svg width={size} height={size} viewBox="0 0 100 100">
+    <View style={[styles.wrap, { width: w, height: h }, nearFull && styles.glow]}>
+      <Svg width={w} height={h} viewBox="0 0 120 150">
         <Defs>
           <LinearGradient id="coffee" x1="0" y1="0" x2="0" y2="1">
             <Stop offset="0" stopColor="#7A553A" />
@@ -74,37 +74,50 @@ export function Cup({ current, target, size = 96 }: Props) {
           </ClipPath>
         </Defs>
 
-        {/* White cup body so the coffee + logo read cleanly */}
+        {/* White body so coffee + logo read cleanly */}
         <Path d={BODY_PATH} fill={colors.white} />
 
-        {/* Rising coffee, clipped to the body shape */}
+        {/* Rising coffee, clipped to the body */}
         <G clipPath="url(#bodyClip)">
-          <AnimatedRect x={20} y={fillY} width={60} height={fillH} fill="url(#coffee)" />
-          {/* Coffee surface highlight at the waterline */}
-          <AnimatedEllipse
-            cx={50}
-            cy={fillY}
-            rx={24}
-            ry={2.4}
-            fill="#9C7853"
-            opacity={surfaceOpacity}
-          />
+          <AnimatedRect x={15} y={fillY} width={90} height={fillH} fill="url(#coffee)" />
+          <AnimatedEllipse cx={60} cy={fillY} rx={32} ry={2.6} fill="#9C7853" opacity={surfaceOpacity} />
         </G>
 
-        {/* Three-bean coffee logo on the cup body (covered as coffee rises) */}
-        <G>
-          <CoffeeBean cx={42} cy={52} rot={-18} />
-          <CoffeeBean cx={58} cy={52} rot={18} />
-          <CoffeeBean cx={50} cy={64} rot={0} />
-        </G>
+        {/* Body rib lines (top + bottom) like the reference */}
+        <Line x1={28} y1={65} x2={92} y2={65} stroke={STROKE} strokeWidth={SW} strokeLinecap="round" />
+        <Line x1={35} y1={119} x2={85} y2={119} stroke={STROKE} strokeWidth={SW} strokeLinecap="round" />
 
-        {/* Body outline (drawn last so it stays crisp over the fill) */}
+        {/* Two-bean coffee logo (white-filled so it stays visible over coffee) */}
+        <CoffeeBean cx={53} cy={86} rot={42} />
+        <CoffeeBean cx={67} cy={95} rot={42} />
+
+        {/* Body outline last, crisp over the fill */}
         <Path d={BODY_PATH} fill="none" stroke={STROKE} strokeWidth={SW} strokeLinejoin="round" />
 
-        {/* Lid: a band + slight dome, sitting a touch wider than the cup top */}
-        <Rect x={22} y={20} width={56} height={11} rx={3.5} fill={colors.white} stroke={STROKE} strokeWidth={SW} />
+        {/* Collar / neck */}
         <Path
-          d="M27 20 Q27 13 34 13 L66 13 Q73 13 73 20 Z"
+          d="M18 41 L102 41 L96 55 L24 55 Z"
+          fill={colors.white}
+          stroke={STROKE}
+          strokeWidth={SW}
+          strokeLinejoin="round"
+        />
+
+        {/* Lid band */}
+        <Rect x={10} y={26} width={100} height={14} rx={5} fill={colors.white} stroke={STROKE} strokeWidth={SW} />
+
+        {/* Lid lip (flared trapezoid) */}
+        <Path
+          d="M24 12 Q23 10 26 10 L94 10 Q97 10 96 12 L108 25 L12 25 Z"
+          fill={colors.white}
+          stroke={STROKE}
+          strokeWidth={SW}
+          strokeLinejoin="round"
+        />
+
+        {/* Flared base */}
+        <Path
+          d="M34 131 L86 131 L80 145 Q79 147 76 147 L44 147 Q41 147 40 145 Z"
           fill={colors.white}
           stroke={STROKE}
           strokeWidth={SW}
@@ -115,16 +128,16 @@ export function Cup({ current, target, size = 96 }: Props) {
   );
 }
 
-// A single coffee bean: an oval with a curved seam down the middle.
+// A single coffee bean: a white-filled oval with a curved seam, rotated.
 function CoffeeBean({ cx, cy, rot }: { cx: number; cy: number; rot: number }) {
   return (
     <G origin={`${cx}, ${cy}`} rotation={rot}>
-      <Ellipse cx={cx} cy={cy} rx={5.4} ry={3.4} fill="none" stroke={STROKE} strokeWidth={2} />
+      <Ellipse cx={cx} cy={cy} rx={11} ry={6.4} fill={colors.white} stroke={STROKE} strokeWidth={2.6} />
       <Path
-        d={`M${cx} ${cy - 3} Q${cx + 2.4} ${cy} ${cx} ${cy + 3}`}
+        d={`M${cx - 7} ${cy} Q${cx} ${cy + 3} ${cx + 7} ${cy}`}
         fill="none"
         stroke={STROKE}
-        strokeWidth={2}
+        strokeWidth={2.6}
         strokeLinecap="round"
       />
     </G>
