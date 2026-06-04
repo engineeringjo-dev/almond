@@ -27,7 +27,7 @@ export function MenuItemCard({ item, onPress }: Props) {
     >
       <View style={styles.thumb}>
         {item.imageUrl ? (
-          <Image source={{ uri: item.imageUrl }} style={styles.photo} resizeMode="cover" />
+          <Image source={{ uri: item.imageUrl }} style={styles.photo} resizeMode="contain" />
         ) : (
           <Icon name={iconForCategory(item.categoryId)} size={44} color={colors.brown} strokeWidth={1.6} />
         )}
@@ -71,9 +71,9 @@ const styles = StyleSheet.create({
   },
   pressed: { opacity: 0.85 },
   thumb: {
-    height: 96,
+    aspectRatio: 1,
     borderRadius: radius.md,
-    backgroundColor: colors.neutralWarm,
+    backgroundColor: colors.white,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: spacing.sm,
