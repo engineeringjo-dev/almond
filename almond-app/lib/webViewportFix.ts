@@ -25,12 +25,11 @@ export function applyWebViewportFix() {
   if (!document.getElementById(id)) {
     const style = document.createElement('style');
     style.id = id;
-    // Pin the root to the *small* viewport height (`100svh`) — the smallest
-    // visible area, i.e. with the browser bars shown. Unlike `100dvh`/`100vh`
-    // (which on some Android browsers include the area under the gesture bar),
-    // `svh` guarantees the bottom tab bar always stays fully on-screen. `100vh`
-    // is kept as a fallback for browsers without `svh`.
-    style.textContent = '#root{height:100vh;height:100svh;min-height:100svh;}';
+    // Pin the root to the dynamic viewport height so it always tracks the
+    // visible area. With viewport-fit=cover (set in the served HTML), the
+    // bottom tab bar reserves env(safe-area-inset-bottom) via the safe-area
+    // insets, so it clears the system nav bar. `100vh` is the fallback.
+    style.textContent = '#root{height:100vh;height:100dvh;min-height:100dvh;}';
     document.head.appendChild(style);
   }
 }

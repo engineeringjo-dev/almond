@@ -31,6 +31,14 @@ jobs:
         run: npx expo export --platform web
       - name: SPA + Pages fixes
         run: |
+          # Inject viewport-fit=cover into the INITIAL HTML so Android browsers
+          # draw edge-to-edge and expose env(safe-area-inset-*); this is what
+          # makes the bottom tab bar clear the system nav bar. Must be in the
+          # served HTML (output:single ignores +html.tsx, and a runtime JS meta
+          # change is not honoured by Chrome for edge-to-edge).
+          if ! grep -q "viewport-fit=cover" dist/index.html; then
+            sed -i 's/name="viewport" content="\([^"]*\)"/name="viewport" content="\1, viewport-fit=cover"/' dist/index.html
+          fi
           cp dist/index.html dist/404.html
           touch dist/.nojekyll
       - uses: actions/upload-pages-artifact@v3
