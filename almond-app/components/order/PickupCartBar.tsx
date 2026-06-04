@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { View, StyleSheet, Pressable } from 'react-native';
 import { router } from 'expo-router';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Text } from '@/components/ui/Text';
 import { Icon } from '@/components/ui/Icon';
@@ -18,7 +17,6 @@ import { useCartStore, useCartCount, computeTotals } from '@/stores/cartStore';
  */
 export function PickupCartBar() {
   const { t, lang } = useI18n();
-  const insets = useSafeAreaInsets();
   const { branches, nearest } = useNearestBranch();
   const branchId = useCartStore((s) => s.branchId);
   const setBranch = useCartStore((s) => s.setBranch);
@@ -31,7 +29,9 @@ export function PickupCartBar() {
 
   return (
     <>
-      <View style={[styles.wrap, { bottom: 64 + Math.max(insets.bottom, 16) + spacing.sm }]}>
+      {/* The screen content already ends at the tab-bar top (react-navigation
+          reserves its space), so the bar only needs a small gap above it. */}
+      <View style={[styles.wrap, { bottom: spacing.sm }]}>
         <Pressable style={styles.store} onPress={() => setPickerOpen(true)} accessibilityRole="button">
           <View style={styles.storeIcon}>
             <Icon name="pickup" size={18} color={colors.primary} strokeWidth={2} />
@@ -40,9 +40,13 @@ export function PickupCartBar() {
             <Text variant="caption" color={colors.warmGray} numberOfLines={1}>
               {t('order.pickupFrom')}
             </Text>
-            <Text variant="bodyBold" numberOfLines={1}>
-              {branch ? (lang === 'ar' ? branch.nameAr : branch.nameEn) : t('order.chooseBranch')}
-            </Text>
+            {/* Branch name + chevron signals the pickup store can be changed */}
+            <View style={styles.nameRow}>
+              <Text variant="bodyBold" numberOfLines={1} style={styles.flex}>
+                {branch ? (lang === 'ar' ? branch.nameAr : branch.nameEn) : t('order.chooseBranch')}
+              </Text>
+              <Icon name="chevron-down" size={16} color={colors.warmGray} strokeWidth={2.5} />
+            </View>
           </View>
         </Pressable>
 
@@ -85,6 +89,7 @@ const styles = StyleSheet.create({
     ...shadow.raised,
   },
   flex: { flex: 1 },
+  nameRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
   store: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, flex: 1 },
   storeIcon: {
     width: 34, height: 34, borderRadius: 17,
