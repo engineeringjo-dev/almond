@@ -113,7 +113,7 @@ export function ItemModal({ item, visible, onClose }: Props) {
         </Pressable>
         <View style={styles.thumb}>
           {item.imageUrl ? (
-            <Image source={{ uri: item.imageUrl }} style={styles.photo} resizeMode="cover" />
+            <Image source={{ uri: item.imageUrl }} style={styles.photo} resizeMode="contain" />
           ) : (
             <Icon name={iconForCategory(item.categoryId)} size={52} color={colors.brown} strokeWidth={1.6} />
           )}
@@ -275,7 +275,7 @@ const styles = StyleSheet.create({
     zIndex: 2,
   },
   thumb: {
-    width: 96, height: 96, borderRadius: radius.lg, backgroundColor: colors.neutralWarm,
+    width: 112, height: 112, borderRadius: radius.lg, backgroundColor: colors.white,
     alignItems: 'center', justifyContent: 'center', marginBottom: spacing.sm, overflow: 'hidden',
   },
   photo: { width: '100%', height: '100%' },

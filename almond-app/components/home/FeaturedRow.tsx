@@ -1,5 +1,5 @@
 import { View, StyleSheet, ScrollView, Pressable, Image } from 'react-native';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 
 import { Text } from '@/components/ui/Text';
 import { Icon } from '@/components/ui/Icon';
@@ -11,16 +11,18 @@ import { iconForCategory } from '@/lib/productIcon';
 import { menuItems } from '@/services/seed';
 import type { MenuItem } from '@/types';
 
-// Curated "most popular" selection (Master Pack §2.6 — horizontal section with
-// large images; §Part2.5 personalization/suggestions).
-const FEATURED_IDS = ['latte', 'iced-latte', 'cappuccino', 'matcha-iced', 'almond-croissant', 'cold-brew'];
-
 export function FeaturedRow() {
   const { t, lang } = useI18n();
   const [selected, setSelected] = useState<MenuItem | null>(null);
-  const items = FEATURED_IDS.map((id) => menuItems.find((i) => i.id === id)).filter(
-    (i): i is MenuItem => !!i,
-  );
+  // A varied "most popular" set: the first item from each of several categories
+  // (so it's not all drinks) — prefers items that have a photo.
+  const items = useMemo<MenuItem[]>(() => {
+    const byCat = new Map<string, MenuItem>();
+    for (const it of menuItems) {
+      if (!byCat.has(it.categoryId) && it.imageUrl) byCat.set(it.categoryId, it);
+    }
+    return [...byCat.values()].slice(0, 12);
+  }, []);
 
   return (
     <View>
@@ -37,7 +39,7 @@ export function FeaturedRow() {
           >
             <View style={styles.thumb}>
               {item.imageUrl ? (
-                <Image source={{ uri: item.imageUrl }} style={styles.photo} resizeMode="cover" />
+                <Image source={{ uri: item.imageUrl }} style={styles.photo} resizeMode="contain" />
               ) : (
                 <Icon name={iconForCategory(item.categoryId)} size={46} color={colors.primary} strokeWidth={1.6} />
               )}
@@ -71,9 +73,9 @@ const styles = StyleSheet.create({
   },
   pressed: { opacity: 0.88 },
   thumb: {
-    height: 110,
+    aspectRatio: 1,
     borderRadius: radius.md,
-    backgroundColor: colors.neutralWarm,
+    backgroundColor: colors.white,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: spacing.sm,
