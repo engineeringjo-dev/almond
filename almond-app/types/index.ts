@@ -10,7 +10,8 @@ export interface Category {
   isBrunch?: boolean;
 }
 
-export type CustomizationGroupId = 'milk' | 'sugar' | 'ice' | 'extras';
+/** Modifier group id — free-form (real Odoo/Talabat modifier ids). */
+export type CustomizationGroupId = string;
 
 export interface CustomizationOption {
   id: string;
