@@ -31,7 +31,7 @@ export function PickupCartBar() {
 
   return (
     <>
-      <View style={[styles.wrap, { bottom: 64 + insets.bottom + spacing.sm }]}>
+      <View style={[styles.wrap, { bottom: 64 + Math.max(insets.bottom, 16) + spacing.sm }]}>
         <Pressable style={styles.store} onPress={() => setPickerOpen(true)} accessibilityRole="button">
           <View style={styles.storeIcon}>
             <Icon name="pickup" size={18} color={colors.primary} strokeWidth={2} />

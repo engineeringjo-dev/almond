@@ -19,8 +19,9 @@ export default function TabsLayout() {
   const { t } = useTranslation();
   const userId = useUserId();
   const insets = useSafeAreaInsets();
-  // Reserve room for the system gesture/nav bar so labels never clip.
-  const bottomPad = Math.max(insets.bottom, 10);
+  // Reserve room for the system gesture/nav bar (iOS home indicator / Android
+  // nav) so the bar shows and labels never clip on either platform.
+  const bottomPad = Math.max(insets.bottom, 16);
 
   // Wire push registration once the user lands in the app (section 14).
   useEffect(() => {
@@ -36,11 +37,18 @@ export default function TabsLayout() {
         tabBarStyle: {
           backgroundColor: colors.cardBg,
           borderTopColor: colors.neutralWarm,
-          height: 62 + bottomPad,
+          borderTopWidth: 1,
+          height: 64 + bottomPad,
           paddingBottom: bottomPad,
-          paddingTop: 8,
+          paddingTop: 10,
         },
-        tabBarLabelStyle: { fontFamily: fontFamily.medium, fontSize: 11, marginTop: 2 },
+        tabBarLabelStyle: {
+          fontFamily: fontFamily.medium,
+          fontSize: 11,
+          lineHeight: 15,
+          marginTop: 4,
+        },
+        tabBarItemStyle: { paddingVertical: 0 },
       }}
     >
       <Tabs.Screen

@@ -42,7 +42,7 @@ export function CartToast() {
   return (
     <Animated.View
       pointerEvents="box-none"
-      style={[styles.wrap, { bottom: insets.bottom + 78, opacity, transform: [{ translateY: y }] }]}
+      style={[styles.wrap, { bottom: Math.max(insets.bottom, 16) + 88, opacity, transform: [{ translateY: y }] }]}
     >
       <Pressable style={styles.toast} onPress={() => { hide(); router.push('/(tabs)/cart'); }}>
         <View style={styles.thumb}>

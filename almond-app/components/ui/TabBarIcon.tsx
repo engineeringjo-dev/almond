@@ -2,13 +2,16 @@ import { StyleSheet, View } from 'react-native';
 import { Icon, type IconName } from './Icon';
 import { colors } from '@/constants/theme';
 
-/** Tab icon from the unified icon set (Master Pack §M — no emoji). */
+/**
+ * Tab icon from the unified line-icon set (no emoji). The focused dot is
+ * absolutely positioned so it never adds height (prevents label clipping).
+ */
 export function TabBarIcon({ name, focused }: { name: IconName; focused: boolean }) {
   return (
     <View style={styles.wrap}>
       <Icon
         name={name}
-        size={23}
+        size={24}
         color={focused ? colors.primary : colors.warmGray}
         strokeWidth={focused ? 2.4 : 2}
       />
@@ -18,12 +21,13 @@ export function TabBarIcon({ name, focused }: { name: IconName; focused: boolean
 }
 
 const styles = StyleSheet.create({
-  wrap: { alignItems: 'center', justifyContent: 'center' },
+  wrap: { width: 30, height: 28, alignItems: 'center', justifyContent: 'center' },
   dot: {
+    position: 'absolute',
+    bottom: -5,
     width: 5,
     height: 5,
     borderRadius: 3,
-    backgroundColor: colors.gold,
-    marginTop: 3,
+    backgroundColor: colors.primary,
   },
 });
