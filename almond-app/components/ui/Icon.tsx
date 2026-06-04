@@ -41,6 +41,7 @@ import {
   Menu as MenuBars,
   Heart,
   Bean,
+  ChevronDown,
   type LucideIcon,
 } from 'lucide-react-native';
 import { colors } from '@/constants/theme';
@@ -95,7 +96,8 @@ export type IconName =
   | 'history'
   | 'more'
   | 'heart'
-  | 'bean';
+  | 'bean'
+  | 'chevron-down';
 
 const REGISTRY: Record<IconName, LucideIcon> = {
   coffee: Coffee,
@@ -142,6 +144,7 @@ const REGISTRY: Record<IconName, LucideIcon> = {
   more: MenuBars,
   heart: Heart,
   bean: Bean,
+  'chevron-down': ChevronDown,
 };
 
 interface Props {
