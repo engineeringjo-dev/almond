@@ -5,6 +5,7 @@ import {
   Pressable,
   ScrollView,
   Alert,
+  Image,
   useWindowDimensions,
   type NativeSyntheticEvent,
   type NativeScrollEvent,
@@ -26,6 +27,7 @@ import { useI18n } from '@/hooks/useI18n';
 import { formatNumber, formatDate } from '@/lib/format';
 import { useLoyaltyBalance, useRedeemReward } from '@/hooks/useLoyalty';
 import { tiers, tierFromSpend, nextTier } from '@/services/seed';
+import { menuItems } from '@/services/seed';
 import i18n from '@/lib/i18n';
 import type { TierId } from '@/types';
 
@@ -34,18 +36,25 @@ import type { TierId } from '@/types';
  * (25/60/100/200/300/400) with rising reward types + locked "X away" states.
  * The 60-beans flat discount is the simple, flexible option (§4.3).
  */
+// A representative real product photo for each reward (temporary if the exact
+// reward item doesn't exist) — falls back to the first photographed item.
+const rewardImg = (re: RegExp): string | undefined =>
+  (menuItems.find((i) => i.imageUrl && re.test(i.nameEn)) ??
+    menuItems.find((i) => i.imageUrl))?.imageUrl;
+
 const REWARD_MENU: {
   points: number;
   labelKey: string;
   icon: IconName;
   type: 'free-item' | 'discount';
+  image?: string;
 }[] = [
-  { points: 25, labelKey: 'rewardItems.customization', icon: 'plus', type: 'discount' },
-  { points: 60, labelKey: 'rewardItems.flatDiscount', icon: 'gift', type: 'discount' },
-  { points: 100, labelKey: 'rewardItems.brewedCoffee', icon: 'coffee', type: 'free-item' },
-  { points: 200, labelKey: 'rewardItems.handcraftedDrink', icon: 'cold', type: 'free-item' },
-  { points: 300, labelKey: 'rewardItems.brunchPlate', icon: 'brunch', type: 'free-item' },
-  { points: 400, labelKey: 'rewardItems.packagedCoffee', icon: 'cake', type: 'free-item' },
+  { points: 25, labelKey: 'rewardItems.customization', icon: 'plus', type: 'discount', image: rewardImg(/syrup|caramel|vanilla|shot|latte/i) },
+  { points: 60, labelKey: 'rewardItems.flatDiscount', icon: 'gift', type: 'discount', image: rewardImg(/gift|box/i) },
+  { points: 100, labelKey: 'rewardItems.brewedCoffee', icon: 'coffee', type: 'free-item', image: rewardImg(/americano|brew|drip|filter|coffee/i) },
+  { points: 200, labelKey: 'rewardItems.handcraftedDrink', icon: 'cold', type: 'free-item', image: rewardImg(/latte|frappe|iced|spanish/i) },
+  { points: 300, labelKey: 'rewardItems.brunchPlate', icon: 'brunch', type: 'free-item', image: rewardImg(/croissant|sandwich|manaqeesh|bagel/i) },
+  { points: 400, labelKey: 'rewardItems.packagedCoffee', icon: 'cake', type: 'free-item', image: rewardImg(/beans|whole bean|packaged/i) },
 ];
 
 const TIER_COLOR: Record<TierId, string> = {
@@ -249,12 +258,20 @@ export default function RewardsScreen() {
             >
               <Card style={[styles.rewardCard, !unlocked && styles.rewardLocked]}>
                 <View style={[styles.rewardThumb, unlocked && styles.rewardThumbOn]}>
-                  <Icon
-                    name={r.icon}
-                    size={30}
-                    color={unlocked ? colors.primary : colors.warmGray}
-                    strokeWidth={1.7}
-                  />
+                  {r.image ? (
+                    <Image
+                      source={{ uri: r.image }}
+                      style={[styles.rewardPhoto, !unlocked && styles.rewardPhotoLocked]}
+                      resizeMode="contain"
+                    />
+                  ) : (
+                    <Icon
+                      name={r.icon}
+                      size={30}
+                      color={unlocked ? colors.primary : colors.warmGray}
+                      strokeWidth={1.7}
+                    />
+                  )}
                 </View>
                 <Text variant="bodyBold" center numberOfLines={2} style={styles.rewardName}>
                   {t(r.labelKey)}
@@ -428,15 +445,18 @@ const styles = StyleSheet.create({
   rewardCard: { alignItems: 'center', gap: spacing.xs },
   rewardLocked: { opacity: 0.7 },
   rewardThumb: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: colors.neutralWarm,
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    backgroundColor: colors.white,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: spacing.xs,
+    overflow: 'hidden',
   },
-  rewardThumbOn: { backgroundColor: colors.neutralWarm },
+  rewardThumbOn: { backgroundColor: colors.white },
+  rewardPhoto: { width: '100%', height: '100%' },
+  rewardPhotoLocked: { opacity: 0.5 },
   rewardName: { minHeight: 38 },
   rewardStatus: {
     marginTop: spacing.xs,

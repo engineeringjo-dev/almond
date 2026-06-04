@@ -157,10 +157,13 @@ function MenuTab({
   const [activeCat, setActiveCat] = useState('all');
   const [query, setQuery] = useState('');
 
-  // Trending = a handful of drinks (falls back to the first items).
+  // Trending = a varied set across categories (drinks + food + pizza + cakes).
   const trending = useMemo(() => {
-    const drinks = items.filter((i) => i.isDrink);
-    return (drinks.length >= 6 ? drinks : items).slice(0, 8);
+    const byCat = new Map<string, MenuItem>();
+    for (const it of items) {
+      if (it.imageUrl && !byCat.has(it.categoryId)) byCat.set(it.categoryId, it);
+    }
+    return [...byCat.values()].slice(0, 12);
   }, [items]);
 
   const displayed = useMemo(() => {
