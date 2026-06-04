@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { Tabs } from 'expo-router';
 import { useTranslation } from 'react-i18next';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { colors, fontFamily } from '@/constants/theme';
 import { TabBarIcon } from '@/components/ui/TabBarIcon';
@@ -17,6 +18,9 @@ import { registerForPush } from '@/lib/notifications';
 export default function TabsLayout() {
   const { t } = useTranslation();
   const userId = useUserId();
+  const insets = useSafeAreaInsets();
+  // Reserve room for the system gesture/nav bar so labels never clip.
+  const bottomPad = Math.max(insets.bottom, 10);
 
   // Wire push registration once the user lands in the app (section 14).
   useEffect(() => {
@@ -32,11 +36,11 @@ export default function TabsLayout() {
         tabBarStyle: {
           backgroundColor: colors.cardBg,
           borderTopColor: colors.neutralWarm,
-          height: 64,
-          paddingBottom: 8,
-          paddingTop: 6,
+          height: 62 + bottomPad,
+          paddingBottom: bottomPad,
+          paddingTop: 8,
         },
-        tabBarLabelStyle: { fontFamily: fontFamily.medium, fontSize: 11 },
+        tabBarLabelStyle: { fontFamily: fontFamily.medium, fontSize: 11, marginTop: 2 },
       }}
     >
       <Tabs.Screen
