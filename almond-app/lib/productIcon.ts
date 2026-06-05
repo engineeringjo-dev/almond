@@ -1,24 +1,32 @@
 import type { IconName } from '@/components/ui/Icon';
 import { menuItems } from '@/services/seed';
+import { categoryGroup, type CategoryGroup } from '@/lib/categoryKind';
 
 /**
  * Unified product/category icons (Revision Pack §M) — one consistent line-icon
- * family, no broken/colored emoji. Each category maps to one icon.
+ * family, no broken/colored emoji. Icons are chosen by the category's group,
+ * which is derived from its name (works with the live Talabat menu IDs).
  */
-const CATEGORY_ICON: Record<string, IconName> = {
-  all: 'coffee',
-  'hot-coffee': 'coffee',
-  'cold-drinks': 'cold',
+const GROUP_ICON: Record<CategoryGroup, IconName> = {
+  coffee: 'coffee',
+  cold: 'cold',
   matcha: 'matcha',
   chocolate: 'chocolate',
-  pastries: 'pastries',
-  cakes: 'cake',
-  brunch: 'brunch',
-  addons: 'addons',
+  tea: 'coffee',
+  juice: 'cold',
+  pastry: 'pastries',
+  cake: 'cake',
+  dessert: 'cake',
+  savory: 'brunch',
+  salad: 'brunch',
+  beans: 'bean',
+  gift: 'gift',
+  other: 'coffee',
 };
 
 export function iconForCategory(categoryId: string): IconName {
-  return CATEGORY_ICON[categoryId] ?? 'coffee';
+  if (categoryId === 'all') return 'coffee';
+  return GROUP_ICON[categoryGroup(categoryId)] ?? 'coffee';
 }
 
 export function iconForItem(itemId: string): IconName {
