@@ -49,5 +49,5 @@ const styles = StyleSheet.create({
     ...shadow.raised,
   },
   fabFocused: { backgroundColor: colors.dark },
-  label: { fontSize: 10, marginTop: 2 },
+  label: { fontSize: 10, lineHeight: 15, marginTop: 2 },
 });

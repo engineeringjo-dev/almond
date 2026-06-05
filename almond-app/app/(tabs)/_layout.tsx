@@ -40,16 +40,18 @@ export default function TabsLayout() {
           backgroundColor: colors.cardBg,
           borderTopColor: colors.neutralWarm,
           borderTopWidth: 1,
-          height: 64 + bottomPad,
+          // Tall enough that icon + Arabic label + react-navigation's per-tab
+          // padding all fit inside the content area (above paddingBottom) so the
+          // label never overflows/clips at the bottom.
+          height: 78 + bottomPad,
           paddingBottom: bottomPad,
           paddingTop: 10,
         },
         tabBarLabelStyle: {
           fontFamily: fontFamily.medium,
           fontSize: 11,
-          lineHeight: 18, // roomier so Arabic glyphs never clip at the bottom
-          marginTop: 3,
-          paddingBottom: 1,
+          lineHeight: 16,
+          marginTop: 2,
         },
         tabBarItemStyle: { paddingVertical: 0 },
       }}
