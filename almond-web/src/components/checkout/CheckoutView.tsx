@@ -12,6 +12,7 @@ import { useCartStore } from '@/store/cartStore';
 import { useOrderStore } from '@/store/orderStore';
 import { useRouter } from '@/i18n/navigation';
 import { DELIVERY_ETA, DELIVERY_FEE, dispatchDelivery } from '@/data/delivery';
+import { payForOrder } from '@/data/payment';
 import { asLang, formatJOD } from '@/lib/format';
 import { OrderTypeTabs } from './OrderTypeTabs';
 import { BranchPicker } from './BranchPicker';
@@ -85,6 +86,7 @@ export function CheckoutView() {
       deliveryFee: isDelivery ? DELIVERY_FEE : 0,
     });
     if (isDelivery) void dispatchDelivery(order); // mock dispatch via Ishbek seam
+    if (paymentMethod !== 'cash') void payForOrder(order); // secure payment seam
     setLastOrder(order);
     clear();
     router.push('/checkout/success');

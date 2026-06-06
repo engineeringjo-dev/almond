@@ -1,5 +1,8 @@
-import { ComingSoon } from '@/components/ComingSoon';
+import type { Metadata } from 'next';
+import { LoginView } from '@/components/auth/LoginView';
 
-export default function Page() {
-  return <ComingSoon titleKey="login" />;
+export const metadata: Metadata = { title: 'Log in' };
+
+export default function LoginPage() {
+  return <LoginView />;
 }
