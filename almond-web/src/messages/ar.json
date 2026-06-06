@@ -52,6 +52,25 @@
       "viewAll": "كل الفروع"
     }
   },
+  "Menu": {
+    "title": "المنيو",
+    "subtitle": "تصفّح المنيو الكامل واطلب ما تحب",
+    "searchPlaceholder": "ابحث عن صنف…",
+    "all": "الكل",
+    "resultsCount": "{count} نتيجة",
+    "noResults": "لا توجد نتائج لـ «{query}»",
+    "clearSearch": "مسح البحث",
+    "customize": "خصّص طلبك",
+    "size": "الحجم",
+    "quantity": "الكمية",
+    "addToCart": "أضف إلى السلة",
+    "added": "تمت الإضافة",
+    "goesWellWith": "يكمّل طلبك",
+    "back": "عودة إلى المنيو",
+    "soldOut": "غير متوفر حاليًا",
+    "from": "يبدأ من",
+    "total": "الإجمالي"
+  },
   "Branches": {
     "openNow": "مفتوح الآن",
     "closed": "مغلق الآن",

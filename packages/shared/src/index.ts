@@ -15,3 +15,5 @@ export * from './loyalty';
 export * from './menu';
 export * from './lib/categoryKind';
 export * from './lib/format';
+export * from './lib/recommendations';
+export * from './cart';

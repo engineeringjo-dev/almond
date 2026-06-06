@@ -1,12 +1,13 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { Menu, ShoppingBag, User, X } from 'lucide-react';
 import { Link, usePathname } from '@/i18n/navigation';
 import { Logo } from '@/components/ui/Logo';
 import { Button } from '@/components/ui/Button';
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
+import { useCartCount } from '@/store/cartStore';
 import { cn } from '@/lib/cn';
 
 const NAV = [
@@ -20,6 +21,11 @@ export function Header() {
   const t = useTranslations('Nav');
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
+
+  // Cart count — only after mount, to avoid an SSR/localStorage hydration mismatch.
+  const count = useCartCount();
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
 
   const isActive = (href: string) => pathname === href || pathname.startsWith(`${href}/`);
 
@@ -60,9 +66,14 @@ export function Header() {
           <Link
             href="/cart"
             aria-label={t('cart')}
-            className="inline-flex h-10 w-10 items-center justify-center rounded-pill text-text-primary hover:bg-neutral-warm"
+            className="relative inline-flex h-10 w-10 items-center justify-center rounded-pill text-text-primary hover:bg-neutral-warm"
           >
             <ShoppingBag className="h-5 w-5" />
+            {mounted && count > 0 && (
+              <span className="absolute -end-0.5 -top-0.5 inline-flex h-5 min-w-5 items-center justify-center rounded-pill bg-primary px-1 text-xs font-bold text-white">
+                {count}
+              </span>
+            )}
           </Link>
           <Button href="/menu" size="md" className="hidden sm:inline-flex">
             {t('orderNow')}

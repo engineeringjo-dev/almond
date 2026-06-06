@@ -14,7 +14,10 @@ export function ProductCard({ item }: { item: MenuItem }) {
   const price = itemFromPrice(item);
 
   return (
-    <Link href="/menu" className="group flex w-44 shrink-0 flex-col gap-3 sm:w-52">
+    <Link
+      href={`/menu/${item.id}`}
+      className="group flex w-44 shrink-0 flex-col gap-3 sm:w-52"
+    >
       <div className="product-thumb shadow-card transition-transform duration-base group-hover:-translate-y-1">
         {item.imageUrl && (
           <Image

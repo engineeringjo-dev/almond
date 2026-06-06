@@ -32,3 +32,32 @@ export function getItemById(id: string): MenuItem | undefined {
 export function itemFromPrice(item: MenuItem): number {
   return item.sizes.reduce((min, s) => Math.min(min, s.price), Infinity);
 }
+
+export interface CategorySection {
+  category: Category;
+  items: MenuItem[];
+}
+
+/** Menu grouped by category (only categories that have items), in menu order. */
+export function getMenuSections(): CategorySection[] {
+  const byCategory = new Map<string, MenuItem[]>();
+  for (const item of menuItems) {
+    const list = byCategory.get(item.categoryId) ?? [];
+    list.push(item);
+    byCategory.set(item.categoryId, list);
+  }
+  return categories
+    .map((category) => ({ category, items: byCategory.get(category.id) ?? [] }))
+    .filter((section) => section.items.length > 0);
+}
+
+/** Free-text search across AR/EN names + descriptions. */
+export function searchItems(query: string): MenuItem[] {
+  const q = query.trim().toLowerCase();
+  if (!q) return [];
+  return menuItems.filter((item) =>
+    [item.nameAr, item.nameEn, item.descAr, item.descEn].some((field) =>
+      field?.toLowerCase().includes(q),
+    ),
+  );
+}

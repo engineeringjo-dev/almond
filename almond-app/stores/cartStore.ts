@@ -8,8 +8,14 @@ import type {
   OrderType,
   PaymentMethodId,
 } from '@/types';
-import { config } from '@/constants/config';
+import { buildLineId } from '@almond/shared/cart';
 import { useToastStore } from './toastStore';
+
+// Cart pricing is the single source of truth in @almond/shared/cart (so app +
+// website total identically). Re-exported so existing @/stores/cartStore
+// importers (computeTotals, lineUnitPrice, CartTotals) keep working unchanged.
+export { lineUnitPrice, computeTotals } from '@almond/shared/cart';
+export type { CartTotals } from '@almond/shared/cart';
 
 interface CartState {
   items: CartItem[];
@@ -40,15 +46,6 @@ interface CartState {
   setCurbside: (on: boolean) => void;
   setCarInfo: (info: string) => void;
   clear: () => void;
-}
-
-/** Build a stable line id from item + size + sorted customization option ids. */
-function buildLineId(itemId: string, sizeId: string, custs: CartCustomization[]): string {
-  const sig = custs
-    .map((c) => `${c.groupId}:${c.optionId}`)
-    .sort()
-    .join('|');
-  return `${itemId}__${sizeId}__${sig}`;
 }
 
 export const useCartStore = create<CartState>((set) => ({
@@ -137,48 +134,4 @@ export const useCartStore = create<CartState>((set) => ({
 /** Total item count for the cart tab badge. */
 export function useCartCount(): number {
   return useCartStore((s) => s.items.reduce((sum, l) => sum + l.qty, 0));
-}
-
-/** Unit price for a line including customization deltas. */
-export function lineUnitPrice(line: CartItem): number {
-  const extras = line.customizations.reduce((s, c) => s + c.priceDelta, 0);
-  return line.unitBasePrice + extras;
-}
-
-/** Compute cart pricing including brunch combo + tax (sections 4.6, 5). */
-export interface CartTotals {
-  subtotal: number;
-  brunchDiscount: number;
-  promoDiscount: number;
-  discount: number;
-  tax: number;
-  total: number;
-}
-
-export function computeTotals(
-  items: CartItem[],
-  promoDiscount: number,
-): CartTotals {
-  const subtotal = items.reduce((sum, l) => sum + lineUnitPrice(l) * l.qty, 0);
-
-  // Brunch combo: one BR food per drink → -1.000 JOD each (section 5).
-  const drinkQty = items.filter((l) => l.isDrink).reduce((s, l) => s + l.qty, 0);
-  const brunchQty = items.filter((l) => l.isBrunch).reduce((s, l) => s + l.qty, 0);
-  const combos = Math.min(drinkQty, brunchQty);
-  const brunchDiscount = combos * config.BRUNCH_COMBO_DISCOUNT;
-
-  // Discount stacking OFF (section 2.4): take the larger of brunch vs promo.
-  const discount = Math.max(brunchDiscount, promoDiscount);
-
-  const taxable = Math.max(0, subtotal - discount);
-  const tax = taxable * config.TAX_RATE;
-  const total = taxable + tax;
-  return {
-    subtotal,
-    brunchDiscount,
-    promoDiscount,
-    discount,
-    tax,
-    total,
-  };
 }

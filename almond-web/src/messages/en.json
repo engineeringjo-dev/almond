@@ -52,6 +52,25 @@
       "viewAll": "All branches"
     }
   },
+  "Menu": {
+    "title": "Menu",
+    "subtitle": "Browse the full menu and order what you love",
+    "searchPlaceholder": "Search the menu…",
+    "all": "All",
+    "resultsCount": "{count} results",
+    "noResults": "No results for “{query}”",
+    "clearSearch": "Clear search",
+    "customize": "Customise your order",
+    "size": "Size",
+    "quantity": "Quantity",
+    "addToCart": "Add to cart",
+    "added": "Added",
+    "goesWellWith": "Goes well with",
+    "back": "Back to menu",
+    "soldOut": "Currently unavailable",
+    "from": "from",
+    "total": "Total"
+  },
   "Branches": {
     "openNow": "Open now",
     "closed": "Closed",
