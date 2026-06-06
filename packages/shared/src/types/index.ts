@@ -146,6 +146,8 @@ export interface Order {
   /** Curbside pickup + the car details to find the customer. */
   curbside?: boolean;
   carInfo?: string;
+  /** Delivery address (Ishbek → Careem/Talabat last-mile). */
+  deliveryAddress?: string;
 }
 
 // ---------- Loyalty ----------

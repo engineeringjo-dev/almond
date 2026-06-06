@@ -116,7 +116,13 @@
     "earnBeans": "ستجمع {beans} نقطة مع هذا الطلب",
     "addExtra": "أضف لمسة إضافية",
     "secure": "دفع آمن ومشفّر",
-    "accepted": "طرق الدفع المقبولة"
+    "accepted": "طرق الدفع المقبولة",
+    "deliveryAddress": "عنوان التوصيل",
+    "deliveryAddressPlaceholder": "المنطقة، الشارع، المبنى، الطابق…",
+    "deliveryBy": "توصيل عبر كباتن شركائنا (كريم/طلبات)",
+    "deliveryFee": "رسوم التوصيل",
+    "deliveryEta": "خلال ~{min} دقيقة",
+    "enterAddress": "يرجى إدخال عنوان التوصيل"
   },
   "OrderSuccess": {
     "title": "تم استلام طلبك!",

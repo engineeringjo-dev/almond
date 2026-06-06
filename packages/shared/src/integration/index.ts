@@ -23,16 +23,20 @@ export const integration = {
     wallet: config.DATA_SOURCE === 'odoo', // e-wallet top-up / charge / balance
     gift: config.DATA_SOURCE === 'odoo', // gift-card issue / redeem
     pos: config.DATA_SOURCE === 'odoo', // POS scan → earn/redeem/charge at till
+    delivery: config.DATA_SOURCE === 'odoo', // Ishbek → Careem/Talabat last-mile
   },
 
   baseUrls: {
     odoo: config.ODOO_BASE_URL, // Odoo 19 REST / JSON-RPC
     loyalty: config.LOYALTY_BASE_URL, // standalone loyalty/wallet/gift server
+    ishbek: config.ISHBEK_BASE_URL, // delivery aggregator (Careem + Talabat fleets)
   },
 
   auth: {
     odooApiKey: env('EXPO_PUBLIC_ODOO_API_KEY'),
     loyaltyToken: env('EXPO_PUBLIC_LOYALTY_TOKEN'),
+    // Read on both runtimes (Expo inlines EXPO_PUBLIC_*, Next inlines NEXT_PUBLIC_*).
+    ishbekKey: env('EXPO_PUBLIC_ISHBEK_KEY') || env('NEXT_PUBLIC_ISHBEK_KEY'),
   },
 
   /** Endpoint paths, relative to the matching base URL. */
@@ -64,6 +68,16 @@ export const integration = {
     posScan: '/pos/scan',
     /** App polls this after showing the barcode to confirm the till scanned it. */
     scanStatus: (userId: string) => `/loyalty/scan-status/${userId}`,
+
+    // ---- Delivery (Ishbek → Careem / Talabat) ----
+    /** Quote the delivery fee + ETA for a branch → address. */
+    deliveryQuote: '/delivery/quote',
+    /** Dispatch: assign a Careem/Talabat captain to pick up from the branch. */
+    deliveryDispatch: '/delivery/dispatch',
+    /** Live status for a dispatched delivery. */
+    deliveryStatus: (orderId: string) => `/delivery/status/${orderId}`,
+    /** Cancel a dispatch within the allowed window. */
+    deliveryCancel: '/delivery/cancel',
   },
 } as const;
 
