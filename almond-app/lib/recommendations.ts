@@ -49,18 +49,27 @@ export function getCartCrossSell(items: CartItem[], max = 8): MenuItem[] {
 }
 
 /**
- * Drink + food combo nudge: when the cart has a drink but no food yet, suggest
- * the best food item — adding it earns the +50-point combo bonus (see
- * lib/combo.ts). Returns null when not applicable.
+ * Drink + food combo upsell (bidirectional): adding the missing half earns the
+ * +50-point combo bonus (see lib/combo.ts).
+ * - drink in cart, no food → suggest food.
+ * - food in cart, no drink → suggest a drink.
+ * Returns the suggested item + which half is missing, or null.
  */
-export function getBrunchCrossSell(items: CartItem[]): MenuItem | null {
+export function getComboUpsell(items: CartItem[]): { item: MenuItem; missing: 'drink' | 'food' } | null {
   if (items.length === 0) return null;
   const kinds = items.map((i) => itemKind(i.itemId));
   const hasDrink = kinds.includes('drink');
   const hasFood = kinds.includes('food');
-  if (!hasDrink || hasFood) return null;
   const inCart = new Set(items.map((i) => i.itemId));
-  return pickByKind('food', inCart, 1)[0] ?? null;
+  if (hasDrink && !hasFood) {
+    const item = pickByKind('food', inCart, 1)[0];
+    return item ? { item, missing: 'food' } : null;
+  }
+  if (hasFood && !hasDrink) {
+    const item = pickByKind('drink', inCart, 1)[0];
+    return item ? { item, missing: 'drink' } : null;
+  }
+  return null;
 }
 
 /** Cross-sell for the item modal: "goes great with" the item being viewed. */
