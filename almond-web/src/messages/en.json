@@ -20,26 +20,26 @@
   },
   "Home": {
     "hero": {
-      "badge": "Earn beans with every order",
+      "badge": "Earn points with every order",
       "title": "Your favourite coffee, with rewards that grow every cup",
-      "subtitle": "Order from the real menu, pick up in-store or get it delivered, and collect beans that turn into free drinks — on the same account as the app.",
+      "subtitle": "Order from the real menu, pick up in-store or get it delivered, and collect points that turn into free drinks — on the same account as the app.",
       "cta": "Order now",
       "ctaSecondary": "Explore rewards"
     },
     "value": {
       "menuTitle": "The full menu",
       "menuText": "Over 260 real items with prices, customisations and photos.",
-      "beansTitle": "Beans on every dinar",
-      "beansText": "Earn 5 beans per JOD and redeem them for the drinks you love.",
+      "beansTitle": "Points on every dinar",
+      "beansText": "Earn 5 points per JOD and redeem them for the drinks you love.",
       "pickupTitle": "Pickup or delivery",
       "pickupText": "Order ahead and grab it fast from your nearest branch."
     },
     "loyalty": {
       "title": "Your rewards cup fills with every order",
-      "text": "Every 10 drinks earns a free one. Track your progress and redeem beans for exclusive rewards — one account across web and app.",
-      "cta": "Start earning beans",
+      "text": "Every 10 drinks earns a free one. Track your progress and redeem points for exclusive rewards — one account across web and app.",
+      "cta": "Start earning points",
       "cupLabel": "{current} of {target} drinks",
-      "beansLabel": "beans"
+      "beansLabel": "points"
     },
     "featured": {
       "title": "Most loved",
@@ -105,7 +105,7 @@
     "summary": "Order summary",
     "placeOrder": "Place order",
     "selectBranch": "Please choose a branch to continue",
-    "earnBeans": "You'll earn {beans} beans on this order"
+    "earnBeans": "You'll earn {beans} points on this order"
   },
   "OrderSuccess": {
     "title": "Order received!",
@@ -114,38 +114,38 @@
     "readyIn": "Ready in ~{minutes} min",
     "branch": "Branch",
     "total": "Total",
-    "beansEarned": "+{beans} beans",
+    "beansEarned": "+{beans} points",
     "orderAgain": "Order again",
     "viewRewards": "View rewards"
   },
   "Rewards": {
     "title": "Rewards",
-    "beans": "beans",
-    "yourBeans": "Your beans",
+    "beans": "points",
+    "yourBeans": "Your points",
     "tier": "Your tier",
     "toNextTier": "Spend {amount} to reach {tier}",
     "topTier": "You're at the top tier — enjoy!",
     "cupProgress": "{current} of {target} drinks to your free drink",
-    "redeemTitle": "Redeem your beans",
+    "redeemTitle": "Redeem your points",
     "redeem": "Redeem",
     "redeemed": "Redeemed",
-    "notEnough": "Not enough beans",
-    "cost": "{cost} beans",
+    "notEnough": "Not enough points",
+    "cost": "{cost} points",
     "vouchersTitle": "Your vouchers",
     "noVouchers": "No vouchers yet",
     "expires": "Expires {date}",
     "activityTitle": "Recent activity",
-    "earnRate": "Earn 5 beans for every JOD you spend"
+    "earnRate": "Earn 5 points for every JOD you spend"
   },
   "Wallet": {
     "title": "Wallet",
     "balance": "Wallet balance",
     "topUpTitle": "Top up your wallet",
-    "bonusBeans": "+{beans} beans",
+    "bonusBeans": "+{beans} points",
     "topUpCta": "Top up {amount}",
     "historyTitle": "Transaction history",
     "noHistory": "No transactions yet",
-    "earnNote": "Pay from your wallet and earn 50% more beans"
+    "earnNote": "Pay from your wallet and earn 50% more points"
   },
   "Gifts": {
     "title": "Gift cards",

@@ -29,7 +29,7 @@ export const metadata: Metadata = {
     template: '%s · Almond Coffee House',
   },
   description:
-    'Order Almond Coffee House — the real menu, pickup or delivery, and the same beans rewards + wallet as the app. Bilingual Arabic / English.',
+    'Order Almond Coffee House — the real menu, pickup or delivery, and the same points rewards + wallet as the app. Bilingual Arabic / English.',
 };
 
 export function generateStaticParams() {
