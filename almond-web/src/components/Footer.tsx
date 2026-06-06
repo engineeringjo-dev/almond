@@ -9,6 +9,11 @@ const EXPLORE = [
   { href: '/gifts', key: 'gifts' },
 ] as const;
 
+const COMPANY = [
+  { href: '/careers', key: 'careers' },
+  { href: '/franchise', key: 'franchise' },
+] as const;
+
 export function Footer() {
   const t = useTranslations('Footer');
   const nav = useTranslations('Nav');
@@ -16,7 +21,7 @@ export function Footer() {
 
   return (
     <footer className="mt-xxl bg-gradient-dark text-white">
-      <div className="container-content grid gap-8 py-xxl md:grid-cols-[1.4fr_1fr]">
+      <div className="container-content grid gap-8 py-xxl md:grid-cols-[1.6fr_1fr_1fr]">
         <div className="max-w-md">
           <Logo variant="light" className="h-10" />
           <p className="mt-4 text-md text-white/80">{t('tagline')}</p>
@@ -34,6 +39,23 @@ export function Footer() {
                   className="text-md text-white/90 transition-colors duration-base hover:text-white"
                 >
                   {nav(item.key)}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </div>
+        <div>
+          <h2 className="text-sm font-bold uppercase tracking-wide text-white/70">
+            {t('companyTitle')}
+          </h2>
+          <ul className="mt-4 flex flex-col gap-3">
+            {COMPANY.map((item) => (
+              <li key={item.key}>
+                <Link
+                  href={item.href}
+                  className="text-md text-white/90 transition-colors duration-base hover:text-white"
+                >
+                  {t(item.key)}
                 </Link>
               </li>
             ))}
