@@ -1,0 +1,17 @@
+{
+  "name": "almond-monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Almond Coffee House monorepo — mobile app (almond-app), website (almond-web), and the shared single-source-of-truth package (packages/shared).",
+  "workspaces": [
+    "packages/*",
+    "almond-app",
+    "almond-web"
+  ],
+  "scripts": {
+    "shared:typecheck": "npm run typecheck --workspace @almond/shared",
+    "web:dev": "npm run dev --workspace almond-web",
+    "web:build": "npm run build --workspace almond-web",
+    "web:typecheck": "npm run typecheck --workspace almond-web"
+  }
+}
