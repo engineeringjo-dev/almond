@@ -57,6 +57,30 @@ export function getBrunchCrossSell(_items: CartItem[]): MenuItem | null {
   return null;
 }
 
+/**
+ * Drink + food combo upsell (bidirectional): adding the missing half earns the
+ * +50-point combo bonus (see lib/combo.ts).
+ * - drink in cart, no food → suggest food.
+ * - food in cart, no drink → suggest a drink.
+ * Returns the suggested item + which half is missing, or null.
+ */
+export function getComboUpsell(items: CartItem[]): { item: MenuItem; missing: 'drink' | 'food' } | null {
+  if (items.length === 0) return null;
+  const kinds = items.map((i) => itemKind(i.itemId));
+  const hasDrink = kinds.includes('drink');
+  const hasFood = kinds.includes('food');
+  const inCart = new Set(items.map((i) => i.itemId));
+  if (hasDrink && !hasFood) {
+    const item = pickByKind('food', inCart, 1)[0];
+    return item ? { item, missing: 'food' } : null;
+  }
+  if (hasFood && !hasDrink) {
+    const item = pickByKind('drink', inCart, 1)[0];
+    return item ? { item, missing: 'drink' } : null;
+  }
+  return null;
+}
+
 /** Cross-sell for the item modal: "goes great with" the item being viewed. */
 export function getItemPairings(item: MenuItem, max = 4): MenuItem[] {
   // Drinks pair with food; food (or anything else) pairs with drinks.

@@ -5,6 +5,7 @@ import { useLocale, useTranslations } from 'next-intl';
 import { Banknote, CreditCard, Lock, Smartphone, Sparkles, Truck, Wallet } from 'lucide-react';
 import { computeTotals } from '@almond/shared/cart';
 import { getCartCrossSell } from '@almond/shared/lib/recommendations';
+import { comboBonusPoints } from '@almond/shared/lib/combo';
 import { getBranches } from '@/data/branches';
 import { MenuItemCard } from '@/components/menu/MenuItemCard';
 import { createMockOrder, estimatedBeans } from '@/data/order';
@@ -50,7 +51,7 @@ export function CheckoutView() {
 
   const totals = useMemo(() => computeTotals(items, promoDiscount), [items, promoDiscount]);
   const crossSell = useMemo(() => getCartCrossSell(items, 2), [items]);
-  const beans = estimatedBeans(totals.total);
+  const beans = estimatedBeans(totals.total) + comboBonusPoints(items);
   const isDelivery = orderType === 'delivery';
 
   if (!mounted) return <div className="container-content min-h-[50vh] py-xl" />;

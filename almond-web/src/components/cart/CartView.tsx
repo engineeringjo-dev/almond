@@ -8,6 +8,7 @@ import { getCartCrossSell } from '@almond/shared/lib/recommendations';
 import { useCartStore } from '@/store/cartStore';
 import { useLoyaltyStore } from '@/store/loyaltyStore';
 import { CartLine } from './CartLine';
+import { ComboBanner } from './ComboBanner';
 import { CartSummary } from './CartSummary';
 import { PromoInput } from './PromoInput';
 import { MenuItemCard } from '@/components/menu/MenuItemCard';
@@ -50,6 +51,7 @@ export function CartView() {
       <h1 className="text-xxl">{t('title')}</h1>
       <div className="mt-6 grid gap-8 lg:grid-cols-[1.6fr_1fr]">
         <div>
+          <ComboBanner />
           {/* Free-drink progress nudge (drives AOV; ties loyalty to the cart). */}
           <div className="mb-6 rounded-lg bg-accent-light px-4 py-3">
             <p className="text-sm font-bold text-primary">

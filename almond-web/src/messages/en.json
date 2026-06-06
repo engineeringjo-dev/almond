@@ -96,7 +96,11 @@
     "promoInvalid": "Invalid code",
     "removePromo": "Remove code",
     "freeDrink": "{n} drinks to your free drink",
-    "freeDrinkReady": "🎉 Your free drink is ready!"
+    "freeDrinkReady": "🎉 Your free drink is ready!",
+    "comboAddFood": "Add a food item to earn +{points} points 🍽️",
+    "comboAddDrink": "Add a drink to earn +{points} points ☕",
+    "comboAdd": "Add",
+    "comboEarned": "Combo: +{points} points"
   },
   "Checkout": {
     "title": "Checkout",
