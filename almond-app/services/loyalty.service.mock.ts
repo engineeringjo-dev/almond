@@ -234,8 +234,8 @@ export const mockLoyaltyService: LoyaltyService = {
 
     u.history.unshift({
       id: genId('log'), deltaPoints: pointsEarned,
-      reasonAr: paidFromBalance ? 'حبات طلب (+50% دفع من الرصيد)' : 'حبات طلب',
-      reasonEn: paidFromBalance ? 'Order beans (+50% wallet)' : 'Order beans',
+      reasonAr: paidFromBalance ? 'نقاط طلب (+50% دفع من الرصيد)' : 'نقاط طلب',
+      reasonEn: paidFromBalance ? 'Order points (+50% wallet)' : 'Order points',
       createdAt: new Date().toISOString(),
     });
 
@@ -289,8 +289,8 @@ export const mockLoyaltyService: LoyaltyService = {
       u.points += bonus;
       u.history.unshift({
         id: genId('log'), deltaPoints: bonus,
-        reasonAr: `مكافأة شحن المحفظة (+${bonus} حبة)`,
-        reasonEn: `Wallet reload bonus (+${bonus} beans)`,
+        reasonAr: `مكافأة شحن المحفظة (+${bonus} نقطة)`,
+        reasonEn: `Wallet reload bonus (+${bonus} points)`,
         createdAt: new Date().toISOString(),
       });
     }
