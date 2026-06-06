@@ -27,6 +27,9 @@ type Props = {
   size?: Size;
   className?: string;
   ariaLabel?: string;
+  onClick?: () => void;
+  disabled?: boolean;
+  type?: 'button' | 'submit';
 };
 
 /** Brand button. Renders a locale-aware <Link> when `href` is set, else a <button>. */
@@ -37,6 +40,9 @@ export function Button({
   size = 'lg',
   className,
   ariaLabel,
+  onClick,
+  disabled,
+  type = 'button',
 }: Props) {
   const classes = cn(BASE, SIZES[size], VARIANTS[variant], className);
   if (href) {
@@ -47,7 +53,7 @@ export function Button({
     );
   }
   return (
-    <button type="button" className={classes} aria-label={ariaLabel}>
+    <button type={type} onClick={onClick} disabled={disabled} className={classes} aria-label={ariaLabel}>
       {children}
     </button>
   );

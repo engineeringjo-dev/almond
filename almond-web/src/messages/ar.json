@@ -90,6 +90,34 @@
     "promoInvalid": "رمز غير صالح",
     "removePromo": "إزالة الرمز"
   },
+  "Checkout": {
+    "title": "إتمام الطلب",
+    "orderType": "نوع الطلب",
+    "pickup": "استلام",
+    "dinein": "في الفرع",
+    "delivery": "توصيل",
+    "deliveryNote": "خدمة التوصيل تتم عبر شركائنا — سيتم تحويلك لإكمال الطلب.",
+    "deliveryCta": "اطلب توصيلًا",
+    "branch": "اختر الفرع",
+    "curbside": "استلام من السيارة",
+    "carInfo": "نوع ولون السيارة",
+    "payment": "طريقة الدفع",
+    "summary": "ملخّص الطلب",
+    "placeOrder": "تأكيد الطلب",
+    "selectBranch": "يرجى اختيار فرع للمتابعة",
+    "earnBeans": "ستجمع {beans} حبة مع هذا الطلب"
+  },
+  "OrderSuccess": {
+    "title": "تم استلام طلبك!",
+    "subtitle": "بدأنا بتحضير طلبك الآن.",
+    "orderId": "رقم الطلب",
+    "readyIn": "جاهز خلال ~{minutes} دقيقة",
+    "branch": "الفرع",
+    "total": "الإجمالي",
+    "beansEarned": "+{beans} حبة",
+    "orderAgain": "اطلب مرة أخرى",
+    "viewRewards": "عرض المكافآت"
+  },
   "Branches": {
     "openNow": "مفتوح الآن",
     "closed": "مغلق الآن",

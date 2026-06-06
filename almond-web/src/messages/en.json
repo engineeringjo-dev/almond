@@ -90,6 +90,34 @@
     "promoInvalid": "Invalid code",
     "removePromo": "Remove code"
   },
+  "Checkout": {
+    "title": "Checkout",
+    "orderType": "Order type",
+    "pickup": "Pickup",
+    "dinein": "Dine-in",
+    "delivery": "Delivery",
+    "deliveryNote": "Delivery is handled by our partners — you'll be redirected to complete the order.",
+    "deliveryCta": "Order for delivery",
+    "branch": "Choose a branch",
+    "curbside": "Curbside pickup",
+    "carInfo": "Car make & colour",
+    "payment": "Payment method",
+    "summary": "Order summary",
+    "placeOrder": "Place order",
+    "selectBranch": "Please choose a branch to continue",
+    "earnBeans": "You'll earn {beans} beans on this order"
+  },
+  "OrderSuccess": {
+    "title": "Order received!",
+    "subtitle": "We've started preparing your order.",
+    "orderId": "Order number",
+    "readyIn": "Ready in ~{minutes} min",
+    "branch": "Branch",
+    "total": "Total",
+    "beansEarned": "+{beans} beans",
+    "orderAgain": "Order again",
+    "viewRewards": "View rewards"
+  },
   "Branches": {
     "openNow": "Open now",
     "closed": "Closed",
