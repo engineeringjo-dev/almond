@@ -69,7 +69,8 @@
     "back": "Back to menu",
     "soldOut": "Currently unavailable",
     "from": "from",
-    "total": "Total"
+    "total": "Total",
+    "upsize": "Go {size} for +{price}"
   },
   "Cart": {
     "title": "Your cart",
@@ -105,7 +106,8 @@
     "summary": "Order summary",
     "placeOrder": "Place order",
     "selectBranch": "Please choose a branch to continue",
-    "earnBeans": "You'll earn {beans} points on this order"
+    "earnBeans": "You'll earn {beans} points on this order",
+    "addExtra": "Add a little extra"
   },
   "OrderSuccess": {
     "title": "Order received!",

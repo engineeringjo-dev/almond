@@ -4,7 +4,9 @@ import { useEffect, useMemo, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { Sparkles } from 'lucide-react';
 import { computeTotals } from '@almond/shared/cart';
+import { getCartCrossSell } from '@almond/shared/lib/recommendations';
 import { getBranches } from '@/data/branches';
+import { MenuItemCard } from '@/components/menu/MenuItemCard';
 import { createMockOrder, estimatedBeans } from '@/data/order';
 import { useCartStore } from '@/store/cartStore';
 import { useOrderStore } from '@/store/orderStore';
@@ -42,6 +44,7 @@ export function CheckoutView() {
   useEffect(() => setMounted(true), []);
 
   const totals = useMemo(() => computeTotals(items, promoDiscount), [items, promoDiscount]);
+  const crossSell = useMemo(() => getCartCrossSell(items, 2), [items]);
   const beans = estimatedBeans(totals.total);
   const isDelivery = orderType === 'delivery';
 
@@ -113,6 +116,16 @@ export function CheckoutView() {
                 <SectionTitle>{t('payment')}</SectionTitle>
                 <PaymentMethods />
               </section>
+              {crossSell.length > 0 && (
+                <section>
+                  <SectionTitle>{t('addExtra')}</SectionTitle>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    {crossSell.map((item) => (
+                      <MenuItemCard key={item.id} item={item} />
+                    ))}
+                  </div>
+                </section>
+              )}
             </>
           )}
         </div>
