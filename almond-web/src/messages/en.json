@@ -239,6 +239,27 @@
     "success": "Application received! Our development team will reach out.",
     "required": "Please fill in the required fields."
   },
+  "Auth": {
+    "loginTitle": "Log in",
+    "subtitle": "Sign in with your phone to collect points on one account across web and app.",
+    "phoneLabel": "Phone number",
+    "sendCode": "Send code",
+    "otpTitle": "Enter the verification code",
+    "otpSentTo": "We sent a code to {phone}",
+    "verify": "Verify",
+    "demoHint": "Demo: enter any 4-digit code.",
+    "invalidPhone": "Enter a valid phone number",
+    "invalidCode": "Incorrect code",
+    "changeNumber": "Change number"
+  },
+  "Account": {
+    "title": "My account",
+    "guest": "You're not logged in yet.",
+    "loginCta": "Log in",
+    "phone": "Phone",
+    "logout": "Log out",
+    "quickLinks": "Quick links"
+  },
   "App": {
     "title": "Get the Almond app",
     "subtitle": "Order faster, collect your points, and keep all your rewards in one place.",

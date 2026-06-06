@@ -8,6 +8,7 @@ import { Logo } from '@/components/ui/Logo';
 import { Button } from '@/components/ui/Button';
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 import { useCartCount } from '@/store/cartStore';
+import { useAuthStore } from '@/store/authStore';
 import { cn } from '@/lib/cn';
 
 const NAV = [
@@ -24,6 +25,7 @@ export function Header() {
 
   // Cart count — only after mount, to avoid an SSR/localStorage hydration mismatch.
   const count = useCartCount();
+  const user = useAuthStore((s) => s.user);
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
 
@@ -57,8 +59,8 @@ export function Header() {
         <div className="flex items-center gap-2">
           <LanguageSwitcher className="hidden sm:inline-flex" />
           <Link
-            href="/login"
-            aria-label={t('login')}
+            href={mounted && user ? '/account' : '/login'}
+            aria-label={mounted && user ? t('account') : t('login')}
             className="hidden h-10 w-10 items-center justify-center rounded-pill text-text-primary hover:bg-neutral-warm sm:inline-flex"
           >
             <User className="h-5 w-5" />
