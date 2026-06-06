@@ -1,5 +1,8 @@
-import { ComingSoon } from '@/components/ComingSoon';
+import type { Metadata } from 'next';
+import { RewardsView } from '@/components/rewards/RewardsView';
 
-export default function Page() {
-  return <ComingSoon titleKey="rewards" />;
+export const metadata: Metadata = { title: 'Rewards' };
+
+export default function RewardsPage() {
+  return <RewardsView />;
 }
