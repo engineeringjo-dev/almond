@@ -71,6 +71,25 @@
     "from": "from",
     "total": "Total"
   },
+  "Cart": {
+    "title": "Your cart",
+    "empty": "Your cart is empty",
+    "emptySubtitle": "Add some delicious items from the menu to get started.",
+    "browseMenu": "Browse the menu",
+    "size": "Size",
+    "remove": "Remove",
+    "subtotal": "Subtotal",
+    "discount": "Discount",
+    "tax": "Tax (16%)",
+    "total": "Total",
+    "checkout": "Checkout",
+    "completeOrder": "Complete your order",
+    "promoPlaceholder": "Promo code",
+    "apply": "Apply",
+    "promoApplied": "Code “{code}” applied",
+    "promoInvalid": "Invalid code",
+    "removePromo": "Remove code"
+  },
   "Branches": {
     "openNow": "Open now",
     "closed": "Closed",
