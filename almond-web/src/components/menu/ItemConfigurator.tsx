@@ -6,18 +6,24 @@ import { useLocale, useTranslations } from 'next-intl';
 import { Check, ChevronLeft } from 'lucide-react';
 import type { CartCustomization, ItemSize, MenuItem } from '@almond/shared/types';
 import { getSizeUpsell } from '@almond/shared/lib/recommendations';
+import { applyItemPatch } from '@/data/menu';
+import { useMenuOverlay } from '@/store/menuOverlayStore';
 import { Link } from '@/i18n/navigation';
 import { useCartStore } from '@/store/cartStore';
 import { QtyStepper } from '@/components/ui/QtyStepper';
 import { asLang, formatJOD } from '@/lib/format';
 import { cn } from '@/lib/cn';
 
-export function ItemConfigurator({ item }: { item: MenuItem }) {
+export function ItemConfigurator({ item: baseItem }: { item: MenuItem }) {
   const lang = asLang(useLocale());
   const t = useTranslations('Menu');
   const nav = useTranslations('Nav');
   const addItem = useCartStore((s) => s.addItem);
   const tr = (ar?: string, en?: string) => (lang === 'ar' ? ar : en) ?? '';
+
+  // Reflect admin menu edits (price / availability / name) live.
+  const editsForItem = useMenuOverlay((s) => s.edits[baseItem.id]);
+  const item = useMemo(() => applyItemPatch(baseItem, editsForItem), [baseItem, editsForItem]);
 
   const [sizeId, setSizeId] = useState<ItemSize['id']>(item.sizes[0]?.id ?? 'M');
   const [selection, setSelection] = useState<Record<string, string[]>>(() => {
