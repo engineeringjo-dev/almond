@@ -169,6 +169,40 @@
     "sentTitle": "Gifts you've sent",
     "to": "to {name}"
   },
+  "Careers": {
+    "title": "Join the Almond team",
+    "subtitle": "We're always looking for people passionate about coffee and hospitality.",
+    "intro": "Be part of the Almond story — a supportive workplace, ongoing training, and real room to grow.",
+    "name": "Full name",
+    "email": "Email",
+    "phone": "Phone",
+    "position": "Position",
+    "selectPosition": "Select a position",
+    "cv": "CV link (optional)",
+    "message": "About you",
+    "submit": "Submit application",
+    "submitting": "Submitting…",
+    "success": "Application received! We'll be in touch soon.",
+    "required": "Please fill in the required fields."
+  },
+  "Franchise": {
+    "title": "Own an Almond franchise",
+    "subtitle": "Bring Almond to your country.",
+    "intro": "We partner with ambitious operators in selected countries. Fill in the form and our development team will reach out.",
+    "name": "Full name",
+    "email": "Email",
+    "phone": "Phone",
+    "country": "Country",
+    "selectCountry": "Select a country",
+    "city": "City",
+    "investment": "Available capital",
+    "selectInvestment": "Select a range",
+    "message": "Your experience & plan",
+    "submit": "Submit application",
+    "submitting": "Submitting…",
+    "success": "Application received! Our development team will reach out.",
+    "required": "Please fill in the required fields."
+  },
   "App": {
     "title": "Get the Almond app",
     "subtitle": "Order faster, collect your points, and keep all your rewards in one place.",
@@ -198,6 +232,9 @@
     "madeIn": "Made with love in Amman, Jordan.",
     "rights": "All rights reserved.",
     "explore": "Explore",
+    "companyTitle": "Company",
+    "careers": "Careers",
+    "franchise": "Franchise",
     "company": "Almond"
   },
   "Language": {
