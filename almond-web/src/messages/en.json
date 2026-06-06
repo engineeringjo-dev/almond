@@ -180,6 +180,25 @@
     "sentTitle": "Gifts you've sent",
     "to": "to {name}"
   },
+  "Admin": {
+    "title": "Menu admin",
+    "loginTitle": "Admin sign in",
+    "password": "Password",
+    "login": "Sign in",
+    "wrongPass": "Incorrect password",
+    "logout": "Sign out",
+    "searchItems": "Search an item to edit…",
+    "nameAr": "Name (Arabic)",
+    "nameEn": "Name (English)",
+    "price": "Base price",
+    "available": "Available",
+    "hidden": "Hidden",
+    "reset": "Reset",
+    "resetAll": "Reset all",
+    "edited": "{n} edited",
+    "syncNote": "Edits show on the website instantly. Once Odoo is connected they reflect on the app too (one source of truth).",
+    "showingFirst": "Showing the first {n} items — search to reach any item."
+  },
   "Careers": {
     "title": "Join the Almond team",
     "subtitle": "We're always looking for people passionate about coffee and hospitality.",

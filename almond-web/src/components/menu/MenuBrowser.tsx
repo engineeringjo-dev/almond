@@ -4,6 +4,8 @@ import { useMemo, useState } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
 import { Search, X } from 'lucide-react';
 import type { Category, MenuItem } from '@almond/shared/types';
+import { applyOverlay } from '@/data/menu';
+import { useMenuOverlay } from '@/store/menuOverlayStore';
 import { asLang } from '@/lib/format';
 import { MenuItemCard } from './MenuItemCard';
 import { CategoryRail } from './CategoryRail';
@@ -16,16 +18,26 @@ export function MenuBrowser({ sections }: { sections: Section[] }) {
   const [query, setQuery] = useState('');
   const q = query.trim().toLowerCase();
 
+  // Apply admin menu edits (price / availability / name / hidden) live.
+  const edits = useMenuOverlay((s) => s.edits);
+  const merged = useMemo(
+    () =>
+      sections
+        .map((s) => ({ category: s.category, items: applyOverlay(s.items, edits) }))
+        .filter((s) => s.items.length > 0),
+    [sections, edits],
+  );
+
   const results = useMemo(() => {
     if (!q) return null;
-    return sections
+    return merged
       .flatMap((s) => s.items)
       .filter((i) =>
         [i.nameAr, i.nameEn, i.descAr, i.descEn].some((f) => f?.toLowerCase().includes(q)),
       );
-  }, [q, sections]);
+  }, [q, merged]);
 
-  const railItems = sections.map((s) => ({
+  const railItems = merged.map((s) => ({
     id: s.category.id,
     name: lang === 'ar' ? s.category.nameAr : s.category.nameEn,
   }));
@@ -80,7 +92,7 @@ export function MenuBrowser({ sections }: { sections: Section[] }) {
         <>
           <CategoryRail items={railItems} />
           <div className="mt-6 space-y-10">
-            {sections.map((section) => (
+            {merged.map((section) => (
               <section key={section.category.id} id={`cat-${section.category.id}`} className="scroll-mt-32">
                 <h2 className="text-xl">
                   {lang === 'ar' ? section.category.nameAr : section.category.nameEn}
