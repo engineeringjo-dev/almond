@@ -7,7 +7,7 @@ import { colors, spacing, radius, shadow } from '@/constants/theme';
 import { useI18n } from '@/hooks/useI18n';
 import { formatJOD } from '@/lib/format';
 import { iconForCategory } from '@/lib/productIcon';
-import { getCartCrossSell, getBrunchCrossSell } from '@/lib/recommendations';
+import { getCartCrossSell, getComboUpsell } from '@/lib/recommendations';
 import { useCartStore } from '@/stores/cartStore';
 import type { CartItem } from '@/types';
 
@@ -22,8 +22,8 @@ export function CrossSellRow({ items }: { items: CartItem[] }) {
 
   // Golden rule §2.2 #2: show only 1–3 suggestions — more reduces conversion.
   const suggestions = getCartCrossSell(items, 3);
-  const brunch = getBrunchCrossSell(items);
-  if (suggestions.length === 0 && !brunch) return null;
+  const upsell = getComboUpsell(items);
+  if (suggestions.length === 0 && !upsell) return null;
 
   return (
     <View>
@@ -31,23 +31,23 @@ export function CrossSellRow({ items }: { items: CartItem[] }) {
         {t('cart.crossSellTitle')}
       </Text>
 
-      {/* Smart brunch combo nudge (§2.3 #3): drink in cart, no BR → save 1 JOD */}
-      {brunch ? (
+      {/* Combo upsell: add the missing half (drink↔food) to earn +50 points */}
+      {upsell ? (
         <Pressable
           style={styles.comboBanner}
           onPress={() => {
-            addItem(brunch, brunch.sizes[0], [], 1);
-            setAdded((p) => ({ ...p, [brunch.id]: true }));
+            addItem(upsell.item, upsell.item.sizes[0], [], 1);
+            setAdded((p) => ({ ...p, [upsell.item.id]: true }));
           }}
           accessibilityRole="button"
         >
-          <Text style={styles.comboEmoji}>🍳</Text>
+          <Text style={styles.comboEmoji}>🍽️</Text>
           <Text variant="bodyBold" color={colors.dark} style={styles.comboText}>
-            {t('cart.brunchComboTitle')}
+            {upsell.missing === 'food' ? t('cart.comboAddFood') : t('cart.comboAddDrink')}
           </Text>
           <View style={styles.comboCta}>
             <Text variant="caption" color={colors.dark} style={styles.addLabel}>
-              {added[brunch.id] ? t('menu.added') : t('cart.addCombo')}
+              {added[upsell.item.id] ? t('menu.added') : t('cart.addCombo')}
             </Text>
           </View>
         </Pressable>

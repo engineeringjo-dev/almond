@@ -162,6 +162,12 @@ Rewards/redeem, gift cards, wallet top-up/charge: see the app's
 `hooks/useLoyalty`, `stores/cartStore.ts` (`computeTotals` = subtotal + tax −
 discounts), and `app/(tabs)/rewards.tsx`.
 
+**Customer-facing terminology (decided):** the loyalty currency is called
+**"نقاط" / "points"** everywhere customers see it — NOT "beans". (Internal code
+identifiers like `beansExpireAt`, `bonusBeans` may stay; "Coffee Beans" is a real
+product category and the "Bean" tier name is a membership rank — keep those.) The
+website MUST use "نقاط / points" too so the wording is identical to the app.
+
 ---
 
 ## 7. Backend integration (the critical part for "shared points")
@@ -239,6 +245,14 @@ Create `packages/shared/` containing the contract between app and web:
 - `menu/menu.generated.ts` — the real Talabat menu (single source).
 - `loyalty/constants.ts` — the `config.ts` loyalty/pricing numbers + `tiers`.
 - `lib/categoryKind.ts`, `lib/format.ts` — classification + JOD formatting.
+- `locales/ar.json` + `en.json` — shared wording (incl. "نقاط / points") so a
+  copy change shows up identically on app and web.
+
+**"Edit once → reflects on both" — this is the whole point.** The menu is one
+file (`menu/menu.generated.ts`); change a price/item/name there and BOTH the app
+and the website update (same company, same menu). Likewise theme, loyalty numbers,
+and customer wording. Anything customers see that must match across app + web
+lives in `packages/shared/` and is imported, never copied.
 
 Both `almond-app/` and `almond-web/` import from `packages/shared/`. Migrate the
 app to import these from the shared package (replacing its local copies) so there

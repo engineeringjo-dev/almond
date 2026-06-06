@@ -34,6 +34,7 @@ import { loyaltyService } from '@/services/loyalty.service';
 import { integration } from '@/constants/integration';
 import { usePromoStore } from '@/stores/promoStore';
 import { activeBonusDay } from '@/lib/bonusDay';
+import { comboBonusPoints } from '@/lib/combo';
 import { aggregatorService } from '@/services/aggregator.service';
 
 export default function CartScreen() {
@@ -136,6 +137,7 @@ export default function CartScreen() {
         invoiceAmount: totals.total,
         paidFromBalance: paymentMethod === 'wallet',
         bonusMultiplier: bonusActive ? bonusDay!.multiplier : 1,
+        comboBonusPoints: comboBonusPoints(items),
       });
       invalidateLoyalty();
 

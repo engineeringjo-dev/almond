@@ -194,7 +194,7 @@ export const mockLoyaltyService: LoyaltyService = {
   },
 
   // Mirror of section 8.2 earn calculation.
-  earn: ({ userId, invoiceAmount, paidFromBalance, isFriday, bonusMultiplier }: EarnInput) => {
+  earn: ({ userId, invoiceAmount, paidFromBalance, isFriday, bonusMultiplier, comboBonusPoints }: EarnInput) => {
     const u = ensureUser(userId);
     // Tier multiplier uses the rolling-12-month spend (§A).
     const tier = tierFromSpend(rolling12mSpend(u));
@@ -234,12 +234,24 @@ export const mockLoyaltyService: LoyaltyService = {
 
     u.history.unshift({
       id: genId('log'), deltaPoints: pointsEarned,
-      reasonAr: paidFromBalance ? 'حبات طلب (+50% دفع من الرصيد)' : 'حبات طلب',
-      reasonEn: paidFromBalance ? 'Order beans (+50% wallet)' : 'Order beans',
+      reasonAr: paidFromBalance ? 'نقاط طلب (+50% دفع من الرصيد)' : 'نقاط طلب',
+      reasonEn: paidFromBalance ? 'Order points (+50% wallet)' : 'Order points',
       createdAt: new Date().toISOString(),
     });
 
-    return delay({ pointsEarned, cup: { ...u.cup }, freeDrinkIssued });
+    // Drink + food combo bonus — flat points (not a price discount).
+    const combo = comboBonusPoints && comboBonusPoints > 0 ? Math.round(comboBonusPoints) : 0;
+    if (combo > 0) {
+      u.points += combo;
+      u.history.unshift({
+        id: genId('log'), deltaPoints: combo,
+        reasonAr: 'مكافأة كومبو (مشروب + طعام)',
+        reasonEn: 'Combo bonus (drink + food)',
+        createdAt: new Date().toISOString(),
+      });
+    }
+
+    return delay({ pointsEarned: pointsEarned + combo, cup: { ...u.cup }, freeDrinkIssued });
   },
 
   getHistory: (userId) => delay(ensureUser(userId).history),
@@ -289,8 +301,8 @@ export const mockLoyaltyService: LoyaltyService = {
       u.points += bonus;
       u.history.unshift({
         id: genId('log'), deltaPoints: bonus,
-        reasonAr: `مكافأة شحن المحفظة (+${bonus} حبة)`,
-        reasonEn: `Wallet reload bonus (+${bonus} beans)`,
+        reasonAr: `مكافأة شحن المحفظة (+${bonus} نقطة)`,
+        reasonEn: `Wallet reload bonus (+${bonus} points)`,
         createdAt: new Date().toISOString(),
       });
     }

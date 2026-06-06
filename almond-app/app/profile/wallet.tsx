@@ -66,8 +66,8 @@ export default function WalletScreen() {
         <Text variant="caption" color={colors.warmGray} style={styles.note}>
           {/* Pay-from-balance earns +50% beans (Wallet spec §1.2). */}
           {lang === 'ar'
-            ? 'الدفع من رصيدك يكسبك +50% حبات (×1.5).'
-            : 'Paying from your balance earns +50% beans (×1.5).'}
+            ? 'الدفع من رصيدك يكسبك +50% نقاط (×1.5).'
+            : 'Paying from your balance earns +50% points (×1.5).'}
         </Text>
       </Screen>
     </>
