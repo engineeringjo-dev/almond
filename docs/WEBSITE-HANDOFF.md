@@ -228,18 +228,25 @@ Reuse the app's cross-sell engine logic (`lib/recommendations.ts` +
 
 ---
 
-## 10. Reuse strategy (don't duplicate)
+## 10. Reuse strategy (DECIDED: shared package)
 
-Cleanest options, pick one:
-1. **Shared package** `packages/shared/` (types, theme tokens as plain TS,
-   `menu.generated.ts`, loyalty/pricing constants, categoryKind, format helpers)
-   imported by both `almond-app/` and `almond-web/`. Best long-term.
-2. **Copy + reference** for v1 speed: copy `types/index.ts`,
-   `services/menu.generated.ts`, the constants, and `lib/categoryKind.ts` into
-   `almond-web/`, and keep this handoff as the contract.
+**Decision (owner): use a shared package — option 1.** Do NOT copy/duplicate.
 
-Either way: **theme tokens, loyalty constants, and the menu file are the contract
-between app and web** — keep them identical.
+Create `packages/shared/` containing the contract between app and web:
+- `types/` — copy of `almond-app/types/index.ts` (domain types).
+- `theme/` — brand tokens as plain TS (colors, gradients, spacing, radius,
+  shadow, type scale) — framework-agnostic so both RN and Next/Tailwind consume.
+- `menu/menu.generated.ts` — the real Talabat menu (single source).
+- `loyalty/constants.ts` — the `config.ts` loyalty/pricing numbers + `tiers`.
+- `lib/categoryKind.ts`, `lib/format.ts` — classification + JOD formatting.
+
+Both `almond-app/` and `almond-web/` import from `packages/shared/`. Migrate the
+app to import these from the shared package (replacing its local copies) so there
+is exactly one source of truth. Set up a workspace (npm/pnpm workspaces) at the
+repo root with `almond-app`, `almond-web`, and `packages/shared`.
+
+> These shared modules — theme tokens, loyalty constants, and the menu — are the
+> contract between app and web. Keep them identical by construction (one import).
 
 ---
 
@@ -263,10 +270,12 @@ between app and web** — keep them identical.
 > shares the same beans/points + wallet account as the mobile app in `almond-app/`.
 > Use Next.js (App Router) + TypeScript strict + Tailwind, the violet/white/black
 > theme tokens from the handoff, Helvetica Neue LT Arabic fonts, and a
-> `DATA_SOURCE: 'mock' | 'odoo'` switch (start in mock). Reuse `types/index.ts`,
-> `services/menu.generated.ts`, the loyalty constants from `constants/config.ts`,
-> and `lib/categoryKind.ts` from `almond-app/`. Start by scaffolding the project +
-> theme + i18n/RTL + home page, then menu → cart → checkout → rewards/wallet/gifts.
+> `DATA_SOURCE: 'mock' | 'odoo'` switch (start in mock). **First create
+> `packages/shared/`** (types, theme tokens, `menu.generated.ts`, loyalty
+> constants, `categoryKind`, `format`) as the single source of truth, set up
+> workspaces, and migrate `almond-app/` to import from it; then build the web on
+> top of it. Start by scaffolding the project + theme + i18n/RTL + home page,
+> then menu → cart → checkout → rewards/wallet/gifts.
 > Commit + push to a feature branch and open a PR per section. Do NOT touch
 > `almond-app/`’s runtime behavior.
 
