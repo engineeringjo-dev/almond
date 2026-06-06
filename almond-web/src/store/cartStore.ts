@@ -2,11 +2,28 @@
 
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
-import type { CartItem, CartCustomization, ItemSize, MenuItem } from '@almond/shared/types';
+import type {
+  CartItem,
+  CartCustomization,
+  ItemSize,
+  MenuItem,
+  OrderType,
+  PaymentMethodId,
+} from '@almond/shared/types';
 import { buildLineId } from '@almond/shared/cart';
 
 interface CartState {
   items: CartItem[];
+  // Order context (used by checkout) — mirrors the app's cart store.
+  orderType: OrderType;
+  branchId: string | null;
+  paymentMethod: PaymentMethodId;
+  paidFromBalance: boolean;
+  promoCode: string | null;
+  promoDiscount: number;
+  curbside: boolean;
+  carInfo: string;
+
   addItem: (
     item: MenuItem,
     size: ItemSize,
@@ -16,6 +33,12 @@ interface CartState {
   incLine: (lineId: string) => void;
   decLine: (lineId: string) => void;
   removeLine: (lineId: string) => void;
+  setOrderType: (t: OrderType) => void;
+  setBranch: (id: string) => void;
+  setPaymentMethod: (m: PaymentMethodId) => void;
+  setPromo: (code: string | null, discount: number) => void;
+  setCurbside: (on: boolean) => void;
+  setCarInfo: (info: string) => void;
   clear: () => void;
 }
 
@@ -28,6 +51,14 @@ export const useCartStore = create<CartState>()(
   persist(
     (set) => ({
       items: [],
+      orderType: 'pickup',
+      branchId: null,
+      paymentMethod: 'cash',
+      paidFromBalance: false,
+      promoCode: null,
+      promoDiscount: 0,
+      curbside: false,
+      carInfo: '',
 
       addItem: (item, size, customizations, qty) =>
         set((state) => {
@@ -76,7 +107,23 @@ export const useCartStore = create<CartState>()(
       removeLine: (lineId) =>
         set((state) => ({ items: state.items.filter((l) => l.lineId !== lineId) })),
 
-      clear: () => set({ items: [] }),
+      setOrderType: (orderType) => set({ orderType }),
+      setBranch: (branchId) => set({ branchId }),
+      setPaymentMethod: (paymentMethod) =>
+        set({ paymentMethod, paidFromBalance: paymentMethod === 'wallet' }),
+      setPromo: (promoCode, promoDiscount) => set({ promoCode, promoDiscount }),
+      setCurbside: (curbside) => set({ curbside }),
+      setCarInfo: (carInfo) => set({ carInfo }),
+
+      clear: () =>
+        set({
+          items: [],
+          promoCode: null,
+          promoDiscount: 0,
+          paidFromBalance: false,
+          curbside: false,
+          carInfo: '',
+        }),
     }),
     {
       name: 'almond-cart',

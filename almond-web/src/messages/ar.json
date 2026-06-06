@@ -71,6 +71,25 @@
     "from": "يبدأ من",
     "total": "الإجمالي"
   },
+  "Cart": {
+    "title": "سلة الطلبات",
+    "empty": "سلتك فارغة",
+    "emptySubtitle": "أضف بعض الأصناف اللذيذة من المنيو لتبدأ.",
+    "browseMenu": "تصفّح المنيو",
+    "size": "الحجم",
+    "remove": "إزالة",
+    "subtotal": "المجموع الفرعي",
+    "discount": "الخصم",
+    "tax": "الضريبة (16%)",
+    "total": "الإجمالي",
+    "checkout": "إتمام الطلب",
+    "completeOrder": "أكمل طلبك",
+    "promoPlaceholder": "رمز الخصم",
+    "apply": "تطبيق",
+    "promoApplied": "تم تطبيق الرمز «{code}»",
+    "promoInvalid": "رمز غير صالح",
+    "removePromo": "إزالة الرمز"
+  },
   "Branches": {
     "openNow": "مفتوح الآن",
     "closed": "مغلق الآن",

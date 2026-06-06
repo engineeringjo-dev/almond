@@ -1,5 +1,8 @@
-import { ComingSoon } from '@/components/ComingSoon';
+import type { Metadata } from 'next';
+import { CartView } from '@/components/cart/CartView';
 
-export default function Page() {
-  return <ComingSoon titleKey="cart" />;
+export const metadata: Metadata = { title: 'Cart' };
+
+export default function CartPage() {
+  return <CartView />;
 }
