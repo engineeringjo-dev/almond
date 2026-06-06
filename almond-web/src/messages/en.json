@@ -169,7 +169,20 @@
     "sentTitle": "Gifts you've sent",
     "to": "to {name}"
   },
+  "App": {
+    "title": "Get the Almond app",
+    "subtitle": "Order faster, collect your points, and keep all your rewards in one place.",
+    "appStore": "App Store",
+    "googlePlay": "Google Play",
+    "dismiss": "Dismiss"
+  },
   "Branches": {
+    "findNearest": "Find my nearest branch",
+    "locating": "Finding your location…",
+    "nearest": "Your nearest branch",
+    "away": "{km} km",
+    "denied": "Couldn't access your location — enable location permission.",
+    "unavailable": "Location isn't available in your browser.",
     "openNow": "Open now",
     "closed": "Closed",
     "hoursLabel": "Hours",

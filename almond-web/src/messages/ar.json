@@ -169,7 +169,20 @@
     "sentTitle": "هدايا أرسلتها",
     "to": "إلى {name}"
   },
+  "App": {
+    "title": "حمّل تطبيق ألموند",
+    "subtitle": "اطلب أسرع، واجمع نقاطك، وكل مكافآتك في مكان واحد.",
+    "appStore": "App Store",
+    "googlePlay": "Google Play",
+    "dismiss": "إغلاق"
+  },
   "Branches": {
+    "findNearest": "اعرف أقرب فرع",
+    "locating": "جارٍ تحديد موقعك…",
+    "nearest": "أقرب فرع إليك",
+    "away": "{km} كم",
+    "denied": "تعذّر الوصول لموقعك — فعّل صلاحية الموقع في المتصفح.",
+    "unavailable": "تحديد الموقع غير متاح في متصفحك.",
     "openNow": "مفتوح الآن",
     "closed": "مغلق الآن",
     "hoursLabel": "ساعات العمل",

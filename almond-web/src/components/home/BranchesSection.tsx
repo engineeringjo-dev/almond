@@ -1,7 +1,7 @@
 import { useTranslations } from 'next-intl';
 import { getBranches } from '@/data/branches';
 import { Link } from '@/i18n/navigation';
-import { BranchCard } from './BranchCard';
+import { BranchesExplorer } from '@/components/branches/BranchesExplorer';
 
 export function BranchesSection() {
   const t = useTranslations('Home.branches');
@@ -21,10 +21,8 @@ export function BranchesSection() {
           {t('viewAll')}
         </Link>
       </div>
-      <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {branches.map((branch) => (
-          <BranchCard key={branch.id} branch={branch} />
-        ))}
+      <div className="mt-6">
+        <BranchesExplorer branches={branches} />
       </div>
     </section>
   );

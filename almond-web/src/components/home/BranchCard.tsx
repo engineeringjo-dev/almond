@@ -5,10 +5,10 @@ import { useLocale, useTranslations } from 'next-intl';
 import { Clock, MapPin } from 'lucide-react';
 import type { Branch } from '@almond/shared/types';
 import { isBranchOpen } from '@/data/branches';
-import { asLang } from '@/lib/format';
+import { asLang, formatNumber } from '@/lib/format';
 import { cn } from '@/lib/cn';
 
-export function BranchCard({ branch }: { branch: Branch }) {
+export function BranchCard({ branch, distanceKm }: { branch: Branch; distanceKm?: number }) {
   const t = useTranslations('Branches');
   const lang = asLang(useLocale());
 
@@ -28,6 +28,11 @@ export function BranchCard({ branch }: { branch: Branch }) {
           <p className="mt-1 flex items-center gap-1 text-sm text-text-secondary">
             <MapPin className="h-4 w-4 shrink-0" />
             {area}
+            {distanceKm != null && (
+              <span className="font-bold text-primary">
+                · {t('away', { km: formatNumber(Number(distanceKm.toFixed(1)), lang) })}
+              </span>
+            )}
           </p>
         </div>
         {open !== null && (

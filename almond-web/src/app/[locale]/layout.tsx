@@ -9,6 +9,7 @@ import { routing, type AppLocale } from '@/i18n/routing';
 import { themeVars } from '@/theme/cssVars';
 import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
+import { AppDownloadBanner } from '@/components/AppDownloadBanner';
 import { Providers } from '../providers';
 import '../globals.css';
 
@@ -65,6 +66,7 @@ export default async function LocaleLayout({
             <Header />
             <main className="flex-1">{children}</main>
             <Footer />
+            <AppDownloadBanner />
           </Providers>
         </NextIntlClientProvider>
       </body>
