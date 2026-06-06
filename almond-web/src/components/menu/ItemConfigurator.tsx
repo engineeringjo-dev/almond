@@ -5,6 +5,7 @@ import { useMemo, useState } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
 import { Check, ChevronLeft } from 'lucide-react';
 import type { CartCustomization, ItemSize, MenuItem } from '@almond/shared/types';
+import { getSizeUpsell } from '@almond/shared/lib/recommendations';
 import { Link } from '@/i18n/navigation';
 import { useCartStore } from '@/store/cartStore';
 import { QtyStepper } from '@/components/ui/QtyStepper';
@@ -53,6 +54,7 @@ export function ItemConfigurator({ item }: { item: MenuItem }) {
   const unit = (size?.price ?? 0) + chosen.reduce((s, c) => s + c.priceDelta, 0);
   const total = unit * qty;
   const soldOut = item.inStock === false;
+  const upsell = getSizeUpsell(item, sizeId); // "go large for +X" (null if already largest)
 
   const toggle = (groupId: string, optionId: string, multiple: boolean) =>
     setSelection((prev) => {
@@ -132,6 +134,23 @@ export function ItemConfigurator({ item }: { item: MenuItem }) {
                 ))}
               </div>
             </div>
+          )}
+
+          {/* Size upsell nudge */}
+          {upsell && (
+            <button
+              type="button"
+              onClick={() => setSizeId(upsell.size.id)}
+              className="mt-4 flex w-full items-center justify-between rounded-md border border-dashed border-primary bg-accent-light px-4 py-3 text-start"
+            >
+              <span className="text-sm font-bold text-primary">
+                {t('upsize', {
+                  size: tr(upsell.size.nameAr, upsell.size.nameEn),
+                  price: formatJOD(upsell.delta, lang),
+                })}
+              </span>
+              <ChevronLeft className="h-4 w-4 shrink-0 text-primary rtl:rotate-180" />
+            </button>
           )}
 
           {/* Customization groups */}
