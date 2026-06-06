@@ -1,0 +1,78 @@
+{
+  "Common": {
+    "appName": "Almond",
+    "appFullName": "Almond Coffee House",
+    "comingSoon": "Coming soon"
+  },
+  "Nav": {
+    "home": "Home",
+    "menu": "Menu",
+    "rewards": "Rewards",
+    "wallet": "Wallet",
+    "gifts": "Gifts",
+    "branches": "Branches",
+    "account": "Account",
+    "login": "Log in",
+    "cart": "Cart",
+    "orderNow": "Order now",
+    "openMenu": "Open menu",
+    "closeMenu": "Close menu"
+  },
+  "Home": {
+    "hero": {
+      "badge": "Earn beans with every order",
+      "title": "Your favourite coffee, with rewards that grow every cup",
+      "subtitle": "Order from the real menu, pick up in-store or get it delivered, and collect beans that turn into free drinks — on the same account as the app.",
+      "cta": "Order now",
+      "ctaSecondary": "Explore rewards"
+    },
+    "value": {
+      "menuTitle": "The full menu",
+      "menuText": "Over 260 real items with prices, customisations and photos.",
+      "beansTitle": "Beans on every dinar",
+      "beansText": "Earn 5 beans per JOD and redeem them for the drinks you love.",
+      "pickupTitle": "Pickup or delivery",
+      "pickupText": "Order ahead and grab it fast from your nearest branch."
+    },
+    "loyalty": {
+      "title": "Your rewards cup fills with every order",
+      "text": "Every 10 drinks earns a free one. Track your progress and redeem beans for exclusive rewards — one account across web and app.",
+      "cta": "Start earning beans",
+      "cupLabel": "{current} of {target} drinks",
+      "beansLabel": "beans"
+    },
+    "featured": {
+      "title": "Most loved",
+      "subtitle": "A handpicked selection Almond regulars order again and again",
+      "viewAll": "View the full menu"
+    },
+    "branches": {
+      "title": "Our branches",
+      "subtitle": "Branches across Amman, ready when you are",
+      "viewAll": "All branches"
+    }
+  },
+  "Branches": {
+    "openNow": "Open now",
+    "closed": "Closed",
+    "hoursLabel": "Hours",
+    "directions": "Directions"
+  },
+  "Product": {
+    "from": "from",
+    "add": "Add",
+    "soldOut": "Sold out"
+  },
+  "Footer": {
+    "tagline": "Specialty coffee and rewards that grow with you.",
+    "madeIn": "Made with love in Amman, Jordan.",
+    "rights": "All rights reserved.",
+    "explore": "Explore",
+    "company": "Almond"
+  },
+  "Language": {
+    "label": "Language",
+    "arabic": "العربية",
+    "english": "English"
+  }
+}
