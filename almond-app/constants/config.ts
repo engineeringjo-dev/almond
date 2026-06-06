@@ -27,8 +27,8 @@ export const config = {
     enabled: true,
     multiplier: 2,
     weekdays: [0, 1, 2, 3, 4, 5, 6], // demo: every day; admin narrows this
-    labelAr: 'يوم الحبات المضاعفة',
-    labelEn: 'Double Beans Day',
+    labelAr: 'يوم النقاط المضاعفة',
+    labelEn: 'Double Points Day',
   },
   // Gentle bean expiry (SB "Star expiration"): beans stay active for this many
   // months after the last activity for Bean/Silver; Gold/Black never expire.
