@@ -50,6 +50,11 @@
       "title": "فروعنا",
       "subtitle": "فروع في جميع أنحاء عمّان بانتظارك",
       "viewAll": "كل الفروع"
+    },
+    "usual": {
+      "title": "طلبك المعتاد",
+      "reorder": "أعد الطلب",
+      "items": "{count} أصناف"
     }
   },
   "Menu": {
@@ -89,7 +94,9 @@
     "apply": "تطبيق",
     "promoApplied": "تم تطبيق الرمز «{code}»",
     "promoInvalid": "رمز غير صالح",
-    "removePromo": "إزالة الرمز"
+    "removePromo": "إزالة الرمز",
+    "freeDrink": "يتبقّى {n} مشروبات على مشروبك المجاني",
+    "freeDrinkReady": "🎉 مشروبك المجاني جاهز!"
   },
   "Checkout": {
     "title": "إتمام الطلب",
@@ -107,7 +114,9 @@
     "placeOrder": "تأكيد الطلب",
     "selectBranch": "يرجى اختيار فرع للمتابعة",
     "earnBeans": "ستجمع {beans} نقطة مع هذا الطلب",
-    "addExtra": "أضف لمسة إضافية"
+    "addExtra": "أضف لمسة إضافية",
+    "secure": "دفع آمن ومشفّر",
+    "accepted": "طرق الدفع المقبولة"
   },
   "OrderSuccess": {
     "title": "تم استلام طلبك!",

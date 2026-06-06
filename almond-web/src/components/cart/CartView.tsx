@@ -6,6 +6,7 @@ import { ShoppingBag } from 'lucide-react';
 import { computeTotals } from '@almond/shared/cart';
 import { getCartCrossSell } from '@almond/shared/lib/recommendations';
 import { useCartStore } from '@/store/cartStore';
+import { useLoyaltyStore } from '@/store/loyaltyStore';
 import { CartLine } from './CartLine';
 import { CartSummary } from './CartSummary';
 import { PromoInput } from './PromoInput';
@@ -16,6 +17,7 @@ export function CartView() {
   const t = useTranslations('Cart');
   const items = useCartStore((s) => s.items);
   const promoDiscount = useCartStore((s) => s.promoDiscount);
+  const cup = useLoyaltyStore((s) => s.cup);
 
   // Cart lives in localStorage — render only after mount to avoid a mismatch.
   const [mounted, setMounted] = useState(false);
@@ -48,6 +50,21 @@ export function CartView() {
       <h1 className="text-xxl">{t('title')}</h1>
       <div className="mt-6 grid gap-8 lg:grid-cols-[1.6fr_1fr]">
         <div>
+          {/* Free-drink progress nudge (drives AOV; ties loyalty to the cart). */}
+          <div className="mb-6 rounded-lg bg-accent-light px-4 py-3">
+            <p className="text-sm font-bold text-primary">
+              {cup.target - cup.current <= 0
+                ? t('freeDrinkReady')
+                : t('freeDrink', { n: cup.target - cup.current })}
+            </p>
+            <div className="mt-2 h-2 overflow-hidden rounded-pill bg-white/70">
+              <div
+                className="h-full rounded-pill bg-primary"
+                style={{ width: `${Math.min(100, (cup.current / cup.target) * 100)}%` }}
+              />
+            </div>
+          </div>
+
           <div className="divide-y divide-neutral-warm rounded-lg border border-neutral-warm bg-card px-4">
             {items.map((line) => (
               <CartLine key={line.lineId} line={line} />

@@ -50,6 +50,11 @@
       "title": "Our branches",
       "subtitle": "Branches across Amman, ready when you are",
       "viewAll": "All branches"
+    },
+    "usual": {
+      "title": "Your usual",
+      "reorder": "Reorder",
+      "items": "{count} items"
     }
   },
   "Menu": {
@@ -89,7 +94,9 @@
     "apply": "Apply",
     "promoApplied": "Code “{code}” applied",
     "promoInvalid": "Invalid code",
-    "removePromo": "Remove code"
+    "removePromo": "Remove code",
+    "freeDrink": "{n} drinks to your free drink",
+    "freeDrinkReady": "🎉 Your free drink is ready!"
   },
   "Checkout": {
     "title": "Checkout",
@@ -107,7 +114,9 @@
     "placeOrder": "Place order",
     "selectBranch": "Please choose a branch to continue",
     "earnBeans": "You'll earn {beans} points on this order",
-    "addExtra": "Add a little extra"
+    "addExtra": "Add a little extra",
+    "secure": "Secure, encrypted checkout",
+    "accepted": "Accepted payment methods"
   },
   "OrderSuccess": {
     "title": "Order received!",
