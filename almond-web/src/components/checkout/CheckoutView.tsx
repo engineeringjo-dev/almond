@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslations } from 'next-intl';
-import { Sparkles } from 'lucide-react';
+import { Banknote, CreditCard, Lock, Smartphone, Sparkles, Wallet } from 'lucide-react';
 import { computeTotals } from '@almond/shared/cart';
 import { getCartCrossSell } from '@almond/shared/lib/recommendations';
 import { getBranches } from '@/data/branches';
@@ -141,6 +141,20 @@ export function CheckoutView() {
             <Button size="lg" className="w-full" onClick={place}>
               {t('placeOrder')}
             </Button>
+          )}
+          {!isDelivery && (
+            <div className="space-y-2 border-t border-neutral-warm pt-4">
+              <p className="flex items-center gap-2 text-sm font-bold text-text-secondary">
+                <Lock className="h-4 w-4 text-success" />
+                {t('secure')}
+              </p>
+              <div className="flex items-center gap-3 text-text-secondary" aria-label={t('accepted')}>
+                <Wallet className="h-5 w-5" />
+                <Smartphone className="h-5 w-5" />
+                <Banknote className="h-5 w-5" />
+                <CreditCard className="h-5 w-5" />
+              </div>
+            </div>
           )}
         </aside>
       </div>

@@ -30,6 +30,7 @@ interface CartState {
     customizations: CartCustomization[],
     qty: number,
   ) => void;
+  addLine: (line: CartItem) => void;
   incLine: (lineId: string) => void;
   decLine: (lineId: string) => void;
   removeLine: (lineId: string) => void;
@@ -87,6 +88,19 @@ export const useCartStore = create<CartState>()(
             isDrink: item.isDrink,
             prepMinutes: item.prepMinutes,
           };
+          return { items: [...state.items, line] };
+        }),
+
+      addLine: (line) =>
+        set((state) => {
+          const existing = state.items.find((l) => l.lineId === line.lineId);
+          if (existing) {
+            return {
+              items: state.items.map((l) =>
+                l.lineId === line.lineId ? { ...l, qty: l.qty + line.qty } : l,
+              ),
+            };
+          }
           return { items: [...state.items, line] };
         }),
 
