@@ -20,6 +20,8 @@ export interface EarnInput {
   isFriday?: boolean;
   /** Extra multiplier from an activated bonus-bean day (e.g. 2 = double). */
   bonusMultiplier?: number;
+  /** Flat bonus points for drink+food combos in the order (see lib/combo.ts). */
+  comboBonusPoints?: number;
 }
 
 export interface SendGiftInput {

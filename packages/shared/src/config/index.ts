@@ -36,7 +36,11 @@ export const config = {
   // Kept generous on purpose (§5 — never punish the regular member).
   BEAN_EXPIRY_MONTHS: 12,
   TAX_RATE: 0.16, // 16% (section 4.6)
-  BRUNCH_COMBO_DISCOUNT: 1.0, // -1.000 JOD (section 5)
+  BRUNCH_COMBO_DISCOUNT: 1.0, // -1.000 JOD (section 5) — superseded by COMBO_BONUS_POINTS
+  // Drink + food combo: each drink paired with a food item earns the customer
+  // 50 bonus points (= 0.5 JOD value at 100 points = 1 JOD). Bonus POINTS, not a
+  // price discount. Admin-configurable.
+  COMBO_BONUS_POINTS: 50,
   CUP_TARGET: 10,
   CUP_HEAD_START: 1,
   DEFAULT_PREP_MINUTES: 7, // section 7.3

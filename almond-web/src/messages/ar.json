@@ -96,7 +96,11 @@
     "promoInvalid": "رمز غير صالح",
     "removePromo": "إزالة الرمز",
     "freeDrink": "يتبقّى {n} مشروبات على مشروبك المجاني",
-    "freeDrinkReady": "🎉 مشروبك المجاني جاهز!"
+    "freeDrinkReady": "🎉 مشروبك المجاني جاهز!",
+    "comboAddFood": "أضف صنف طعام لتكسب +{points} نقطة 🍽️",
+    "comboAddDrink": "أضف مشروبًا لتكسب +{points} نقطة ☕",
+    "comboAdd": "إضافة",
+    "comboEarned": "كومبو: +{points} نقطة"
   },
   "Checkout": {
     "title": "إتمام الطلب",

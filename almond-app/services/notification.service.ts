@@ -35,7 +35,7 @@ function seedInbox(userId: string): AppNotification[] {
   if (!list) {
     list = [
       { id: genId('ntf'), category: 'promo', titleAr: 'عرض البرانش', titleEn: 'Brunch offer', bodyAr: 'أضف مشروباً مع أي طبق برانش ووفّر 1.000 د.أ', bodyEn: 'Add a drink to any brunch and save 1.000 JOD', read: false, createdAt: new Date(Date.now() - 3600000).toISOString(), deepLink: '/(tabs)/order' },
-      { id: genId('ntf'), category: 'points', titleAr: 'ربحت حبات!', titleEn: 'You earned beans!', bodyAr: 'حصلت على 15 حبة من طلبك الأخير', bodyEn: 'You earned 15 beans on your last order', read: true, createdAt: new Date(Date.now() - 86400000).toISOString(), deepLink: '/(tabs)/rewards' },
+      { id: genId('ntf'), category: 'points', titleAr: 'ربحت نقاط!', titleEn: 'You earned points!', bodyAr: 'حصلت على 15 نقطة من طلبك الأخير', bodyEn: 'You earned 15 points on your last order', read: true, createdAt: new Date(Date.now() - 86400000).toISOString(), deepLink: '/(tabs)/rewards' },
     ];
     inbox.set(userId, list);
   }
