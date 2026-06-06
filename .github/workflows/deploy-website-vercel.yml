@@ -1,0 +1,38 @@
+name: Deploy website (almond-web) to Vercel
+
+# Deploys the Next.js website to Vercel from a GitHub-hosted runner (which can
+# reach Vercel; the dev container cannot). One-time setup: add a repository
+# secret VERCEL_TOKEN (Vercel → Account → Tokens). Then run this from the
+# Actions tab ("Run workflow") — or it is triggered for you.
+
+on:
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install Vercel CLI
+        run: npm install --global vercel@latest
+      - name: Deploy to Vercel (production)
+        id: deploy
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: |
+          if [ -z "$VERCEL_TOKEN" ]; then
+            echo "::error::Missing VERCEL_TOKEN secret. Add it in Settings → Secrets and variables → Actions → New repository secret."
+            exit 1
+          fi
+          # Remote build on Vercel using the repo-root vercel.json (monorepo →
+          # builds almond-web, pulls @almond/shared). Prints the URL to stdout.
+          url=$(vercel deploy --prod --yes --token="$VERCEL_TOKEN")
+          echo "Deployed: $url"
+          {
+            echo "## ✅ Website deployed"
+            echo ""
+            echo "$url"
+          } >> "$GITHUB_STEP_SUMMARY"
