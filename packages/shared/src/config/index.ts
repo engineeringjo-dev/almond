@@ -6,6 +6,7 @@ export const config = {
   DATA_SOURCE: 'mock' as 'mock' | 'odoo',
   ODOO_BASE_URL: 'https://api.almond.jo/v1',
   LOYALTY_BASE_URL: 'https://loyalty.almond.jo',
+  ISHBEK_BASE_URL: 'https://api.ishbek.com', // delivery bridge → Careem / Talabat
   DELIVERY_REDIRECT_URL: 'https://almondcoffeehouse.com/order',
 
   // Loyalty / pricing constants (section 2.4)

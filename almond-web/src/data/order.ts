@@ -31,6 +31,8 @@ export interface PlaceOrderInput {
   promoCode: string | null;
   curbside: boolean;
   carInfo: string;
+  deliveryAddress?: string;
+  deliveryFee?: number;
 }
 
 /**
@@ -53,7 +55,7 @@ export function createMockOrder(input: PlaceOrderInput): Order {
     subtotal: input.totals.subtotal,
     tax: input.totals.tax,
     discount: input.totals.discount,
-    total: input.totals.total,
+    total: input.totals.total + (input.deliveryFee ?? 0),
     paymentMethod: input.paymentMethod,
     paidFromBalance: input.paidFromBalance,
     status: 'received',
@@ -63,5 +65,6 @@ export function createMockOrder(input: PlaceOrderInput): Order {
     promoCode: input.promoCode ?? undefined,
     curbside: input.curbside || undefined,
     carInfo: input.carInfo || undefined,
+    deliveryAddress: input.deliveryAddress || undefined,
   };
 }

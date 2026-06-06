@@ -116,7 +116,13 @@
     "earnBeans": "You'll earn {beans} points on this order",
     "addExtra": "Add a little extra",
     "secure": "Secure, encrypted checkout",
-    "accepted": "Accepted payment methods"
+    "accepted": "Accepted payment methods",
+    "deliveryAddress": "Delivery address",
+    "deliveryAddressPlaceholder": "Area, street, building, floor…",
+    "deliveryBy": "Delivered by our partner captains (Careem/Talabat)",
+    "deliveryFee": "Delivery fee",
+    "deliveryEta": "in ~{min} min",
+    "enterAddress": "Please enter a delivery address"
   },
   "OrderSuccess": {
     "title": "Order received!",

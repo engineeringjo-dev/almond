@@ -23,6 +23,7 @@ interface CartState {
   promoDiscount: number;
   curbside: boolean;
   carInfo: string;
+  deliveryAddress: string;
 
   addItem: (
     item: MenuItem,
@@ -40,6 +41,7 @@ interface CartState {
   setPromo: (code: string | null, discount: number) => void;
   setCurbside: (on: boolean) => void;
   setCarInfo: (info: string) => void;
+  setDeliveryAddress: (address: string) => void;
   clear: () => void;
 }
 
@@ -60,6 +62,7 @@ export const useCartStore = create<CartState>()(
       promoDiscount: 0,
       curbside: false,
       carInfo: '',
+      deliveryAddress: '',
 
       addItem: (item, size, customizations, qty) =>
         set((state) => {
@@ -128,6 +131,7 @@ export const useCartStore = create<CartState>()(
       setPromo: (promoCode, promoDiscount) => set({ promoCode, promoDiscount }),
       setCurbside: (curbside) => set({ curbside }),
       setCarInfo: (carInfo) => set({ carInfo }),
+      setDeliveryAddress: (deliveryAddress) => set({ deliveryAddress }),
 
       clear: () =>
         set({
@@ -137,6 +141,7 @@ export const useCartStore = create<CartState>()(
           paidFromBalance: false,
           curbside: false,
           carInfo: '',
+          deliveryAddress: '',
         }),
     }),
     {
