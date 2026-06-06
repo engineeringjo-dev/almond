@@ -145,10 +145,13 @@ export function lineUnitPrice(line: CartItem): number {
   return line.unitBasePrice + extras;
 }
 
-/** Compute cart pricing including brunch combo + tax (sections 4.6, 5). */
+/**
+ * Compute cart pricing + tax (sections 4.6, 5).
+ * Note: the drink+food combo is now a POINTS bonus (see lib/combo.ts), not a
+ * price discount, so it does not affect the cart total here.
+ */
 export interface CartTotals {
   subtotal: number;
-  brunchDiscount: number;
   promoDiscount: number;
   discount: number;
   tax: number;
@@ -160,22 +163,13 @@ export function computeTotals(
   promoDiscount: number,
 ): CartTotals {
   const subtotal = items.reduce((sum, l) => sum + lineUnitPrice(l) * l.qty, 0);
-
-  // Brunch combo: one BR food per drink → -1.000 JOD each (section 5).
-  const drinkQty = items.filter((l) => l.isDrink).reduce((s, l) => s + l.qty, 0);
-  const brunchQty = items.filter((l) => l.isBrunch).reduce((s, l) => s + l.qty, 0);
-  const combos = Math.min(drinkQty, brunchQty);
-  const brunchDiscount = combos * config.BRUNCH_COMBO_DISCOUNT;
-
-  // Discount stacking OFF (section 2.4): take the larger of brunch vs promo.
-  const discount = Math.max(brunchDiscount, promoDiscount);
+  const discount = promoDiscount;
 
   const taxable = Math.max(0, subtotal - discount);
   const tax = taxable * config.TAX_RATE;
   const total = taxable + tax;
   return {
     subtotal,
-    brunchDiscount,
     promoDiscount,
     discount,
     tax,

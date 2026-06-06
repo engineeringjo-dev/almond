@@ -49,12 +49,18 @@ export function getCartCrossSell(items: CartItem[], max = 8): MenuItem[] {
 }
 
 /**
- * Brunch combo nudge — disabled for the live (Talabat) menu, whose items don't
- * carry the isBrunch flag the combo discount relies on. Re-enable once the
- * combo rule + flags are defined for the real categories.
+ * Drink + food combo nudge: when the cart has a drink but no food yet, suggest
+ * the best food item — adding it earns the +50-point combo bonus (see
+ * lib/combo.ts). Returns null when not applicable.
  */
-export function getBrunchCrossSell(_items: CartItem[]): MenuItem | null {
-  return null;
+export function getBrunchCrossSell(items: CartItem[]): MenuItem | null {
+  if (items.length === 0) return null;
+  const kinds = items.map((i) => itemKind(i.itemId));
+  const hasDrink = kinds.includes('drink');
+  const hasFood = kinds.includes('food');
+  if (!hasDrink || hasFood) return null;
+  const inCart = new Set(items.map((i) => i.itemId));
+  return pickByKind('food', inCart, 1)[0] ?? null;
 }
 
 /** Cross-sell for the item modal: "goes great with" the item being viewed. */

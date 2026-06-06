@@ -17,6 +17,7 @@ interface Promo {
 // DECISION: promotions are mock/static for MVP; in production these come from
 // the admin campaign engine (section 14.1).
 const promos: Promo[] = [
+  { id: 'combo', emoji: '🍽️', titleAr: 'مشروب + طعام = 50 نقطة 🍽️', titleEn: 'Drink + food = 50 points 🍽️', onPress: () => router.push('/(tabs)/order') },
   { id: 'friday', emoji: '☕', titleAr: '+50% نقاط كل جمعة ☕', titleEn: '+50% points every Friday ☕', onPress: () => router.push('/(tabs)/rewards') },
   { id: 'wallet', emoji: '👛', titleAr: 'اشحن محفظتك واكسب +50% نقاط', titleEn: 'Top up your wallet, earn +50% points', onPress: () => router.push('/profile/wallet') },
 ];
