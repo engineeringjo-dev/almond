@@ -1,0 +1,9 @@
+{
+  "_endpoint": "POST {ISHBEK_BASE_URL}/delivery/cancel → 200",
+  "dispatchId": "disp_ord_10432",
+  "orderId": "ord_10432",
+  "status": "cancelled",
+  "cancelledAt": "2026-07-05T13:04:03+03:00",
+  "cancellationFee": 0.000,
+  "currency": "JOD"
+}

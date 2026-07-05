@@ -1,0 +1,19 @@
+{
+  "_endpoint": "POST {ISHBEK_BASE_URL}/delivery/dispatch → 201",
+  "_desc": "تأكيد تعيين الأسطول. أي وقت راجع لازم يكون +03:00 (نفس معيار الـ POS) حتى ينعكس الأوردر صح.",
+  "dispatchId": "disp_ord_10432",
+  "orderId": "ord_10432",
+  "fleet": "careem",
+  "status": "assigned",
+  "assignedAt": "2026-07-05T13:02:11+03:00",
+  "captain": {
+    "id": "cap_5521",
+    "name": "خالد",
+    "phone": "+962799887766",
+    "vehicle": "motorbike",
+    "plate": "42-1187"
+  },
+  "estimatedPickupAt": "2026-07-05T13:06:00+03:00",
+  "estimatedDropoffAt": "2026-07-05T13:34:00+03:00",
+  "trackingUrl": "https://track.ishbek.com/disp_ord_10432"
+}
