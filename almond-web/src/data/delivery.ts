@@ -1,28 +1,42 @@
 import type { Order } from '@almond/shared/types';
 import { DATA_SOURCE } from '@/lib/config';
+import type {
+  DeliveryDispatch,
+  DeliveryQuote,
+  QuoteParams,
+} from '@/lib/delivery-types';
+
+export type { DeliveryDispatch, DeliveryQuote } from '@/lib/delivery-types';
 
 // Mock delivery economics (in-house via Ishbek → Careem/Talabat). Live values
-// come from an Ishbek quote. See docs/DELIVERY-INTEGRATION.md.
+// come from an Ishbek quote via the server route. See docs/DELIVERY-INTEGRATION.md.
 export const DELIVERY_FEE = 1.5; // JOD, flat (mock)
 export const DELIVERY_ETA = 35; // minutes (mock)
 
-export interface DeliveryDispatch {
-  id: string;
-  fleet: 'careem' | 'talabat';
-  status: 'assigned' | 'picked_up' | 'delivered';
-  etaMinutes: number;
+/**
+ * Client-side delivery API. It NEVER talks to Ishbek directly and holds no key —
+ * it calls our own server routes under /api/delivery, which own the secret. Under
+ * mock it short-circuits to local values so the site stays fully demoable.
+ */
+async function postJSON<T>(url: string, body: unknown): Promise<T> {
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) throw new Error(`${url} → ${res.status}`);
+  return res.json() as Promise<T>;
 }
 
-const notWired = () =>
-  new Error('Ishbek delivery is not wired yet — run with NEXT_PUBLIC_DATA_SOURCE=mock.');
-
-export async function quoteDelivery(): Promise<{ fee: number; etaMinutes: number }> {
-  if (DATA_SOURCE === 'odoo') throw notWired();
-  return { fee: DELIVERY_FEE, etaMinutes: DELIVERY_ETA };
+export async function quoteDelivery(params: QuoteParams = {}): Promise<DeliveryQuote> {
+  if (DATA_SOURCE !== 'odoo') return { fee: DELIVERY_FEE, etaMinutes: DELIVERY_ETA };
+  return postJSON<DeliveryQuote>('/api/delivery/quote', params);
 }
 
-/** Dispatch a captain. Mock returns an assignment; Odoo→Ishbek does it live. */
+/** Dispatch a captain via our server route (which calls Ishbek with the key). */
 export async function dispatchDelivery(order: Order): Promise<DeliveryDispatch> {
-  if (DATA_SOURCE === 'odoo') throw notWired();
-  return { id: `disp_${order.id}`, fleet: 'careem', status: 'assigned', etaMinutes: DELIVERY_ETA };
+  if (DATA_SOURCE !== 'odoo') {
+    return { id: `disp_${order.id}`, fleet: 'careem', status: 'assigned', etaMinutes: DELIVERY_ETA };
+  }
+  return postJSON<DeliveryDispatch>('/api/delivery/dispatch', { order });
 }

@@ -86,7 +86,13 @@ export function CheckoutView() {
       deliveryAddress: isDelivery ? deliveryAddress.trim() : undefined,
       deliveryFee: isDelivery ? DELIVERY_FEE : 0,
     });
-    if (isDelivery) void dispatchDelivery(order); // mock dispatch via Ishbek seam
+    // Dispatch via our server route (Ishbek seam). Non-blocking for UX, but we
+    // surface failures instead of swallowing them silently.
+    if (isDelivery) {
+      dispatchDelivery(order).catch((err) =>
+        console.error('delivery dispatch failed', err),
+      );
+    }
     if (paymentMethod !== 'cash') void payForOrder(order); // secure payment seam
     setLastOrder(order);
     clear();

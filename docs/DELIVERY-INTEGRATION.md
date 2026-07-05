@@ -85,3 +85,31 @@ day**, so it never showed in today's till queue.
   `timeZone: 'Asia/Amman'` so KDS/countdowns don't render in the server's UTC.
 - The live `data/delivery.ts` must send `placedAt` / `readyAt` via `toAmmanISO`,
   and the status‑webhook receiver must **reject any timestamp without an offset**.
+
+## Security — the Ishbek key lives server‑side only
+
+The dispatch credential must never reach the browser. `NEXT_PUBLIC_*` /
+`EXPO_PUBLIC_*` vars are inlined into the client bundle, so the key is read from
+a plain **`ISHBEK_KEY`** (server‑only) instead. The flow:
+
+```
+browser (data/delivery.ts, no key)
+   └─POST→ /api/delivery/{quote,dispatch,cancel}   (Next route handler, server)
+            └─ server/ishbek.ts  ──X-Ishbek-Key: ISHBEK_KEY──►  Ishbek
+Ishbek ──HMAC-signed webhook──► /api/delivery/webhook  (verify → Odoo)
+```
+
+- **`almond-web/src/server/ishbek.ts`** — server‑only client; reads `ISHBEK_KEY`
+  + `ISHBEK_WEBHOOK_SECRET`, builds the dispatch payload (lines+modifiers, timing
+  via `toAmmanISO`), and verifies webhook HMAC (`crypto.timingSafeEqual`).
+- **`almond-web/src/app/api/delivery/*`** — `quote`, `dispatch`, `cancel`,
+  `status/[orderId]`, and `webhook` (rejects unsigned requests and any
+  `occurredAt` lacking a `+03:00` offset).
+- **`almond-web/src/data/delivery.ts`** — client calls the internal routes only;
+  holds no key. Under `mock` it short‑circuits to local values.
+- Keys live in `.env.local` (gitignored; see `.env.example`). `@almond/shared`
+  exposes `ishbekAuthHeaders()` + `integration.auth.ishbekWebhookSecret`.
+
+**Go‑live:** set `ISHBEK_KEY` + `ISHBEK_WEBHOOK_SECRET` on the server, flip
+`NEXT_PUBLIC_DATA_SOURCE=odoo`, register the webhook URL with Ishbek, and
+implement the real HTTP bodies in `server/ishbek.ts` against Ishbek's docs.
