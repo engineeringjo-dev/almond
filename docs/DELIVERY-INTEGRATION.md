@@ -62,3 +62,26 @@ read the same way as the existing Odoo / loyalty tokens.
 4. Flip `enabled.delivery` (or global `DATA_SOURCE`) to `odoo`.
 5. Replace the temporary Talabat redirect with the in‑house dispatch (already
    wired in checkout behind the switch).
+
+## Timezone — orders must reflect on the POS (نقطة البيع)
+
+**The bug we hit:** orders sometimes did not appear on the POS. Root cause was a
+clock mismatch — Almond wrote every timestamp in **UTC** (`…Z`, via
+`Date#toISOString()`), while Jordan runs **Asia/Amman = permanent UTC+3**. Read as
+local time by the POS/Ishbek, an order placed at `13:06` (`10:06Z`) landed 3h in
+the past — and one placed just after local midnight fell on the **wrong calendar
+day**, so it never showed in today's till queue.
+
+**The rule (do not break):** every timestamp that crosses a boundary
+(order → Odoo → Ishbek → POS, and every webhook back) is ISO‑8601 with an
+**explicit `+03:00` offset — never a bare `Z`, never an offset‑less string**.
+
+- Serialize with the shared helper `toAmmanISO()` (`@almond/shared/lib/format`),
+  which emits e.g. `2026-07-05T13:06:00.000+03:00`. It preserves the exact
+  instant — only the offset representation changes.
+- Order creation now uses it: `almond-web/src/data/order.ts`,
+  `almond-app/services/order.service.ts` (`createdAt` / `targetReadyAt`).
+- Display formatters (`formatTime` / `formatDate`) are pinned to
+  `timeZone: 'Asia/Amman'` so KDS/countdowns don't render in the server's UTC.
+- The live `data/delivery.ts` must send `placedAt` / `readyAt` via `toAmmanISO`,
+  and the status‑webhook receiver must **reject any timestamp without an offset**.
