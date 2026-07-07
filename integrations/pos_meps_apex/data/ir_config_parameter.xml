@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo noupdate="1">
+    <!-- Ships in MOCK mode so the full POS flow is runnable immediately,
+         with zero Apex dependency. Flip to 'live' once Apex's format is wired. -->
+    <record id="param_mode" model="ir.config_parameter">
+        <field name="key">pos_meps_apex.mode</field>
+        <field name="value">mock</field>
+    </record>
+</odoo>
