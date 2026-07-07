@@ -30,4 +30,6 @@ Timestamps are Asia/Amman (+03:00). SecureKey is server-only (ir.config_paramete
     },
     "license": "LGPL-3",
     "installable": True,
+    "application": False,
+    "auto_install": False,
 }
