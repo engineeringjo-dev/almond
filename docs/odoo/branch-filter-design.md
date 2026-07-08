@@ -24,10 +24,11 @@ almond_branch/
 ├── models/ almond_branch.py · pos_config.py · pos_order.py · report_pos_order.py
 ├── security/ ir.model.access.csv · almond_branch_security.xml
 ├── views/ almond_branch_views.xml · pos_config_views.xml
-├── data/ almond_branch_data.xml          # 9 branch records (noupdate)
-├── hooks.py                              # name-based POS→branch mapping (pairs merged)
-└── migrations/19.0.1.0.0/post-migration.py  # fast SQL backfill of 463K rows
+└── hooks.py                   # creates the 9 branches + maps 14 POS (pairs merged)
+                               # + runs the fast SQL backfill of pos.order.branch_id
 ```
+*(As shipped, branches are created **in the hook** — one idempotent source of truth,
+no `data/*.xml`. The SQL backfill is **wired into the hook**, so no separate migration.)*
 
 ## 1) Model + pos.config link
 ```python
@@ -93,13 +94,20 @@ Open dashboard → **Filters → Add → Relation** → related model **Branch (
 *(Editing a dashboard = WRITE → dev first; prod needs APPROVE PROD.)*
 
 ## 5) Data — map 14 POS → 9 branches (pairs merged)
-`data/almond_branch_data.xml` creates 9 branches (noupdate). `hooks.py` maps by name
-(idempotent), merging "…2" pairs, and sets each branch's company from its shop:
+`hooks.py` is the single source of truth: it **creates the 9 branches** (idempotent,
+matched by name+company) and maps each of the 14 shops, merging "…2" pairs, taking
+each branch's company from its shop. Confirmed from the live fleet (read-only):
 ```python
-POS_TO_BRANCH = {'Mecca Street':'branch_mecca_street','Mecca Street 2':'branch_mecca_street',
- '8th Circle':'branch_8th_circle','8th Circle 2':'branch_8th_circle', ... 'event':'branch_event'}
+POS_TO_BRANCH = {  # 14 shops -> 9 branches, every pair within one company
+ 'Mecca Street':'mecca_street','Mecca Street 2':'mecca_street',       # Evora
+ 'Madinah street':'madinah_street','Madinah street 2':'madinah_street','event':'event',
+ 'Al-Rabieh':'al_rabieh','Al-Rabieh 2':'al_rabieh','Khalda':'khalda', # Leria
+ '8th Circle':'8th_circle','8th Circle 2':'8th_circle',               # Almond coffee
+ 'City Mall':'city_mall','AL-Jamah Street':'al_jamah_street',         # Italian Corner
+ 'shafa badran':'shafa_badran','shafa badran 2':'shafa_badran'}
 ```
-Unmapped configs are **skipped, never guessed**. Optional fast backfill:
+Unmapped configs are **skipped, never guessed**. The hook writes `branch_id` **once per
+branch** (fewer recompute passes) then runs a single fast backfill of the stored column:
 ```sql
 UPDATE pos_order o SET branch_id = c.branch_id FROM pos_config c
  WHERE c.id = o.config_id AND o.branch_id IS DISTINCT FROM c.branch_id;

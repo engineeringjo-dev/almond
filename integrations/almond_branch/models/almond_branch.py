@@ -1,4 +1,4 @@
-from odoo import fields, models
+from odoo import api, fields, models
 
 
 class AlmondBranch(models.Model):
@@ -21,6 +21,7 @@ class AlmondBranch(models.Model):
         'A branch with this name already exists for this company.',
     )
 
+    @api.depends('pos_config_ids')
     def _compute_pos_config_count(self):
         for branch in self:
             branch.pos_config_count = len(branch.pos_config_ids)

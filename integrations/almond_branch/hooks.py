@@ -59,7 +59,8 @@ def post_init_map_branches(env):
     Config = env['pos.config'].sudo()
 
     mapped, skipped = 0, []
-    branch_cache = {}  # (branch_key, company_id) -> almond.branch record
+    branch_cache = {}          # (branch_key, company_id) -> almond.branch record
+    configs_by_branch = {}     # branch.id -> [config ids]
 
     for pos_name, branch_key in POS_TO_BRANCH.items():
         configs = Config.search([('name', '=', pos_name)])
@@ -85,10 +86,25 @@ def post_init_map_branches(env):
                         'company_id': company.id,
                     })
                 branch_cache[cache_key] = branch
-
-            if config.branch_id != branch:
-                config.branch_id = branch.id
+            configs_by_branch.setdefault(branch.id, []).append(config.id)
             mapped += 1
+
+    # One write per branch (not per config) -> fewer stored-related recompute passes.
+    for branch_id, config_ids in configs_by_branch.items():
+        Config.browse(config_ids).write({'branch_id': branch_id})
+
+    # Fast, single-statement backfill of the stored pos.order.branch_id column.
+    # The stored-related recompute above already covers this, but on a large fleet
+    # (~10^5 pos.order rows) one SQL UPDATE is the cheap, authoritative finaliser;
+    # it is idempotent (IS DISTINCT FROM guard) and a no-op once already consistent.
+    env.cr.execute("""
+        UPDATE pos_order o
+           SET branch_id = c.branch_id
+          FROM pos_config c
+         WHERE c.id = o.config_id
+           AND o.branch_id IS DISTINCT FROM c.branch_id
+    """)
+    env['pos.order'].invalidate_model(['branch_id'])
 
     _logger.info(
         "almond_branch: mapped %s POS shop(s) into %s branch(es); skipped (not found): %s",
