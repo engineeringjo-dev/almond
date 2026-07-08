@@ -18,11 +18,26 @@ No server connection. Follow the Abu Laith pipeline: review → gate → dev →
 - Security: `res.groups.privilege` + a Branch Manager group; POS users get read-only
   (so the filter can list branches); multi-company `ir.rule`.
 
-## Before deploy — confirm on dev-almond (read-only)
-1. **Real POS names** → edit `POS_TO_BRANCH` in `hooks.py` (only "Mecca Street",
-   "8th Circle" and "event" are guessed; add the rest). Unmapped shops are skipped, never guessed.
-2. **pos.config form anchor** — `views/pos_config_views.xml` xpaths `field[@name='name']`;
-   confirm it resolves on the v19 POS config form, adjust if needed.
+## Branch map (confirmed from the live fleet, read-only)
+14 POS shops across 4 companies → 9 branches (every "…2" pair is within one company):
+
+| Branch | Company | POS shops |
+|---|---|---|
+| Mecca Street | Evora | Mecca Street, Mecca Street 2 |
+| Madinah Street | Evora | Madinah street, Madinah street 2 |
+| Event | Evora | event |
+| Al-Rabieh | Leria | Al-Rabieh, Al-Rabieh 2 |
+| Khalda | Leria | Khalda |
+| 8th Circle | Almond | 8th Circle, 8th Circle 2 |
+| City Mall | Italian Corner | City Mall |
+| Al-Jamah Street | Italian Corner | AL-Jamah Street |
+| Shafa Badran | Italian Corner | shafa badran, shafa badran 2 |
+
+The map lives in `hooks.py` (`POS_TO_BRANCH` / `BRANCH_NAMES`). Unmapped shops are skipped, never guessed.
+
+## Before deploy — still confirm on dev-almond
+- **pos.config form anchor** — `views/pos_config_views.xml` xpaths `field[@name='name']`;
+  confirm it resolves on the v19 POS config form, adjust if needed.
 
 ## Verified against Odoo 19 source (`point_of_sale/report/pos_order_report.py`)
 - View built from `_select()` + `_from()`; `init()` = `CREATE VIEW (_select _from)`.

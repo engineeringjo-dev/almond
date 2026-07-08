@@ -9,24 +9,42 @@ _logger = logging.getLogger(__name__)
 # Values = a stable branch key; two shops sharing a key are merged into ONE branch
 #          (e.g. "Mecca Street" + "Mecca Street 2" -> one "Mecca Street" branch).
 #
-# ⚠️ TO CONFIRM on dev-almond before deploy: these names are our best guess from
-#    prior discussion. Run tuanle /odoo (read-only) to list the real pos.config
-#    names, then correct this map. Unmapped configs are SKIPPED, never guessed.
+# Confirmed from the live fleet (read-only introspection): 14 POS shops across
+# 4 companies collapse into 9 branches; every "…2" pair is within one company.
+# Unmapped configs are SKIPPED, never guessed.
 # ---------------------------------------------------------------------------
 POS_TO_BRANCH = {
+    # Evora food and beverage co
     'Mecca Street':     'mecca_street',
     'Mecca Street 2':   'mecca_street',
+    'Madinah street':   'madinah_street',
+    'Madinah street 2': 'madinah_street',
+    'event':            'event',
+    # Leria for Food and Beverages CO
+    'Al-Rabieh':        'al_rabieh',
+    'Al-Rabieh 2':      'al_rabieh',
+    'Khalda':           'khalda',
+    # Almond coffee restaurant
     '8th Circle':       '8th_circle',
     '8th Circle 2':     '8th_circle',
-    # ... add the remaining shops here once confirmed on dev ...
-    'event':            'event',
+    # Italian Corner Company
+    'City Mall':        'city_mall',
+    'AL-Jamah Street':  'al_jamah_street',
+    'shafa badran':     'shafa_badran',
+    'shafa badran 2':   'shafa_badran',
 }
 
 # Human-readable branch names (branch key -> display name).
 BRANCH_NAMES = {
-    'mecca_street': 'Mecca Street',
-    '8th_circle':   '8th Circle',
-    'event':        'Event',
+    'mecca_street':   'Mecca Street',
+    'madinah_street': 'Madinah Street',
+    'event':          'Event',
+    'al_rabieh':      'Al-Rabieh',
+    'khalda':         'Khalda',
+    '8th_circle':     '8th Circle',
+    'city_mall':      'City Mall',
+    'al_jamah_street': 'Al-Jamah Street',
+    'shafa_badran':   'Shafa Badran',
 }
 
 
@@ -44,30 +62,33 @@ def post_init_map_branches(env):
     branch_cache = {}  # (branch_key, company_id) -> almond.branch record
 
     for pos_name, branch_key in POS_TO_BRANCH.items():
-        config = Config.search([('name', '=', pos_name)], limit=1)
-        if not config:
+        configs = Config.search([('name', '=', pos_name)])
+        if not configs:
             skipped.append(pos_name)
             continue
 
-        company = config.company_id
-        cache_key = (branch_key, company.id)
-        branch = branch_cache.get(cache_key)
-        if not branch:
-            branch_name = BRANCH_NAMES.get(branch_key, branch_key)
-            branch = Branch.search([
-                ('name', '=', branch_name),
-                ('company_id', '=', company.id),
-            ], limit=1)
+        # A shop name could in theory exist in more than one company; each match
+        # is mapped to a branch scoped to its own company.
+        for config in configs:
+            company = config.company_id
+            cache_key = (branch_key, company.id)
+            branch = branch_cache.get(cache_key)
             if not branch:
-                branch = Branch.create({
-                    'name': branch_name,
-                    'company_id': company.id,
-                })
-            branch_cache[cache_key] = branch
+                branch_name = BRANCH_NAMES.get(branch_key, branch_key)
+                branch = Branch.search([
+                    ('name', '=', branch_name),
+                    ('company_id', '=', company.id),
+                ], limit=1)
+                if not branch:
+                    branch = Branch.create({
+                        'name': branch_name,
+                        'company_id': company.id,
+                    })
+                branch_cache[cache_key] = branch
 
-        if config.branch_id != branch:
-            config.branch_id = branch.id
-        mapped += 1
+            if config.branch_id != branch:
+                config.branch_id = branch.id
+            mapped += 1
 
     _logger.info(
         "almond_branch: mapped %s POS shop(s) into %s branch(es); skipped (not found): %s",
