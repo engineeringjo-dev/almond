@@ -64,12 +64,20 @@ declare a non-stored field and extend the view SQL:
 class ReportPosOrder(models.Model):
     _inherit = 'report.pos.order'
     branch_id = fields.Many2one('almond.branch', readonly=True)   # maps a view column
-    def _select(self):    return super()._select() + ", cfg.branch_id AS branch_id"
-    def _from(self):      return super()._from() + " LEFT JOIN pos_config cfg ON cfg.id = s.config_id"
-    def _group_by(self):  return super()._group_by() + ", cfg.branch_id"
+    def _select(self): return super()._select() + ", pc.branch_id AS branch_id"
+    def _from(self):   return super()._from() + " LEFT JOIN pos_config pc ON pc.id = ps.config_id"
+    # NO _group_by override — see verified notes.
 ```
-⚠️ **Verify on dev-almond first (tuanle `/odoo`):** the exact SQL-builder method names
-(`_select/_from/_group_by` vs a single `_query()`) and the `pos_order` alias (`s`).
+✅ **VERIFIED against Odoo 19 official source (`point_of_sale/report/pos_order_report.py`):**
+- The view is built from separate `_select()` / `_from()` methods; `init()` runs
+  `CREATE VIEW … (_select() _from())`. Overriding these two is the correct seam.
+- **Correction #1 — the report does NOT join `pos_config`.** It joins `pos_session AS ps`
+  and exposes `ps.config_id`. So the join goes off the **session**:
+  `LEFT JOIN pos_config pc ON pc.id = ps.config_id` (NOT `s.config_id`).
+  Aliases: `s` = `pos_order`, `l` = `pos_order_line`, `ps` = `pos_session`.
+- **Correction #2 — do NOT override `_group_by()`.** In v19 it returns `""` and `init()`
+  never concatenates it — the view is **line-level** (`1 AS nbr_lines`, `l.id AS id`),
+  no GROUP BY. A group-by override is a no-op / risk.
 The view recomputes at read time → **no backfill** needed for the report (only pos.order).
 
 ## 3) Security (ACL for the new model only)
@@ -104,7 +112,7 @@ composite `(branch_id, date_order)` on pos.order. **This single stored+indexed
 (pos.order.line 994K is untouched by this design).
 
 ## 7) Abu Laith ship pipeline (WRITE/DEPLOY flagged)
-1. introspect (tuanle `/odoo`, dev read-only) — confirm view methods/alias, real POS names, privilege category.
+1. introspect — ✅ DONE against Odoo 19 source: `_select`/`_from` seam, `ps`=pos_session/`s`=pos_order aliases, no existing pos_config join, no `_group_by`, `pos.config` has no `branch_id`, `res.groups.privilege`+`privilege_id`, `models.Index`/`models.Constraint` all confirmed. Still to confirm on dev: real POS shop names (for the pairs map).
 2. author (ignify) — local files.
 3. review (tuanle `/odoo-review`).
 4. gate (tuanle `/odoo-gate`).
