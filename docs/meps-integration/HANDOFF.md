@@ -26,11 +26,17 @@ Isolated in `apex_ecr_client.py`, marked `TODO(Apex)`:
 Plus: sandbox TID + test SecureKey (MEPS/Apex only). Then set `mode=live` + `gateway_url`.
 
 ## Gaps to close on resume (from the brief)
-- [ ] **Idempotency** — unique ref per SALE + guard against double-charge on timeout retry (highest-risk item; not yet implemented).
-- [ ] Make **amount encoding** a config param (currently `%.3f`).
-- [ ] Add `status()` to the client; wire VOID/REFUND to the POS UI.
-- [ ] SETTLE/batch reconciliation report; reconcile by **RRN**, align day-close to MEPS batch at +03:00.
+- [x] **Idempotency** — DONE. New `pos_meps_apex.txn` ledger keys every SALE/REFUND by a
+  stable `reference`: an APPROVED retry returns the prior result (no re-charge); a
+  PENDING/UNKNOWN (timeout) attempt is BLOCKED until a status/reconcile — never silently
+  re-charges. (Server-verified by a guard-logic simulation.)
+- [x] **Amount encoding** a config param — DONE (`pos_meps_apex.amount_encoding` = `decimal3`|`int1000`).
+- [x] `status()` added to the client (timeout/UNKNOWN recovery; live endpoint still `TODO(Apex)`).
+- [ ] Wire VOID/REFUND to the POS UI (client methods exist; UI buttons pending).
+- [ ] SETTLE/batch reconciliation report; reconcile by **RRN** (ledger stores it), align day-close to MEPS batch at +03:00.
 - [ ] JoFotara posts on the **sale**, not the auth.
+- [ ] **POS should pass a stable `reference`** (idempotency key) per payment attempt so a
+  real retry dedupes (payment_meps.js currently may omit it → fallback is best-effort).
 
 ## Guardrails (non-negotiable)
 - SecureKey backend-only (`ir.config_parameter`), **never** in JS/QWeb/log/commit; `.env*` gitignored.

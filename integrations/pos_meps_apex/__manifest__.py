@@ -20,6 +20,7 @@ Timestamps are Asia/Amman (+03:00). SecureKey is server-only (ir.config_paramete
     "category": "Sales/Point of Sale",
     "depends": ["point_of_sale"],
     "data": [
+        "security/ir.model.access.csv",
         "data/ir_config_parameter.xml",
         "views/pos_payment_method_views.xml",
     ],
