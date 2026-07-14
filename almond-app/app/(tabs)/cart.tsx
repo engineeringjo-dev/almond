@@ -23,6 +23,7 @@ import { Icon } from '@/components/ui/Icon';
 import { colors, spacing, radius, shadow } from '@/constants/theme';
 import { useI18n } from '@/hooks/useI18n';
 import { useCartStore, computeTotals } from '@/stores/cartStore';
+import { useToastStore } from '@/stores/toastStore';
 import { useNearestBranch } from '@/hooks/useNearestBranch';
 import { useAuthStore, useUserId } from '@/stores/authStore';
 import { useCreateOrder } from '@/hooks/useOrder';
@@ -79,6 +80,14 @@ export default function CartScreen() {
     [branches, branchId],
   );
   const totals = useMemo(() => computeTotals(items, promoDiscount), [items, promoDiscount]);
+
+  // If wallet is selected but no longer covers the total, fall back to cash
+  // (the wallet option is also disabled in the picker).
+  useEffect(() => {
+    if (paymentMethod === 'wallet' && walletBalance != null && walletBalance < totals.total) {
+      setPaymentMethod('cash');
+    }
+  }, [paymentMethod, walletBalance, totals.total, setPaymentMethod]);
   const estimate = useMemo(
     () => computePickupEstimate(items, branch?.distanceKm),
     [items, branch],
@@ -99,6 +108,12 @@ export default function CartScreen() {
 
   const placeOrder = async () => {
     if (!branch) return;
+    // Guard: never let a wallet payment proceed with an insufficient balance
+    // (previously failed silently). Surface it and stop.
+    if (paymentMethod === 'wallet' && walletBalance != null && walletBalance < totals.total) {
+      useToastStore.getState().showError(t('cart.walletInsufficient'));
+      return;
+    }
     setSubmitting(true);
     try {
       if (paymentMethod === 'wallet' && integration.enabled.wallet) {
@@ -106,7 +121,10 @@ export default function CartScreen() {
         await loyaltyService.chargeWallet(userId, totals.total);
       } else {
         const payment = await paymentService.pay(totals.total, paymentMethod);
-        if (!payment.success) return;
+        if (!payment.success) {
+          useToastStore.getState().showError(t('cart.paymentFailed'));
+          return;
+        }
       }
 
       const order = await createOrder.mutateAsync({
@@ -143,6 +161,9 @@ export default function CartScreen() {
 
       clear();
       router.replace({ pathname: '/order/confirm', params: { id: order.id } });
+    } catch {
+      // Never fail silently — surface the checkout error so the user can retry.
+      useToastStore.getState().showError(t('cart.checkoutError'));
     } finally {
       setSubmitting(false);
     }
@@ -284,6 +305,7 @@ export default function CartScreen() {
                 value={paymentMethod}
                 onChange={setPaymentMethod}
                 walletBalance={walletBalance}
+                total={totals.total}
               />
             </View>
           </>

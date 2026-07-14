@@ -1,4 +1,6 @@
 import { create } from 'zustand';
+import { persist, createJSONStorage } from 'zustand/middleware';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import type {
   CartItem,
@@ -51,7 +53,9 @@ function buildLineId(itemId: string, sizeId: string, custs: CartCustomization[])
   return `${itemId}__${sizeId}__${sig}`;
 }
 
-export const useCartStore = create<CartState>((set) => ({
+export const useCartStore = create<CartState>()(
+  persist(
+    (set) => ({
   items: [],
   orderType: 'pickup',
   branchId: null,
@@ -132,7 +136,26 @@ export const useCartStore = create<CartState>((set) => ({
   setCarInfo: (carInfo) => set({ carInfo }),
   clear: () =>
     set({ items: [], promoCode: null, promoDiscount: 0, paidFromBalance: false, curbside: false, carInfo: '' }),
-}));
+    }),
+    {
+      // Persist the cart so a browser refresh / app close never empties it.
+      // Promo code/discount are intentionally NOT persisted (re-applied fresh
+      // against the live subtotal to avoid a stale frozen discount).
+      name: 'almond.cart',
+      version: 1,
+      storage: createJSONStorage(() => AsyncStorage),
+      partialize: (s) => ({
+        items: s.items,
+        orderType: s.orderType,
+        branchId: s.branchId,
+        paymentMethod: s.paymentMethod,
+        paidFromBalance: s.paidFromBalance,
+        curbside: s.curbside,
+        carInfo: s.carInfo,
+      }),
+    },
+  ),
+);
 
 /** Total item count for the cart tab badge. */
 export function useCartCount(): number {
