@@ -34,7 +34,7 @@ export const greenTheme: AppTheme = {
   cream: '#FFFFFF', // pure white backgrounds (was beige)
   cardBg: '#FFFFFF',
   textPrimary: '#2E2552',
-  textSecondary: '#7A7390', // muted violet-gray secondary text
+  textSecondary: '#6B6484', // muted violet-gray secondary text (WCAG AA ~4.9:1 on white)
   success: '#6C5CB4', // violet (was green) — success/added/open
   error: '#C0392B',
 };

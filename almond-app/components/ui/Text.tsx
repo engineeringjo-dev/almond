@@ -17,15 +17,16 @@ interface Props extends TextProps {
   center?: boolean;
 }
 
+// lineHeight ≈ 1.3–1.5× so Arabic ascenders/diacritics never clip.
 const variantStyle: Record<Variant, TextStyle> = {
-  display: { fontFamily: fontFamily.bold, fontSize: fontSize.display },
-  h1: { fontFamily: fontFamily.bold, fontSize: fontSize.xxl },
-  h2: { fontFamily: fontFamily.bold, fontSize: fontSize.xl },
-  title: { fontFamily: fontFamily.medium, fontSize: fontSize.lg },
-  body: { fontFamily: fontFamily.regular, fontSize: fontSize.md },
-  bodyBold: { fontFamily: fontFamily.medium, fontSize: fontSize.md },
-  caption: { fontFamily: fontFamily.regular, fontSize: fontSize.sm },
-  price: { fontFamily: fontFamily.bold, fontSize: fontSize.md },
+  display: { fontFamily: fontFamily.bold, fontSize: fontSize.display, lineHeight: 44 },
+  h1: { fontFamily: fontFamily.bold, fontSize: fontSize.xxl, lineHeight: 38 },
+  h2: { fontFamily: fontFamily.bold, fontSize: fontSize.xl, lineHeight: 30 },
+  title: { fontFamily: fontFamily.medium, fontSize: fontSize.lg, lineHeight: 26 },
+  body: { fontFamily: fontFamily.regular, fontSize: fontSize.md, lineHeight: 24 },
+  bodyBold: { fontFamily: fontFamily.medium, fontSize: fontSize.md, lineHeight: 24 },
+  caption: { fontFamily: fontFamily.regular, fontSize: fontSize.sm, lineHeight: 20 },
+  price: { fontFamily: fontFamily.bold, fontSize: fontSize.md, lineHeight: 22 },
 };
 
 /**

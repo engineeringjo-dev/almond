@@ -8,9 +8,13 @@ export function formatJOD(amount: number, lang: Lang): string {
   return lang === 'ar' ? `${value} د.أ` : `JOD ${value}`;
 }
 
-/** Localized integer (e.g. points), with thousands separators. */
-export function formatNumber(value: number, lang: Lang): string {
-  return new Intl.NumberFormat(lang === 'ar' ? 'ar-JO' : 'en-US').format(value);
+/**
+ * Integer with thousands separators (e.g. points). Uses Latin (Western) digits
+ * in BOTH languages so points read consistently with prices (formatJOD), which
+ * matches Jordanian commercial convention. `lang` kept for API stability.
+ */
+export function formatNumber(value: number, _lang: Lang): string {
+  return new Intl.NumberFormat('en-US').format(value);
 }
 
 /** Short time HH:MM for a given ISO/date. */

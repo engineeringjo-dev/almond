@@ -99,8 +99,11 @@ export interface SizeUpsell {
  */
 export function getSizeUpsell(item: MenuItem, currentSizeId: ItemSize['id']): SizeUpsell | null {
   if (item.sizes.length < 2) return null;
-  const current = item.sizes.find((s) => s.id === currentSizeId) ?? item.sizes[0];
-  const largest = item.sizes.reduce((a, b) => (b.price > a.price ? b : a), item.sizes[0]);
-  if (largest.id === current.id) return null;
-  return { size: largest, delta: Math.max(0, largest.price - current.price) };
+  // Offer the NEXT size up (smaller price jump = higher accept rate), not the
+  // largest outright.
+  const byPrice = [...item.sizes].sort((a, b) => a.price - b.price);
+  const current = byPrice.find((s) => s.id === currentSizeId) ?? byPrice[0];
+  const next = byPrice.find((s) => s.price > current.price);
+  if (!next) return null;
+  return { size: next, delta: Math.max(0, next.price - current.price) };
 }
