@@ -42,6 +42,12 @@ import {
   Heart,
   Bean,
   ChevronDown,
+  Flame,
+  Candy as CandyBar,
+  Wheat,
+  ArrowUp,
+  TriangleAlert,
+  Share2,
   type LucideIcon,
 } from 'lucide-react-native';
 import { colors } from '@/constants/theme';
@@ -97,7 +103,13 @@ export type IconName =
   | 'more'
   | 'heart'
   | 'bean'
-  | 'chevron-down';
+  | 'chevron-down'
+  | 'flame'
+  | 'candy'
+  | 'wheat'
+  | 'arrow-up'
+  | 'alert'
+  | 'share';
 
 const REGISTRY: Record<IconName, LucideIcon> = {
   coffee: Coffee,
@@ -145,6 +157,12 @@ const REGISTRY: Record<IconName, LucideIcon> = {
   heart: Heart,
   bean: Bean,
   'chevron-down': ChevronDown,
+  flame: Flame,
+  candy: CandyBar,
+  wheat: Wheat,
+  'arrow-up': ArrowUp,
+  alert: TriangleAlert,
+  share: Share2,
 };
 
 interface Props {

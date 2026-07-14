@@ -326,7 +326,7 @@ export default function CartScreen() {
 
       <View style={styles.footer}>
         {orderType === 'delivery' ? (
-          <Button title={t('cart.deliveryRedirect')} onPress={openDelivery} leadingEmoji="🛵" />
+          <Button title={t('cart.deliveryRedirect')} onPress={openDelivery} leadingIcon="delivery" />
         ) : (
           <Button
             title={`${t('cart.reviewCta')} · ${formatJOD(totals.total, lang)}`}

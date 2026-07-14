@@ -64,7 +64,7 @@ export default function AddressesScreen() {
           title={t('profile.addAddress')}
           onPress={() => setOpen(true)}
           variant="outline"
-          leadingEmoji="＋"
+          leadingIcon="plus"
           style={{ marginTop: spacing.lg }}
         />
       </Screen>

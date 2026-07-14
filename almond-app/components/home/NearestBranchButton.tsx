@@ -73,8 +73,8 @@ export function NearestBranchButton() {
               </View>
             </View>
 
-            <Button title={t('home.pickupHere')} onPress={pickupHere} leadingEmoji="🏃" />
-            <Button title={t('orderType.delivery')} onPress={delivery} variant="outline" leadingEmoji="🛵" />
+            <Button title={t('home.pickupHere')} onPress={pickupHere} leadingIcon="pickup" />
+            <Button title={t('orderType.delivery')} onPress={delivery} variant="outline" leadingIcon="delivery" />
             <Pressable style={styles.mapsLink} onPress={() => openDirections(branch.lat, branch.lng)}>
               <Icon name="navigation" size={18} color={colors.brown} />
               <Text variant="bodyBold" color={colors.brown}>
