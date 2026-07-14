@@ -15,6 +15,10 @@ export const config = {
   // Pay-from-wallet earns +50% beans (Wallet spec §1.2). Applied to the base
   // earn BEFORE the tier multiplier (tier stacks on top). Admin-configurable.
   WALLET_EARN_MULTIPLIER: 1.5,
+  // Hard ceiling on the total earn multiplier so stacking (wallet × bonus-day ×
+  // tier × Friday) can never blow up the margin. E.g. 5 = at most 5× the base
+  // (POINTS_PER_JOD × invoice). Admin-configurable.
+  MAX_EARN_MULTIPLIER: 5,
   // Digital reload bonus beans (pre-commitment lever, adapted from the SB ToU
   // "Digital Reload Bonus Stars"). Highest qualifying tier applies. Admin-set.
   WALLET_RELOAD_BONUS: [
