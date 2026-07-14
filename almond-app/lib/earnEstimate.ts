@@ -18,5 +18,7 @@ export function estimateEarnedPoints(opts: {
   const walletMult = opts.paidFromBalance ? config.WALLET_EARN_MULTIPLIER : 1;
   const base = opts.total * config.POINTS_PER_JOD * walletMult;
   const tierBonus = base * (Math.max(1, opts.tierMultiplier) - 1);
-  return Math.round(base + tierBonus) + comboBonusPoints(opts.items);
+  // Respect the same earn cap the server applies (margin protection).
+  const cap = opts.total * config.POINTS_PER_JOD * config.MAX_EARN_MULTIPLIER;
+  return Math.round(Math.min(base + tierBonus, cap)) + comboBonusPoints(opts.items);
 }

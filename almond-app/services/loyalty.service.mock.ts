@@ -207,7 +207,10 @@ export const mockLoyaltyService: LoyaltyService = {
     const tierBonus = basePoints * (tier.multiplier - 1);
     const friday = isFriday ?? new Date().getDay() === 5;
     const fridayBonus = friday ? basePoints * 0.5 : 0;
-    const pointsEarned = Math.round(basePoints + tierBonus + fridayBonus);
+    // Cap the stacked multiplier so wallet × bonus-day × tier × Friday can never
+    // exceed MAX_EARN_MULTIPLIER × the base earn (margin protection).
+    const earnCap = invoiceAmount * config.POINTS_PER_JOD * config.MAX_EARN_MULTIPLIER;
+    const pointsEarned = Math.round(Math.min(basePoints + tierBonus + fridayBonus, earnCap));
     u.lastEarnAt = Date.now();
 
     u.points += pointsEarned;
