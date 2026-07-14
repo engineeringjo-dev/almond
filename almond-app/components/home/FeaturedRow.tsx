@@ -2,6 +2,7 @@ import { View, StyleSheet, ScrollView, Pressable, Image } from 'react-native';
 import { useMemo, useState } from 'react';
 
 import { Text } from '@/components/ui/Text';
+import { cdnImage } from '@/lib/cdnImage';
 import { Icon } from '@/components/ui/Icon';
 import { ItemModal } from '@/components/menu/ItemModal';
 import { colors, spacing, radius, shadow } from '@/constants/theme';
@@ -39,7 +40,7 @@ export function FeaturedRow() {
           >
             <View style={styles.thumb}>
               {item.imageUrl ? (
-                <Image source={{ uri: item.imageUrl }} style={styles.photo} resizeMode="contain" />
+                <Image source={{ uri: cdnImage(item.imageUrl, 260) }} style={styles.photo} resizeMode="contain" />
               ) : (
                 <Icon name={iconForCategory(item.categoryId)} size={46} color={colors.primary} strokeWidth={1.6} />
               )}
