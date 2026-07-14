@@ -115,7 +115,9 @@
     "welcomeBody": "A free drink on your first order",
     "welcomeCta": "Order now",
     "greetingMorningGuest": "Good morning ☕",
-    "greetingEveningGuest": "Good evening ☕"
+    "greetingEveningGuest": "Good evening ☕",
+    "nudgeCart": "You have {{count}} items in your cart — finish your order",
+    "nudgeExpiry": "Your points expire on {{date}} — redeem them before they're gone"
   },
   "menu": {
     "title": "Menu",

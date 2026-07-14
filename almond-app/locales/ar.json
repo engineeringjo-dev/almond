@@ -115,7 +115,9 @@
     "welcomeBody": "مشروب مجاني مع أول طلب لك",
     "welcomeCta": "اطلب الآن",
     "greetingMorningGuest": "صباح الكيف ☕",
-    "greetingEveningGuest": "مساء الكيف ☕"
+    "greetingEveningGuest": "مساء الكيف ☕",
+    "nudgeCart": "لديك {{count}} صنف بسلتك — أكمل طلبك",
+    "nudgeExpiry": "نقاطك تنتهي في {{date}} — اصرفها قبل فوات الأوان"
   },
   "menu": {
     "title": "القائمة",

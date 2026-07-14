@@ -14,6 +14,7 @@ import { GiftCardHome } from '@/components/home/GiftCardHome';
 import { ActiveOrderBanner } from '@/components/home/ActiveOrderBanner';
 import { WelcomeOffer } from '@/components/home/WelcomeOffer';
 import { FeaturedRow } from '@/components/home/FeaturedRow';
+import { HomeNudge } from '@/components/home/HomeNudge';
 import { PromoCarousel } from '@/components/home/PromoCarousel';
 import { BranchCard } from '@/components/branch/BranchCard';
 import { BranchPicker } from '@/components/branch/BranchPicker';
@@ -59,6 +60,9 @@ export default function HomeScreen() {
         <Text variant="h1" style={styles.greeting}>
           {greetingText}
         </Text>
+
+        {/* Lifecycle nudge: abandoned cart / points expiring (renders only when relevant) */}
+        <HomeNudge />
 
         {/* Live active-order status, front-and-centre (Starbucks pattern) */}
         <View style={styles.section}>
