@@ -1,5 +1,5 @@
-import { useEffect, useRef } from 'react';
-import { View, StyleSheet, Animated } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import { View, StyleSheet, Animated, AccessibilityInfo } from 'react-native';
 import Svg, {
   Defs,
   LinearGradient,
@@ -17,6 +17,8 @@ interface Props {
   current: number;
   target: number;
   size?: number;
+  /** Screen-reader label (localized by the parent); falls back to "X / Y". */
+  label?: string;
 }
 
 const AnimatedRect = Animated.createAnimatedComponent(Rect);
@@ -39,18 +41,27 @@ const FILL_BOTTOM = 127;
 const FILL_TOP = 59;
 const FILL_RANGE = FILL_BOTTOM - FILL_TOP;
 
-export function Cup({ current, target, size = 96 }: Props) {
+export function Cup({ current, target, size = 96, label }: Props) {
   const pct = Math.max(0, Math.min(1, current / target));
   const level = useRef(new Animated.Value(0)).current;
+  const [reduceMotion, setReduceMotion] = useState(false);
 
   useEffect(() => {
+    AccessibilityInfo.isReduceMotionEnabled().then(setReduceMotion).catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    if (reduceMotion) {
+      level.setValue(pct); // respect "reduce motion" — no fill animation
+      return;
+    }
     Animated.spring(level, {
       toValue: pct,
       friction: 7,
       tension: 36,
       useNativeDriver: false,
     }).start();
-  }, [pct, level]);
+  }, [pct, level, reduceMotion]);
 
   const fillY = level.interpolate({ inputRange: [0, 1], outputRange: [FILL_BOTTOM, FILL_TOP] });
   const fillH = level.interpolate({ inputRange: [0, 1], outputRange: [0, FILL_RANGE] });
@@ -62,7 +73,13 @@ export function Cup({ current, target, size = 96 }: Props) {
   const h = size;
 
   return (
-    <View style={[styles.wrap, { width: w, height: h }, nearFull && styles.glow]}>
+    <View
+      style={[styles.wrap, { width: w, height: h }, nearFull && styles.glow]}
+      accessible
+      accessibilityRole="progressbar"
+      accessibilityLabel={label ?? `${Math.floor(current)} / ${target}`}
+      accessibilityValue={{ min: 0, max: target, now: Math.floor(current) }}
+    >
       <Svg width={w} height={h} viewBox="0 0 120 150">
         <Defs>
           <LinearGradient id="coffee" x1="0" y1="0" x2="0" y2="1">

@@ -127,7 +127,9 @@ export const gradients = {
   // violet-only rule — kept colourful per request). Dark text stays readable.
   rainbow: ['#EAF4EC', '#F7F1D4', '#F3D9B6', '#E6A2AF', '#C796C1'] as const,
   // All other hero blocks — lavender → violet-blue.
-  purple: ['#C2B9DB', '#9DAAD1', '#7E84C8', '#6C5CB4'] as const,
+  // Deeper violet range so white text on these heroes clears WCAG contrast
+  // (the old light-lavender start #C2B9DB was ~1.87:1 against white).
+  purple: ['#8478C0', '#7166B6', '#6357A6', '#4E4490'] as const,
 };
 
 /**
