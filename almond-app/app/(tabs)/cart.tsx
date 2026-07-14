@@ -27,7 +27,8 @@ import { useToastStore } from '@/stores/toastStore';
 import { useNearestBranch } from '@/hooks/useNearestBranch';
 import { useAuthStore, useUserId } from '@/stores/authStore';
 import { useCreateOrder } from '@/hooks/useOrder';
-import { useWallet, useInvalidateLoyalty } from '@/hooks/useLoyalty';
+import { useWallet, useInvalidateLoyalty, useLoyaltyBalance } from '@/hooks/useLoyalty';
+import { estimateEarnedPoints } from '@/lib/earnEstimate';
 import { computePickupEstimate } from '@/lib/pickup';
 import { formatJOD } from '@/lib/format';
 import { paymentService } from '@/services/payment.service';
@@ -60,6 +61,7 @@ export default function CartScreen() {
   const userId = useUserId();
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const { data: walletBalance } = useWallet();
+  const { data: loyalty } = useLoyaltyBalance();
   const createOrder = useCreateOrder();
   const invalidateLoyalty = useInvalidateLoyalty();
 
@@ -80,6 +82,16 @@ export default function CartScreen() {
     [branches, branchId],
   );
   const totals = useMemo(() => computeTotals(items, promoDiscount), [items, promoDiscount]);
+  const pointsToEarn = useMemo(
+    () =>
+      estimateEarnedPoints({
+        total: totals.total,
+        items,
+        tierMultiplier: loyalty?.multiplier ?? 1,
+        paidFromBalance: paymentMethod === 'wallet',
+      }),
+    [totals.total, items, loyalty, paymentMethod],
+  );
 
   // If wallet is selected but no longer covers the total, fall back to cash
   // (the wallet option is also disabled in the picker).
@@ -266,7 +278,7 @@ export default function CartScreen() {
             </View>
 
             <View style={styles.section}>
-              <Summary totals={totals} />
+              <Summary totals={totals} pointsToEarn={pointsToEarn} />
             </View>
 
             <View style={styles.section}>
@@ -337,6 +349,7 @@ export default function CartScreen() {
         onClose={() => setReviewOpen(false)}
         items={items}
         totals={totals}
+        pointsToEarn={pointsToEarn}
         branch={branch}
         estimate={estimate}
         isPickup={orderType === 'pickup'}
