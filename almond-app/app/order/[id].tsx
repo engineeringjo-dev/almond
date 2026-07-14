@@ -97,7 +97,7 @@ export default function OrderTracking() {
 
         {order.status === 'completed' ? (
           <View style={styles.completedActions}>
-            <Button title={t('track.reorder')} onPress={reorder} leadingEmoji="🔄" />
+            <Button title={t('track.reorder')} onPress={reorder} leadingIcon="reorder" />
             <Pressable onPress={() => setRatingOpen(true)} hitSlop={8} style={styles.rateLink}>
               <Text variant="bodyBold" color={colors.brown}>
                 ⭐ {t('track.rateTitle', { branch: branchName })}

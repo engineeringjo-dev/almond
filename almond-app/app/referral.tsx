@@ -64,7 +64,7 @@ export default function ReferralScreen() {
                 </Text>
               </View>
             </Card>
-            <Button title={t('referral.share')} onPress={onShare} leadingEmoji="📤" />
+            <Button title={t('referral.share')} onPress={onShare} leadingIcon="share" />
           </>
         )}
       </Screen>

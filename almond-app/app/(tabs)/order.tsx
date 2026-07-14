@@ -381,7 +381,7 @@ function PreviousTab() {
               title={t('order.reorder')}
               variant="outline"
               fullWidth={false}
-              leadingEmoji="🔁"
+              leadingIcon="reorder"
               onPress={() => reorder(o)}
             />
           </View>

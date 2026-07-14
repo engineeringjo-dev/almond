@@ -7,6 +7,7 @@ import {
 } from 'react-native';
 import { colors, radius, spacing, fontFamily, fontSize } from '@/constants/theme';
 import { Text } from './Text';
+import { Icon, type IconName } from './Icon';
 
 type Variant = 'primary' | 'secondary' | 'outline' | 'ghost';
 
@@ -19,6 +20,8 @@ interface Props {
   fullWidth?: boolean;
   style?: ViewStyle;
   leadingEmoji?: string;
+  /** Preferred over leadingEmoji — a single-tone line icon. */
+  leadingIcon?: IconName;
 }
 
 export function Button({
@@ -30,6 +33,7 @@ export function Button({
   fullWidth = true,
   style,
   leadingEmoji,
+  leadingIcon,
 }: Props) {
   const isDisabled = disabled || loading;
   return (
@@ -51,7 +55,11 @@ export function Button({
         <ActivityIndicator color={variant === 'primary' ? '#000000' : colors.gold} />
       ) : (
         <View style={styles.row}>
-          {leadingEmoji ? <Text style={styles.emoji}>{leadingEmoji} </Text> : null}
+          {leadingIcon ? (
+            <Icon name={leadingIcon} size={18} color={labelColor[variant].color} strokeWidth={2} />
+          ) : leadingEmoji ? (
+            <Text style={styles.emoji}>{leadingEmoji} </Text>
+          ) : null}
           <Text style={[styles.label, labelColor[variant]]}>{title}</Text>
         </View>
       )}
@@ -75,7 +83,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.xl,
   },
   fullWidth: { alignSelf: 'stretch' },
-  row: { flexDirection: 'row', alignItems: 'center' },
+  row: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
   // Gold button → white background, black text, thin border for definition on cream.
   primary: {
     backgroundColor: '#FFFFFF',

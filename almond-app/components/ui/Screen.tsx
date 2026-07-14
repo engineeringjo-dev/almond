@@ -10,6 +10,7 @@ import { SafeAreaView, Edge } from 'react-native-safe-area-context';
 import { colors, spacing } from '@/constants/theme';
 import { Text } from './Text';
 import { Button } from './Button';
+import { Icon } from './Icon';
 import { useI18n } from '@/hooks/useI18n';
 
 interface Props {
@@ -56,7 +57,9 @@ export function Screen({
   } else if (error) {
     body = (
       <View style={styles.center}>
-        <Text style={styles.errorEmoji}>⚠️</Text>
+        <View style={styles.errorIcon}>
+          <Icon name="alert" size={40} color={colors.warmGray} strokeWidth={1.8} />
+        </View>
         <Text variant="title" center>{t('common.errorTitle')}</Text>
         <Text variant="caption" color={colors.warmGray} center style={styles.errorBody}>
           {t('common.errorBody')}
@@ -94,6 +97,6 @@ const styles = StyleSheet.create({
   flex: { flex: 1 },
   content: { padding: spacing.lg, paddingBottom: spacing.xxl * 2 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: spacing.xl },
-  errorEmoji: { fontSize: 44, marginBottom: spacing.md },
+  errorIcon: { marginBottom: spacing.md },
   errorBody: { marginVertical: spacing.md },
 });

@@ -135,14 +135,17 @@ export function ItemModal({ item, visible, onClose }: Props) {
           return (
             <View style={styles.nutrition}>
               <View style={styles.nutriPill}>
-                <Text variant="caption" color={colors.dark}>🔥 {t('menu.calories', { n: n.calories })}</Text>
+                <Icon name="flame" size={13} color={colors.dark} strokeWidth={2} />
+                <Text variant="caption" color={colors.dark}>{t('menu.calories', { n: n.calories })}</Text>
               </View>
               <View style={styles.nutriPill}>
-                <Text variant="caption" color={colors.dark}>🍬 {t('menu.sugar', { n: n.sugarG })}</Text>
+                <Icon name="candy" size={13} color={colors.dark} strokeWidth={2} />
+                <Text variant="caption" color={colors.dark}>{t('menu.sugar', { n: n.sugarG })}</Text>
               </View>
               <View style={[styles.nutriPill, n.glutenFree && styles.nutriPillGood]}>
+                <Icon name="wheat" size={13} color={n.glutenFree ? colors.green : colors.warmGray} strokeWidth={2} />
                 <Text variant="caption" color={n.glutenFree ? colors.green : colors.warmGray}>
-                  🌾 {n.glutenFree ? t('menu.glutenFree') : t('menu.containsGluten')}
+                  {n.glutenFree ? t('menu.glutenFree') : t('menu.containsGluten')}
                 </Text>
               </View>
             </View>
@@ -152,8 +155,9 @@ export function ItemModal({ item, visible, onClose }: Props) {
 
       {item.isBrunch ? (
         <View style={styles.brunchBanner}>
-          <Text variant="caption" color={colors.dark}>
-            🍳 {t('menu.brunchOffer')}
+          <Icon name="brunch" size={15} color={colors.dark} strokeWidth={1.9} />
+          <Text variant="caption" color={colors.dark} style={styles.flex}>
+            {t('menu.brunchOffer')}
           </Text>
         </View>
       ) : null}
@@ -182,7 +186,7 @@ export function ItemModal({ item, visible, onClose }: Props) {
       {/* Size upsell (Starbucks "upsize") */}
       {upsell ? (
         <Pressable style={styles.upsell} onPress={() => setSizeId(upsell.size.id)}>
-          <Text style={styles.upsellIcon}>⬆️</Text>
+          <Icon name="arrow-up" size={18} color={colors.dark} strokeWidth={2.2} />
           <Text variant="bodyBold" color={colors.dark} style={styles.flex}>
             {t('menu.upsize', {
               size: lang === 'ar' ? upsell.size.nameAr : upsell.size.nameEn,
@@ -283,6 +287,9 @@ const styles = StyleSheet.create({
   desc: { marginTop: spacing.sm },
   nutrition: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: spacing.sm, marginTop: spacing.md },
   nutriPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
     backgroundColor: colors.neutralWarm,
     borderRadius: radius.pill,
     paddingHorizontal: spacing.md,
@@ -290,6 +297,9 @@ const styles = StyleSheet.create({
   },
   nutriPillGood: { backgroundColor: 'rgba(108,92,180,0.12)' },
   brunchBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
     backgroundColor: colors.lightGold,
     borderRadius: radius.md,
     padding: spacing.md,
@@ -305,7 +315,6 @@ const styles = StyleSheet.create({
     padding: spacing.md,
     marginBottom: spacing.lg,
   },
-  upsellIcon: { fontSize: 16 },
   pairWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
   pairChip: {
     flexDirection: 'row',
