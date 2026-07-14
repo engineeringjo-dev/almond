@@ -19,6 +19,7 @@ interface Props {
   onClose: () => void;
   items: CartItem[];
   totals: CartTotals;
+  pointsToEarn?: number;
   branch?: Branch;
   estimate: PickupEstimate;
   isPickup: boolean;
@@ -37,6 +38,7 @@ export function ReviewSheet({
   onClose,
   items,
   totals,
+  pointsToEarn,
   branch,
   estimate,
   isPickup,
@@ -118,7 +120,7 @@ export function ReviewSheet({
       ) : null}
 
       <View style={styles.summary}>
-        <Summary totals={totals} />
+        <Summary totals={totals} pointsToEarn={pointsToEarn} />
       </View>
     </BottomSheet>
   );

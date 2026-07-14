@@ -172,6 +172,7 @@
     "pointsUse": "Invoice paid with {{beans}} points (100 points = 1 JOD)",
     "pointsInsufficient": "Not enough points for this order",
     "earnAllMethods": "Earn points with every payment method ☕",
+    "earnEstimate": "You'll earn {{points}} points on this order ☕",
     "checkoutError": "Couldn't complete your order — please try again",
     "paymentFailed": "Payment failed — please try again",
     "walletInsufficient": "Wallet balance is not enough for this order",

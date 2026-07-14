@@ -172,6 +172,7 @@
     "pointsUse": "ستُدفع الفاتورة بـ {{points}} نقطة (100 نقطة = 1 د.أ)",
     "pointsInsufficient": "نقاطك لا تكفي لهذا الطلب",
     "earnAllMethods": "تكسب نقاط مع كل طرق الدفع ☕",
+    "earnEstimate": "ستكسب {{points}} نقطة على هذا الطلب ☕",
     "checkoutError": "تعذّر إتمام الطلب، جرّب مرة ثانية",
     "paymentFailed": "فشلت عملية الدفع، جرّب مرة ثانية",
     "walletInsufficient": "رصيد المحفظة لا يكفي لهذا الطلب",

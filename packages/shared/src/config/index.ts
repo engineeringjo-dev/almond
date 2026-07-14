@@ -27,7 +27,7 @@ export const config = {
   BONUS_BEAN_DAY: {
     enabled: true,
     multiplier: 2,
-    weekdays: [0, 1, 2, 3, 4, 5, 6], // demo: every day; admin narrows this
+    weekdays: [2], // one day/week (Tue) keeps the reward scarce; admin can change
     labelAr: 'يوم النقاط المضاعفة',
     labelEn: 'Double Points Day',
   },

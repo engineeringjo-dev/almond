@@ -11,7 +11,9 @@ import { formatJOD } from '@/lib/format';
 import { reloadBonusBeans } from '@/lib/walletBonus';
 import { useWallet, useTopUp } from '@/hooks/useLoyalty';
 
-const TOPUP_OPTIONS = [10, 25, 50];
+// Aligned with the reload-bonus thresholds (20 → +50, 35 → +120) so every
+// button earns a bonus — no "dead" amount below the first threshold.
+const TOPUP_OPTIONS = [20, 35, 50];
 
 export default function WalletScreen() {
   const { t, lang } = useI18n();
