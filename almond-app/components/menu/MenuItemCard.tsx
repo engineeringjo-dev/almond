@@ -1,5 +1,7 @@
+import { memo } from 'react';
 import { Pressable, StyleSheet, View, Image } from 'react-native';
 import { Text } from '@/components/ui/Text';
+import { cdnImage } from '@/lib/cdnImage';
 import { Icon } from '@/components/ui/Icon';
 import { colors, radius, spacing, shadow } from '@/constants/theme';
 import { useI18n } from '@/hooks/useI18n';
@@ -13,7 +15,7 @@ interface Props {
 }
 
 /** Grid tile (2-col). Shows the lowest size price as "from". */
-export function MenuItemCard({ item, onPress }: Props) {
+function MenuItemCardBase({ item, onPress }: Props) {
   const { t, lang } = useI18n();
   const minPrice = Math.min(...item.sizes.map((s) => s.price));
   const soldOut = item.inStock === false;
@@ -27,7 +29,7 @@ export function MenuItemCard({ item, onPress }: Props) {
     >
       <View style={styles.thumb}>
         {item.imageUrl ? (
-          <Image source={{ uri: item.imageUrl }} style={styles.photo} resizeMode="contain" />
+          <Image source={{ uri: cdnImage(item.imageUrl, 320) }} style={styles.photo} resizeMode="contain" />
         ) : (
           <Icon name={iconForCategory(item.categoryId)} size={44} color={colors.brown} strokeWidth={1.6} />
         )}
@@ -59,6 +61,11 @@ export function MenuItemCard({ item, onPress }: Props) {
     </Pressable>
   );
 }
+
+// Menu items are stable references from the query cache, so skip re-rendering a
+// tile unless its item actually changes (e.g. while typing in search). Language
+// changes still flow through the useI18n subscription inside the component.
+export const MenuItemCard = memo(MenuItemCardBase, (prev, next) => prev.item === next.item);
 
 const styles = StyleSheet.create({
   card: {

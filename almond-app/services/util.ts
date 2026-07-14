@@ -1,5 +1,11 @@
+import { Platform } from 'react-native';
+
+// Default mock latency. The old 350ms added a guaranteed lag to every read;
+// keep the live web preview instant and only lightly exercise native skeletons.
+const DEFAULT_DELAY = Platform.OS === 'web' ? 0 : 120;
+
 /** Simulate network latency so loading states are exercised in mock mode. */
-export function delay<T>(value: T, ms = 350): Promise<T> {
+export function delay<T>(value: T, ms = DEFAULT_DELAY): Promise<T> {
   return new Promise((resolve) => setTimeout(() => resolve(value), ms));
 }
 

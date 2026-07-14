@@ -22,6 +22,7 @@ import { useI18n } from '@/hooks/useI18n';
 import { useCategories, useMenuItems } from '@/hooks/useMenu';
 import { useOrderHistory } from '@/hooks/useOrder';
 import { formatJOD, formatDate } from '@/lib/format';
+import { cdnImage } from '@/lib/cdnImage';
 import { iconForCategory, iconForItem } from '@/lib/productIcon';
 import { useFavouritesStore } from '@/stores/favouritesStore';
 import { useCartStore } from '@/stores/cartStore';
@@ -188,6 +189,10 @@ function MenuTab({
       columnWrapperStyle={styles.column}
       contentContainerStyle={styles.list}
       showsVerticalScrollIndicator={false}
+      initialNumToRender={8}
+      maxToRenderPerBatch={8}
+      windowSize={7}
+      removeClippedSubviews
       ListHeaderComponent={
         <View style={styles.menuHeader}>
           <SearchBar value={query} onChangeText={setQuery} placeholder={t('menu.searchPlaceholder')} />
@@ -202,7 +207,7 @@ function MenuTab({
                   <Pressable key={item.id} style={styles.trendItem} onPress={() => onSelect(item)}>
                     <View style={styles.trendThumb}>
                       {item.imageUrl ? (
-                        <Image source={{ uri: item.imageUrl }} style={styles.trendPhoto} resizeMode="cover" />
+                        <Image source={{ uri: cdnImage(item.imageUrl, 200) }} style={styles.trendPhoto} resizeMode="cover" />
                       ) : (
                         <Icon name={iconForCategory(item.categoryId)} size={30} color={colors.brown} strokeWidth={1.6} />
                       )}
@@ -223,11 +228,19 @@ function MenuTab({
           ) : null}
         </View>
       }
-      renderItem={({ item, index }) => (
-        <FadeIn delay={Math.min(index, 8) * 30} style={styles.cardWrap}>
-          <MenuItemCard item={item} onPress={() => onSelect(item)} />
-        </FadeIn>
-      )}
+      renderItem={({ item, index }) =>
+        // Only animate the first screenful; plain rows below avoid per-cell
+        // Animated work while scrolling 267 items.
+        index < 8 ? (
+          <FadeIn delay={index * 30} style={styles.cardWrap}>
+            <MenuItemCard item={item} onPress={() => onSelect(item)} />
+          </FadeIn>
+        ) : (
+          <View style={styles.cardWrap}>
+            <MenuItemCard item={item} onPress={() => onSelect(item)} />
+          </View>
+        )
+      }
       ListEmptyComponent={
         <View style={styles.empty}>
           <Text style={styles.emptyEmoji}>🔍</Text>

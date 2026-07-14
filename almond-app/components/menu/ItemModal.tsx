@@ -3,6 +3,7 @@ import { View, StyleSheet, Pressable, Image } from 'react-native';
 
 import { BottomSheet } from '@/components/ui/BottomSheet';
 import { Text } from '@/components/ui/Text';
+import { cdnImage } from '@/lib/cdnImage';
 import { Button } from '@/components/ui/Button';
 import { Stepper } from '@/components/ui/Stepper';
 import { Icon } from '@/components/ui/Icon';
@@ -113,7 +114,7 @@ export function ItemModal({ item, visible, onClose }: Props) {
         </Pressable>
         <View style={styles.thumb}>
           {item.imageUrl ? (
-            <Image source={{ uri: item.imageUrl }} style={styles.photo} resizeMode="contain" />
+            <Image source={{ uri: cdnImage(item.imageUrl, 560) }} style={styles.photo} resizeMode="contain" />
           ) : (
             <Icon name={iconForCategory(item.categoryId)} size={52} color={colors.brown} strokeWidth={1.6} />
           )}
