@@ -1,0 +1,26 @@
+{
+  "name": "@almond/bff",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Almond backend-for-frontend: server-authoritative money & loyalty API. Holds secrets, issues JWTs, enforces idempotency, runs the atomic checkout saga, and adapts to Odoo 19 (in-memory adapter today).",
+  "type": "module",
+  "main": "src/server.ts",
+  "scripts": {
+    "dev": "tsx watch src/server.ts",
+    "start": "tsx src/server.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@almond/shared": "*",
+    "@fastify/jwt": "^9.0.3",
+    "fastify": "^5.2.1",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "tsx": "^4.19.2",
+    "typescript": "~5.9.2",
+    "vitest": "^2.1.8"
+  }
+}

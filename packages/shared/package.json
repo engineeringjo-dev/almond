@@ -17,6 +17,7 @@
     "./menu/menu.generated": "./src/menu/menu.generated.ts",
     "./menu/seed": "./src/menu/seed.ts",
     "./lib/categoryKind": "./src/lib/categoryKind.ts",
+    "./lib/combo": "./src/lib/combo.ts",
     "./lib/format": "./src/lib/format.ts",
     "./lib/recommendations": "./src/lib/recommendations.ts",
     "./cart": "./src/cart/index.ts"
