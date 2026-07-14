@@ -6,7 +6,8 @@
   "workspaces": [
     "packages/*",
     "almond-app",
-    "almond-web"
+    "almond-web",
+    "bff"
   ],
   "scripts": {
     "shared:typecheck": "npm run typecheck --workspace @almond/shared",
