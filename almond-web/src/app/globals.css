@@ -1,0 +1,43 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply bg-background text-text-primary font-sans antialiased;
+  }
+
+  /* Headings use Bold (the family has no medium weight — handoff §3). */
+  h1,
+  h2,
+  h3 {
+    @apply font-bold text-text-primary;
+    text-wrap: balance;
+  }
+}
+
+@layer components {
+  /* Centered page container with responsive gutters. */
+  .container-content {
+    @apply mx-auto w-full max-w-content px-5 md:px-8;
+  }
+
+  /* Product thumbnail frame: white, square, contained (handoff §4). */
+  .product-thumb {
+    @apply relative aspect-square w-full overflow-hidden rounded-lg bg-white;
+  }
+}
+
+/* Hide scrollbars on horizontal rails while keeping them scrollable. */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}

@@ -4,7 +4,9 @@
     "strict": true,
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./*"]
+      "@/*": ["./*"],
+      "@almond/shared": ["../packages/shared/src/index.ts"],
+      "@almond/shared/*": ["../packages/shared/src/*"]
     },
     "resolveJsonModule": true,
     "esModuleInterop": true

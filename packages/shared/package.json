@@ -1,0 +1,31 @@
+{
+  "name": "@almond/shared",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Single source of truth (types, theme, menu, loyalty constants, format) shared by almond-app and almond-web.",
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./types": "./src/types/index.ts",
+    "./theme": "./src/theme/index.ts",
+    "./config": "./src/config/index.ts",
+    "./integration": "./src/integration/index.ts",
+    "./loyalty": "./src/loyalty/index.ts",
+    "./menu": "./src/menu/index.ts",
+    "./menu/menu.generated": "./src/menu/menu.generated.ts",
+    "./menu/seed": "./src/menu/seed.ts",
+    "./lib/categoryKind": "./src/lib/categoryKind.ts",
+    "./lib/format": "./src/lib/format.ts",
+    "./lib/recommendations": "./src/lib/recommendations.ts",
+    "./cart": "./src/cart/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "~5.9.2"
+  }
+}

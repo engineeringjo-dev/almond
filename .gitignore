@@ -1,7 +1,11 @@
-# Root-level junk must never be committed. Each app has its own package.json
-# inside its folder (almond-app/, admin-panel/).
+# The repo root is an npm-workspaces monorepo (almond-app/, almond-web/,
+# packages/shared/). The root package.json + lockfile ARE the workspace manifest
+# and must be committed; only build output / local junk is ignored.
 node_modules/
-/package.json
-/package-lock.json
 .DS_Store
 *.log
+
+# Next.js (almond-web) build output
+almond-web/.next/
+almond-web/out/
+almond-web/next-env.d.ts
