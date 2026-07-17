@@ -4,6 +4,7 @@ import { Icon } from '@/components/ui/Icon';
 import { colors, spacing, radius } from '@/constants/theme';
 import { useI18n } from '@/hooks/useI18n';
 import { formatJOD, formatNumber } from '@/lib/format';
+import { config } from '@/constants/config';
 import type { CartTotals } from '@/stores/cartStore';
 
 export function Summary({ totals, pointsToEarn }: { totals: CartTotals; pointsToEarn?: number }) {
@@ -18,7 +19,7 @@ export function Summary({ totals, pointsToEarn }: { totals: CartTotals; pointsTo
           color={colors.green}
         />
       ) : null}
-      <Row label={t('cart.tax')} value={formatJOD(totals.tax, lang)} />
+      <Row label={t('cart.tax', { rate: Math.round(config.TAX_RATE * 100) })} value={formatJOD(totals.tax, lang)} />
       <View style={styles.divider} />
       <Row label={t('cart.total')} value={formatJOD(totals.total, lang)} bold />
 

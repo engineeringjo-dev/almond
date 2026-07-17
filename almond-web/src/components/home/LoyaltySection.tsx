@@ -35,7 +35,7 @@ export function LoyaltySection() {
           </div>
           <div className="flex flex-col items-center gap-3">
             <div className="w-36 text-white">
-              <Cup current={current} target={target} />
+              <Cup current={current} target={target} decorative />
             </div>
             <span className="rounded-pill bg-white/15 px-4 py-1.5 text-sm font-bold">
               {t('cupLabel', { current: formatNumber(current, lang), target: formatNumber(target, lang) })}

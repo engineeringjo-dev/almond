@@ -64,7 +64,7 @@ export function Header() {
           <LanguageSwitcher className="hidden sm:inline-flex" />
           <Link
             href="/rewards"
-            aria-label={`${t('rewards')}: ${formatNumber(points, lang)} ${t('points')}`}
+            aria-label={mounted ? `${t('rewards')}: ${formatNumber(points, lang)} ${t('points')}` : t('rewards')}
             className="inline-flex h-10 items-center gap-1.5 rounded-pill bg-accent-light px-3 text-sm font-bold text-primary-dark transition-colors hover:bg-primary hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
           >
             <Coffee className="h-4 w-4" aria-hidden />

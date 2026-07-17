@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
 import { Search, X } from 'lucide-react';
 import type { Category, MenuItem } from '@almond/shared/types';
-import { applyOverlay, getItemById } from '@/data/menu';
+import { applyOverlay } from '@/data/menu';
 import { getFeaturedItems } from '@/data/featured';
 import { useMenuOverlay } from '@/store/menuOverlayStore';
 import { useRecentStore } from '@/store/recentStore';
@@ -44,17 +44,16 @@ export function MenuBrowser({ sections }: { sections: Section[] }) {
   // Recently viewed (localStorage) → shown after mount to avoid a hydration gap,
   // filtered to items still visible in the menu.
   const recentIds = useRecentStore((s) => s.ids);
-  const visibleIds = useMemo(
-    () => new Set(merged.flatMap((s) => s.items.map((i) => i.id))),
-    [merged],
-  );
+  // Resolve recent ids against overlay-applied items (same admin edits + hidden
+  // filtering as the rest of the menu) so prices/availability never go stale.
+  const byId = useMemo(() => {
+    const map = new Map<string, MenuItem>();
+    for (const s of merged) for (const it of s.items) map.set(it.id, it);
+    return map;
+  }, [merged]);
   const recentItems = useMemo(
-    () =>
-      recentIds
-        .map((id) => getItemById(id))
-        .filter((i): i is MenuItem => !!i && visibleIds.has(i.id))
-        .slice(0, 6),
-    [recentIds, visibleIds],
+    () => recentIds.map((id) => byId.get(id)).filter((i): i is MenuItem => !!i).slice(0, 6),
+    [recentIds, byId],
   );
 
   const results = useMemo(() => {

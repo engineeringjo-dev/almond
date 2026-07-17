@@ -16,9 +16,15 @@ function luminance(hex: string): number {
 const DARK = '#2E2552';
 const WHITE = '#FFFFFF';
 
-/** Returns white or deep violet — whichever clears AA (4.5:1) on `bgHex`. */
+/** Contrast ratio between two WCAG relative luminances. */
+function ratio(l1: number, l2: number): number {
+  const hi = Math.max(l1, l2);
+  const lo = Math.min(l1, l2);
+  return (hi + 0.05) / (lo + 0.05);
+}
+
+/** Returns white or deep violet — whichever has the higher contrast on `bgHex`. */
 export function readableTextOn(bgHex: string): string {
-  const l = luminance(bgHex);
-  const contrastWithWhite = 1.05 / (l + 0.05);
-  return contrastWithWhite >= 4.5 ? WHITE : DARK;
+  const bg = luminance(bgHex);
+  return ratio(luminance(WHITE), bg) >= ratio(luminance(DARK), bg) ? WHITE : DARK;
 }

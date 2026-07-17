@@ -130,13 +130,12 @@ export function ItemConfigurator({ item: baseItem }: { item: MenuItem }) {
               <h2 className="text-sm font-bold uppercase tracking-wide text-text-secondary">
                 {t('size')}
               </h2>
-              <div className="mt-3 flex flex-wrap gap-2" role="radiogroup" aria-label={t('size')}>
+              <div className="mt-3 flex flex-wrap gap-2" role="group" aria-label={t('size')}>
                 {item.sizes.map((s) => (
                   <button
                     key={s.id}
                     type="button"
-                    role="radio"
-                    aria-checked={s.id === sizeId}
+                    aria-pressed={s.id === sizeId}
                     onClick={() => setSizeId(s.id)}
                     className={cn(
                       'rounded-pill border px-4 py-2 text-sm font-bold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2',
@@ -175,15 +174,14 @@ export function ItemConfigurator({ item: baseItem }: { item: MenuItem }) {
               <h2 id={`cg-${g.id}`} className="text-sm font-bold uppercase tracking-wide text-text-secondary">
                 {tr(g.nameAr, g.nameEn)}
               </h2>
-              <div className="mt-3 space-y-2" role={g.multiple ? 'group' : 'radiogroup'} aria-labelledby={`cg-${g.id}`}>
+              <div className="mt-3 space-y-2" role="group" aria-labelledby={`cg-${g.id}`}>
                 {g.options.map((o) => {
                   const selected = (selection[g.id] ?? []).includes(o.id);
                   return (
                     <button
                       key={o.id}
                       type="button"
-                      role={g.multiple ? 'checkbox' : 'radio'}
-                      aria-checked={selected}
+                      aria-pressed={selected}
                       onClick={() => toggle(g.id, o.id, g.multiple)}
                       className={cn(
                         'flex w-full items-center justify-between rounded-md border px-4 py-3 text-start transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2',

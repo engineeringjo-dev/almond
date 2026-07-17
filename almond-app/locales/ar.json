@@ -164,7 +164,7 @@
     "promoApplied": "تم تطبيق الرمز",
     "promoInvalid": "رمز غير صالح",
     "subtotal": "المجموع الفرعي",
-    "tax": "الضريبة (16%)",
+    "tax": "الضريبة ({{rate}}%)",
     "discount": "الخصم",
     "total": "الإجمالي",
     "paymentMethod": "طريقة الدفع",
