@@ -29,7 +29,7 @@ export function Hero() {
           </div>
         </div>
         <div className="mx-auto w-40 text-primary-dark drop-shadow-sm md:w-56">
-          <Cup current={6} />
+          <Cup current={6} decorative />
         </div>
       </div>
     </section>

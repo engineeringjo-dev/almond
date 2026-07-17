@@ -7,6 +7,8 @@ import { useLoyaltyStore } from '@/store/loyaltyStore';
 import { REWARDS, tierProgress } from '@/data/loyalty';
 import { Cup } from '@/components/ui/Cup';
 import { asLang, formatDate, formatJOD, formatNumber } from '@/lib/format';
+import { readableTextOn } from '@/lib/contrast';
+import { PageSkeleton } from '@/components/ui/Skeleton';
 import { cn } from '@/lib/cn';
 
 export function RewardsView() {
@@ -24,10 +26,13 @@ export function RewardsView() {
   const [flash, setFlash] = useState<string | null>(null);
   useEffect(() => setMounted(true), []);
 
-  if (!mounted) return <div className="container-content min-h-[50vh] py-xl" />;
+  if (!mounted) return <PageSkeleton />;
 
   const tp = tierProgress(windowSpend);
   const tr = (ar: string, en: string) => (lang === 'ar' ? ar : en);
+  const nextTierLabel = tp.next
+    ? t('toNextTier', { amount: formatJOD(tp.remaining, lang), tier: tr(tp.next.nameAr, tp.next.nameEn) })
+    : t('topTier');
 
   const onRedeem = (id: string, cost: number) => {
     const reward = REWARDS.find((r) => r.id === id);
@@ -51,21 +56,21 @@ export function RewardsView() {
           <div className="mt-5">
             <div className="flex items-center justify-between text-sm">
               <span
-                className="rounded-pill px-3 py-1 font-bold text-white"
-                style={{ backgroundColor: tp.current.color }}
+                className="rounded-pill px-3 py-1 font-bold"
+                style={{ backgroundColor: tp.current.color, color: readableTextOn(tp.current.color) }}
               >
                 {tr(tp.current.nameAr, tp.current.nameEn)}
               </span>
-              <span className="text-white/80">
-                {tp.next
-                  ? t('toNextTier', {
-                      amount: formatJOD(tp.remaining, lang),
-                      tier: tr(tp.next.nameAr, tp.next.nameEn),
-                    })
-                  : t('topTier')}
-              </span>
+              <span className="text-white/80">{nextTierLabel}</span>
             </div>
-            <div className="mt-2 h-2 overflow-hidden rounded-pill bg-white/25">
+            <div
+              className="mt-2 h-2 overflow-hidden rounded-pill bg-white/25"
+              role="progressbar"
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-valuenow={Math.round(tp.ratio * 100)}
+              aria-label={nextTierLabel}
+            >
               <div className="h-full rounded-pill bg-white" style={{ width: `${tp.ratio * 100}%` }} />
             </div>
           </div>
@@ -73,16 +78,19 @@ export function RewardsView() {
 
         <div className="flex items-center gap-4 rounded-xl border border-neutral-warm bg-card p-6 shadow-card">
           <div className="w-20 shrink-0 text-primary">
-            <Cup current={cup.current} target={cup.target} />
+            <Cup current={cup.current} target={cup.target} decorative />
           </div>
           <p className="text-sm text-text-secondary">
-            {t('cupProgress', { current: cup.current, target: cup.target })}
+            {t('cupProgress', {
+              current: formatNumber(cup.current, lang),
+              target: formatNumber(cup.target, lang),
+            })}
           </p>
         </div>
       </div>
 
       <p className="mt-3 flex items-center gap-2 text-sm text-text-secondary">
-        <Sparkles className="h-4 w-4 text-primary" />
+        <Sparkles className="h-4 w-4 text-primary" aria-hidden />
         {t('earnRate')}
       </p>
 
@@ -98,13 +106,13 @@ export function RewardsView() {
               className="flex flex-col rounded-lg border border-neutral-warm bg-card p-4 shadow-card"
             >
               <h3 className="font-bold">{tr(r.titleAr, r.titleEn)}</h3>
-              <p className="mt-1 text-sm text-text-secondary">{t('cost', { cost: r.cost })}</p>
+              <p className="mt-1 text-sm text-text-secondary">{t('cost', { cost: formatNumber(r.cost, lang) })}</p>
               <button
                 type="button"
                 disabled={!affordable || done}
                 onClick={() => onRedeem(r.id, r.cost)}
                 className={cn(
-                  'mt-4 inline-flex h-10 items-center justify-center gap-1 rounded-pill px-4 text-sm font-bold transition-colors',
+                  'mt-4 inline-flex h-10 items-center justify-center gap-1 rounded-pill px-4 text-sm font-bold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2',
                   done
                     ? 'bg-success text-white'
                     : affordable
@@ -114,7 +122,7 @@ export function RewardsView() {
               >
                 {done ? (
                   <>
-                    <Check className="h-4 w-4" /> {t('redeemed')}
+                    <Check className="h-4 w-4" aria-hidden /> {t('redeemed')}
                   </>
                 ) : affordable ? (
                   t('redeem')
@@ -141,13 +149,13 @@ export function RewardsView() {
                   className="flex items-center justify-between rounded-lg border border-dashed border-primary bg-accent-light px-4 py-3"
                 >
                   <div>
-                    <p className="font-bold text-primary">{tr(v.titleAr, v.titleEn)}</p>
+                    <p className="font-bold text-primary-dark">{tr(v.titleAr, v.titleEn)}</p>
                     <p className="text-xs text-text-secondary">
                       {t('expires', { date: formatDate(v.expiresAt, lang) })}
                     </p>
                   </div>
                   {v.type === 'credit' && v.value != null && (
-                    <span className="font-bold text-primary">{formatJOD(v.value, lang)}</span>
+                    <span className="font-bold text-primary-dark">{formatJOD(v.value, lang)}</span>
                   )}
                 </div>
               ))

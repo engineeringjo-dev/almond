@@ -6,7 +6,7 @@ import { RotateCcw } from 'lucide-react';
 import { useOrderStore } from '@/store/orderStore';
 import { useCartStore } from '@/store/cartStore';
 import { useRouter } from '@/i18n/navigation';
-import { asLang, formatJOD } from '@/lib/format';
+import { asLang, formatJOD, formatNumber } from '@/lib/format';
 
 /** "Your usual" — one-tap reorder of the last placed order (Starbucks pattern). */
 export function HomeUsual() {
@@ -36,7 +36,7 @@ export function HomeUsual() {
           <p className="text-sm font-bold text-text-secondary">{t('title')}</p>
           <p className="mt-1 line-clamp-1 text-lg font-bold">{names}</p>
           <p className="text-sm text-text-secondary">
-            {t('items', { count: lastOrder.items.length })} · {formatJOD(lastOrder.total, lang)}
+            {t('items', { count: formatNumber(lastOrder.items.length, lang) })} · {formatJOD(lastOrder.total, lang)}
           </p>
         </div>
         <button

@@ -5,7 +5,8 @@ import { useLocale, useTranslations } from 'next-intl';
 import { Sparkles, Wallet } from 'lucide-react';
 import { useLoyaltyStore } from '@/store/loyaltyStore';
 import { TOPUP_AMOUNTS, reloadBonus } from '@/data/loyalty';
-import { asLang, formatDate, formatJOD } from '@/lib/format';
+import { asLang, formatDate, formatJOD, formatNumber } from '@/lib/format';
+import { PageSkeleton } from '@/components/ui/Skeleton';
 
 export function WalletView() {
   const t = useTranslations('Wallet');
@@ -16,7 +17,7 @@ export function WalletView() {
 
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
-  if (!mounted) return <div className="container-content min-h-[50vh] py-xl" />;
+  if (!mounted) return <PageSkeleton />;
 
   return (
     <div className="container-content py-xl">
@@ -51,8 +52,8 @@ export function WalletView() {
                 >
                   <span className="text-lg font-bold text-primary">{formatJOD(amount, lang)}</span>
                   {bonus > 0 && (
-                    <span className="rounded-pill bg-accent-light px-2 py-0.5 text-xs font-bold text-primary">
-                      {t('bonusBeans', { beans: bonus })}
+                    <span className="rounded-pill bg-accent-light px-2 py-0.5 text-xs font-bold text-primary-dark">
+                      {t('bonusBeans', { beans: formatNumber(bonus, lang) })}
                     </span>
                   )}
                 </button>

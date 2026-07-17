@@ -30,7 +30,8 @@ export function CategoryRail({ items }: { items: RailItem[] }) {
     const el = document.getElementById(`cat-${id}`);
     if (!el) return;
     const y = el.getBoundingClientRect().top + window.scrollY - 112;
-    window.scrollTo({ top: y, behavior: 'smooth' });
+    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    window.scrollTo({ top: y, behavior: reduce ? 'auto' : 'smooth' });
   };
 
   return (
@@ -40,8 +41,9 @@ export function CategoryRail({ items }: { items: RailItem[] }) {
           key={it.id}
           type="button"
           onClick={() => go(it.id)}
+          aria-current={active === it.id ? 'true' : undefined}
           className={cn(
-            'shrink-0 rounded-pill px-4 py-1.5 text-sm font-bold transition-colors',
+            'shrink-0 rounded-pill px-4 py-1.5 text-sm font-bold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2',
             active === it.id
               ? 'bg-primary text-white'
               : 'bg-neutral-warm text-text-primary hover:bg-accent-light',

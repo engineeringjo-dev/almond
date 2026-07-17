@@ -6,8 +6,9 @@ import { CheckCircle2, Sparkles } from 'lucide-react';
 import { useOrderStore } from '@/store/orderStore';
 import { comboBonusPoints } from '@almond/shared/lib/combo';
 import { estimatedBeans } from '@/data/order';
-import { asLang, formatJOD } from '@/lib/format';
+import { asLang, formatJOD, formatNumber } from '@/lib/format';
 import { Button } from '@/components/ui/Button';
+import { PageSkeleton } from '@/components/ui/Skeleton';
 
 function Row({ label, value }: { label: string; value: string }) {
   return (
@@ -27,7 +28,7 @@ export function OrderSuccessView() {
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
 
-  if (!mounted) return <div className="container-content min-h-[50vh] py-xl" />;
+  if (!mounted) return <PageSkeleton />;
 
   if (!order) {
     return (
@@ -55,11 +56,11 @@ export function OrderSuccessView() {
         <div className="my-3 border-t border-neutral-warm" />
         <div className="flex items-center justify-between">
           <span className="flex items-center gap-2 font-bold text-primary">
-            <Sparkles className="h-4 w-4" />
-            {t('beansEarned', { beans })}
+            <Sparkles className="h-4 w-4" aria-hidden />
+            {t('beansEarned', { beans: formatNumber(beans, lang) })}
           </span>
-          <span className="rounded-pill bg-accent-light px-3 py-1 text-sm font-bold text-primary">
-            {t('readyIn', { minutes: order.prepMinutes })}
+          <span className="rounded-pill bg-accent-light px-3 py-1 text-sm font-bold text-primary-dark">
+            {t('readyIn', { minutes: formatNumber(order.prepMinutes, lang) })}
           </span>
         </div>
       </div>

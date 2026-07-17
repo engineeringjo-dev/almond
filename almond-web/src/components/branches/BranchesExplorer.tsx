@@ -51,11 +51,11 @@ export function BranchesExplorer({ branches }: { branches: Branch[] }) {
       </div>
 
       {nearest && (
-        <div className="mt-4 flex flex-wrap items-center gap-2 rounded-lg bg-accent-light px-4 py-3 text-sm font-bold text-primary">
-          <MapPin className="h-4 w-4 shrink-0" />
+        <div className="mt-4 flex flex-wrap items-center gap-2 rounded-lg bg-accent-light px-4 py-3 text-sm font-bold text-primary-dark">
+          <MapPin className="h-4 w-4 shrink-0" aria-hidden />
           {t('nearest')}: {lang === 'ar' ? nearest.branch.nameAr : nearest.branch.nameEn}
           {nearest.distanceKm != null && (
-            <span className="text-text-secondary">
+            <span className="text-primary-dark/80">
               · {t('away', { km: formatNumber(Number(nearest.distanceKm.toFixed(1)), lang) })}
             </span>
           )}

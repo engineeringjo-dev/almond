@@ -1,12 +1,24 @@
-import { useTranslations } from 'next-intl';
+'use client';
+
+import { useEffect, useState } from 'react';
+import { useLocale, useTranslations } from 'next-intl';
 import { Cup } from '@/components/ui/Cup';
 import { Button } from '@/components/ui/Button';
+import { useLoyaltyStore } from '@/store/loyaltyStore';
+import { asLang, formatNumber } from '@/lib/format';
 import { config } from '@/lib/config';
 
 export function LoyaltySection() {
   const t = useTranslations('Home.loyalty');
-  const current = 6;
-  const target = config.CUP_TARGET;
+  const lang = asLang(useLocale());
+  const cup = useLoyaltyStore((s) => s.cup);
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+
+  // Before mount, render the store's seed (6 / CUP_TARGET) so SSR and the first
+  // client paint match; after mount, reflect the member's real cup progress.
+  const current = mounted ? cup.current : 6;
+  const target = mounted ? cup.target : config.CUP_TARGET;
 
   return (
     <section className="container-content py-xl">
@@ -26,7 +38,7 @@ export function LoyaltySection() {
               <Cup current={current} target={target} />
             </div>
             <span className="rounded-pill bg-white/15 px-4 py-1.5 text-sm font-bold">
-              {t('cupLabel', { current, target })}
+              {t('cupLabel', { current: formatNumber(current, lang), target: formatNumber(target, lang) })}
             </span>
           </div>
         </div>

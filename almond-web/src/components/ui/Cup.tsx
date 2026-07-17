@@ -5,6 +5,9 @@ type CupProps = {
   current?: number;
   target?: number;
   className?: string;
+  /** When the progress is already conveyed by adjacent text, mark the SVG
+   *  decorative so screen readers don't announce it twice. */
+  decorative?: boolean;
 };
 
 /**
@@ -13,7 +16,7 @@ type CupProps = {
  * the web (mirrors the app's components/loyalty/Cup.tsx). Uses `currentColor`,
  * so set the colour with a Tailwind text-* class on the wrapper.
  */
-export function Cup({ current = 6, target = config.CUP_TARGET, className }: CupProps) {
+export function Cup({ current = 6, target = config.CUP_TARGET, className, decorative = false }: CupProps) {
   const ratio = Math.max(0, Math.min(1, target > 0 ? current / target : 0));
   // Interior of the cup runs from y=44 (under the lid) to y=150 (base).
   const top = 44;
@@ -24,8 +27,9 @@ export function Cup({ current = 6, target = config.CUP_TARGET, className }: CupP
     <svg
       viewBox="0 0 140 170"
       className={cn('text-primary', className)}
-      role="img"
-      aria-label={`${current} / ${target}`}
+      {...(decorative
+        ? { 'aria-hidden': true }
+        : { role: 'img', 'aria-label': `${current} / ${target}` })}
     >
       <defs>
         <clipPath id="almond-cup-clip">

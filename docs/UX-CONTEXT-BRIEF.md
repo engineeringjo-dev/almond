@@ -91,7 +91,7 @@ Right side: language switcher, account/login icon, **cart icon with live count b
 Earn **5 pts/JOD** · redeem **100 pts = 1 JOD** · pay-from-wallet earns **×1.5** points ·
 bonus-day **×2** · tiers **bean→silver→gold→black** (×1.0/1.25/1.5/2.0) from rolling
 12-month spend (0/100/300/750 JOD) · **free-drink cup fills at 10 drinks** (1 head-start) ·
-**16% VAT**. Order types: **pickup (first-class, curbside), dine-in, delivery (redirect to
+**8% sales tax**. Order types: **pickup (first-class, curbside), dine-in, delivery (redirect to
 Careem/Talabat)**. Payments: Wallet, CliQ, Cash, Visa, Mastercard, PayPal.
 
 ## 9. UX already shipped (the baseline — don't re-do these)

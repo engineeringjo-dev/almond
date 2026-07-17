@@ -14,12 +14,13 @@ import { useOrderStore } from '@/store/orderStore';
 import { useRouter } from '@/i18n/navigation';
 import { DELIVERY_ETA, DELIVERY_FEE, dispatchDelivery } from '@/data/delivery';
 import { payForOrder } from '@/data/payment';
-import { asLang, formatJOD } from '@/lib/format';
+import { asLang, formatJOD, formatNumber } from '@/lib/format';
 import { OrderTypeTabs } from './OrderTypeTabs';
 import { BranchPicker } from './BranchPicker';
 import { PaymentMethods } from './PaymentMethods';
 import { CartSummary } from '@/components/cart/CartSummary';
 import { Button } from '@/components/ui/Button';
+import { PageSkeleton } from '@/components/ui/Skeleton';
 
 function SectionTitle({ children }: { children: React.ReactNode }) {
   return <h2 className="mb-3 text-lg">{children}</h2>;
@@ -54,7 +55,7 @@ export function CheckoutView() {
   const beans = estimatedBeans(totals.total) + comboBonusPoints(items);
   const isDelivery = orderType === 'delivery';
 
-  if (!mounted) return <div className="container-content min-h-[50vh] py-xl" />;
+  if (!mounted) return <PageSkeleton />;
 
   if (items.length === 0) {
     return (
@@ -115,7 +116,7 @@ export function CheckoutView() {
                 value={deliveryAddress}
                 onChange={(e) => setDeliveryAddress(e.target.value)}
                 placeholder={t('deliveryAddressPlaceholder')}
-                className="w-full rounded-md border border-neutral-warm bg-card px-4 py-2 outline-none focus:border-primary"
+                className="w-full rounded-md border border-neutral-warm bg-card px-4 py-2 outline-none focus:border-primary focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1"
               />
               {error && !deliveryAddress.trim() && (
                 <p className="mt-2 text-sm text-error">{t('enterAddress')}</p>
@@ -161,12 +162,12 @@ export function CheckoutView() {
                   {formatJOD(totals.total + DELIVERY_FEE, lang)}
                 </span>
               </div>
-              <p className="text-xs text-text-secondary">{t('deliveryEta', { min: DELIVERY_ETA })}</p>
+              <p className="text-xs text-text-secondary">{t('deliveryEta', { min: formatNumber(DELIVERY_ETA, lang) })}</p>
             </div>
           )}
-          <div className="flex items-center gap-2 rounded-md bg-accent-light p-3 text-sm font-bold text-primary">
-            <Sparkles className="h-4 w-4 shrink-0" />
-            {t('earnBeans', { beans })}
+          <div className="flex items-center gap-2 rounded-md bg-accent-light p-3 text-sm font-bold text-primary-dark">
+            <Sparkles className="h-4 w-4 shrink-0" aria-hidden />
+            {t('earnBeans', { beans: formatNumber(beans, lang) })}
           </div>
           <Button size="lg" className="w-full" onClick={place}>
             {t('placeOrder')}

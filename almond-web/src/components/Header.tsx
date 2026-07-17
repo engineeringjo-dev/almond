@@ -1,14 +1,16 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useTranslations } from 'next-intl';
-import { Menu, ShoppingBag, User, X } from 'lucide-react';
+import { useLocale, useTranslations } from 'next-intl';
+import { Coffee, Menu, ShoppingBag, User, X } from 'lucide-react';
 import { Link, usePathname } from '@/i18n/navigation';
 import { Logo } from '@/components/ui/Logo';
 import { Button } from '@/components/ui/Button';
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 import { useCartCount } from '@/store/cartStore';
+import { useLoyaltyStore } from '@/store/loyaltyStore';
 import { useAuthStore } from '@/store/authStore';
+import { asLang, formatNumber } from '@/lib/format';
 import { cn } from '@/lib/cn';
 
 const NAV = [
@@ -26,6 +28,8 @@ export function Header() {
   // Cart count — only after mount, to avoid an SSR/localStorage hydration mismatch.
   const count = useCartCount();
   const user = useAuthStore((s) => s.user);
+  const points = useLoyaltyStore((s) => s.points);
+  const lang = asLang(useLocale());
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
 
@@ -58,6 +62,14 @@ export function Header() {
         {/* Actions */}
         <div className="flex items-center gap-2">
           <LanguageSwitcher className="hidden sm:inline-flex" />
+          <Link
+            href="/rewards"
+            aria-label={`${t('rewards')}: ${formatNumber(points, lang)} ${t('points')}`}
+            className="inline-flex h-10 items-center gap-1.5 rounded-pill bg-accent-light px-3 text-sm font-bold text-primary-dark transition-colors hover:bg-primary hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+          >
+            <Coffee className="h-4 w-4" aria-hidden />
+            <span className="tabular-nums">{mounted ? formatNumber(points, lang) : ''}</span>
+          </Link>
           <Link
             href={mounted && user ? '/account' : '/login'}
             aria-label={mounted && user ? t('account') : t('login')}

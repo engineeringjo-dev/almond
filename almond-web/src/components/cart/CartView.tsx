@@ -1,21 +1,24 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { ShoppingBag } from 'lucide-react';
 import { computeTotals } from '@almond/shared/cart';
 import { getCartCrossSell } from '@almond/shared/lib/recommendations';
 import { useCartStore } from '@/store/cartStore';
 import { useLoyaltyStore } from '@/store/loyaltyStore';
+import { asLang, formatNumber } from '@/lib/format';
 import { CartLine } from './CartLine';
 import { ComboBanner } from './ComboBanner';
 import { CartSummary } from './CartSummary';
 import { PromoInput } from './PromoInput';
 import { MenuItemCard } from '@/components/menu/MenuItemCard';
 import { Button } from '@/components/ui/Button';
+import { PageSkeleton } from '@/components/ui/Skeleton';
 
 export function CartView() {
   const t = useTranslations('Cart');
+  const lang = asLang(useLocale());
   const items = useCartStore((s) => s.items);
   const promoDiscount = useCartStore((s) => s.promoDiscount);
   const cup = useLoyaltyStore((s) => s.cup);
@@ -27,7 +30,7 @@ export function CartView() {
   const totals = useMemo(() => computeTotals(items, promoDiscount), [items, promoDiscount]);
   const crossSell = useMemo(() => getCartCrossSell(items, 4), [items]);
 
-  if (!mounted) return <div className="container-content min-h-[50vh] py-xl" />;
+  if (!mounted) return <PageSkeleton />;
 
   if (items.length === 0) {
     return (
@@ -54,12 +57,19 @@ export function CartView() {
           <ComboBanner />
           {/* Free-drink progress nudge (drives AOV; ties loyalty to the cart). */}
           <div className="mb-6 rounded-lg bg-accent-light px-4 py-3">
-            <p className="text-sm font-bold text-primary">
+            <p className="text-sm font-bold text-primary-dark">
               {cup.target - cup.current <= 0
                 ? t('freeDrinkReady')
-                : t('freeDrink', { n: cup.target - cup.current })}
+                : t('freeDrink', { n: formatNumber(cup.target - cup.current, lang) })}
             </p>
-            <div className="mt-2 h-2 overflow-hidden rounded-pill bg-white/70">
+            <div
+              className="mt-2 h-2 overflow-hidden rounded-pill bg-white/70"
+              role="progressbar"
+              aria-valuemin={0}
+              aria-valuemax={cup.target}
+              aria-valuenow={cup.current}
+              aria-label={t('freeDrink', { n: formatNumber(Math.max(0, cup.target - cup.current), lang) })}
+            >
               <div
                 className="h-full rounded-pill bg-primary"
                 style={{ width: `${Math.min(100, (cup.current / cup.target) * 100)}%` }}

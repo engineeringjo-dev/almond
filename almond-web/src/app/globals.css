@@ -19,6 +19,13 @@
     @apply font-bold text-text-primary;
     text-wrap: balance;
   }
+
+  /* Baseline keyboard-focus indicator for any interactive element that does not
+     define its own focus-visible ring (buttons/links use ring utilities). */
+  :focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+  }
 }
 
 @layer components {
@@ -40,4 +47,20 @@
 .no-scrollbar {
   -ms-overflow-style: none;
   scrollbar-width: none;
+}
+
+/* Respect the user's reduced-motion preference (WCAG 2.3.3): kill smooth scroll,
+   transitions and animations across the site. */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
 }

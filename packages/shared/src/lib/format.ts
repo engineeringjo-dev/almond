@@ -20,7 +20,7 @@ export function formatNumber(value: number, _lang: Lang): string {
 /** Short time HH:MM for a given ISO/date. */
 export function formatTime(date: string | Date, lang: Lang): string {
   const d = typeof date === 'string' ? new Date(date) : date;
-  return new Intl.DateTimeFormat(lang === 'ar' ? 'ar-JO' : 'en-US', {
+  return new Intl.DateTimeFormat(lang === 'ar' ? 'ar-JO-u-nu-latn' : 'en-US', {
     hour: '2-digit',
     minute: '2-digit',
   }).format(d);
@@ -28,7 +28,7 @@ export function formatTime(date: string | Date, lang: Lang): string {
 
 export function formatDate(date: string | Date, lang: Lang): string {
   const d = typeof date === 'string' ? new Date(date) : date;
-  return new Intl.DateTimeFormat(lang === 'ar' ? 'ar-JO' : 'en-US', {
+  return new Intl.DateTimeFormat(lang === 'ar' ? 'ar-JO-u-nu-latn' : 'en-US', {
     day: 'numeric',
     month: 'short',
   }).format(d);

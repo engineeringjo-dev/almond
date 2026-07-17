@@ -1,7 +1,7 @@
 'use client';
 
 import Image from 'next/image';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
 import { Check, ChevronLeft } from 'lucide-react';
 import type { CartCustomization, ItemSize, MenuItem } from '@almond/shared/types';
@@ -10,8 +10,10 @@ import { applyItemPatch } from '@/data/menu';
 import { useMenuOverlay } from '@/store/menuOverlayStore';
 import { Link } from '@/i18n/navigation';
 import { useCartStore } from '@/store/cartStore';
+import { useRecentStore } from '@/store/recentStore';
 import { QtyStepper } from '@/components/ui/QtyStepper';
-import { asLang, formatJOD } from '@/lib/format';
+import { asLang, formatJOD, formatNumber } from '@/lib/format';
+import { config } from '@/lib/config';
 import { cn } from '@/lib/cn';
 
 export function ItemConfigurator({ item: baseItem }: { item: MenuItem }) {
@@ -19,7 +21,13 @@ export function ItemConfigurator({ item: baseItem }: { item: MenuItem }) {
   const t = useTranslations('Menu');
   const nav = useTranslations('Nav');
   const addItem = useCartStore((s) => s.addItem);
+  const pushRecent = useRecentStore((s) => s.push);
   const tr = (ar?: string, en?: string) => (lang === 'ar' ? ar : en) ?? '';
+
+  // Remember this item as recently viewed (surfaced as a rail on the menu page).
+  useEffect(() => {
+    pushRecent(baseItem.id);
+  }, [baseItem.id, pushRecent]);
 
   // Reflect admin menu edits (price / availability / name) live.
   const editsForItem = useMenuOverlay((s) => s.edits[baseItem.id]);
@@ -122,14 +130,16 @@ export function ItemConfigurator({ item: baseItem }: { item: MenuItem }) {
               <h2 className="text-sm font-bold uppercase tracking-wide text-text-secondary">
                 {t('size')}
               </h2>
-              <div className="mt-3 flex flex-wrap gap-2">
+              <div className="mt-3 flex flex-wrap gap-2" role="radiogroup" aria-label={t('size')}>
                 {item.sizes.map((s) => (
                   <button
                     key={s.id}
                     type="button"
+                    role="radio"
+                    aria-checked={s.id === sizeId}
                     onClick={() => setSizeId(s.id)}
                     className={cn(
-                      'rounded-pill border px-4 py-2 text-sm font-bold transition-colors',
+                      'rounded-pill border px-4 py-2 text-sm font-bold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2',
                       s.id === sizeId
                         ? 'border-primary bg-primary text-white'
                         : 'border-neutral-warm hover:border-primary',
@@ -147,34 +157,36 @@ export function ItemConfigurator({ item: baseItem }: { item: MenuItem }) {
             <button
               type="button"
               onClick={() => setSizeId(upsell.size.id)}
-              className="mt-4 flex w-full items-center justify-between rounded-md border border-dashed border-primary bg-accent-light px-4 py-3 text-start"
+              className="mt-4 flex w-full items-center justify-between rounded-md border border-dashed border-primary bg-accent-light px-4 py-3 text-start focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
             >
-              <span className="text-sm font-bold text-primary">
+              <span className="text-sm font-bold text-primary-dark">
                 {t('upsize', {
                   size: tr(upsell.size.nameAr, upsell.size.nameEn),
                   price: formatJOD(upsell.delta, lang),
                 })}
               </span>
-              <ChevronLeft className="h-4 w-4 shrink-0 text-primary rtl:rotate-180" />
+              <ChevronLeft className="h-4 w-4 shrink-0 text-primary-dark rtl:rotate-180" />
             </button>
           )}
 
           {/* Customization groups */}
           {item.customizations.map((g) => (
             <div key={g.id} className="mt-6">
-              <h2 className="text-sm font-bold uppercase tracking-wide text-text-secondary">
+              <h2 id={`cg-${g.id}`} className="text-sm font-bold uppercase tracking-wide text-text-secondary">
                 {tr(g.nameAr, g.nameEn)}
               </h2>
-              <div className="mt-3 space-y-2">
+              <div className="mt-3 space-y-2" role={g.multiple ? 'group' : 'radiogroup'} aria-labelledby={`cg-${g.id}`}>
                 {g.options.map((o) => {
                   const selected = (selection[g.id] ?? []).includes(o.id);
                   return (
                     <button
                       key={o.id}
                       type="button"
+                      role={g.multiple ? 'checkbox' : 'radio'}
+                      aria-checked={selected}
                       onClick={() => toggle(g.id, o.id, g.multiple)}
                       className={cn(
-                        'flex w-full items-center justify-between rounded-md border px-4 py-3 text-start transition-colors',
+                        'flex w-full items-center justify-between rounded-md border px-4 py-3 text-start transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2',
                         selected
                           ? 'border-primary bg-accent-light'
                           : 'border-neutral-warm hover:border-primary',
@@ -211,12 +223,15 @@ export function ItemConfigurator({ item: baseItem }: { item: MenuItem }) {
                 value={qty}
                 onInc={() => setQty((q) => q + 1)}
                 onDec={() => setQty((q) => Math.max(1, q - 1))}
+                label={t('quantity')}
+                decLabel={t('decrease')}
+                incLabel={t('increase')}
               />
               <button
                 type="button"
                 onClick={add}
                 disabled={soldOut}
-                className="flex h-12 flex-1 items-center justify-center gap-2 rounded-pill bg-primary px-6 font-bold text-white transition-colors hover:bg-primary-dark disabled:opacity-50"
+                className="flex h-12 flex-1 items-center justify-center gap-2 rounded-pill bg-primary px-6 font-bold text-white transition-colors hover:bg-primary-dark focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 disabled:opacity-50"
               >
                 {soldOut ? (
                   t('soldOut')
@@ -240,6 +255,9 @@ export function ItemConfigurator({ item: baseItem }: { item: MenuItem }) {
               </Link>
             )}
           </div>
+          <p className="mt-3 text-xs text-text-secondary">
+            {t('taxNote', { rate: formatNumber(Math.round(config.TAX_RATE * 100), lang) })}
+          </p>
         </div>
       </div>
     </div>

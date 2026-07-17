@@ -6,6 +6,7 @@ import { LogOut, User } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
 import { Link } from '@/i18n/navigation';
 import { Button } from '@/components/ui/Button';
+import { PageSkeleton } from '@/components/ui/Skeleton';
 
 const LINKS = [
   { href: '/rewards', key: 'rewards' },
@@ -21,7 +22,7 @@ export function AccountView() {
 
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
-  if (!mounted) return <div className="container-content min-h-[50vh] py-xl" />;
+  if (!mounted) return <PageSkeleton />;
 
   if (!user) {
     return (

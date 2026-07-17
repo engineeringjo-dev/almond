@@ -25,12 +25,20 @@ const hnArabic = localFont({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL('https://almondcoffeehouse.com'),
   title: {
     default: 'Almond Coffee House',
     template: '%s · Almond Coffee House',
   },
   description:
     'Order Almond Coffee House — the real menu, pickup or delivery, and the same points rewards + wallet as the app. Bilingual Arabic / English.',
+  alternates: {
+    languages: {
+      'ar-JO': '/',
+      'en-JO': '/en',
+      'x-default': '/',
+    },
+  },
 };
 
 export function generateStaticParams() {

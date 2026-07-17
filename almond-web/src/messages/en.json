@@ -16,7 +16,8 @@
     "cart": "Cart",
     "orderNow": "Order now",
     "openMenu": "Open menu",
-    "closeMenu": "Close menu"
+    "closeMenu": "Close menu",
+    "points": "pts"
   },
   "Home": {
     "hero": {
@@ -75,7 +76,15 @@
     "soldOut": "Currently unavailable",
     "from": "from",
     "total": "Total",
-    "upsize": "Go {size} for +{price}"
+    "upsize": "Go {size} for +{price}",
+    "earn": "Earn {n} pts",
+    "popular": "Popular",
+    "taxNote": "Prices exclude {rate}% sales tax",
+    "recentlyViewed": "Recently viewed",
+    "popularSearches": "Popular:",
+    "searchTerms": ["Latte", "Iced", "Cappuccino", "Croissant"],
+    "decrease": "Decrease quantity",
+    "increase": "Increase quantity"
   },
   "Cart": {
     "title": "Your cart",
@@ -86,7 +95,7 @@
     "remove": "Remove",
     "subtotal": "Subtotal",
     "discount": "Discount",
-    "tax": "Tax (16%)",
+    "tax": "Tax ({rate}%)",
     "total": "Total",
     "checkout": "Checkout",
     "completeOrder": "Complete your order",
@@ -96,9 +105,9 @@
     "promoInvalid": "Invalid code",
     "removePromo": "Remove code",
     "freeDrink": "{n} drinks to your free drink",
-    "freeDrinkReady": "🎉 Your free drink is ready!",
-    "comboAddFood": "Add a food item to earn +{points} points 🍽️",
-    "comboAddDrink": "Add a drink to earn +{points} points ☕",
+    "freeDrinkReady": "Your free drink is ready!",
+    "comboAddFood": "Add a food item to earn +{points} points",
+    "comboAddDrink": "Add a drink to earn +{points} points",
     "comboAdd": "Add",
     "comboEarned": "Combo: +{points} points"
   },
