@@ -8,6 +8,12 @@
             <field name="code">model._gc_staff_followers()</field>
             <field name="interval_number">1</field>
             <field name="interval_type">days</field>
+            <!-- Anchor the daily run at 00:00 UTC = 03:00 Asia/Amman, when all
+                 branches are closed; without this the run time drifts to
+                 whatever hour the module was installed. -->
+            <field name="nextcall"
+                   eval="(DateTime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+                          + timedelta(days=1)).strftime('%Y-%m-%d %H:%M:%S')"/>
             <field name="active" eval="True"/>
         </record>
     </data>
