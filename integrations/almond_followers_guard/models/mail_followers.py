@@ -47,4 +47,17 @@ class MailFollowers(models.Model):
             removed,
             GUARDED_MODELS,
         )
+        if not removed:
+            # Owner decision: once a full day passes with nothing to clean,
+            # prevention has proven itself and the janitor retires. Re-enable
+            # the cron manually if a new leak path ever appears.
+            cron = self.env.ref(
+                "almond_followers_guard.ir_cron_gc_staff_followers",
+                raise_if_not_found=False,
+            )
+            if cron and cron.active:
+                cron.sudo().write({"active": False})
+                _logger.info(
+                    "followers guard janitor: zero rows found, cron self-disabled"
+                )
         return removed
