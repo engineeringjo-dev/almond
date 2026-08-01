@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!--
+        ============================================================================
+        كتلة الرمز الاحتياطيّة — مصدر الحقيقة الوحيد للشرط والشكل
+        ============================================================================
+        وُضع الشرط والعرض في قالب مستقلّ يُستدعى بـ t-call بدل تكرارهما في كل عرض
+        وراثيّ، حتى يبقى للشرط موضعٌ واحد يُراجع ويُعدَّل ولا تنشأ نسخ تتباعد.
+
+        لماذا هذا الشرط بالذات:
+        ==========================================================================
+            o.l10n_jo_edi_qr
+            and not (o.l10n_jo_edi_state in ('sent', 'demo')
+                     and o.l10n_jo_edi_xml_attachment_id)
+
+        الجزء الثاني هو **النفي الحرفيّ** لشرط المُوجِّه في
+        ``account.move._get_name_invoice_report()`` بوحدة ``l10n_jo_edi``:
+
+            if self.l10n_jo_edi_state in ['sent', 'demo'] and self.l10n_jo_edi_xml_attachment_id:
+                return 'l10n_jo_edi.report_invoice_document'
+
+        وهو ضروريّ لا تجميليّ. السبب: العرض أدناه يرث
+        ``account.report_invoice_document`` بوضع ``extension``، والعرض الأردنيّ
+        ``l10n_jo_edi.report_invoice_document`` وراثةٌ من نوع ``primary`` من العرض
+        نفسه. وأودو يبني القالب الأصل مع **كل** امتداداته أولاً ثم يطبّق فوقه
+        تخصيص الابن الـprimary ⇒ كتلتنا تدخل تلقائياً داخل القالب الأردنيّ أيضاً.
+        فلو كان الشرط ``o.l10n_jo_edi_qr`` وحده لطُبع الرمز **مرّتين** على كل
+        فاتورة تسلك المسار الأردنيّ السليم (٥٣٧٣ فاتورة على الإنتاج عند كتابة هذا
+        الملحق). النفي يجعل الكتلتين متنافيتين حتماً: أيّهما ظهر، لا يظهر الآخر.
+
+        لماذا نحتاج الكتلة أصلاً: فواتير نقاط البيع المسجَّلة عبر تكامل الطرف
+        الثالث تحمل رمزاً موقّعاً وحالة ``sent`` بلا مرفق XML، فيرفضها شرط
+        المُوجِّه وتُطبع بلا رمز رغم تسجيلها لدى JoFotara.
+
+        نُبقي النصّ والتنسيق مطابقين لكتلة ``l10n_jo_edi`` كي لا يختلف شكل
+        الفاتورة المطبوعة بين المسارين.
+    -->
+    <template id="jo_fallback_qr_block">
+        <div t-if="o.l10n_jo_edi_qr and not (o.l10n_jo_edi_state in ('sent', 'demo') and o.l10n_jo_edi_xml_attachment_id)"
+             name="jo_fallback_qr_code"
+             class="avoid-page-break-inside">
+            <p>
+                <strong class="text-center">JoFotara QR Code</strong>
+                <img style="display:block;" t-att-src="o._l10n_jo_qr_code_src()"/>
+            </p>
+        </div>
+    </template>
+
+    <!--
+        حقن الكتلة في القالب القاعديّ.
+        نستهدف ``//div[@id='qrcode']`` لأنه العقدة الوحيدة الحاملة لهذا المعرّف في
+        القالب، وهي الموضع نفسه الذي تستخدمه وحدة ``l10n_jo_edi`` ⇒ يخرج الرمز في
+        مكانه المعتاد أسفل الفاتورة. الإدراج ``after`` يقع خارج سلسلة
+        ``t-if/t-else`` الخاصة برمز الدفع، فلا يتأثر ظهورنا بحالة ``show_qr``.
+    -->
+    <template id="report_invoice_document_jo_fallback_qr"
+              inherit_id="account.report_invoice_document"
+              name="Invoice: JoFotara QR fallback">
+        <xpath expr="//div[@id='qrcode']" position="after">
+            <t t-call="almond_jo_pos_qr_print.jo_fallback_qr_block"/>
+        </xpath>
+    </template>
+
+</odoo>
