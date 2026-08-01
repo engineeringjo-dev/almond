@@ -9,7 +9,11 @@ export function useActiveOrders() {
   return useQuery({
     queryKey: ['orders', 'active', userId],
     queryFn: () => orderService.getActiveOrders(userId),
-    refetchInterval: 15000, // keep the tracking timeline fresh
+    // Poll to keep the tracking timeline fresh, but only while there is an
+    // active order. getActiveOrders already drops completed/cancelled ones, so
+    // an empty result means nothing to track — stop until useCreateOrder's
+    // invalidate brings a new order back and restarts the poll.
+    refetchInterval: (query) => ((query.state.data?.length ?? 0) > 0 ? 15000 : false),
   });
 }
 

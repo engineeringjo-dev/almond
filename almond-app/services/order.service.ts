@@ -1,5 +1,6 @@
 import type { Order, OrderStatus } from '@/types';
 import { config } from '@/constants/config';
+import { toAmmanISO } from '@/lib/format';
 import { delay, genId } from './util';
 
 export interface CreateOrderInput {
@@ -96,8 +97,8 @@ const mockOrderService: OrderService = {
       paymentMethod: input.paymentMethod,
       paidFromBalance: input.paidFromBalance,
       status: 'received',
-      createdAt: now.toISOString(),
-      targetReadyAt: new Date(now.getTime() + leadMinutes * 60000).toISOString(),
+      createdAt: toAmmanISO(now),
+      targetReadyAt: toAmmanISO(now.getTime() + leadMinutes * 60000),
       prepMinutes: input.prepMinutes,
       promoCode: input.promoCode,
       curbside: input.curbside,

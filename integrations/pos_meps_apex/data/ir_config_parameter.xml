@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo noupdate="1">
+    <!-- Ships in MOCK mode so the full POS flow is runnable immediately,
+         with zero Apex dependency. Flip to 'live' once Apex's format is wired. -->
+    <record id="param_mode" model="ir.config_parameter">
+        <field name="key">pos_meps_apex.mode</field>
+        <field name="value">mock</field>
+    </record>
+    <!-- Amount wire format: 'decimal3' (1.500) or 'int1000' (minor units/fils: 1500).
+         Confirm the real one from the Apex ECR spec, then flip this param. -->
+    <record id="param_amount_encoding" model="ir.config_parameter">
+        <field name="key">pos_meps_apex.amount_encoding</field>
+        <field name="value">decimal3</field>
+    </record>
+</odoo>

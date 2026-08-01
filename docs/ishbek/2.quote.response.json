@@ -1,0 +1,11 @@
+{
+  "_endpoint": "POST {ISHBEK_BASE_URL}/delivery/quote → 200",
+  "_desc": "Ishbek بترجع تغطية كل أسطول + الرسم + الوقت. الاختيار حسب العميل (تغطية ثم الأرخص/الأسرع)",
+  "quotes": [
+    { "fleet": "careem",  "covered": true,  "fee": 1.500, "currency": "JOD", "etaMinutes": 32 },
+    { "fleet": "talabat", "covered": true,  "fee": 1.800, "currency": "JOD", "etaMinutes": 28 }
+  ],
+  "recommended": { "fleet": "careem", "fee": 1.500, "etaMinutes": 32 },
+  "quoteId": "qt_8f21ac",
+  "expiresAt": "2026-07-05T13:05:00+03:00"
+}

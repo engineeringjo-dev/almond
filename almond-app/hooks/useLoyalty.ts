@@ -104,9 +104,18 @@ export function useChargeWallet() {
   });
 }
 
+/** How often to poll the till for a scan, and when to give up (see below). */
+const SCAN_POLL_MS = 5000;
+const SCAN_POLL_MAX = 24; // stop after ~2 min; the member re-opens Pay to retry
+
 /**
  * POS scan-status poll for the barcode screen. Inactive under mock — only polls
  * when the POS integration is enabled (constants/integration.ts).
+ *
+ * The poll is bounded on purpose: it stops the moment the till confirms the scan
+ * and, failing that, after SCAN_POLL_MAX attempts. An unbounded 3s poll left open
+ * on the Pay screen would hammer the loyalty server once DATA_SOURCE flips to
+ * 'odoo' (one member on the screen ≈ 1,200 requests/hour), so keep this bounded.
  */
 export function useScanStatus() {
   const userId = useUserId();
@@ -114,6 +123,11 @@ export function useScanStatus() {
     queryKey: ['loyalty', 'scan', userId],
     queryFn: () => loyaltyService.getScanStatus(userId),
     enabled: integration.enabled.pos,
-    refetchInterval: integration.enabled.pos ? 3000 : false,
+    refetchInterval: (query) => {
+      if (!integration.enabled.pos) return false;
+      if (query.state.data?.scanned) return false; // scanned — nothing left to poll
+      if (query.state.dataUpdateCount >= SCAN_POLL_MAX) return false; // give up
+      return SCAN_POLL_MS;
+    },
   });
 }

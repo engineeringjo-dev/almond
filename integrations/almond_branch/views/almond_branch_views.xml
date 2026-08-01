@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- Odoo 19: list view uses <list> (not <tree>). -->
+    <record id="almond_branch_view_list" model="ir.ui.view">
+        <field name="name">almond.branch.list</field>
+        <field name="model">almond.branch</field>
+        <field name="arch" type="xml">
+            <list string="Branches">
+                <field name="name"/>
+                <field name="company_id" groups="base.group_multi_company"/>
+                <field name="pos_config_count" string="POS shops"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="almond_branch_view_form" model="ir.ui.view">
+        <field name="name">almond.branch.form</field>
+        <field name="model">almond.branch</field>
+        <field name="arch" type="xml">
+            <form string="Branch">
+                <sheet>
+                    <div class="oe_title">
+                        <label for="name"/>
+                        <h1><field name="name" placeholder="e.g. Mecca Street"/></h1>
+                    </div>
+                    <group>
+                        <field name="company_id" groups="base.group_multi_company"/>
+                        <field name="active" widget="boolean_toggle"/>
+                    </group>
+                    <notebook>
+                        <page string="POS Shops" name="pos_shops">
+                            <field name="pos_config_ids">
+                                <list>
+                                    <field name="name"/>
+                                    <field name="company_id" groups="base.group_multi_company"/>
+                                </list>
+                            </field>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="almond_branch_view_search" model="ir.ui.view">
+        <field name="name">almond.branch.search</field>
+        <field name="model">almond.branch</field>
+        <field name="arch" type="xml">
+            <search string="Branches">
+                <field name="name"/>
+                <field name="pos_config_ids" string="POS Shop"/>
+                <filter name="inactive" string="Archived" domain="[('active','=',False)]"/>
+                <group expand="0" string="Group By">
+                    <filter name="group_company" string="Company"
+                            context="{'group_by': 'company_id'}"
+                            groups="base.group_multi_company"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="almond_branch_action" model="ir.actions.act_window">
+        <field name="name">Branches</field>
+        <field name="res_model">almond.branch</field>
+        <field name="view_mode">list,form</field>
+        <field name="search_view_id" ref="almond_branch_view_search"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Create your first branch</p>
+            <p>A branch groups one or more POS shops so dashboards can filter by branch.</p>
+        </field>
+    </record>
+
+    <!-- Parent under the POS root menu (stable xmlid). A reviewer may move this
+         under the Configuration submenu on dev. -->
+    <menuitem id="menu_almond_branch"
+              name="Branches"
+              parent="point_of_sale.menu_point_root"
+              action="almond_branch_action"
+              sequence="90"
+              groups="point_of_sale.group_pos_manager"/>
+
+</odoo>

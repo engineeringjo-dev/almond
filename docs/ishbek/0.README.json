@@ -1,0 +1,20 @@
+{
+  "title": "Almond × Ishbek — عقد JSON (Careem / Talabat)",
+  "files": {
+    "1.quote.request.json":    "تسعيرة: فرع → عنوان الزبون",
+    "2.quote.response.json":   "تغطية + رسم + وقت لكل أسطول (الاختيار حسب العميل)",
+    "3.dispatch.request.json": "طلب كابتن بعد الدفع (توقيت + موديفايرز كاملة)",
+    "4.dispatch.response.json":"تأكيد الأسطول + بيانات الكابتن + التتبّع",
+    "5.status.webhook.json":   "تحديث حالة من Ishbek → Odoo → التطبيق",
+    "6.cancel.request.json":   "إلغاء التوصيل",
+    "7.cancel.response.json":  "تأكيد الإلغاء"
+  },
+  "conventions": {
+    "timezone": "كل الطوابع الزمنية بصيغة ISO-8601 مع offset صريح +03:00 (Asia/Amman). ممنوع إرسال/استقبال وقت بدون offset — هذا كان سبب عدم انعكاس الأوردرات على نقطة البيع.",
+    "currency": "JOD بصيغة X.XXX (ثلاث خانات عشرية)",
+    "auth": "Header: X-Ishbek-Key: <NEXT_PUBLIC_ISHBEK_KEY>",
+    "webhookSecurity": "التحقق من توقيع HMAC (signature) على كل webhook",
+    "fleetSelection": "التغطية أولاً، ثم الأرخص وعند التعادل الأسرع",
+    "note": "أسماء الحقول النهائية تُثبّت من وثائق Ishbek الرسمية عند استلام الحساب."
+  }
+}

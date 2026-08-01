@@ -6,6 +6,7 @@ import type {
   PaymentMethodId,
 } from '@almond/shared/types';
 import type { CartTotals } from '@almond/shared/cart';
+import { toAmmanISO } from '@almond/shared/lib/format';
 import { config } from '@/lib/config';
 
 /** Prep time = the slowest item, floored at the default (section 7.3). */
@@ -59,8 +60,8 @@ export function createMockOrder(input: PlaceOrderInput): Order {
     paymentMethod: input.paymentMethod,
     paidFromBalance: input.paidFromBalance,
     status: 'received',
-    createdAt: new Date(now).toISOString(),
-    targetReadyAt: new Date(now + prepMinutes * 60000).toISOString(),
+    createdAt: toAmmanISO(now),
+    targetReadyAt: toAmmanISO(now + prepMinutes * 60000),
     prepMinutes,
     promoCode: input.promoCode ?? undefined,
     curbside: input.curbside || undefined,

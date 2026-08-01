@@ -1,0 +1,17 @@
+{
+  "_endpoint": "POST {ISHBEK_BASE_URL}/delivery/quote",
+  "_desc": "تسعيرة التوصيل + الوقت المتوقّع لعنوان الزبون قبل الدفع",
+  "branch": {
+    "id": "khalda",
+    "nameAr": "خلدا",
+    "lat": 31.9856,
+    "lng": 35.8390
+  },
+  "dropoff": {
+    "lat": 31.9986,
+    "lng": 35.8790,
+    "text": "خلدا، عمّان — عمارة 12، طابق 3",
+    "city": "amman"
+  },
+  "requestedAt": "2026-07-05T13:00:00+03:00"
+}

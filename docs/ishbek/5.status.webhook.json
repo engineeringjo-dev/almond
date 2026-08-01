@@ -1,0 +1,17 @@
+{
+  "_endpoint": "Ishbek → Almond/Odoo   (webhook تحديث الحالة)",
+  "_desc": "كل تحديث حالة من الكابتن. occurredAt لازم +03:00 حتى Odoo يطابقه مع الأوردر وينعكس على POS. أي طابع بدون offset = يترفض.",
+  "dispatchId": "disp_ord_10432",
+  "orderId": "ord_10432",
+  "fleet": "careem",
+  "status": "picked_up",
+  "_statusValues": "assigned | picked_up | on_the_way | delivered | cancelled",
+  "occurredAt": "2026-07-05T13:07:45+03:00",
+  "captain": {
+    "name": "خالد",
+    "phone": "+962799887766",
+    "lat": 31.9860,
+    "lng": 35.8402
+  },
+  "signature": "sha256=... (توقيع HMAC للتحقق من المصدر)"
+}

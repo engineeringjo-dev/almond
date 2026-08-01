@@ -35,8 +35,14 @@ export const integration = {
   auth: {
     odooApiKey: env('EXPO_PUBLIC_ODOO_API_KEY'),
     loyaltyToken: env('EXPO_PUBLIC_LOYALTY_TOKEN'),
-    // Read on both runtimes (Expo inlines EXPO_PUBLIC_*, Next inlines NEXT_PUBLIC_*).
-    ishbekKey: env('EXPO_PUBLIC_ISHBEK_KEY') || env('NEXT_PUBLIC_ISHBEK_KEY'),
+    // Ishbek dispatch credential — SERVER-ONLY. Never a NEXT_PUBLIC_* var: those
+    // are inlined into the browser bundle, which would leak the delivery key to
+    // every user. On the web it is read from `ISHBEK_KEY` inside server route
+    // handlers only (see almond-web/src/server/ishbek.ts). `EXPO_PUBLIC_*` stays
+    // as a fallback for the app, which must dispatch via Odoo, not directly.
+    ishbekKey: env('ISHBEK_KEY') || env('EXPO_PUBLIC_ISHBEK_KEY'),
+    // HMAC secret used to verify inbound Ishbek status webhooks. Server-only.
+    ishbekWebhookSecret: env('ISHBEK_WEBHOOK_SECRET'),
   },
 
   /** Endpoint paths, relative to the matching base URL. */
@@ -91,4 +97,14 @@ export function loyaltyAuthHeaders(): Record<string, string> {
 export function odooAuthHeaders(): Record<string, string> {
   const key = integration.auth.odooApiKey;
   return key ? { 'X-Odoo-Api-Key': key } : {};
+}
+
+/**
+ * Authorization header for Ishbek (delivery bridge). SERVER-ONLY — only call
+ * this from a server route handler, never a client component, or the key would
+ * be bundled into the browser.
+ */
+export function ishbekAuthHeaders(): Record<string, string> {
+  const key = integration.auth.ishbekKey;
+  return key ? { 'X-Ishbek-Key': key } : {};
 }
