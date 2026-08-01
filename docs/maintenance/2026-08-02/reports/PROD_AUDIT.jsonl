@@ -1,0 +1,26 @@
+{"ts": "2026-07-31", "action": "product.template.write", "id": 10412, "field": "company_id", "from": [1, "Evora food and beverage co"], "to": false, "reason": "Al-Jamah POS Access Error root fix - unrestrict shared POS product", "approved_by": "Hamza (نفذ التصليح الجذري)", "result": true}
+{"ts": "2026-07-31", "action": "stock.quant.zero_uncounted", "branch": "Mecca", "targets": 123, "zeroed": 123, "failed": [], "approved_by": "Hamza"}
+{"ts": "2026-07-31", "action": "stock.quant.zero_uncounted", "branch": "Madina", "targets": 259, "zeroed": 259, "failed": [], "approved_by": "Hamza"}
+{"ts": "2026-07-31", "action": "stock.quant.zero_uncounted", "branch": "Rabieh", "targets": 248, "zeroed": 248, "failed": [], "approved_by": "Hamza"}
+{"ts": "2026-07-31", "action": "stock.quant.zero_uncounted", "branch": "Khalda", "targets": 210, "zeroed": 210, "failed": [], "approved_by": "Hamza"}
+{"ts": "2026-07-31", "action": "stock.quant.zero_uncounted", "branch": "CityMall", "targets": 176, "zeroed": 176, "failed": [], "approved_by": "Hamza"}
+{"ts": "2026-07-31", "action": "stock.quant.zero_consu_kits", "branch": "Mecca", "targets": 580, "zeroed": 580, "failed": [], "approved_by": "Hamza"}
+{"ts": "2026-07-31", "action": "stock.quant.zero_consu_kits", "branch": "Madina", "targets": 121, "zeroed": 121, "failed": [], "approved_by": "Hamza"}
+{"ts": "2026-07-31", "action": "stock.quant.zero_consu_kits", "branch": "Rabieh", "targets": 548, "zeroed": 548, "failed": [], "approved_by": "Hamza"}
+{"ts": "2026-07-31", "action": "stock.quant.zero_consu_kits", "branch": "Khalda", "targets": 518, "zeroed": 518, "failed": [], "approved_by": "Hamza"}
+{"ts": "2026-07-31", "action": "stock.quant.zero_consu_kits", "branch": "CityMall", "targets": 514, "zeroed": 514, "failed": [], "approved_by": "Hamza"}
+{"ts": "2026-08-02", "action": "rescue.A.fix_draft", "move": 360262, "zeroed": 2361, "totals": {"id": 360262, "amount_untaxed": 24406.156, "amount_tax": 1952.492, "amount_total": 26358.648, "invoice_date": "2026-07-31", "date": "2026-07-31"}, "approved_by": "حمزة المالك — موافقة صريحة أ+ب+ج"}
+{"ts": "2026-08-02", "action": "rescue.A.post", "move": 360262, "result": {"id": 360262, "name": "INV/2026/01308", "state": "posted", "amount_total": 26358.648, "invoice_date": "2026-07-31", "l10n_jo_edi_state": "to_send"}}
+{"ts": "2026-08-02", "action": "rescue.B.fix_so_discounts", "partner": 8, "orders": 138, "lines_zeroed": 5786, "total_before": 27653.58, "total_after": 43974.083, "approved_by": "حمزة المالك"}
+{"ts": "2026-08-02", "action": "rescue.C.cancel_draft", "move": 360543, "reason": "mirror bill of 01307 (13.40 tax mismatch)", "amount": 34080.915, "new_state": "cancel", "approved_by": "حمزة المالك"}
+{"ts": "2026-08-02", "action": "rescue.C.cancel_draft", "move": 355622, "reason": "DUPLICATE of BILL/2026/06/0126 — 51,782.49", "amount": 51782.487, "new_state": "cancel", "approved_by": "حمزة المالك"}
+{"ts": "2026-08-02", "action": "rescue.C.fix_so_discounts", "partner": 6, "lines_zeroed": 6234, "approved_by": "حمزة المالك"}
+{"ts": "2026-08-02", "action": "jofotara.test_send", "move": 360659, "state": "to_send", "error": false, "approved_by": "حمزة"}
+{"ts": "2026-08-02", "action": "jofotara.enable_pos", "company": 1, "before": {"id": 1, "l10n_jo_edi_pos_enabled": false, "l10n_jo_edi_pos_testing_mode": false}, "after": {"id": 1, "l10n_jo_edi_pos_enabled": true, "l10n_jo_edi_pos_testing_mode": false}, "approved_by": "حمزة: نشبك كل الفروع الان عالفوترة"}
+{"ts": "2026-08-02", "action": "jofotara.enable_pos", "company": 2, "before": {"id": 2, "l10n_jo_edi_pos_enabled": false, "l10n_jo_edi_pos_testing_mode": false}, "after": {"id": 2, "l10n_jo_edi_pos_enabled": true, "l10n_jo_edi_pos_testing_mode": false}, "approved_by": "حمزة: نشبك كل الفروع الان عالفوترة"}
+{"ts": "2026-08-02", "action": "jofotara.enable_pos", "company": 3, "before": {"id": 3, "l10n_jo_edi_pos_enabled": false, "l10n_jo_edi_pos_testing_mode": false}, "after": {"id": 3, "l10n_jo_edi_pos_enabled": true, "l10n_jo_edi_pos_testing_mode": false}, "approved_by": "حمزة: نشبك كل الفروع الان عالفوترة"}
+{"ts": "2026-08-02", "action": "jofotara.enable_pos", "company": 4, "before": {"id": 4, "l10n_jo_edi_pos_enabled": false, "l10n_jo_edi_pos_testing_mode": false}, "after": {"id": 4, "l10n_jo_edi_pos_enabled": true, "l10n_jo_edi_pos_testing_mode": false}, "approved_by": "حمزة: نشبك كل الفروع الان عالفوترة"}
+{"ts": "2026-08-02", "action": "jofotara.pilot_send", "move": 360659, "state": "to_send", "error": "Please select a payment method before submission.", "approved_by": "حمزة المالك — موافقة حرفية"}
+{"ts": "2026-08-02", "action": "jofotara.pilot_send.retry", "move": 360659, "state": "sent", "error": null}
+{"ts": "2026-08-02", "action": "jofotara.fix_invoice_type", "count": 7708, "approved_by": "حمزة المالك — موافقة حرفية"}
+{"ts": "2026-08-02", "action": "negfix.pilot", "move": 196582, "name": "INV/2026/01131", "total": 3.596, "jofotara": "sent", "approved_by": "حمزة المالك — موافقة حرفية"}
