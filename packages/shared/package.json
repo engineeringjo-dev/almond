@@ -20,7 +20,8 @@
     "./lib/combo": "./src/lib/combo.ts",
     "./lib/format": "./src/lib/format.ts",
     "./lib/recommendations": "./src/lib/recommendations.ts",
-    "./cart": "./src/cart/index.ts"
+    "./cart": "./src/cart/index.ts",
+    "./lib/calendar": "./src/lib/calendar.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit"

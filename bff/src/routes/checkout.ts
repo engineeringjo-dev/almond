@@ -6,6 +6,7 @@ import { idempotencyPreHandler, idempotencyOnSend } from '../plugins/idempotency
 import { reprice } from '../pricing';
 import { computeEarn } from '../earn';
 import { toFils, toJod } from '../money';
+import { recordOrderLines } from '../analytics/orderLines';
 import type { Backend } from '../backend';
 
 const bodySchema = z.object({
@@ -46,6 +47,12 @@ export function registerCheckoutRoutes(app: FastifyInstance, backend: Backend): 
         paymentMethod: input.paymentMethod,
         subtotal: totals.subtotal, tax: totals.tax, total: totals.total, pointsEarned: 0,
       });
+      // Log the sold lines with calendar covariates (forecasting training data).
+      recordOrderLines({
+        orderId: order.id, memberId: id, branchId: input.branchId,
+        orderType: input.orderType, items,
+      });
+
       const pointsEarned = computeEarn({
         total: totals.total, windowSpend: member.windowSpend, paidFromBalance, comboBonus,
       });
