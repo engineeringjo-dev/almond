@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="pos_payment_method_form_meps" model="ir.ui.view">
+        <field name="name">pos.payment.method.form.meps.apex</field>
+        <field name="model">pos.payment.method</field>
+        <field name="inherit_id" ref="point_of_sale.pos_payment_method_view_form"/>
+        <field name="arch" type="xml">
+            <field name="use_payment_terminal" position="after">
+                <field name="meps_mid"
+                       invisible="use_payment_terminal != 'meps_apex'"
+                       required="use_payment_terminal == 'meps_apex'"/>
+                <field name="meps_tid"
+                       invisible="use_payment_terminal != 'meps_apex'"
+                       required="use_payment_terminal == 'meps_apex'"/>
+            </field>
+        </field>
+    </record>
+</odoo>

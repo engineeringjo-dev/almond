@@ -1,0 +1,681 @@
+"""
+Integration smoke test — runs the introspection layers against a REAL Odoo and
+asserts structural invariants on the JSON they emit. Unlike test_pure_functions
+(no Odoo needed), this needs a live instance, so it is OPT-IN: it runs only when
+`ODOO_DB` is set, and is skipped otherwise (so the pure-function CI stays green).
+
+It validates the env-bound paths the unit tests can't reach: selection-literal
+extraction, the manifest by-location split, the view inheritance chain, seeded
+`noupdate` records, the graph-resolved field reverse-impact (Layer E), the
+effective-security simulation (Layer G) — including the multi-company
+`AS_COMPANY` record-rule scoping (the v0.4.1 fix) — and Layer F redaction.
+
+How it shells out
+-----------------
+Same idea as the `odoo-ai` CLI: build `odoo shell` and pipe each script to it.
+
+    # Local Odoo on PATH:
+    ODOO_DB=ci_smoke python integration_smoke.py
+
+    # Against a Docker container (point ODOO_BIN at a wrapper that runs
+    # `docker exec -i <container> odoo "$@"` and forwards the env vars below):
+    ODOO_DB=bestmix_14_6 ODOO_CONF=/etc/odoo/odoo.conf \
+        ODOO_BIN=/tmp/odoo-docker python integration_smoke.py
+
+Config (env):
+    ODOO_DB      (required)  database name
+    ODOO_BIN     (opt)       odoo binary / wrapper            (default: odoo)
+    ODOO_CONF    (opt)       path to odoo.conf
+    SMOKE_MODEL  (opt)       model to introspect              (default: res.partner)
+    SMOKE_RECORD_ID (opt)    record id for Layer F (state); auto-resolved from
+                             the DB when unset, so redaction is always exercised
+"""
+import ast
+import base64
+import json
+import os
+import re
+import subprocess
+import sys
+import tempfile
+from pathlib import Path
+
+SCRIPTS = Path(__file__).resolve().parent.parent          # .../odoo-introspect/scripts
+DB = os.environ.get("ODOO_DB")
+ODOO_BIN = os.environ.get("ODOO_BIN", "odoo")
+CONF = os.environ.get("ODOO_CONF")
+MODEL = os.environ.get("SMOKE_MODEL", "res.partner")
+RECORD_ID = os.environ.get("SMOKE_RECORD_ID")
+TIMEOUT = int(os.environ.get("SMOKE_TIMEOUT", "600"))
+
+SENTINELS = {
+    "model_brief.py":   ("===ODOO_BRIEF_START===", "===ODOO_BRIEF_END==="),
+    "entrypoints.py":   ("===ODOO_EP_START===", "===ODOO_EP_END==="),
+    "metadata.py":      ("===ODOO_META_START===", "===ODOO_META_END==="),
+    "field_refs.py":    ("===ODOO_REFS_START===", "===ODOO_REFS_END==="),
+    "security_sim.py":  ("===ODOO_SECURITY_START===", "===ODOO_SECURITY_END==="),
+    "state_capture.py": ("===ODOO_STATE_START===", "===ODOO_STATE_END==="),
+    "capabilities.py":  ("===ODOO_CAP_START===", "===ODOO_CAP_END==="),
+    "native_check.py":  ("===ODOO_NCHECK_START===", "===ODOO_NCHECK_END==="),
+    "scenario_gen.py":  ("===ODOO_SCEN_START===", "===ODOO_SCEN_END==="),
+    "env_diff.py":      ("===ODOO_ENVFP_START===", "===ODOO_ENVFP_END==="),
+    "upgrade_check.py": ("===ODOO_UPG_START===", "===ODOO_UPG_END==="),
+    "claim_verify.py":  ("===ODOO_CLAIMS_START===", "===ODOO_CLAIMS_END==="),
+    "trace_flow.py":    ("===ODOO_TRACE_START===", "===ODOO_TRACE_END==="),
+    "preflight.py":     ("===ODOO_PREFLIGHT_START===", "===ODOO_PREFLIGHT_END==="),
+    "entrypoint_surface.py": ("===ODOO_SURFACE_START===", "===ODOO_SURFACE_END==="),
+    "esg_sample.py":    ("===ODOO_ESG_START===", "===ODOO_ESG_END==="),
+    "eval_harness.py":  ("===ODOO_EVAL_START===", "===ODOO_EVAL_END==="),
+}
+
+
+def _cards_blob(cards_dir):
+    """Read every card on the HOST into one JSON blob. Injected on stdin (below)
+    so native-check works even when ODOO_BIN is a Docker/remote wrapper that can't
+    read the host cards path — the same transport the `odoo-ai` CLI uses (issue #3)."""
+    cards = []
+    for path in sorted(Path(cards_dir).glob("*.json")):
+        data = json.loads(path.read_text())
+        cards += data if isinstance(data, list) else data.get("cards", [])
+    return json.dumps(cards, separators=(",", ":"), ensure_ascii=False)
+
+
+def _inject(values):
+    """Python (base64, ASCII-safe) that sets os.environ[name]=raw, PREPENDED to the
+    piped script so data rides the same stdin channel into the shell."""
+    lines = ["import os as _o, base64 as _b"]
+    for name, raw in values.items():
+        b64 = base64.b64encode(raw.encode("utf-8")).decode("ascii")
+        lines.append(f"_o.environ[{name!r}] = _b.b64decode({b64!r}).decode('utf-8')")
+    return "\n".join(lines) + "\n"
+
+
+def _shell(script_name, env_extra, stdin_prefix=""):
+    cmd = [ODOO_BIN, "shell", "-d", DB, "--no-http", "--log-level=error"]
+    if CONF:
+        cmd += ["-c", CONF]
+    env = {**os.environ, **{k: str(v) for k, v in env_extra.items()}}
+    proc = subprocess.run(cmd, input=stdin_prefix + (SCRIPTS / script_name).read_text(),
+                          env=env, capture_output=True, text=True, timeout=TIMEOUT)
+    start, end = SENTINELS[script_name]
+    out = proc.stdout
+    if start not in out or end not in out:
+        tail = "\n".join((proc.stderr or out).strip().splitlines()[-12:])
+        raise AssertionError(f"{script_name}: no JSON between sentinels. Tail:\n{tail}")
+    body = out.split(start, 1)[1].rsplit(end, 1)[0].strip()
+    return json.loads(body)
+
+
+def _shell_code(code):
+    """Run a short inline snippet in `odoo shell` (stdin) and return stdout."""
+    cmd = [ODOO_BIN, "shell", "-d", DB, "--no-http", "--log-level=error"]
+    if CONF:
+        cmd += ["-c", CONF]
+    proc = subprocess.run(cmd, input=code, env=os.environ,
+                          capture_output=True, text=True, timeout=TIMEOUT)
+    return proc.stdout
+
+
+def resolve_record_id():
+    """Pick any existing record of MODEL so Layer F (state) can run unattended."""
+    out = _shell_code(
+        f'r = env["{MODEL}"].search([], limit=1)\n'
+        f'print("===RID===", r.id if r else 0)\n')
+    m = re.search(r"===RID===\s+(\d+)", out)
+    return int(m.group(1)) if m and int(m.group(1)) > 0 else None
+
+
+def resolve_nonsuper_uid():
+    """Pick a non-superuser (id != 1) so Layer G isn't just the bypassed root."""
+    out = _shell_code(
+        'u = env["res.users"].search([("id","!=",1)], order="id", limit=1)\n'
+        'print("===UID===", u.id if u else 0)\n')
+    m = re.search(r"===UID===\s+(\d+)", out)
+    return int(m.group(1)) if m and int(m.group(1)) > 0 else None
+
+
+# Multi-company Layer G regression. Sets up two companies, a user allowed in
+# both, and a company-scoped record rule, then runs the REAL security_sim.py
+# in-process against each company and reports the effective read-domain. Locks
+# the v0.4.1 fix: _compute_domain must resolve `company_ids` against the
+# SIMULATED company (with_company + allowed_company_ids), not the user's default
+# company. Everything is rolled back in `finally`, so it never persists — safe
+# to run against a dev DB too.
+_MC_SNIPPET = '''
+import os, io, json, contextlib
+res = {"error": None}
+try:
+    Comp = env["res.company"]
+    cA = Comp.create({"name": "Smoke MC A"})
+    cB = Comp.create({"name": "Smoke MC B"})
+    grp = env.ref("base.group_user").id
+    Users = env["res.users"]
+    groups_field = "group_ids" if "group_ids" in Users._fields else "groups_id"
+    user = Users.create({
+        "name": "Smoke MC User", "login": "smoke_mc_user_%d" % cA.id,
+        "company_id": cA.id, "company_ids": [(6, 0, [cA.id, cB.id])],
+        groups_field: [(6, 0, [grp])],
+    })
+    model_id = env["ir.model"].search([("model", "=", "res.partner")], limit=1).id
+    env["ir.rule"].create({
+        "name": "Smoke MC partner rule",
+        "model_id": model_id,
+        "domain_force": "[('company_id','in',company_ids)]",
+        "global": True,
+    })
+
+    def _eff_domain(company_id, allowed=None):
+        # Fresh registry cache so the first company's eval can't leak into the
+        # second via any cached rule/domain state.
+        try:
+            env.registry.clear_cache()
+        except Exception:
+            try:
+                env.registry.clear_caches()
+            except Exception:
+                pass
+        os.environ["MODEL"] = "res.partner"
+        os.environ["AS_USER"] = str(user.id)
+        os.environ["AS_COMPANY"] = str(company_id)
+        if allowed:
+            os.environ["AS_ALLOWED_COMPANIES"] = ",".join(str(i) for i in allowed)
+        else:
+            os.environ.pop("AS_ALLOWED_COMPANIES", None)
+        buf = io.StringIO()
+        with contextlib.redirect_stdout(buf):
+            exec(open(SECPATH).read(), {"env": env})
+        raw = buf.getvalue()
+        body = raw.split("===ODOO_SECURITY_START===", 1)[1].rsplit("===ODOO_SECURITY_END===", 1)[0]
+        data = json.loads(body)
+        return data["record_rules"]["read"]["effective_domain"]
+
+    res["dom_A"] = _eff_domain(cA.id)
+    res["dom_B"] = _eff_domain(cB.id)
+    res["dom_AB"] = _eff_domain(cA.id, allowed=[cA.id, cB.id])
+    res["cA"], res["cB"] = cA.id, cB.id
+except Exception as e:
+    res["error"] = "%s: %s" % (type(e).__name__, e)
+finally:
+    env.cr.rollback()
+print("===MC===", json.dumps(res))
+'''
+
+
+def _flatten_ints(obj):
+    """Collect every int found anywhere in a (possibly nested) domain list."""
+    found = []
+    if isinstance(obj, bool):
+        return found
+    if isinstance(obj, int):
+        return [obj]
+    if isinstance(obj, (list, tuple)):
+        for x in obj:
+            found.extend(_flatten_ints(x))
+    return found
+
+
+RESULTS = []
+
+
+def check(name, cond, detail=""):
+    RESULTS.append((name, bool(cond), detail))
+    print(f"  {'PASS' if cond else 'FAIL'} {name}{(' — ' + detail) if detail and not cond else ''}")
+
+
+def smoke_brief():
+    print("Layer A — model_brief")
+    d = _shell("model_brief.py", {"MODEL": MODEL, "METHODS": "write,create"})
+    check("brief.field_count>0", d.get("field_count", 0) > 0, str(d.get("field_count")))
+    check("brief.identity.model matches", d.get("identity", {}).get("model") == MODEL)
+    # selection extraction: at least one selection field exposes a value list
+    sel_fields = [n for n, f in d["fields"].items()
+                  if f.get("type") == "selection" and isinstance(f.get("selection"), list)]
+    check("brief.selection literals present", sel_fields, "no selection field with a value list")
+    if sel_fields:
+        first = d["fields"][sel_fields[0]]["selection"][0]
+        check("brief.selection has value key", "value" in first, str(first))
+    # manifest by-location split (path-based)
+    md = d.get("manifest_depends", {})
+    check("brief.manifest by_location present",
+          set(md.get("by_location", {})) >= {"core", "enterprise", "local", "unknown"})
+    check("brief.module_paths present", isinstance(md.get("module_paths"), dict))
+
+
+def smoke_entrypoints():
+    print("Layer B — entrypoints")
+    d = _shell("entrypoints.py", {"MODEL": MODEL, "VIEWS": "form"})
+    form = d.get("views", {}).get("form", {})
+    check("entrypoints.form has no error", "_error" not in form, str(form.get("_error")))
+    check("entrypoints.inheritance_chain is a list",
+          isinstance(form.get("inheritance_chain"), list))
+    chain = form.get("inheritance_chain") or []
+    if chain and isinstance(chain[0], dict):
+        check("entrypoints.chain entries have xmlid+priority",
+              "priority" in chain[0] and "xmlid" in chain[0], str(chain[0]))
+
+
+def smoke_metadata():
+    print("Layer C — metadata")
+    d = _shell("metadata.py", {"MODEL": MODEL})
+    check("metadata.menu_graph present", "menu_graph" in d)
+    check("metadata.seeded_data present", "seeded_data" in d)
+    check("metadata.noupdate_records is a list",
+          isinstance(d.get("seeded_data", {}).get("noupdate_records"), list))
+
+
+def smoke_refs():
+    # Layer E — reverse impact, exercised in graph-resolved mode. Uses a field
+    # guaranteed to exist on res.partner so the env-bound path of the resolver
+    # runs against a real registry (relation hops + comodel_name), independent
+    # of whatever dependents happen to exist on a clean base DB.
+    field = "country_id" if MODEL == "res.partner" else "display_name"
+    print(f"Layer E — field_refs (graph-resolved) on {MODEL}.{field}")
+    d = _shell("field_refs.py", {"MODEL": MODEL, "FIELD": field, "RESOLVE_PATHS": "1"})
+    check("refs.path_resolution graph-resolved",
+          d.get("path_resolution") == "graph-resolved", str(d.get("path_resolution")))
+    check("refs.field_exists true", d.get("field_exists") is True)
+    check("refs.reference_count is int", isinstance(d.get("reference_count"), int))
+    check("refs.severity_counts has buckets",
+          set(d.get("severity_counts", {})) >= {"high", "medium", "low"})
+    # Every graph-resolved field reference must carry a resolved_via that lands
+    # on exactly this model.field (no last-segment false positives).
+    bad = [r for r in d.get("references", [])
+           if r["kind"] in ("stored_compute_depends", "related_field")
+           and r.get("resolved_via", {}).get("terminal_field") not in (field, None)]
+    check("refs.resolved_via lands on target field", not bad, str(bad[:2]))
+
+
+def smoke_security():
+    uid = resolve_nonsuper_uid()
+    if not uid:
+        print("Layer G — security (skipped: no non-superuser found)")
+        return
+    print(f"Layer G — security (effective ACL + rules) on {MODEL} as uid {uid}")
+    d = _shell("security_sim.py", {"MODEL": MODEL, "AS_USER": uid})
+    ar = d.get("access_rights", {})
+    check("security.access_rights has modes",
+          all(m in ar for m in ("read", "write", "create", "unlink")), str(list(ar)))
+    check("security.odoo_check present", isinstance(ar.get("odoo_check"), dict))
+    check("security.record_rules has read.effective_domain",
+          "effective_domain" in d.get("record_rules", {}).get("read", {}))
+    check("security.user resolved (not superuser)",
+          d.get("user", {}).get("id") == uid and d.get("user", {}).get("is_superuser") is False)
+    check("security.field_access.restricted is a list",
+          isinstance(d.get("field_access", {}).get("restricted"), list))
+
+
+def smoke_state():
+    global RECORD_ID
+    if not RECORD_ID:
+        RECORD_ID = resolve_record_id()
+    if not RECORD_ID:
+        print("Layer F — state (skipped: no record of "
+              f"{MODEL} found and SMOKE_RECORD_ID unset)")
+        return
+    print(f"Layer F — state (redaction) on {MODEL}({RECORD_ID})")
+    d = _shell("state_capture.py", {
+        "MODEL": MODEL, "RECORD_ID": RECORD_ID, "METHOD": "_compute_display_name",
+        "BREAK_AT": f"{MODEL}._compute_display_name",
+        "FIELDS": "display_name", "REDACT_EXTRA": "display_name",
+    })
+    check("state.redaction enabled by default", d.get("redaction", {}).get("enabled") is True)
+    check("state rolled back", d.get("committed") is False)
+    # display_name was forced into the redact set → must be masked, not leaked
+    bps = d.get("breakpoints") or []
+    masked = any(bp.get("self_fields", {}).get("display_name") == "<redacted>" for bp in bps)
+    check("state.redaction masks forced field", masked or not bps,
+          "display_name not masked")
+
+
+def smoke_security_multicompany():
+    print("Layer G — security multi-company (AS_COMPANY effective_domain)")
+    secpath = (SCRIPTS / "security_sim.py")
+    code = ("SECPATH = %r\n" % str(secpath)) + _MC_SNIPPET
+    out = _shell_code(code)
+    m = re.search(r"===MC===\s+(\{.*\})", out)
+    if not m:
+        tail = "\n".join(out.strip().splitlines()[-12:])
+        check("security_mc.snippet ran", False, f"no ===MC=== marker. Tail:\n{tail}")
+        return
+    res = json.loads(m.group(1))
+    if res.get("error"):
+        check("security_mc.setup ok", False, res["error"])
+        return
+    dom_a, dom_b = res.get("dom_A"), res.get("dom_B")
+    dom_ab = res.get("dom_AB")
+    ca, cb = res.get("cA"), res.get("cB")
+    ints_a, ints_b = _flatten_ints(dom_a), _flatten_ints(dom_b)
+    ints_ab = _flatten_ints(dom_ab)
+    # The company-scoped rule resolves `company_ids` to the SIMULATED company,
+    # so each effective domain must reference its own company and not the other.
+    check("security_mc.AS_COMPANY=A scopes to company A",
+          ca in ints_a and cb not in ints_a, f"dom_A={dom_a} (cA={ca}, cB={cb})")
+    check("security_mc.AS_COMPANY=B scopes to company B",
+          cb in ints_b and ca not in ints_b, f"dom_B={dom_b} (cA={ca}, cB={cb})")
+    # The whole point of the v0.4.1 fix: the two companies yield DIFFERENT
+    # effective domains (pre-fix both collapsed to the user's default company).
+    check("security_mc.domains differ per company", dom_a != dom_b,
+          f"dom_A == dom_B == {dom_a}")
+    # --allowed-companies widens env.companies, so company_ids resolves to the
+    # whole toggled-on set: the effective domain covers BOTH companies.
+    check("security_mc.--allowed-companies covers the full set",
+          ca in ints_ab and cb in ints_ab, f"dom_AB={dom_ab} (cA={ca}, cB={cb})")
+
+
+def smoke_capabilities():
+    print(f"Layer H — capabilities (model mode) on {MODEL}")
+    d = _shell("capabilities.py", {"MODEL": MODEL})
+    check("capabilities.model mode", d.get("mode") == "model", str(d.get("mode")))
+    check("capabilities.mixins has 3 keys",
+          set(d.get("mixins", {})) == {"mail_thread", "activities", "portal"},
+          str(d.get("mixins")))
+    check("capabilities.functional_fields is a list",
+          isinstance(d.get("functional_fields"), list))
+    check("capabilities._summary present", isinstance(d.get("_summary"), dict))
+    check("capabilities.bound_actions is a list", isinstance(d.get("bound_actions"), list))
+
+    print("Layer H — capabilities (module mode) on base")
+    m = _shell("capabilities.py", {"MODULE": "base"})
+    check("capabilities.module found+installed",
+          m.get("found") is True and m.get("state") == "installed",
+          f"found={m.get('found')}, state={m.get('state')}")
+    check("capabilities.module models is a list", isinstance(m.get("models"), list))
+    check("capabilities.module _summary present", isinstance(m.get("_summary"), dict))
+    # xmlid evidence: any enumerated window action carries a module.name xmlid
+    wins = [w for w in m.get("window_actions", []) if "_truncated" not in w]
+    if wins:
+        check("capabilities.window_actions carry xmlid evidence",
+              all(w.get("xmlid", "").startswith("base.") for w in wins if w.get("xmlid")),
+              str(wins[0]))
+
+
+def smoke_native_check():
+    cards = SCRIPTS.parent.parent / "odoo-capabilities" / "references" / "cards"
+    print(f"Layer H — native-check (gate-then-rank; corpus injected from {cards.name}/)")
+    # Inject the corpus on stdin (issue #3) — works whether ODOO_BIN is local or a
+    # Docker/remote wrapper; no host CARDS_DIR read inside the shell.
+    d = _shell("native_check.py", {"REQUIREMENT": "auto-number our delivery slips"},
+               stdin_prefix=_inject({"CARDS_JSON": _cards_blob(cards)}))
+    check("native_check.cards_loaded > 0", d.get("cards_loaded", 0) > 0, str(d.get("cards_loaded")))
+    check("native_check.confirmed is a list", isinstance(d.get("confirmed_candidates"), list))
+    check("native_check.unconfirmed is a list", isinstance(d.get("unconfirmed_candidates"), list))
+    conf = d.get("confirmed_candidates", [])
+    ids = [c.get("id") for c in conf]
+    # ir.sequence exists in `base` on ANY install → always confirmed for "auto-number"
+    check("native_check confirms universal.ir_sequence for auto-number",
+          "universal.ir_sequence" in ids, str(ids))
+    # every confirmed candidate carries cited instance evidence (found probes)
+    bad_conf = [c["id"] for c in conf
+                if not (isinstance(c.get("evidence"), list) and c["evidence"]
+                        and all(e.get("found") for e in c["evidence"]))]
+    check("native_check confirmed carry found-evidence", not bad_conf, str(bad_conf[:3]))
+    # every unconfirmed candidate explains why it's absent
+    bad_unconf = [c["id"] for c in d.get("unconfirmed_candidates", [])
+                  if not c.get("why_absent")]
+    check("native_check unconfirmed carry why_absent", not bad_unconf, str(bad_unconf[:3]))
+
+
+def smoke_layer_i():
+    """Layer I enforcement gates whose run() touches the live registry:
+    scenario_gen (A), env_diff fingerprint, upgrade_check. Model = MODEL
+    (res.partner by default → base-only safe)."""
+    print(f"Layer I — scenarios on {MODEL}")
+    sc = _shell("scenario_gen.py", {"MODEL": MODEL, "METHODS": "write,create"})
+    keys = {s.get("key") for s in sc.get("scenarios", [])}
+    check("scenarios.risk tier present", sc.get("risk", {}).get("tier") in ("critical", "high", "normal"),
+          str(sc.get("risk")))
+    # res.partner has company_id and write/create were passed → these must appear
+    check("scenarios cover non_admin/multi_company/batch",
+          {"non_admin", "multi_company", "batch"} <= keys, str(sorted(keys)))
+    try:
+        ast.parse(sc.get("skeleton", ""))
+        check("scenarios.skeleton is valid Python", True)
+    except SyntaxError as e:
+        check("scenarios.skeleton is valid Python", False, str(e))
+
+    print("Layer I — env-fingerprint")
+    fp = _shell("env_diff.py", {})
+    check("env_fingerprint.edition", fp.get("edition") in ("community", "enterprise"), str(fp.get("edition")))
+    check("env_fingerprint.modules has base", "base" in (fp.get("modules") or {}))
+    check("env_fingerprint.counts.ir.model > 0", (fp.get("counts") or {}).get("ir.model", 0) > 0,
+          str(fp.get("counts")))
+
+    print("Layer I — upgrade-check")
+    old = {"fields": {"name": {"type": "char", "required": False, "has_default": True, "store": True},
+                      "zz_legacy_field": {"type": "char", "required": False, "has_default": False, "store": True}}}
+    with tempfile.NamedTemporaryFile("w", suffix=".json", delete=False) as fh:
+        json.dump(old, fh)
+        old_path = fh.name
+    try:
+        up = _shell("upgrade_check.py", {"MODEL": MODEL, "AGAINST": old_path,
+                                         "MODULE": "smoke_mod", "VERSION": "18.0"})
+    finally:
+        os.unlink(old_path)
+    check("upgrade_check.renames is a list", isinstance(up.get("renames"), list))
+    check("upgrade_check.risks is a list", isinstance(up.get("risks"), list))
+    check("upgrade_check.summary has blocking/warning",
+          {"blocking", "warning"} <= set(up.get("summary", {})), str(up.get("summary")))
+    try:
+        ast.parse(up.get("migration_script", ""))
+        check("upgrade_check.migration_script is valid Python", True)
+    except SyntaxError as e:
+        check("upgrade_check.migration_script is valid Python", False, str(e))
+
+
+def smoke_native_check_probe_kinds():
+    """Exercise the v0.8 probe grammar (xmlid/group/action_window/cron/
+    selection_has_value/edition) against the live registry via a base-safe
+    fixture corpus. (mixin_inherited + sequence_exists need mail/sale and are
+    covered by the model_brief/native_check shipped-card paths.)"""
+    cards = SCRIPTS / "tests" / "probe_cards"
+    print(f"Layer I — native-check extended probe kinds (fixture injected: {cards.name}/)")
+    d = _shell("native_check.py", {"REQUIREMENT": "zzprobe"},
+               stdin_prefix=_inject({"CARDS_JSON": _cards_blob(cards)}))
+    conf = {c.get("id") for c in d.get("confirmed_candidates", [])}
+    unconf = {c.get("id") for c in d.get("unconfirmed_candidates", [])}
+    # base-guaranteed truths (CE/EE-agnostic)
+    check("probe xmlid/group/action_window/cron/selection confirmed",
+          {"zz.xmlid", "zz.group", "zz.action_window", "zz.cron", "zz.selection_ok"} <= conf,
+          f"confirmed={sorted(conf)}")
+    check("probe selection_bad unconfirmed", "zz.selection_bad" in unconf, f"unconfirmed={sorted(unconf)}")
+    # edition: exactly one of community/enterprise confirmed for this instance
+    ed = {"zz.edition_community", "zz.edition_enterprise"}
+    check("probe edition resolves to exactly one", len(ed & conf) == 1, f"edition∩confirmed={sorted(ed & conf)}")
+
+
+def smoke_claim_verify():
+    """Layer I BYO-index claim verifier against the live registry (base-safe
+    claims on res.partner). claim_verify imports its sibling native_check, so we
+    pass SCRIPTS_DIR the way the CLI does."""
+    print("Layer I — verify-claims (BYO-index) on res.partner")
+    claims = [
+        {"source": "smoke", "model": "res.partner", "field": "name", "claim": "has a name field"},
+        {"source": "smoke", "model": "res.partner", "field": "zz_made_up_field", "claim": "has field"},
+        {"source": "smoke", "model": "res.partner", "method": "write", "claim": "write is a safe override point"},
+        {"source": "smoke", "claim": "this is the best architecture"},
+    ]
+    with tempfile.NamedTemporaryFile("w", suffix=".json", delete=False) as fh:
+        json.dump(claims, fh)
+        path = fh.name
+    try:
+        d = _shell("claim_verify.py", {"CLAIMS_FILE": path, "SCRIPTS_DIR": str(SCRIPTS)})
+    finally:
+        os.unlink(path)
+    verdicts = {v.get("target"): v.get("verdict") for v in d.get("verified", [])}
+    check("claim_verify.confirmed for a real field",
+          verdicts.get("res.partner.name") == "confirmed", str(verdicts))
+    check("claim_verify.contradicted for a made-up field",
+          verdicts.get("res.partner.zz_made_up_field") == "contradicted", str(verdicts))
+    check("claim_verify.needs_shell for a safety claim on an existing method",
+          verdicts.get("res.partner.write()") == "needs_shell", str(verdicts))
+    check("claim_verify.needs_human for a subjective claim",
+          "needs_human" in d.get("summary", {}), str(d.get("summary")))
+
+
+def smoke_preflight():
+    """Module load-state preflight (base is always installed; a made-up module
+    is reported not-found)."""
+    print("preflight — module load state")
+    d = _shell("preflight.py", {"MODULE": "base"})
+    mod = d.get("module") or {}
+    check("preflight.base found + installed",
+          mod.get("found") is True and mod.get("state") == "installed", str(mod))
+    nd = _shell("preflight.py", {"MODULE": "zz_no_such_module"})
+    check("preflight.missing module flagged not-found",
+          (nd.get("module") or {}).get("found") is False, str(nd.get("module")))
+
+
+def smoke_trace():
+    """Layer D runtime trace. Needs an app with a no-arg flow method, so it uses
+    sale.order.action_confirm when sale is installed (the integration job installs
+    base,sale); on a base-only DB it skips cleanly rather than failing."""
+    print("Layer D — trace (runtime call graph)")
+    if "===SALE=== True" not in _shell_code('print("===SALE===", "sale.order" in env)\n'):
+        check("trace skipped (sale not installed — base-only DB)", True)
+        return
+    # Build a confirmable order and commit so the trace subprocess can browse it.
+    setup = (
+        "p = env['res.partner'].create({'name': 'Smoke Trace Partner'})\n"
+        "prod = env['product.product'].create({'name': 'Smoke Trace Product', 'list_price': 50.0})\n"
+        "o = env['sale.order'].create({'partner_id': p.id, "
+        "'order_line': [(0, 0, {'product_id': prod.id, 'product_uom_qty': 1})]})\n"
+        "env.cr.commit()\n"
+        "print('===OID===', o.id)\n")
+    out = _shell_code(setup)
+    m = re.search(r"===OID===\s+(\d+)", out)
+    if not m:
+        check("trace.setup created a sale.order", False,
+              "\n".join((out or "").strip().splitlines()[-4:]))
+        return
+    oid = m.group(1)
+    d = _shell("trace_flow.py", {"MODEL": "sale.order", "RECORD_ID": oid, "METHOD": "action_confirm"})
+    check("trace.root matches the call",
+          (d.get("root") or "").startswith(f"sale.order({oid}).action_confirm"), str(d.get("root")))
+    # the tracer captures addon frames whether or not the flow raises (we test the
+    # TRACE engine, not sale's confirmability), so don't assert error is None
+    check("trace executed real addon frames", d.get("total_addon_calls", 0) > 0,
+          str(d.get("total_addon_calls")))
+    check("trace.distinct_steps is a list", isinstance(d.get("distinct_steps"), list))
+    check("trace.summary.writes_by_model present",
+          isinstance((d.get("summary") or {}).get("writes_by_model"), dict))
+    check("trace rolled back by default", d.get("committed") is False, str(d.get("committed")))
+
+
+def smoke_surface():
+    """Layer K — entrypoint discovery. Model scope is base-safe; instance scope
+    must rank object buttons + the action registry; sale (if installed) must
+    surface action_confirm as a trace seed."""
+    print(f"Layer K — surface (entrypoint discovery) on {MODEL}")
+    d = _shell("entrypoint_surface.py", {"MODEL": MODEL})
+    check("surface.mode", d.get("mode") == "surface", str(d.get("mode")))
+    check("surface.entrypoints is a list", isinstance(d.get("entrypoints"), list))
+    check("surface.counts is a dict", isinstance(d.get("counts"), dict))
+    check("surface.top_trace_seeds is a list", isinstance(d.get("top_trace_seeds"), list))
+    # every ranked entry carries a rank + reasons
+    eps = d.get("entrypoints") or []
+    if eps:
+        check("surface.entries carry rank+why",
+              all("rank" in e and "why" in e for e in eps), str(eps[0]))
+
+    print("Layer K — surface (instance-wide; ranking + routes)")
+    inst = _shell("entrypoint_surface.py", {})
+    check("surface.instance scope", inst.get("scope", {}).get("mode") == "instance",
+          str(inst.get("scope")))
+    check("surface.instance has object_button entrypoints",
+          inst.get("counts", {}).get("object_button", 0) > 0, str(inst.get("counts")))
+    # ranking is monotonic non-increasing
+    ranks = [e.get("rank") for e in inst.get("entrypoints", [])]
+    check("surface.ranked descending", ranks == sorted(ranks, reverse=True),
+          f"first 5: {ranks[:5]}")
+    # HTTP routes discovered (base ships controllers like /web)
+    check("surface.routes discovered", inst.get("counts", {}).get("route", 0) > 0,
+          str(inst.get("counts", {}).get("route")))
+
+    if "===SALE=== True" in _shell_code('print("===SALE===", "sale.order" in env)\n'):
+        sd = _shell("entrypoint_surface.py", {"MODEL": "sale.order"})
+        seeds = {(s["model"], s["method"]) for s in sd.get("top_trace_seeds", [])}
+        check("surface surfaces sale.order.action_confirm as a seed",
+              ("sale.order", "action_confirm") in seeds, str(sorted(seeds)[:5]))
+
+
+def smoke_esg():
+    """Layer K — Execution Surface Graph sampling. Needs records, so it uses
+    sale.order (creates one) when sale is installed; base-only DB skips cleanly."""
+    print("Layer K — esg (multi-root trace sampling)")
+    if "===SALE=== True" not in _shell_code('print("===SALE===", "sale.order" in env)\n'):
+        check("esg skipped (sale not installed — base-only DB)", True)
+        return
+    setup = (
+        "p = env['res.partner'].create({'name': 'Smoke ESG Partner'})\n"
+        "prod = env['product.product'].create({'name': 'Smoke ESG Product', 'list_price': 30.0})\n"
+        "env['sale.order'].create({'partner_id': p.id, "
+        "'order_line': [(0, 0, {'product_id': prod.id, 'product_uom_qty': 2})]})\n"
+        "env.cr.commit()\nprint('===ESGSET=== ok')\n")
+    if "===ESGSET=== ok" not in _shell_code(setup):
+        check("esg.setup created a sale.order", False)
+        return
+    d = _shell("esg_sample.py", {"MODEL": "sale.order", "ESG_SEEDS": "3",
+                                 "SCRIPTS_DIR": str(SCRIPTS)})
+    check("esg.mode", d.get("mode") == "esg", str(d.get("mode")))
+    check("esg rolled back by default", d.get("committed") is False)
+    summ = d.get("summary", {})
+    check("esg sampled at least one flow", summ.get("seeds_traced", 0) >= 1, str(summ))
+    check("esg touched models", summ.get("models_touched", 0) >= 1, str(summ))
+    check("esg.graph has models+edges keys",
+          {"models", "edges", "app_edges", "writes"} <= set(d.get("graph", {})),
+          str(list(d.get("graph", {}))))
+    # action_confirm on a real order touches stock → expect a cross-app edge
+    seeds = {s.get("method") for s in d.get("seeds", [])}
+    check("esg sampled action_confirm", "action_confirm" in seeds, str(seeds))
+    # the external-effect blocklist must be active: it never auto-fired a send/mail
+    su = d.get("skipped_unsafe")
+    check("esg.skipped_unsafe is a list (blocklist active)", isinstance(su, list), str(su))
+    check("esg did NOT auto-trace a send/mail/print method",
+          not any(any(w in (m or "") for w in ("send", "mail", "print", "unlink"))
+                  for m in seeds), str(seeds))
+
+
+def smoke_eval():
+    """Layer K — hallucination eval harness. Inject the shipped benchmark on
+    stdin (issue #3) + SCRIPTS_DIR (it imports native_check). The gate must catch
+    every classic hallucination and confirm every applicable real → gate_sound."""
+    bench = SCRIPTS.parent / "references" / "eval-benchmark.json"
+    print(f"Layer K — eval (hallucination benchmark: {bench.name})")
+    d = _shell("eval_harness.py", {"SCRIPTS_DIR": str(SCRIPTS)},
+               stdin_prefix=_inject({"BENCHMARK_JSON": bench.read_text()}))
+    m = d.get("metrics", {})
+    check("eval.detection_rate == 1.0 (all classic hallucinations caught)",
+          m.get("detection_rate") == 1.0, str(m.get("detection_rate")))
+    check("eval.truth_recall == 1.0 (all applicable reals confirmed)",
+          m.get("truth_recall") == 1.0, str(m.get("truth_recall")))
+    check("eval.gate_sound", m.get("gate_sound") is True,
+          f"leaked={d.get('hallucinations_leaked')} missed={d.get('reals_missed')}")
+    # the canonical fakes must be flagged absent (caught), never leaked
+    leaked_ids = {c["id"] for c in d.get("hallucinations_leaked", [])}
+    check("eval.account.invoice not leaked", "absent.model.account_invoice" not in leaked_ids,
+          str(leaked_ids))
+    check("eval.by_category present", isinstance(d.get("by_category"), dict))
+
+
+def main():
+    if not DB:
+        print("SKIP integration_smoke: ODOO_DB not set (pure-function CI is unaffected).")
+        return 0
+    print(f"integration_smoke · db={DB} · model={MODEL} · odoo_bin={ODOO_BIN}\n")
+    for fn in (smoke_brief, smoke_entrypoints, smoke_metadata, smoke_refs,
+               smoke_security, smoke_security_multicompany, smoke_state,
+               smoke_capabilities, smoke_native_check,
+               smoke_layer_i, smoke_native_check_probe_kinds, smoke_claim_verify,
+               smoke_preflight, smoke_trace,
+               smoke_surface, smoke_esg, smoke_eval):
+        try:
+            fn()
+        except Exception as e:  # noqa: BLE001
+            check(fn.__name__, False, f"{type(e).__name__}: {e}")
+    failed = [n for n, ok, _ in RESULTS if not ok]
+    print(f"\n{len(RESULTS) - len(failed)}/{len(RESULTS)} checks passed")
+    return 1 if failed else 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

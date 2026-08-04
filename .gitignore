@@ -5,7 +5,16 @@ node_modules/
 .DS_Store
 *.log
 
+# Secrets — never commit. Ishbek/Odoo keys live in .env.local (server-only).
+.env
+.env.*
+!.env.example
+
 # Next.js (almond-web) build output
 almond-web/.next/
 almond-web/out/
 almond-web/next-env.d.ts
+
+# TypeScript incremental build info
+*.tsbuildinfo
+.claude/settings.local.json

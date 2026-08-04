@@ -1,0 +1,9 @@
+{
+  "_endpoint": "POST {ISHBEK_BASE_URL}/delivery/cancel",
+  "_desc": "إلغاء التوصيل ضمن النافذة المسموحة (قبل الاستلام).",
+  "dispatchId": "disp_ord_10432",
+  "orderId": "ord_10432",
+  "reason": "customer_cancelled",
+  "_reasonValues": "customer_cancelled | branch_out_of_stock | address_unreachable",
+  "requestedAt": "2026-07-05T13:04:00+03:00"
+}

@@ -1,0 +1,869 @@
+"""
+Unit tests for the PURE functions in the introspection scripts — the bits that
+need no running Odoo. The scripts are import-safe (env-dependent work only runs
+when `env` is present, i.e. inside `odoo-bin shell`), so we can import them here.
+
+Run with pytest:   python -m pytest skills/odoo-introspect/scripts/tests -q
+Or standalone:     python skills/odoo-introspect/scripts/tests/test_pure_functions.py
+"""
+import importlib.machinery
+import importlib.util
+import sys
+from pathlib import Path
+
+SCRIPTS_DIR = Path(__file__).resolve().parent.parent   # .../odoo-introspect/scripts
+sys.path.insert(0, str(SCRIPTS_DIR))
+
+import model_brief  # noqa: E402  (import-safe: run() is gated on `env` in globals)
+import entrypoints  # noqa: E402  (import-safe: run() is gated on `env` in globals)
+import field_refs   # noqa: E402  (import-safe: run() is gated on `env` in globals)
+import trace_flow   # noqa: E402  (import-safe: run() is gated on `env` in globals)
+import preflight    # noqa: E402  (import-safe: run() is gated on `env` in globals)
+import state_capture  # noqa: E402  (import-safe: run() is gated on `env` in globals)
+import security_sim  # noqa: E402  (import-safe: run() is gated on `env` in globals)
+import capabilities  # noqa: E402  (import-safe: run() is gated on `env` in globals)
+import native_check  # noqa: E402  (import-safe: run() is gated on `env` in globals)
+
+
+def _load_odoo_ai():
+    """`odoo-ai` has no .py extension; load it by explicit source loader."""
+    path = SCRIPTS_DIR / "odoo-ai"
+    loader = importlib.machinery.SourceFileLoader("odoo_ai", str(path))
+    spec = importlib.util.spec_from_loader("odoo_ai", loader)
+    mod = importlib.util.module_from_spec(spec)
+    loader.exec_module(mod)   # __name__ == "odoo_ai" → its main() guard does not fire
+    return mod
+
+
+odoo_ai = _load_odoo_ai()
+
+
+# --- model_brief.analyze_source ---------------------------------------------
+def test_analyze_source_empty():
+    out = model_brief.analyze_source("")
+    assert out["has_super"] is False
+    assert out["heuristic"] is True
+    assert out["super_position"] is None
+    assert out["hooks_called"] == []
+
+
+def test_analyze_source_no_super():
+    out = model_brief.analyze_source("def f(self):\n    return 1\n")
+    assert out["has_super"] is False
+    assert out["super_position"] is None
+
+
+def test_analyze_source_detects_super_and_hooks():
+    src = (
+        "def write(self, vals):\n"
+        "    self._prepare_stuff()\n"
+        "    res = super().write(vals)\n"
+        "    self._sync_later()\n"
+        "    return res\n"
+    )
+    out = model_brief.analyze_source(src)
+    assert out["has_super"] is True
+    assert "_prepare_stuff" in out["hooks_called"]
+    assert "_sync_later" in out["hooks_called"]
+    assert out["super_position"] is not None
+
+
+def test_analyze_source_ignores_commented_super():
+    # A commented-out super() must NOT register (comment-stripping heuristic).
+    src = "def f(self):\n    # res = super().f()  # disabled\n    return 1\n"
+    out = model_brief.analyze_source(src)
+    assert out["has_super"] is False
+
+
+def test_analyze_source_returns_before_super():
+    src = (
+        "def action_confirm(self):\n"
+        "    if self.state == 'done':\n"
+        "        return True\n"
+        "    return super().action_confirm()\n"
+    )
+    out = model_brief.analyze_source(src)
+    assert out["has_super"] is True
+    assert out["returns_before_super"] is True
+
+
+# --- model_brief.normalize_selection ----------------------------------------
+def test_normalize_selection_pairs():
+    out = model_brief.normalize_selection(
+        [("draft", "Quotation"), ("sale", "Sales Order"), ("done", "Locked")])
+    assert out == [
+        {"value": "draft", "label": "Quotation"},
+        {"value": "sale", "label": "Sales Order"},
+        {"value": "done", "label": "Locked"},
+    ]
+
+
+def test_normalize_selection_dynamic_and_empty():
+    assert model_brief.normalize_selection("_compute_states") == {"_dynamic": "method:_compute_states"}
+    assert model_brief.normalize_selection(lambda self: []) == {"_dynamic": "callable"}
+    assert model_brief.normalize_selection(None) is None
+    assert model_brief.normalize_selection([]) is None
+
+
+def test_normalize_selection_truncates():
+    big = [(str(i), f"L{i}") for i in range(70)]
+    out = model_brief.normalize_selection(big, max_items=60)
+    assert len(out) == 61
+    assert out[-1] == {"_truncated": "+10 more"}
+
+
+def test_repr_domain():
+    assert model_brief.repr_domain(None) is None
+    assert model_brief.repr_domain(lambda self: []) == "<callable>"
+    assert model_brief.repr_domain("[('active','=',True)]") == "[('active','=',True)]"
+    assert model_brief.repr_domain([("a", "=", 1)]) == "[('a', '=', 1)]"
+    long = model_brief.repr_domain("x" * 400, max_len=300)
+    assert long.endswith("…") and len(long) == 301
+
+
+def test_classify_addon_path():
+    core = "/opt/odoo/odoo/addons"
+    # core: under the base addons dir
+    assert model_brief.classify_addon_path("/opt/odoo/odoo/addons/sale", core) == "core"
+    assert model_brief.classify_addon_path(core, core) == "core"
+    # enterprise: an `enterprise` path segment
+    assert model_brief.classify_addon_path("/mnt/extra-addons/enterprise/web_studio", core) == "enterprise"
+    # local: custom path (even if author claims Odoo S.A.)
+    assert model_brief.classify_addon_path("/mnt/extra-addons/bestmix-addons/bm_account", core) == "local"
+    # unknown: no path
+    assert model_brief.classify_addon_path(None, core) == "unknown"
+    # substring trap: a dir literally named like core but not under it
+    assert model_brief.classify_addon_path("/opt/odoo/odoo/addons_custom/x", core) == "local"
+
+
+# --- model_brief.gate_code ---------------------------------------------------
+def test_gate_code_redacts_by_default():
+    # Default: NO preview — a head slice can still leak a token/URL/key.
+    recs = [{"name": "a", "code": "x = secret_token\n" + "y" * 500}]
+    out = model_brief.gate_code(recs, want_code=False, preview_len=100)
+    rec = out[0]
+    assert "code" not in rec                       # full body removed
+    assert rec["code_present"] is True
+    assert rec["code_len"] == len("x = secret_token\n") + 500
+    assert rec["code_preview"] is None             # no preview by default
+
+
+def test_gate_code_preview_when_opted_in():
+    recs = [{"name": "a", "code": "x = secret_token\n" + "y" * 500}]
+    out = model_brief.gate_code(recs, want_code=False, want_preview=True, preview_len=100)
+    rec = out[0]
+    assert "code" not in rec                       # full body still removed
+    assert rec["code_present"] is True
+    assert rec["code_preview"].endswith("…")       # truncated preview
+    assert len(rec["code_preview"]) == 101
+
+
+def test_gate_code_keeps_body_when_wanted():
+    recs = [{"name": "a", "code": "do_stuff()"}]
+    out = model_brief.gate_code(recs, want_code=True)
+    rec = out[0]
+    assert rec["code"] == "do_stuff()"             # full body kept
+    assert rec["code_present"] is True
+    assert rec["code_len"] == len("do_stuff()")
+    assert "code_preview" not in rec
+
+
+def test_gate_code_handles_empty_and_missing():
+    out = model_brief.gate_code([{"name": "a", "code": False}, {"name": "b"}], want_code=False)
+    assert out[0]["code_present"] is False and "code" not in out[0]
+    assert "code" not in out[1]                    # no code key → untouched body-wise
+    # _safe_read error markers (no 'code' key) must pass through unharmed
+    errs = model_brief.gate_code([{"_error": "boom"}], want_code=False)
+    assert errs == [{"_error": "boom"}]
+    assert model_brief.gate_code(None, want_code=False) is None
+
+
+# --- entrypoints.order_inheritance_chain ------------------------------------
+def test_inheritance_chain_orders_by_priority():
+    views = [
+        {"id": 1, "inherit_id": None, "priority": 16, "xmlid": "sale.form"},
+        {"id": 3, "inherit_id": 1, "priority": 30, "xmlid": "custom.form_inherit"},
+        {"id": 2, "inherit_id": 1, "priority": 20, "xmlid": "sale_stock.form_inherit"},
+    ]
+    out = entrypoints.order_inheritance_chain(views, root_id=1)
+    assert [v["xmlid"] for v in out] == [
+        "sale.form", "sale_stock.form_inherit", "custom.form_inherit"]
+
+
+def test_inheritance_chain_nested_and_unreachable():
+    views = [
+        {"id": 1, "inherit_id": None, "priority": 16},
+        {"id": 2, "inherit_id": 1, "priority": 20},
+        {"id": 3, "inherit_id": 2, "priority": 10},   # grandchild
+        {"id": 9, "inherit_id": 99, "priority": 5},    # unreachable from root 1
+    ]
+    out = entrypoints.order_inheritance_chain(views, root_id=1)
+    assert [v["id"] for v in out] == [1, 2, 3]         # 9 excluded, parents first
+
+
+def test_inheritance_chain_missing_root():
+    assert entrypoints.order_inheritance_chain(
+        [{"id": 2, "inherit_id": 1, "priority": 16}], root_id=1) == []
+
+
+# --- field_refs pure helpers -------------------------------------------------
+def test_depends_hit_local_and_dotted():
+    assert field_refs.depends_hit(["commitment_date"], "commitment_date") is True
+    assert field_refs.depends_hit(["order_id.commitment_date"], "commitment_date") is True
+    assert field_refs.depends_hit(["order_id.date_order"], "commitment_date") is False
+    assert field_refs.depends_hit([], "commitment_date") is False
+    assert field_refs.depends_hit(None, "x") is False
+
+
+def test_mentions_field_whole_identifier():
+    assert field_refs.mentions_field("<field name='date'/>", "date") is True
+    assert field_refs.mentions_field("<field name='commitment_date'/>", "date") is False
+    assert field_refs.mentions_field("[('user_id','=',uid)]", "user_id") is True
+    assert field_refs.mentions_field("", "date") is False
+
+
+def test_classify_severity():
+    assert field_refs.classify_severity("stored_compute_depends") == "high"
+    assert field_refs.classify_severity("related_field") == "high"
+    assert field_refs.classify_severity("view") == "medium"
+    assert field_refs.classify_severity("record_rule") == "medium"
+    assert field_refs.classify_severity("anything_else") == "low"
+
+
+# --- field_refs.resolve_dotted_path (graph-aware) ---------------------------
+# A tiny schema: comodel of each relational field; non-relational fields absent.
+_SCHEMA = {
+    "sale.order":  {"partner_id": "res.partner", "commitment_date": None},
+    "res.partner": {"country_id": "res.country", "name": None},
+    "res.country": {"code": None},
+}
+
+
+def _comodel_of(model, field):
+    return _SCHEMA.get(model, {}).get(field)
+
+
+def test_resolve_dotted_local_field():
+    out = field_refs.resolve_dotted_path("sale.order", "commitment_date", _comodel_of)
+    assert out["resolved"] is True
+    assert out["terminal_model"] == "sale.order"
+    assert out["terminal_field"] == "commitment_date"
+
+
+def test_resolve_dotted_multi_hop():
+    out = field_refs.resolve_dotted_path("sale.order", "partner_id.country_id.code", _comodel_of)
+    assert out["resolved"] is True
+    assert out["terminal_model"] == "res.country"
+    assert out["terminal_field"] == "code"
+
+
+def test_resolve_dotted_untraversable_hop():
+    # 'commitment_date' is non-relational, so we can't traverse past it.
+    out = field_refs.resolve_dotted_path("sale.order", "commitment_date.foo", _comodel_of)
+    assert out["resolved"] is False
+    assert "cannot traverse" in out["reason"]
+
+
+def test_resolve_dotted_empty():
+    out = field_refs.resolve_dotted_path("sale.order", "", _comodel_of)
+    assert out["resolved"] is False and out["reason"] == "empty path"
+
+
+def test_path_hits_target_disambiguates_same_last_segment():
+    # Two paths ending in the SAME segment 'name' resolve to DIFFERENT models —
+    # the text heuristic can't tell them apart, graph resolution can.
+    schema = {
+        "sale.order": {"partner_id": "res.partner", "company_id": "res.company"},
+        "res.partner": {"name": None},
+        "res.company": {"name": None},
+    }
+    cof = lambda m, f: schema.get(m, {}).get(f)  # noqa: E731
+    hit = field_refs.path_hits_target(
+        "sale.order", ["partner_id.name", "company_id.name"],
+        "res.partner", "name", cof)
+    assert hit is not None and hit["path"] == "partner_id.name"
+    # target on res.company picks the OTHER path
+    hit2 = field_refs.path_hits_target(
+        "sale.order", ["partner_id.name", "company_id.name"],
+        "res.company", "name", cof)
+    assert hit2 is not None and hit2["path"] == "company_id.name"
+    # no path lands on the target field
+    assert field_refs.path_hits_target(
+        "sale.order", ["partner_id.name"], "res.partner", "email", cof) is None
+
+
+# --- trace_flow pure helpers -------------------------------------------------
+def test_compute_self_sql_subtracts_children():
+    # root(10) -> childA(6) -> grandchild(4); childB(1). depths preorder.
+    calls = [
+        {"depth": 0, "sql_count": 10},   # root: self = 10 - (6 + 1) = 3
+        {"depth": 1, "sql_count": 6},    # childA: self = 6 - 4 = 2
+        {"depth": 2, "sql_count": 4},    # grandchild: self = 4
+        {"depth": 1, "sql_count": 1},    # childB: self = 1
+    ]
+    assert trace_flow.compute_self_sql(calls) == [3, 2, 4, 1]
+
+
+def test_compute_self_sql_handles_none_and_empty():
+    assert trace_flow.compute_self_sql([]) == []
+    assert trace_flow.compute_self_sql([{"depth": 0, "sql_count": None}]) == [0]
+
+
+def test_summarize_calls_counts_and_hotspots():
+    calls = [
+        {"depth": 0, "model": "sale.order", "method": "action_confirm", "addon": "sale",
+         "line": 10, "sql_count": 12},
+        {"depth": 1, "model": "stock.move", "method": "_action_done", "addon": "stock",
+         "line": 20, "sql_count": 9},
+        {"depth": 1, "model": "stock.move", "method": "_action_done", "addon": "stock",
+         "line": 20, "sql_count": 1},
+    ]
+    out = trace_flow.summarize_calls(calls)
+    # most-invoked pair first
+    assert out["call_counts"][0] == {"model": "stock.move", "method": "_action_done",
+                                     "addon": "stock", "count": 2}
+    assert out["max_depth"] == 1
+    # self-sql hotspot: root self = 12 - (9 + 1) = 2; the depth-1 frames keep their own
+    top = {(r["method"], r["self_sql"]) for r in out["top_self_sql"]}
+    assert ("_action_done", 9) in top
+    # every reported hotspot has positive self_sql
+    assert all(r["self_sql"] > 0 for r in out["top_self_sql"])
+
+
+def test_summarize_calls_empty():
+    assert trace_flow.summarize_calls([]) == {"call_counts": [], "top_self_sql": [], "max_depth": 0}
+
+
+def test_aggregate_writes_groups_by_model_fields_only():
+    events = [
+        {"model": "sale.order", "method": "write", "fields": ["state"]},
+        {"model": "sale.order", "method": "write", "fields": ["state", "date_order"]},
+        {"model": "stock.move", "method": "create", "fields": ["product_id"]},
+    ]
+    out = trace_flow.aggregate_writes(events)
+    assert out["sale.order"] == {"creates": 0, "writes": 2,
+                                 "fields": ["date_order", "state"]}
+    assert out["stock.move"] == {"creates": 1, "writes": 0, "fields": ["product_id"]}
+    assert trace_flow.aggregate_writes([]) == {}
+
+
+def test_vals_field_names_dict_and_list_no_values():
+    assert trace_flow._vals_field_names({"state": "sale", "x": 1}) == ["state", "x"]
+    assert trace_flow._vals_field_names([{"a": 1}, {"b": 2, "a": 3}]) == ["a", "b"]
+    assert trace_flow._vals_field_names(None) == []
+    assert trace_flow._vals_field_names("not-a-dict") == []
+
+
+# --- security_sim pure helpers ----------------------------------------------
+def test_effective_acl_additive():
+    rows = [
+        {"perm_read": True, "perm_write": False, "perm_create": False, "perm_unlink": False},
+        {"perm_read": True, "perm_write": True, "perm_create": False, "perm_unlink": False},
+    ]
+    eff = security_sim.effective_acl(rows)
+    assert eff == {"read": True, "write": True, "create": False, "unlink": False}
+
+
+def test_effective_acl_empty_denies_all():
+    assert security_sim.effective_acl([]) == {
+        "read": False, "write": False, "create": False, "unlink": False}
+    assert security_sim.effective_acl(None)["read"] is False
+
+
+def test_parse_field_groups():
+    out = security_sim.parse_field_groups("base.group_user, !base.group_portal ,sale.group_x")
+    assert out["positive"] == ["base.group_user", "sale.group_x"]
+    assert out["negative"] == ["base.group_portal"]
+    assert security_sim.parse_field_groups("") == {"positive": [], "negative": []}
+    assert security_sim.parse_field_groups(None) == {"positive": [], "negative": []}
+
+
+def test_parse_id_list():
+    assert security_sim.parse_id_list("1, 2 ,Acme") == ["1", "2", "Acme"]
+    assert security_sim.parse_id_list("") == []
+    assert security_sim.parse_id_list(None) == []
+    assert security_sim.parse_id_list(" , ,") == []
+
+
+def test_normalize_domain():
+    # list / tuple / None / dict pass through unchanged
+    assert security_sim.normalize_domain(None) is None
+    dom = ["&", ("a", "=", 1), ("b", "=", 2)]
+    assert security_sim.normalize_domain(dom) == dom
+    assert security_sim.normalize_domain({"_error": "boom"}) == {"_error": "boom"}
+
+    # an odoo.Domain-like object (iterable into the prefix list) is converted
+    class _FakeDomain:
+        def __iter__(self):
+            return iter(["&", ("company_id", "in", [1]), ("active", "=", True)])
+
+    assert security_sim.normalize_domain(_FakeDomain()) == [
+        "&", ("company_id", "in", [1]), ("active", "=", True)]
+
+    # a non-iterable oddball is returned as-is (no crash)
+    sentinel = object()
+    assert security_sim.normalize_domain(sentinel) is sentinel
+
+
+def test_field_visible_positive_groups():
+    # no spec → always visible
+    assert security_sim.field_visible(None, []) is True
+    assert security_sim.field_visible("", ["base.group_user"]) is True
+    # positive: needs at least one
+    assert security_sim.field_visible("base.group_system", ["base.group_user"]) is False
+    assert security_sim.field_visible("base.group_system", ["base.group_system"]) is True
+
+
+def test_field_visible_negative_groups():
+    # negated: hidden FROM members of that group
+    assert security_sim.field_visible("!base.group_portal", ["base.group_portal"]) is False
+    assert security_sim.field_visible("!base.group_portal", ["base.group_user"]) is True
+    # mixed: must be in a positive AND in no negative
+    assert security_sim.field_visible(
+        "base.group_user,!base.group_portal", ["base.group_user"]) is True
+    assert security_sim.field_visible(
+        "base.group_user,!base.group_portal", ["base.group_user", "base.group_portal"]) is False
+
+
+# --- preflight pure helpers --------------------------------------------------
+def test_parse_addons_path():
+    assert preflight.parse_addons_path("/a, /b ,/c") == ["/a", "/b", "/c"]
+    assert preflight.parse_addons_path("") == []
+    assert preflight.parse_addons_path(None) == []
+
+
+def test_shadow_paths_detects_duplicate_and_datadir():
+    flags = preflight.shadow_paths(["/opt/odoo/addons", "/opt/odoo/addons/"])
+    assert any(f["reason"].startswith("duplicate") for f in flags)
+    flags2 = preflight.shadow_paths(["/home/u/.local/share/Odoo/addons/18.0"])
+    assert any("data-dir" in f["reason"] for f in flags2)
+    assert preflight.shadow_paths(["/opt/a", "/opt/b"]) == []
+
+
+# --- odoo-ai.extract ---------------------------------------------------------
+def test_extract_basic():
+    s = 'noise\n===S===\n{"a": 1}\n===E===\ntail'
+    assert odoo_ai.extract(s, "===S===", "===E===") == '{"a": 1}'
+
+
+def test_extract_missing_returns_none():
+    assert odoo_ai.extract("no markers here", "===S===", "===E===") is None
+
+
+def test_extract_tolerates_end_marker_in_body():
+    # The JSON body itself contains the end sentinel (e.g. via --source). rsplit
+    # on the LAST end marker must keep the full body, not truncate at the first.
+    body = '{"src": "print(\'===E===\')"}'
+    s = f"pre\n===S===\n{body}\n===E===\npost"
+    assert odoo_ai.extract(s, "===S===", "===E===") == body
+
+
+# --- odoo-ai._summ -----------------------------------------------------------
+def test_summ_brief():
+    d = {"field_count": 42, "overridden_methods": ["write", "create"]}
+    out = odoo_ai._summ("brief", d)
+    assert "42 fields" in out and "2 methods" in out
+
+
+def test_summ_entrypoints():
+    d = {"views": {"form": {"buttons": [1, 2]}, "list": {"buttons": [3]}}, "reports": [1]}
+    out = odoo_ai._summ("entrypoints", d)
+    assert "3 buttons" in out and "1 reports" in out
+
+
+def test_summ_metadata():
+    d = {"menu_graph": {"menus": [1, 2, 3]}, "seeded_data": {"noupdate_records": ["a"]}}
+    out = odoo_ai._summ("metadata", d)
+    assert "3 menu paths" in out and "1 protected" in out
+
+
+def test_summ_handles_bad_shape():
+    # Missing keys are swallowed → "" (never raises, never returns junk).
+    assert odoo_ai._summ("brief", {}) == ""
+    assert odoo_ai._summ("unknown-step", {}) == ""
+
+
+def test_summ_state():
+    d = {"breakpoint_hits": 2, "exception_stack": [{"a": 1}], "error": "ValueError: x"}
+    out = odoo_ai._summ("state", d)
+    assert "2 snapshots" in out and "1 exc frames" in out and "error=yes" in out
+    out2 = odoo_ai._summ("state", {"breakpoint_hits": 0, "exception_stack": [], "error": None})
+    assert "error=no" in out2
+
+
+# --- state_capture pure helpers ---------------------------------------------
+class _FakeRecordset:
+    """Duck-typed Odoo recordset for serialization tests (no Odoo needed)."""
+    def __init__(self, name, ids):
+        self._name = name
+        self.ids = ids
+
+    def browse(self, *a, **k):   # presence is part of the duck-type check
+        return self
+
+
+def test_state_truncate():
+    assert state_capture.truncate("abc", 10) == "abc"
+    long = state_capture.truncate("x" * 50, 10)
+    assert long.startswith("x" * 10) and "+40 chars" in long
+    assert state_capture.truncate(12345, 3).startswith("123")
+
+
+def test_state_should_break():
+    # model.method
+    assert state_capture.should_break("sale.order", "action_confirm", "sale.order.action_confirm")
+    assert not state_capture.should_break("sale.order", "write", "sale.order.action_confirm")
+    # bare method (any model)
+    assert state_capture.should_break("res.partner", "create", "create")
+    assert not state_capture.should_break("res.partner", "write", "create")
+    # model-only wildcard
+    assert state_capture.should_break("sale.order", "anything", "sale.order.*")
+    assert not state_capture.should_break("stock.move", "anything", "sale.order.*")
+    # empty spec never breaks
+    assert not state_capture.should_break("sale.order", "write", "")
+
+
+def test_state_addon_from_module():
+    # real-world: custom/enterprise addons resolve by module name, not file path
+    assert state_capture.addon_from_module("odoo.addons.bm_account.models.res_partner") == "bm_account"
+    assert state_capture.addon_from_module("odoo.addons.sale.models.sale_order") == "sale"
+    # core ORM plumbing is NOT an addon frame
+    assert state_capture.addon_from_module("odoo.models") is None
+    assert state_capture.addon_from_module("odoo.api") is None
+    assert state_capture.addon_from_module("") is None
+    assert state_capture.addon_from_module(None) is None
+
+
+def test_state_is_recordset():
+    assert state_capture.is_recordset(_FakeRecordset("sale.order", [1, 2]))
+    assert not state_capture.is_recordset({"_name": "x"})       # no ids/browse
+    assert not state_capture.is_recordset("sale.order")
+    assert not state_capture.is_recordset(None)
+
+
+def test_state_summarize_recordset():
+    rs = _FakeRecordset("sale.order", list(range(25)))
+    out = state_capture.summarize_recordset(rs, max_records=10)
+    assert out["__recordset__"] == "sale.order"
+    assert out["len"] == 25 and out["truncated"] is True
+    assert out["ids"] == list(range(10))
+
+
+def test_state_serialize_primitives_and_truncation():
+    assert state_capture.serialize_value(None) is None
+    assert state_capture.serialize_value(True) is True
+    assert state_capture.serialize_value(7) == 7
+    assert state_capture.serialize_value("hi") == "hi"
+    big = state_capture.serialize_value("y" * 300, max_string=50)
+    assert "+250 chars" in big
+
+
+def test_state_serialize_recordset_and_containers():
+    rs = _FakeRecordset("res.partner", [5])
+    val = state_capture.serialize_value({"partner": rs, "tags": [1, 2, 3]})
+    assert val["partner"]["__recordset__"] == "res.partner"
+    assert val["tags"] == [1, 2, 3]
+    # element cap on long lists
+    out = state_capture.serialize_value(list(range(100)), max_items=10)
+    assert len(out) == 11 and "more items" in out[-1]
+
+
+def test_state_serialize_depth_and_unreprable():
+    deep = {"a": {"b": {"c": {"d": 1}}}}
+    out = state_capture.serialize_value(deep, max_depth=2)
+    # beyond max_depth the inner value collapses to a type marker string
+    assert isinstance(out["a"]["b"], str) and out["a"]["b"].startswith("<dict>")
+
+    class Boom:
+        def __repr__(self):
+            raise RuntimeError("no repr")
+    assert "unreprable" in state_capture.serialize_value(Boom())
+
+
+def test_state_serialize_locals_skips_dunder_and_caps():
+    frame_locals = {"__doc__": "x", "self": _FakeRecordset("a.b", [1]),
+                    "vals": {"k": "v"}, "n": 3}
+    out = state_capture.serialize_locals(frame_locals, max_locals=40)
+    assert "__doc__" not in out
+    assert out["self"]["__recordset__"] == "a.b"
+    assert out["vals"] == {"k": "v"} and out["n"] == 3
+    capped = state_capture.serialize_locals({f"v{i}": i for i in range(50)}, max_locals=5)
+    assert "__truncated__" in capped
+
+
+# --- state_capture redaction -------------------------------------------------
+def test_state_is_sensitive_key():
+    keys = state_capture.DEFAULT_REDACT_KEYS
+    assert state_capture.is_sensitive_key("password", keys)
+    assert state_capture.is_sensitive_key("db_password", keys)        # substring
+    assert state_capture.is_sensitive_key("API_KEY", keys)            # case-insensitive
+    assert state_capture.is_sensitive_key("access_token", keys)
+    assert not state_capture.is_sensitive_key("partner_id", keys)
+    # empty redact set disables redaction (NO_REDACT path)
+    assert not state_capture.is_sensitive_key("password", frozenset())
+    assert not state_capture.is_sensitive_key(None, keys)
+
+
+def test_state_serialize_redacts_dict_keys():
+    keys = state_capture.DEFAULT_REDACT_KEYS
+    val = state_capture.serialize_value(
+        {"login": "joe", "password": "hunter2", "api_key": "sk-123"}, redact_keys=keys)
+    assert val["login"] == "joe"
+    assert val["password"] == state_capture.REDACTED
+    assert val["api_key"] == state_capture.REDACTED
+
+
+def test_state_serialize_redacts_nested():
+    keys = state_capture.DEFAULT_REDACT_KEYS
+    val = state_capture.serialize_value(
+        {"ctx": {"db_password": "x", "uid": 2}}, redact_keys=keys)
+    assert val["ctx"]["db_password"] == state_capture.REDACTED
+    assert val["ctx"]["uid"] == 2
+
+
+def test_state_serialize_no_redact_when_disabled():
+    val = state_capture.serialize_value({"password": "hunter2"}, redact_keys=frozenset())
+    assert val["password"] == "hunter2"
+
+
+def test_state_serialize_locals_redacts_by_name():
+    keys = state_capture.DEFAULT_REDACT_KEYS
+    out = state_capture.serialize_locals(
+        {"password": "hunter2", "vals": {"token": "abc", "name": "ok"}, "n": 1},
+        redact_keys=keys)
+    assert out["password"] == state_capture.REDACTED       # local name redacted
+    assert out["vals"]["token"] == state_capture.REDACTED  # nested dict key redacted
+    assert out["vals"]["name"] == "ok"
+    assert out["n"] == 1
+
+
+# --- capabilities (Layer H) pure helpers ------------------------------------
+def test_capabilities_is_functional_field():
+    # business fields the agent should reuse, not re-add
+    assert capabilities.is_functional_field("commitment_date") is True
+    assert capabilities.is_functional_field("invoice_status") is True
+    # ORM plumbing
+    for n in ("id", "display_name", "create_uid", "write_date", "__last_update"):
+        assert capabilities.is_functional_field(n) is False, n
+    # mail/activity/portal mixin internals
+    for n in ("message_ids", "message_follower_ids", "activity_ids",
+              "activity_state", "access_url", "website_message_ids"):
+        assert capabilities.is_functional_field(n) is False, n
+    assert capabilities.is_functional_field("") is False
+
+
+def test_capabilities_mixin_capabilities():
+    full = capabilities.mixin_capabilities(
+        {"message_ids", "activity_ids", "access_url", "name"})
+    assert full == {"mail_thread": True, "activities": True, "portal": True}
+    none = capabilities.mixin_capabilities({"name", "state"})
+    assert none == {"mail_thread": False, "activities": False, "portal": False}
+    assert capabilities.mixin_capabilities(None)["mail_thread"] is False
+
+
+def test_capabilities_count_surface_ignores_truncation_and_nonlists():
+    surface = {
+        "models": [{"model": "a"}, {"model": "b"}],
+        "crons": [{"name": "c"}, {"_truncated": "+9 more"}],   # marker not counted
+        "wizards": [],
+        "mode": "module",       # non-list metadata ignored
+        "_summary": {"x": 1},   # non-list metadata ignored
+    }
+    assert capabilities.count_surface(surface) == {
+        "models": 2, "crons": 1, "wizards": 0}
+    assert capabilities.count_surface({}) == {}
+    assert capabilities.count_surface(None) == {}
+
+
+# --- odoo-ai._summ for capabilities -----------------------------------------
+def test_summ_capabilities_module():
+    d = {"mode": "module", "module": "sale", "found": True, "state": "installed",
+         "_summary": {"models": 3, "wizards": 2, "window_actions": 5, "automation_rules": 1}}
+    out = odoo_ai._summ("capabilities", d)
+    assert "module=sale" in out and "3 models" in out and "2 wizards" in out
+
+
+def test_summ_capabilities_model_and_not_installed():
+    d = {"mode": "model", "model": "sale.order",
+         "_summary": {"functional_fields": 40, "bound_actions": 3, "reports": 2}}
+    out = odoo_ai._summ("capabilities", d)
+    assert "model=sale.order" in out and "40 fn-fields" in out
+    ni = odoo_ai._summ("capabilities", {"mode": "module", "module": "x",
+                                        "found": True, "state": "uninstalled", "_summary": {}})
+    assert "not enumerable" in ni
+    # malformed payload never raises
+    assert odoo_ai._summ("capabilities", {}) is not None
+
+
+# --- native_check (Layer H gate-then-rank) pure helpers ---------------------
+def test_native_check_strip_diacritics_vietnamese():
+    assert native_check.strip_diacritics("Đặt cọc") == "dat coc"
+    assert native_check.strip_diacritics("Hóa đơn") == "hoa don"
+    assert native_check.strip_diacritics("") == ""
+
+
+def test_native_check_tokenize_drops_stopwords_and_noise():
+    assert native_check.tokenize("Khi đặt cọc cho đơn hàng") == ["dat", "coc", "don", "hang"]
+    assert native_check.tokenize("the a to of") == []          # all stopwords
+    assert native_check.tokenize("sale.order") == ["sale", "order"]
+
+
+_CARD = {"id": "sale.dp", "title": "Down payment invoice", "domain": "sale",
+         "primitive": "wizard", "intents": ["down payment", "đặt cọc", "advance invoice"]}
+
+
+def test_native_check_recall_score_phrase_and_overlap():
+    assert native_check.recall_score("I want a down payment invoice", _CARD) >= 2   # phrase bonus
+    assert native_check.recall_score("tạo hóa đơn đặt cọc", _CARD) >= 2             # VN phrase
+    assert native_check.recall_score("change delivery address", _CARD) == 0
+
+
+def test_native_check_match_cards_ranks_and_caps():
+    other = {"id": "stock.scrap", "title": "Scrap", "domain": "stock",
+             "primitive": "wizard", "intents": ["scrap damaged goods"]}
+    out = native_check.match_cards("down payment đặt cọc", [_CARD, other], top_k=5)
+    assert out and out[0][1]["id"] == "sale.dp"
+    assert native_check.match_cards("nothing relevant here", [_CARD, other]) == []  # min_score
+
+
+def test_native_check_eval_probe_any_all_leaf_malformed():
+    def checker(leaf):
+        ok = leaf.get("model") == "sale.advance.payment.inv"
+        return ok, {"check": leaf.get("model"), "found": ok}
+    ok, ev = native_check.eval_probe(
+        {"any": [{"model": "nope"}, {"model": "sale.advance.payment.inv"}]}, checker)
+    assert ok is True and isinstance(ev, list) and len(ev) == 2 and any(e["found"] for e in ev)
+    ok2, _ = native_check.eval_probe(
+        {"all": [{"model": "sale.advance.payment.inv"}, {"model": "nope"}]}, checker)
+    assert ok2 is False
+    ok3, ev3 = native_check.eval_probe({"model": "sale.advance.payment.inv"}, checker)
+    assert ok3 is True and len(ev3) == 1                       # leaf wraps dict → 1-item list
+    ok4, ev4 = native_check.eval_probe("not-a-dict", checker)
+    assert ok4 is False and isinstance(ev4, list)
+
+
+def test_native_check_load_cards():
+    import json as _json, tempfile, os
+    with tempfile.TemporaryDirectory() as d:
+        with open(os.path.join(d, "a.json"), "w") as fh:
+            fh.write(_json.dumps([{"id": "c1", "intents": ["x"], "title": "t"}, {"bad": 1}]))
+        with open(os.path.join(d, "b.json"), "w") as fh:
+            fh.write("{ broken")
+        cards, warns = native_check.load_cards(d)
+        assert [c["id"] for c in cards] == ["c1"]
+        assert any("parse failed" in w for w in warns) and any("missing id/intents" in w for w in warns)
+        assert native_check.load_cards(os.path.join(d, "nope"))[0] == []   # missing dir → []
+
+
+def test_native_check_shipped_card_corpus_is_valid():
+    """The real curated cards parse, are unique, and conform to the schema."""
+    cards_dir = SCRIPTS_DIR.parent.parent / "odoo-capabilities" / "references" / "cards"
+    cards, warns = native_check.load_cards(str(cards_dir))
+    assert not warns, warns
+    assert len(cards) >= 30, f"only {len(cards)} cards loaded"
+    seen = set()
+    valid_kinds = set(native_check.PROBE_KINDS)  # full grammar (12 kinds as of v0.8)
+
+    def probe_kinds(p):
+        if "any" in p:
+            return [k for s in p["any"] for k in probe_kinds(s)]
+        if "all" in p:
+            return [k for s in p["all"] for k in probe_kinds(s)]
+        return [p.get("kind")]
+
+    for c in cards:
+        for key in ("id", "title", "domain", "primitive", "intents", "modules",
+                    "models", "reuse_advice", "when_not_enough", "probe"):
+            assert key in c, f"{c.get('id')} missing {key}"
+        assert c["id"] not in seen, f"duplicate id {c['id']}"
+        seen.add(c["id"])
+        assert isinstance(c["intents"], list) and len(c["intents"]) >= 3
+        for k in probe_kinds(c["probe"]):
+            assert k in valid_kinds, f"{c['id']}: bad probe kind {k}"
+
+
+def test_summ_native_check():
+    d = {"confirmed_candidates": [{"id": "account.payment_register"}],
+         "unconfirmed_candidates": [{"id": "x"}, {"id": "y"}], "considered": 5}
+    out = odoo_ai._summ("native_check", d)
+    assert "1 present / 2 not-here" in out and "account.payment_register" in out
+    assert odoo_ai._summ("native_check", {}) is not None      # never raises
+
+
+# --- native_check v0.7: TF-IDF vector-space recall --------------------------
+def test_native_check_tfidf_and_cosine():
+    cards = [{"id": "a", "title": "down payment", "domain": "sale", "primitive": "w", "intents": ["down payment"]},
+             {"id": "b", "title": "scrap", "domain": "stock", "primitive": "w", "intents": ["scrap goods"]}]
+    idf = native_check.corpus_idf(cards)
+    assert idf and all(v > 0 for v in idf.values())
+    v = native_check.tfidf_vector(["down", "payment"], idf)
+    assert abs(native_check.cosine(v, v) - 1.0) < 1e-9          # identical → 1
+    assert native_check.cosine(native_check.tfidf_vector(["down"], idf),
+                               native_check.tfidf_vector(["scrap"], idf)) == 0.0  # disjoint → 0
+    assert native_check.cosine({}, v) == 0.0
+
+
+def test_native_check_phrase_bonus():
+    card = {"id": "x", "title": "t", "domain": "d", "primitive": "w", "intents": ["down payment", "đặt cọc"]}
+    assert native_check.phrase_bonus("a down payment now", card) == 2.0
+    assert native_check.phrase_bonus("hóa đơn đặt cọc", card) == 2.0
+    assert native_check.phrase_bonus("delivery address", card) == 0.0
+
+
+# --- native_check v0.7: learning loop ---------------------------------------
+def test_native_check_merge_learned_augments_and_adds():
+    base = [{"id": "universal.ir_cron", "intents": ["cron", "periodic"], "title": "t",
+             "domain": "u", "primitive": "cron", "probe": {}}]
+    merged, added = native_check.merge_learned(
+        [dict(c, intents=list(c["intents"])) for c in base],
+        [{"id": "universal.ir_cron", "learned_intents": ["frobnicate the gizmo", "cron"]},  # 'cron' dedup'd
+         {"id": "new.card", "intents": ["brand new"], "probe": {"kind": "model_exists", "model": "x"}, "title": "n"},
+         {"id": "incomplete"}])   # no intents/probe → ignored
+    ircron = next(c for c in merged if c["id"] == "universal.ir_cron")
+    assert ircron["intents"] == ["cron", "periodic", "frobnicate the gizmo"]   # dedup, append
+    assert added == 1 and any(c["id"] == "new.card" for c in merged)
+    assert not any(c["id"] == "incomplete" for c in merged)
+
+
+def test_native_check_learning_round_trip():
+    """A phrase with zero prior recall recalls its card once learned."""
+    cards = [{"id": "u.act", "title": "Activities", "domain": "u", "primitive": "mixin",
+              "intents": ["reminder", "follow up"], "probe": {}}]
+    req = "ping the rep about stalled opportunities"
+    assert native_check.match_cards(req, cards) == []                      # no recall before
+    merged, _ = native_check.merge_learned(
+        [dict(c, intents=list(c["intents"])) for c in cards],
+        [{"id": "u.act", "learned_intents": [req]}])
+    out = native_check.match_cards(req, merged, top_k=2)
+    assert out and out[0][1]["id"] == "u.act"                              # top recall after
+
+
+def test_native_learn_cli_appends_and_dedups():
+    import tempfile, json as _json
+    from pathlib import Path
+    with tempfile.TemporaryDirectory() as d:
+        lf = Path(d) / "learned.json"
+        odoo_ai.do_native_learn("req one", "sale.x", lf)
+        odoo_ai.do_native_learn("req one", "sale.x", lf)      # dedup
+        odoo_ai.do_native_learn("req two", "sale.x", lf)
+        odoo_ai.do_native_learn("other", "stock.y", lf)
+        data = _json.loads(lf.read_text())
+        sale = next(e for e in data if e["id"] == "sale.x")
+        assert sale["learned_intents"] == ["req one", "req two"]
+        assert any(e["id"] == "stock.y" for e in data)
+    assert odoo_ai.resolve_learn_file("").name == "learned.json"          # default path
+
+
+if __name__ == "__main__":
+    fns = [v for k, v in sorted(globals().items())
+           if k.startswith("test_") and callable(v)]
+    failed = 0
+    for fn in fns:
+        try:
+            fn()
+            print(f"PASS {fn.__name__}")
+        except Exception as e:  # noqa: BLE001
+            failed += 1
+            print(f"FAIL {fn.__name__}: {type(e).__name__}: {e}")
+    print(f"\n{len(fns) - failed}/{len(fns)} passed")
+    sys.exit(1 if failed else 0)

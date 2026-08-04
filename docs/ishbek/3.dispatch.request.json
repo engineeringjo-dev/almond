@@ -1,0 +1,66 @@
+{
+  "_endpoint": "POST {ISHBEK_BASE_URL}/delivery/dispatch",
+  "_desc": "طلب كابتن بعد الدفع. readyAt = لحظة جهوزية الطلب فيوصل الكابتن معها. كل الأوقات +03:00 صريح.",
+  "orderId": "ord_10432",
+  "quoteId": "qt_8f21ac",
+  "preferredFleet": "careem",
+  "branch": {
+    "id": "khalda",
+    "nameAr": "خلدا",
+    "lat": 31.9856,
+    "lng": 35.8390,
+    "phone": "+96265000000"
+  },
+  "dropoff": {
+    "lat": 31.9986,
+    "lng": 35.8790,
+    "text": "خلدا، عمّان — عمارة 12، طابق 3",
+    "city": "amman"
+  },
+  "customer": {
+    "id": "usr_962790001122",
+    "name": "أحمد",
+    "phone": "+962790001122"
+  },
+  "timing": {
+    "placedAt": "2026-07-05T13:00:00+03:00",
+    "prepMinutes": 6,
+    "readyAt": "2026-07-05T13:06:00+03:00",
+    "schedulePickup": true
+  },
+  "payment": {
+    "method": "prepaid",
+    "collectFromCustomer": 0.000,
+    "currency": "JOD"
+  },
+  "totals": {
+    "_note": "subtotal = Σ(unitPrice × qty): (3.400×1) + (1.800×2) = 7.000 ; tax 16% ; + رسوم توصيل",
+    "subtotal": 7.000,
+    "deliveryFee": 1.500,
+    "tax": 1.120,
+    "grandTotal": 9.620,
+    "currency": "JOD"
+  },
+  "lines": [
+    {
+      "itemId": "flat-white",
+      "name": "فلات وايت",
+      "qty": 1,
+      "unitPrice": 3.400,
+      "modifiers": [
+        { "groupId": "size",   "optionId": "L",          "name": "كبير",       "priceDelta": 0.000 },
+        { "groupId": "milk",   "optionId": "oat",        "name": "حليب شوفان", "priceDelta": 0.500 },
+        { "groupId": "extras", "optionId": "extra-shot", "name": "شوت إضافي",  "priceDelta": 0.400 }
+      ]
+    },
+    {
+      "itemId": "croissant",
+      "name": "كرواسون",
+      "qty": 2,
+      "unitPrice": 1.800,
+      "modifiers": [
+        { "groupId": "size", "optionId": "M", "name": "وسط", "priceDelta": 0.000 }
+      ]
+    }
+  ]
+}
