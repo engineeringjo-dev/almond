@@ -1,7 +1,10 @@
 import { randomUUID } from 'node:crypto';
+import { config as loyalty } from '@almond/shared/config';
 import { conflict, notFound } from '../http-error';
 import { toFils } from '../money';
-import type { Backend, Member, HistoryEntry, NewOrder, OrderRecord } from './types';
+import type { Backend, Member, HistoryEntry, NewOrder, OrderRecord, SubscriptionState } from './types';
+
+const todayKey = (): string => new Date().toISOString().slice(0, 10);
 
 /** In-memory, runnable adapter. State lives in process memory (fine for dev /
  *  demo / tests); swap for the Odoo adapter in production. */
@@ -15,6 +18,7 @@ export function createMemoryBackend(): Backend {
   const demo: Member = {
     id: 'demo', phone: '+962790000000', name: 'Almond Member',
     points: 240, walletFils: toFils(20), windowSpend: 120, lastEarnAt: Date.now(),
+    subRenewsAt: 0, subDay: '', subDayCount: 0,
   };
   members.set(demo.id, demo);
   byPhone.set(demo.phone, demo.id);
@@ -38,6 +42,7 @@ export function createMemoryBackend(): Backend {
       const m: Member = {
         id: `m_${randomUUID()}`, phone, name: name ?? 'Member',
         points: 0, walletFils: 0, windowSpend: 0, lastEarnAt: Date.now(),
+        subRenewsAt: 0, subDay: '', subDayCount: 0,
       };
       members.set(m.id, m);
       byPhone.set(phone, m.id);
@@ -71,5 +76,35 @@ export function createMemoryBackend(): Backend {
       return rec;
     },
     async getHistory(id) { must(id); return history.get(id) ?? []; },
+
+    async activateSubscription(id) {
+      const m = must(id);
+      m.subRenewsAt = Date.now() + loyalty.SUBSCRIPTION.periodDays * 86400000;
+      return subState(m);
+    },
+    async redeemSubscriptionDrink(id) {
+      const m = must(id);
+      if (m.subRenewsAt <= Date.now()) throw conflict('not_subscribed', 'No active subscription');
+      const today = todayKey();
+      if (m.subDay !== today) { m.subDay = today; m.subDayCount = 0; }
+      if (m.subDayCount >= loyalty.SUBSCRIPTION.drinksPerDay) {
+        throw conflict('daily_cap', 'Daily free-drink limit reached');
+      }
+      m.subDayCount += 1;
+      return subState(m);
+    },
+    async getSubscription(id) { return subState(must(id)); },
   };
+
+  function subState(m: Member): SubscriptionState {
+    const active = m.subRenewsAt > Date.now();
+    const redeemedToday = active && m.subDay === todayKey() ? m.subDayCount : 0;
+    return {
+      active,
+      renewsAt: active ? new Date(m.subRenewsAt).toISOString() : null,
+      drinksPerDay: loyalty.SUBSCRIPTION.drinksPerDay,
+      redeemedToday,
+      remainingToday: Math.max(0, loyalty.SUBSCRIPTION.drinksPerDay - redeemedToday),
+    };
+  }
 }
