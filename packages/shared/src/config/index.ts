@@ -45,6 +45,17 @@ export const config = {
   // 50 bonus points (= 0.5 JOD value at 100 points = 1 JOD). Bonus POINTS, not a
   // price discount. Admin-configurable.
   COMBO_BONUS_POINTS: 50,
+  // "Almond Club" monthly subscription (Panera/Pret-style — proven to lift
+  // repeat visits >200%). HARD daily cap avoids the margin bleed that forced
+  // Pret off its unlimited model. Admin-configurable.
+  SUBSCRIPTION: {
+    enabled: true,
+    priceJod: 18,
+    drinksPerDay: 2, // hard cap per day
+    periodDays: 30,
+    labelAr: 'نادي ألموند',
+    labelEn: 'Almond Club',
+  },
   CUP_TARGET: 10,
   CUP_HEAD_START: 1,
   DEFAULT_PREP_MINUTES: 7, // section 7.3

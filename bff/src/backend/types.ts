@@ -8,6 +8,17 @@ export interface Member {
   walletFils: number; // stored-value wallet, in fils
   windowSpend: number; // rolling spend (JOD) → tier
   lastEarnAt: number;
+  subRenewsAt: number; // "Almond Club" renewal epoch (ms); 0 = not subscribed
+  subDay: string; // 'YYYY-MM-DD' of the last free-drink redemption
+  subDayCount: number; // free drinks redeemed on subDay
+}
+
+export interface SubscriptionState {
+  active: boolean;
+  renewsAt: string | null;
+  drinksPerDay: number;
+  redeemedToday: number;
+  remainingToday: number;
 }
 
 export interface HistoryEntry {
@@ -55,4 +66,9 @@ export interface Backend {
   addSpend(id: string, jod: number): Promise<void>;
   createOrder(o: NewOrder): Promise<OrderRecord>;
   getHistory(id: string): Promise<HistoryEntry[]>;
+  // "Almond Club" subscription
+  activateSubscription(id: string): Promise<SubscriptionState>;
+  /** Use one of today's free drinks; throws conflict on not_subscribed/daily_cap. */
+  redeemSubscriptionDrink(id: string): Promise<SubscriptionState>;
+  getSubscription(id: string): Promise<SubscriptionState>;
 }

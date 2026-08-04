@@ -26,5 +26,9 @@ export function createOdooBackend(): Backend {
     addSpend: () => todo('addSpend'),
     createOrder: () => todo('createOrder'),
     getHistory: () => todo('getHistory'),
+    // Subscription → a recurring loyalty.program membership + sale.subscription.
+    activateSubscription: () => todo('activateSubscription'),
+    redeemSubscriptionDrink: () => todo('redeemSubscriptionDrink'),
+    getSubscription: () => todo('getSubscription'),
   } as unknown as Backend;
 }

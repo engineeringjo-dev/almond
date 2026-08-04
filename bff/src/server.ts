@@ -9,6 +9,7 @@ import { registerWalletRoutes } from './routes/wallet';
 import { registerLoyaltyRoutes } from './routes/loyalty';
 import { registerPosRoutes } from './routes/pos';
 import { registerMeRoutes } from './routes/me';
+import { registerSubscriptionRoutes } from './routes/subscription';
 
 export async function build(): Promise<FastifyInstance> {
   const app = Fastify({ logger: { level: process.env.LOG_LEVEL ?? 'info' } });
@@ -44,6 +45,7 @@ export async function build(): Promise<FastifyInstance> {
   registerLoyaltyRoutes(app, backend);
   registerPosRoutes(app, backend);
   registerMeRoutes(app, backend);
+  registerSubscriptionRoutes(app, backend);
   return app;
 }
 
