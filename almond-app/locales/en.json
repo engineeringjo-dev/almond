@@ -119,6 +119,15 @@
     "nudgeCart": "You have {{count}} items in your cart — finish your order",
     "nudgeExpiry": "Your points expire on {{date}} — redeem them before they're gone"
   },
+  "club": {
+    "pitch": "{{count}} drinks a day for {{price}}/month",
+    "subscribe": "Subscribe now",
+    "payFromWallet": "Charged from your wallet balance",
+    "needWallet": "Wallet balance is not enough — top up first",
+    "active": "Member ✓",
+    "remaining": "{{count}} free drinks left today",
+    "renews": "Renews {{date}}"
+  },
   "menu": {
     "title": "Menu",
     "searchPlaceholder": "Search for a drink or dish",
