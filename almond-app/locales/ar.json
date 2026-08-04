@@ -119,6 +119,15 @@
     "nudgeCart": "لديك {{count}} صنف بسلتك — أكمل طلبك",
     "nudgeExpiry": "نقاطك تنتهي في {{date}} — اصرفها قبل فوات الأوان"
   },
+  "club": {
+    "pitch": "{{count}} مشروب يومياً مقابل {{price}} شهرياً",
+    "subscribe": "اشترك الآن",
+    "payFromWallet": "يُخصم من رصيد محفظتك",
+    "needWallet": "رصيد المحفظة لا يكفي — اشحن محفظتك أولاً",
+    "active": "مشترك ✓",
+    "remaining": "باقي {{count}} مشروب مجاني اليوم",
+    "renews": "يتجدّد في {{date}}"
+  },
   "menu": {
     "title": "القائمة",
     "searchPlaceholder": "ابحث عن مشروب أو طبق",

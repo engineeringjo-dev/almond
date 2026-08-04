@@ -9,7 +9,7 @@ import type {
   ReferralInfo,
   CupState,
 } from '@/types';
-import type { GiftCard } from '@/types';
+import type { GiftCard, Subscription, PaymentMethodId } from '@/types';
 import type { LoyaltyService, EarnInput } from './loyalty.service';
 import { config } from '@/constants/config';
 import { tierFromSpend } from './seed';
@@ -38,9 +38,26 @@ interface LoyaltyUser {
   hasReferralRewardEver: boolean;
   referralCode: string;
   phone: string;
+  /** "Almond Club" subscription. */
+  subRenewsAt: number; // epoch ms; 0 = not subscribed
+  subDay: string; // 'YYYY-MM-DD' of last free-drink redemption
+  subDayCount: number;
 }
 
 const ROLLING_WINDOW_MS = 365 * 86400000;
+
+const todayKey = (): string => new Date().toISOString().slice(0, 10);
+function subStateOf(u: LoyaltyUser): Subscription {
+  const active = u.subRenewsAt > Date.now();
+  const redeemedToday = active && u.subDay === todayKey() ? u.subDayCount : 0;
+  return {
+    active,
+    renewsAt: active ? new Date(u.subRenewsAt).toISOString() : null,
+    drinksPerDay: config.SUBSCRIPTION.drinksPerDay,
+    redeemedToday,
+    remainingToday: Math.max(0, config.SUBSCRIPTION.drinksPerDay - redeemedToday),
+  };
+}
 
 /** Sum of qualifying spend within the last 365 days (Revision Pack §A). */
 function rolling12mSpend(u: LoyaltyUser, now = Date.now()): number {
@@ -108,6 +125,7 @@ function ensureUser(userId: string): LoyaltyUser {
       hasReferralRewardEver: false,
       referralCode: `ALM${Math.floor(1000 + Math.random() * 9000)}`,
       phone: '',
+      subRenewsAt: 0, subDay: '', subDayCount: 0,
     };
     store.set(userId, u);
   }
@@ -293,6 +311,24 @@ export const mockLoyaltyService: LoyaltyService = {
   },
 
   getWallet: (userId) => delay(ensureUser(userId).walletBalance),
+
+  getSubscription: (userId) => delay(subStateOf(ensureUser(userId))),
+
+  subscribe: (userId, paymentMethod: PaymentMethodId) => {
+    const u = ensureUser(userId);
+    const price = config.SUBSCRIPTION.priceJod;
+    if (paymentMethod === 'wallet') {
+      if (u.walletBalance < price) return Promise.reject(new Error('insufficient_wallet'));
+      u.walletBalance -= price;
+    }
+    u.subRenewsAt = Date.now() + config.SUBSCRIPTION.periodDays * 86400000;
+    u.history.unshift({
+      id: genId('log'), deltaPoints: 0,
+      reasonAr: 'اشتراك نادي ألموند', reasonEn: 'Almond Club subscription',
+      createdAt: new Date().toISOString(),
+    });
+    return delay({ subscription: subStateOf(u), walletBalance: u.walletBalance });
+  },
 
   topUp: (userId, amount) => {
     const u = ensureUser(userId);
