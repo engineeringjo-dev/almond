@@ -141,3 +141,40 @@ create trigger trg_enforce_dispatch_ceiling
 before insert or update of dispatched on public.warehouse_order_lines
 for each row
 execute function public.enforce_dispatch_ceiling();
+
+-- ---------------------------------------------------------------------------
+-- Let the branch team fix their own open order lines, instead of routing every
+-- correction through an admin. Uses the helper functions already present in
+-- this database (current_app_branch / is_warehouse_ops / is_admin), so it
+-- matches the existing authorisation model rather than inventing a new one.
+--
+-- Review against any existing policy on this table before applying: if one is
+-- already there, extend it instead of adding a second, overlapping rule.
+-- ---------------------------------------------------------------------------
+
+drop policy if exists wol_branch_edit_open on public.warehouse_order_lines;
+
+create policy wol_branch_edit_open
+on public.warehouse_order_lines
+for update
+to authenticated
+using (
+  is_admin()
+  or is_warehouse_ops()
+  or exists (
+    select 1 from warehouse_orders wo
+     where wo.id = warehouse_order_lines.order_id
+       and wo.branch_id = current_app_branch()
+       and wo.status not in ('dispatched', 'cancelled')
+  )
+)
+with check (
+  is_admin()
+  or is_warehouse_ops()
+  or exists (
+    select 1 from warehouse_orders wo
+     where wo.id = warehouse_order_lines.order_id
+       and wo.branch_id = current_app_branch()
+       and wo.status not in ('dispatched', 'cancelled')
+  )
+);
