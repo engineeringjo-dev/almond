@@ -21,59 +21,51 @@ security definer
 set search_path = public
 as $$
 declare
-  v_delta numeric;
-  v_rows  integer;
+  v_rows integer;
 begin
-  v_delta := coalesce(new.qty, 0) - coalesce(old.qty, 0);
-  if v_delta = 0 then
-    return new;
-  end if;
-
-  with capped as (
+  -- Recompute from the live rule rather than nudging by a delta, so a line
+  -- that already drifted (e.g. generated from a since-corrected count) is
+  -- brought back to the truth, not merely shifted.
+  --
+  -- Rule verified empirically against order #69: suggested = max_qty - count
+  -- held for 68 of its 69 lines; the single exception was a stale line, i.e.
+  -- exactly the bug this trigger fixes.
+  with recomputed as (
     select
       wol.id,
-      greatest(
-        0,
-        least(
-          coalesce(p.max_qty, wol.suggested - v_delta),  -- ceiling: par max
-          wol.suggested - v_delta                        -- inverse 1:1 with count
-        )
-      ) as new_suggested
+      greatest(0, least(p.max_qty, p.max_qty - new.qty)) as new_suggested
     from warehouse_order_lines wol
     join warehouse_orders wo on wo.id = wol.order_id
-    left join warehouse_pars p
-           on p.branch_id = wo.branch_id
-          and p.item_id   = wol.item_id
-    where wol.item_id = new.item_id
+    join warehouse_pars   p  on p.branch_id = wo.branch_id
+                            and p.item_id   = wol.item_id
+    where wol.item_id  = new.item_id
       and wo.branch_id = new.branch_id
       and wol.source   = 'count'          -- only count-generated lines
-      and wol.dispatched is null          -- not yet dispatched
+      and wol.dispatched is null          -- nothing already sent out
       and wo.status not in ('dispatched', 'cancelled')
       and wo.order_date >= new.count_date -- only orders built on/after this count
+      and coalesce(p.disabled, false) = false
   )
   update warehouse_order_lines wol
-     set suggested = capped.new_suggested
-    from capped
-   where wol.id = capped.id
-     and wol.suggested is distinct from capped.new_suggested;
+     set suggested = recomputed.new_suggested
+    from recomputed
+   where wol.id = recomputed.id
+     and wol.suggested is distinct from recomputed.new_suggested;
 
   get diagnostics v_rows = row_count;
 
   if v_rows > 0 then
-    insert into audit_log (table_name, action, record_id, changes, created_at)
+    insert into audit_log (action, details, before_value, after_value, created_at)
     values (
-      'warehouse_order_lines',
-      'recalc_from_count',
-      new.id,
+      'warehouse_order_lines.recalc_from_count',
       jsonb_build_object(
-        'item_id',   new.item_id,
-        'branch_id', new.branch_id,
-        'count_date', new.count_date,
-        'old_qty',   old.qty,
-        'new_qty',   new.qty,
-        'delta',     v_delta,
+        'item_id',       new.item_id,
+        'branch_id',     new.branch_id,
+        'count_date',    new.count_date,
         'lines_updated', v_rows
       ),
+      jsonb_build_object('count_qty', old.qty),
+      jsonb_build_object('count_qty', new.qty),
       now()
     );
   end if;
