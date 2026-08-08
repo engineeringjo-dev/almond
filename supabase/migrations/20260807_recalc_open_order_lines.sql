@@ -143,23 +143,23 @@ for each row
 execute function public.enforce_dispatch_ceiling();
 
 -- ---------------------------------------------------------------------------
--- Let the branch team fix their own open order lines, instead of routing every
--- correction through an admin. Uses the helper functions already present in
--- this database (current_app_branch / is_warehouse_ops / is_admin), so it
--- matches the existing authorisation model rather than inventing a new one.
+-- Branch staff raise their own orders, so they must be able to correct them.
 --
--- Review against any existing policy on this table before applying: if one is
--- already there, extend it instead of adding a second, overlapping rule.
+-- This table already has a warehouse_order_lines_update policy, and Postgres
+-- ORs permissive policies together — adding a second one would widen access in
+-- a way nobody reviewed. So we REPLACE the existing policy's condition instead.
+--
+-- The condition keeps every existing operations role (so nobody loses access)
+-- and adds exactly one thing: a branch may edit lines on its OWN order while
+-- that order is still open. Once dispatched or cancelled, nobody edits it.
 -- ---------------------------------------------------------------------------
 
-drop policy if exists wol_branch_edit_open on public.warehouse_order_lines;
-
-create policy wol_branch_edit_open
+alter policy warehouse_order_lines_update
 on public.warehouse_order_lines
-for update
-to authenticated
 using (
   is_admin()
+  or is_hq()
+  or is_ops()
   or is_warehouse_ops()
   or exists (
     select 1 from warehouse_orders wo
@@ -170,6 +170,8 @@ using (
 )
 with check (
   is_admin()
+  or is_hq()
+  or is_ops()
   or is_warehouse_ops()
   or exists (
     select 1 from warehouse_orders wo
