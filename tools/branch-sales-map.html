@@ -56,8 +56,9 @@
         font:inherit;font-size:12.5px;cursor:pointer;color:var(--ink)}
   .chip:hover{border-color:var(--purple)}
   .chip.on{background:var(--purple);border-color:var(--purple);color:#fff}
-  input[type=date]{font:inherit;font-size:12.5px;padding:5px 8px;border:1px solid var(--line);
-                   border-radius:8px;color:var(--ink);background:#fff;direction:ltr}
+  input[type=date],select{font:inherit;font-size:12.5px;padding:5px 8px;border:1px solid var(--line);
+                   border-radius:8px;color:var(--ink);background:#fff}
+  input[type=date]{direction:ltr}
 
   .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px}
   .kpi{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px 14px}
@@ -163,12 +164,18 @@
     <div class="chips" id="presets"></div>
     <span class="lbl">من</span><input type="date" id="from">
     <span class="lbl">إلى</span><input type="date" id="to">
+    <span class="lbl">الوردية</span>
+    <select id="shift">
+      <option value="all">الكل</option>
+      <option value="morning">صباحي</option>
+      <option value="evening">مسائي</option>
+    </select>
     <div class="spacer"></div>
     <span class="sub" id="stamp"></span>
   </div>
 
   <div class="kpis">
-    <div class="kpi"><div class="k">إجمالي المبيعات</div><div class="v" id="kSales">—</div></div>
+    <div class="kpi"><div class="k">صافي مبيعات الشبكة</div><div class="v" id="kSales">—</div></div>
     <div class="kpi"><div class="k">عدد الفواتير</div><div class="v" id="kInv">—</div></div>
     <div class="kpi"><div class="k">متوسط الفاتورة</div><div class="v" id="kAvg">—</div></div>
     <div class="kpi"><div class="k">الفروع العاملة</div><div class="v" id="kBr">—</div></div>
@@ -302,7 +309,7 @@ const PRESETS = [
     } },
 ];
 
-const state = { from: TODAY, to: TODAY, preset: 'today', view: 'amman', sort: 'sales',
+const state = { from: TODAY, to: TODAY, preset: 'today', view: 'amman', sort: 'sales', shift: 'all',
                 rows: [], sel: null, geoFromDb: false };
 
 /* --------------------------------------------------------------- PostgREST */
@@ -344,6 +351,52 @@ async function loadSales(from, to) {
     out.push.apply(out, batch);
     if (batch.length < PAGE) return out;
   }
+}
+
+/**
+ * Sum sales_daily per branch — WITHOUT double counting.
+ *
+ * A branch-day can carry both an Odoo `full` row and hand-entered `morning` +
+ * `evening` rows describing the same trading day. Adding every row up inflates
+ * those days by ~90%: over 2026-05-21..06-08 a naive sum reads 732,692 where
+ * the truth is 386,228. So when a `full` row exists it wins, and the manual
+ * shift rows are only used to fill a day Odoo never sent.
+ *
+ * With a shift selected, only that shift's rows count. Days that exist solely
+ * as `full` cannot be split, so they are excluded and counted in `unsplit` —
+ * reported to the user rather than quietly dropped.
+ */
+function aggregate(sales, shift) {
+  const byDay = new Map();
+  for (const s of sales) {
+    const key = s.branch_id + '|' + s.sale_date;   // UUIDs contain no '|'
+    let day = byDay.get(key);
+    if (!day) byDay.set(key, (day = { branch: s.branch_id, rows: {} }));
+    day.rows[s.shift] = s;
+  }
+
+  const agg = new Map();
+  let unsplit = 0;
+  for (const day of byDay.values()) {
+    let rows;
+    if (shift === 'all') {
+      rows = day.rows.full ? [day.rows.full] : Object.values(day.rows);
+    } else if (day.rows[shift]) {
+      rows = [day.rows[shift]];
+    } else {
+      rows = [];
+      if (day.rows.full) unsplit++;
+    }
+    const a = agg.get(day.branch) || { sales: 0, invoices: 0, refunds: 0, discounts: 0 };
+    for (const r of rows) {
+      a.sales += Number(r.total_sales) || 0;
+      a.invoices += Number(r.invoice_count) || 0;
+      a.refunds += Number(r.refund_value) || 0;
+      a.discounts += Number(r.discount_value) || 0;
+    }
+    agg.set(day.branch, a);
+  }
+  return { agg, unsplit };
 }
 
 /* ------------------------------------------------------------- projections */
@@ -625,15 +678,7 @@ async function refresh() {
   try {
     const [branches, sales] = await Promise.all([loadBranches(), loadSales(state.from, state.to)]);
 
-    const agg = new Map();
-    for (const s of sales) {
-      const a = agg.get(s.branch_id) || { sales: 0, invoices: 0, refunds: 0, discounts: 0 };
-      a.sales += Number(s.total_sales) || 0;
-      a.invoices += Number(s.invoice_count) || 0;
-      a.refunds += Number(s.refund_value) || 0;
-      a.discounts += Number(s.discount_value) || 0;
-      agg.set(s.branch_id, a);
-    }
+    const { agg, unsplit } = aggregate(sales, state.shift);
 
     state.rows = branches.filter((b) => b.is_active !== false).map((b) => {
       const fb = FALLBACK_GEO[b.code];
@@ -649,7 +694,8 @@ async function refresh() {
 
     $('#stamp').textContent = 'آخر تحديث ' + new Date().toLocaleTimeString('en-GB',
       { timeZone: AMMAN_TZ, hour: '2-digit', minute: '2-digit' })
-      + (sales.length ? '' : ' · لا توجد حركة مسجّلة في هذه الفترة');
+      + (sales.length ? '' : ' · لا توجد حركة مسجّلة في هذه الفترة')
+      + (unsplit ? ' · ' + unsplit + ' يوم-فرع غير مقسّم على ورديات، خارج الحساب' : '');
     render();
   } catch (e) {
     $('#tableWrap').innerHTML = '<div class="msg err">تعذّر جلب البيانات<br><small>' + esc(e.message) + '</small></div>';
@@ -686,6 +732,7 @@ function onDate() {
 }
 $('#from').onchange = onDate;
 $('#to').onchange = onDate;
+$('#shift').onchange = () => { state.shift = $('#shift').value; refresh(); };
 $('#reloadBtn').onclick = refresh;
 
 document.querySelectorAll('[data-view]').forEach((b) => {
