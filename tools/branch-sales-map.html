@@ -1,0 +1,727 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>خريطة مبيعات الفروع — ألموند</title>
+<!--
+  Branch sales, plotted on Jordan.
+
+  Deliberately one self-contained file with no build step and no dependencies:
+  it drops into the existing dashboard's «المزيد» tab as an <iframe> without
+  touching that app's bundle, and it can also be opened on its own.
+
+  It does NOT compute sales of its own. It reads the same `sales_daily` rows the
+  main dashboard reads, over the same PostgREST API, and only sums them per
+  branch — so a figure here and a figure there can never disagree.
+
+  Config (Supabase URL + anon key) comes from the query string or localStorage.
+  No key is stored in this file, and none should ever be committed into it.
+-->
+<style>
+  :root{
+    --purple:#6C5CB4; --purple-d:#4E4490; --ink:#2E2552; --muted:#6B6484;
+    --line:#E2DCF0; --bg:#F6F4FB; --card:#fff; --land:#EFEBF8; --land-line:#D6CEEA;
+    --good:#3E9C7A; --bad:#C0392B;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    background:var(--bg); color:var(--ink);
+    font-family:'Helvetica Neue Arabic','Segoe UI','Noto Sans Arabic',Tahoma,system-ui,sans-serif;
+    font-size:14px; line-height:1.6; -webkit-text-size-adjust:100%;
+  }
+  .wrap{max-width:1280px;margin:0 auto;padding:14px 16px 32px}
+
+  header.top{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:14px}
+  .brand{display:flex;align-items:center;gap:10px}
+  .dot{width:34px;height:34px;border-radius:11px;background:var(--purple);
+       display:grid;place-items:center;color:#fff;font-weight:700;font-size:15px;flex:none}
+  h1{font-size:17px;margin:0;font-weight:700}
+  .sub{color:var(--muted);font-size:12px}
+  .spacer{flex:1}
+
+  .btn{background:#fff;border:1px solid var(--line);color:var(--ink);border-radius:9px;
+       padding:7px 13px;font:inherit;font-size:13px;cursor:pointer}
+  .btn:hover{border-color:var(--purple)}
+  .btn.primary{background:var(--purple);border-color:var(--purple);color:#fff}
+  .btn.on{background:var(--purple);border-color:var(--purple);color:#fff}
+  .btn:disabled{opacity:.5;cursor:default}
+
+  .filters{background:var(--card);border:1px solid var(--line);border-radius:14px;
+           padding:11px 13px;display:flex;gap:9px;align-items:center;flex-wrap:wrap;margin-bottom:14px}
+  .filters .lbl{color:var(--muted);font-size:12px}
+  .chips{display:flex;gap:6px;flex-wrap:wrap}
+  .chip{background:#fff;border:1px solid var(--line);border-radius:999px;padding:5px 12px;
+        font:inherit;font-size:12.5px;cursor:pointer;color:var(--ink)}
+  .chip:hover{border-color:var(--purple)}
+  .chip.on{background:var(--purple);border-color:var(--purple);color:#fff}
+  input[type=date]{font:inherit;font-size:12.5px;padding:5px 8px;border:1px solid var(--line);
+                   border-radius:8px;color:var(--ink);background:#fff;direction:ltr}
+
+  .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px}
+  .kpi{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px 14px}
+  .kpi .k{color:var(--muted);font-size:12px}
+  .kpi .v{font-size:22px;font-weight:700;line-height:1.25;margin-top:2px;direction:ltr;text-align:right}
+  .kpi .v small{font-size:12px;font-weight:400;color:var(--muted)}
+
+  .grid{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(300px,1fr);gap:12px;align-items:start}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;overflow:hidden}
+  .card h2{font-size:14px;margin:0;padding:11px 14px;border-bottom:1px solid var(--line);
+           display:flex;align-items:center;gap:9px;flex-wrap:wrap}
+  .card h2 .spacer{flex:1}
+
+  .mapbox{position:relative;background:#fff}
+  svg.map{display:block;width:100%;height:auto;touch-action:none}
+  .gov{fill:var(--land);stroke:var(--land-line);stroke-width:.7;stroke-linejoin:round}
+  .gov.host{fill:#E4DCF6;stroke:#C3B6E4}
+  .govlabel{fill:#9A93B5;font-size:8px;text-anchor:middle;pointer-events:none;user-select:none}
+  .pin{cursor:pointer}
+  .pin circle.bub{stroke:#fff;stroke-width:1.5}
+  .pin circle.zero{fill:#fff;stroke:var(--muted);stroke-width:1.3;stroke-dasharray:2.5 2.5}
+  .pin.sel circle.bub,.pin.sel circle.zero{stroke:var(--ink);stroke-width:2.5;stroke-dasharray:none}
+  .pinlabel{font-size:9px;fill:var(--ink);paint-order:stroke;stroke:#fff;stroke-width:2.6;
+            stroke-linejoin:round;pointer-events:none;user-select:none}
+  .pinval{font-size:8.5px;fill:var(--muted);paint-order:stroke;stroke:#fff;stroke-width:2.6;
+          stroke-linejoin:round;pointer-events:none;user-select:none}
+  .leader{stroke:#9A93B5;stroke-width:.8;stroke-dasharray:2 2;pointer-events:none}
+
+  .legend{display:flex;align-items:center;gap:10px;padding:9px 14px;border-top:1px solid var(--line);
+          color:var(--muted);font-size:11.5px;flex-wrap:wrap}
+  .ramp{display:flex;border-radius:4px;overflow:hidden}
+  .ramp i{width:26px;height:9px;display:block}
+
+  .tip{position:absolute;pointer-events:none;background:var(--ink);color:#fff;border-radius:9px;
+       padding:7px 10px;font-size:12px;line-height:1.5;opacity:0;transition:opacity .1s;
+       white-space:nowrap;z-index:5;box-shadow:0 6px 18px rgba(46,37,82,.25)}
+  .tip.show{opacity:1}
+  .tip b{font-size:12.5px}
+  .tip .n{direction:ltr;display:inline-block}
+
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th,td{padding:8px 12px;text-align:right;border-bottom:1px solid var(--line)}
+  th{color:var(--muted);font-weight:400;font-size:11.5px;background:#FBFAFE;position:sticky;top:0}
+  tbody tr{cursor:pointer}
+  tbody tr:hover{background:#FBFAFE}
+  tbody tr.sel{background:#F1ECFB}
+  td.num{direction:ltr;text-align:left;font-variant-numeric:tabular-nums;white-space:nowrap}
+  .bar{height:5px;border-radius:3px;background:var(--purple);min-width:2px}
+  .barcell{width:26%}
+  .rank{color:var(--muted);font-size:11.5px}
+
+  .note{color:var(--muted);font-size:11.5px;padding:9px 14px;border-top:1px solid var(--line)}
+  .msg{padding:22px 16px;text-align:center;color:var(--muted)}
+  .msg.err{color:var(--bad)}
+
+  dialog{border:none;border-radius:16px;padding:0;max-width:440px;width:calc(100% - 32px);
+         box-shadow:0 20px 60px rgba(46,37,82,.3);color:var(--ink)}
+  dialog::backdrop{background:rgba(46,37,82,.4)}
+  .dlg{padding:18px}
+  .dlg h3{margin:0 0 4px;font-size:15px}
+  .dlg p{margin:0 0 14px;color:var(--muted);font-size:12.5px}
+  .dlg label{display:block;font-size:12px;color:var(--muted);margin:9px 0 3px}
+  .dlg input{width:100%;font:inherit;font-size:13px;padding:8px 10px;border:1px solid var(--line);
+             border-radius:9px;direction:ltr}
+  .dlg .row{display:flex;gap:8px;justify-content:flex-start;margin-top:16px}
+  .warnbox{background:#FDF3F2;border-right:3px solid var(--bad);border-radius:8px;
+           padding:8px 11px;font-size:11.5px;color:var(--ink);margin-top:12px}
+
+  @media (max-width:900px){
+    .grid{grid-template-columns:1fr}
+    .kpis{grid-template-columns:repeat(2,1fr)}
+  }
+  /* On a phone the share bar is the first thing worth dropping — the branch
+     name needs the width more than a second reading of the same number does. */
+  @media (max-width:600px){
+    .barcell{display:none}
+    th,td{padding:8px 9px}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="top">
+    <div class="brand">
+      <div class="dot">ألـ</div>
+      <div>
+        <h1>خريطة مبيعات الفروع</h1>
+        <div class="sub">ألموند كوفي هاوس · المبيعات حسب موقع المحل</div>
+      </div>
+    </div>
+    <div class="spacer"></div>
+    <button class="btn" id="csvBtn">تصدير CSV</button>
+    <button class="btn" id="cfgBtn">الإعدادات</button>
+    <button class="btn primary" id="reloadBtn">تحديث</button>
+  </header>
+
+  <div class="filters">
+    <span class="lbl">الفترة</span>
+    <div class="chips" id="presets"></div>
+    <span class="lbl">من</span><input type="date" id="from">
+    <span class="lbl">إلى</span><input type="date" id="to">
+    <div class="spacer"></div>
+    <span class="sub" id="stamp"></span>
+  </div>
+
+  <div class="kpis">
+    <div class="kpi"><div class="k">إجمالي المبيعات</div><div class="v" id="kSales">—</div></div>
+    <div class="kpi"><div class="k">عدد الفواتير</div><div class="v" id="kInv">—</div></div>
+    <div class="kpi"><div class="k">متوسط الفاتورة</div><div class="v" id="kAvg">—</div></div>
+    <div class="kpi"><div class="k">الفروع العاملة</div><div class="v" id="kBr">—</div></div>
+  </div>
+
+  <div class="grid">
+    <section class="card">
+      <h2>
+        <span>الخريطة</span>
+        <div class="spacer"></div>
+        <button class="chip on" data-view="amman">عمّان</button>
+        <button class="chip" data-view="jordan">الأردن</button>
+      </h2>
+      <div class="mapbox" id="mapbox">
+        <svg class="map" id="svg" viewBox="0 0 760 560" role="img"
+             aria-label="خريطة الأردن مع مبيعات كل فرع"></svg>
+        <div class="tip" id="tip"></div>
+      </div>
+      <div class="legend">
+        <span>حجم الدائرة ولونها = حجم المبيعات</span>
+        <div class="ramp" id="ramp"></div>
+        <span id="rampLo">0</span><span>→</span><span id="rampHi">—</span>
+        <span class="spacer" style="flex:1"></span>
+        <span id="geoSrc"></span>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2><span>الترتيب حسب المبيعات</span></h2>
+      <div id="tableWrap"><div class="msg">…</div></div>
+      <div class="note" id="tableNote"></div>
+    </section>
+  </div>
+</div>
+
+<dialog id="cfgDlg"><form method="dialog" class="dlg">
+  <h3>الاتصال بقاعدة البيانات</h3>
+  <p>نفس المصدر الذي تقرأ منه الداشبورد الأساسية — جدولا <code>branches</code> و<code>sales_daily</code>.</p>
+  <label>Supabase URL</label>
+  <input id="cfgUrl" placeholder="https://xxxx.supabase.co" autocomplete="off">
+  <label>API key</label>
+  <input id="cfgKey" type="password" placeholder="anon أو المفتاح المستخدم في الداشبورد" autocomplete="off">
+  <div class="warnbox">
+    استخدم مفتاح <b>anon</b>. لا تضع مفتاح <code>service_role</code> هنا — الصفحة تعمل في المتصفح
+    وأي مفتاح تضعه يصبح مقروءاً لمن يفتح الصفحة.
+  </div>
+  <div class="row">
+    <button class="btn primary" value="save" id="cfgSave">حفظ</button>
+    <button class="btn" value="cancel">إلغاء</button>
+  </div>
+</form></dialog>
+
+<script>
+(function () {
+'use strict';
+
+/* ------------------------------------------------------------------ config */
+const LS_URL = 'almond.map.sb', LS_KEY = 'almond.map.key';
+const qs = new URLSearchParams(location.search);
+const CFG = {
+  url: (qs.get('sb') || localStorage.getItem(LS_URL) || '').replace(/\/+$/, ''),
+  key: qs.get('key') || localStorage.getItem(LS_KEY) || '',
+};
+if (qs.get('sb')) localStorage.setItem(LS_URL, CFG.url);
+if (qs.get('key')) localStorage.setItem(LS_KEY, CFG.key);
+
+/* Fallback pins, mirroring supabase/migrations/20260810_branch_geo.sql, so the
+   map still draws before that migration is applied. Once `branches.lat/lng`
+   exist the database wins and this table stops being consulted. */
+const FALLBACK_GEO = {
+  RABIA:    [31.9719, 35.8665],
+  THAMEN:   [31.9419, 35.8389],
+  MAKKAH:   [31.9846, 35.8631],
+  JAMIAA:   [32.0136, 35.8714],
+  KHALDA:   [31.9897, 35.8412],
+  CITYMALL: [31.9837, 35.8276],
+  SHAFA:    [32.0556, 35.9039],
+  MADINA:   [31.9775, 35.8695],
+};
+
+const GOV = [{"en":"Ma'an","ar":"معان","rings":[[[35.737,29.237],[36.072,29.184],[36.519,29.503],[36.648,29.699],[36.758,29.868],[36.926,29.899],[37.501,30.003],[37.663,30.339],[37.71,30.362],[38.003,30.503],[37.877,30.636],[37.605,30.918],[37.351,31.17],[37.246,31.269],[37.088,31.265],[37.002,31.265],[36.623,31.269],[36.467,31.273],[36.143,31.274],[36.148,31.184],[36.224,31.114],[36.046,30.811],[36.028,30.78],[36.006,30.742],[35.962,30.668],[35.946,30.639],[35.898,30.658],[35.884,30.662],[35.867,30.661],[35.856,30.658],[35.841,30.641],[35.832,30.634],[35.746,30.622],[35.71,30.619],[35.695,30.617],[35.677,30.603],[35.671,30.6],[35.662,30.6],[35.646,30.608],[35.63,30.612],[35.61,30.613],[35.549,30.609],[35.516,30.609],[35.504,30.61],[35.465,30.62],[35.456,30.616],[35.458,30.606],[35.458,30.587],[35.458,30.552],[35.435,30.504],[35.434,30.493],[35.435,30.46],[35.368,30.345],[35.396,30.253],[35.398,30.223],[35.381,30.198],[35.36,30.172],[35.335,30.149],[35.324,30.136],[35.318,30.126],[35.313,30.103],[35.311,30.083],[35.302,30.051],[35.302,30.024],[35.312,29.998],[35.325,29.981],[35.337,29.966],[35.356,29.955],[35.375,29.95],[35.412,29.949],[35.428,29.954],[35.442,29.957],[35.475,29.958],[35.505,29.95],[35.53,29.94],[35.555,29.927],[35.565,29.92],[35.573,29.912],[35.591,29.888],[35.601,29.862],[35.611,29.819],[35.615,29.813],[35.63,29.801],[35.637,29.792],[35.648,29.772],[35.668,29.688],[35.683,29.646],[35.703,29.531],[35.716,29.443],[35.726,29.332],[35.737,29.237]]]},{"en":"Karak","ar":"الكرك","rings":[[[36.143,31.274],[36.029,31.274],[35.873,31.271],[35.845,31.273],[35.829,31.278],[35.825,31.289],[35.825,31.3],[35.84,31.35],[35.839,31.383],[35.834,31.394],[35.825,31.41],[35.81,31.425],[35.77,31.437],[35.721,31.442],[35.703,31.44],[35.688,31.435],[35.671,31.427],[35.658,31.425],[35.645,31.426],[35.586,31.449],[35.563,31.455],[35.545,31.457],[35.519,31.457],[35.471,31.453],[35.471,31.438],[35.459,31.404],[35.456,31.373],[35.442,31.357],[35.418,31.326],[35.401,31.287],[35.398,31.272],[35.399,31.247],[35.405,31.235],[35.418,31.221],[35.432,31.211],[35.443,31.198],[35.45,31.183],[35.455,31.169],[35.459,31.144],[35.459,31.13],[35.451,31.111],[35.437,31.069],[35.427,31.057],[35.416,31.05],[35.411,31.041],[35.409,31.019],[35.409,31.001],[35.404,30.96],[35.396,30.95],[35.378,30.936],[35.365,30.921],[35.383,30.915],[35.41,30.896],[35.418,30.892],[35.439,30.89],[35.455,30.894],[35.46,30.899],[35.462,30.904],[35.462,30.946],[35.477,30.969],[35.478,30.975],[35.474,30.989],[35.474,30.996],[35.476,31.001],[35.482,31.004],[35.492,31.005],[35.508,31.002],[35.533,31.006],[35.54,31.006],[35.547,30.997],[35.559,30.989],[35.569,30.985],[35.59,30.982],[35.629,30.98],[35.662,30.984],[35.683,30.983],[35.72,30.964],[35.754,30.951],[35.792,30.932],[35.8,30.929],[35.826,30.926],[35.835,30.924],[35.839,30.92],[35.844,30.905],[35.849,30.901],[35.859,30.895],[35.867,30.893],[35.878,30.887],[35.886,30.882],[35.894,30.873],[35.909,30.872],[35.914,30.869],[35.917,30.861],[35.929,30.848],[35.959,30.828],[35.978,30.819],[36.006,30.796],[36.028,30.78],[36.046,30.811],[36.224,31.114],[36.148,31.184],[36.143,31.274]]]},{"en":"Madaba","ar":"مأدبا","rings":[[[35.81,31.425],[35.838,31.452],[35.848,31.484],[35.86,31.509],[35.87,31.537],[35.874,31.543],[35.855,31.56],[35.862,31.577],[35.861,31.59],[35.851,31.606],[35.84,31.615],[35.814,31.624],[35.806,31.632],[35.803,31.638],[35.794,31.667],[35.792,31.677],[35.793,31.69],[35.795,31.7],[35.798,31.706],[35.806,31.714],[35.822,31.724],[35.824,31.733],[35.817,31.782],[35.818,31.805],[35.817,31.815],[35.81,31.823],[35.798,31.824],[35.792,31.816],[35.782,31.812],[35.735,31.813],[35.72,31.809],[35.699,31.798],[35.695,31.798],[35.67,31.796],[35.649,31.797],[35.641,31.796],[35.636,31.793],[35.633,31.788],[35.621,31.78],[35.619,31.773],[35.616,31.728],[35.611,31.722],[35.599,31.714],[35.59,31.709],[35.562,31.703],[35.504,31.702],[35.482,31.65],[35.48,31.636],[35.47,31.546],[35.469,31.495],[35.471,31.453],[35.519,31.457],[35.545,31.457],[35.563,31.455],[35.586,31.449],[35.645,31.426],[35.658,31.425],[35.671,31.427],[35.688,31.435],[35.703,31.44],[35.721,31.442],[35.77,31.437],[35.81,31.425]]]},{"en":"Balqa","ar":"البلقاء","rings":[[[35.695,31.798],[35.694,31.823],[35.697,31.832],[35.7,31.84],[35.713,31.85],[35.715,31.857],[35.714,31.863],[35.699,31.877],[35.689,31.881],[35.671,31.883],[35.653,31.889],[35.649,31.893],[35.648,31.902],[35.653,31.916],[35.658,31.923],[35.762,31.965],[35.789,31.984],[35.793,31.998],[35.795,32.016],[35.8,32.021],[35.808,32.025],[35.853,32.027],[35.872,32.041],[35.879,32.05],[35.884,32.061],[35.888,32.066],[35.897,32.07],[35.906,32.077],[35.886,32.087],[35.87,32.101],[35.869,32.119],[35.849,32.123],[35.842,32.128],[35.835,32.133],[35.823,32.144],[35.821,32.15],[35.813,32.161],[35.793,32.168],[35.772,32.168],[35.74,32.162],[35.73,32.162],[35.723,32.163],[35.715,32.169],[35.711,32.17],[35.705,32.17],[35.694,32.163],[35.686,32.16],[35.682,32.161],[35.676,32.164],[35.675,32.167],[35.684,32.179],[35.643,32.18],[35.63,32.189],[35.627,32.194],[35.626,32.203],[35.601,32.202],[35.551,32.207],[35.55,32.201],[35.545,32.195],[35.542,32.175],[35.532,32.158],[35.53,32.148],[35.526,32.127],[35.526,32.11],[35.528,32.098],[35.506,32.07],[35.503,32.056],[35.503,32.04],[35.508,32.027],[35.517,32.016],[35.522,32.007],[35.526,31.958],[35.524,31.949],[35.514,31.943],[35.512,31.938],[35.512,31.929],[35.517,31.921],[35.524,31.906],[35.529,31.89],[35.532,31.854],[35.528,31.836],[35.529,31.826],[35.541,31.799],[35.538,31.776],[35.526,31.755],[35.504,31.702],[35.562,31.703],[35.59,31.709],[35.599,31.714],[35.611,31.722],[35.616,31.728],[35.619,31.773],[35.621,31.78],[35.633,31.788],[35.636,31.793],[35.641,31.796],[35.649,31.797],[35.67,31.796],[35.695,31.798]]]},{"en":"Jerash","ar":"جرش","rings":[[[35.869,32.119],[35.882,32.136],[35.906,32.155],[35.93,32.169],[35.95,32.171],[35.959,32.177],[35.964,32.189],[35.967,32.21],[35.966,32.213],[35.964,32.219],[35.951,32.245],[35.935,32.262],[35.93,32.269],[35.93,32.282],[35.935,32.287],[35.964,32.304],[35.978,32.315],[35.986,32.323],[35.991,32.334],[35.992,32.345],[35.984,32.346],[35.973,32.344],[35.965,32.347],[35.961,32.351],[35.957,32.362],[35.944,32.365],[35.936,32.363],[35.917,32.351],[35.889,32.339],[35.877,32.333],[35.849,32.325],[35.838,32.319],[35.822,32.307],[35.81,32.292],[35.802,32.276],[35.798,32.257],[35.799,32.244],[35.796,32.238],[35.772,32.225],[35.746,32.218],[35.721,32.215],[35.712,32.211],[35.706,32.206],[35.684,32.179],[35.675,32.167],[35.676,32.164],[35.682,32.161],[35.686,32.16],[35.694,32.163],[35.705,32.17],[35.711,32.17],[35.715,32.169],[35.723,32.163],[35.73,32.162],[35.74,32.162],[35.772,32.168],[35.793,32.168],[35.813,32.161],[35.821,32.15],[35.823,32.144],[35.835,32.133],[35.842,32.128],[35.849,32.123],[35.869,32.119]]]},{"en":"Ajloun","ar":"عجلون","rings":[[[35.684,32.179],[35.706,32.206],[35.712,32.211],[35.721,32.215],[35.746,32.218],[35.772,32.225],[35.796,32.238],[35.799,32.244],[35.798,32.257],[35.802,32.276],[35.81,32.292],[35.822,32.307],[35.838,32.319],[35.849,32.325],[35.877,32.333],[35.889,32.339],[35.886,32.354],[35.875,32.362],[35.872,32.375],[35.854,32.379],[35.847,32.384],[35.847,32.392],[35.853,32.4],[35.854,32.404],[35.849,32.407],[35.843,32.408],[35.831,32.408],[35.826,32.404],[35.82,32.39],[35.815,32.385],[35.807,32.382],[35.794,32.382],[35.759,32.384],[35.745,32.384],[35.737,32.379],[35.723,32.365],[35.704,32.357],[35.687,32.357],[35.674,32.365],[35.655,32.369],[35.642,32.366],[35.632,32.353],[35.618,32.329],[35.602,32.293],[35.6,32.284],[35.6,32.266],[35.603,32.259],[35.622,32.234],[35.624,32.225],[35.626,32.203],[35.627,32.194],[35.63,32.189],[35.643,32.18],[35.684,32.179]]]},{"en":"Irbid","ar":"إربد","rings":[[[35.626,32.203],[35.624,32.225],[35.622,32.234],[35.603,32.259],[35.6,32.266],[35.6,32.284],[35.602,32.293],[35.618,32.329],[35.632,32.353],[35.642,32.366],[35.655,32.369],[35.674,32.365],[35.687,32.357],[35.704,32.357],[35.723,32.365],[35.737,32.379],[35.745,32.384],[35.759,32.384],[35.794,32.382],[35.807,32.382],[35.815,32.385],[35.82,32.39],[35.826,32.404],[35.831,32.408],[35.843,32.408],[35.849,32.407],[35.854,32.404],[35.853,32.4],[35.847,32.392],[35.847,32.384],[35.854,32.379],[35.872,32.375],[35.875,32.362],[35.886,32.354],[35.889,32.339],[35.917,32.351],[35.936,32.363],[35.944,32.365],[35.957,32.362],[35.961,32.351],[35.965,32.347],[35.973,32.344],[35.984,32.346],[35.992,32.345],[36.005,32.355],[36.014,32.364],[36.017,32.368],[36.018,32.375],[36.015,32.38],[35.994,32.395],[35.991,32.4],[35.994,32.412],[35.998,32.417],[36.011,32.421],[36.02,32.422],[36.03,32.422],[36.046,32.416],[36.056,32.405],[36.063,32.403],[36.078,32.405],[36.081,32.409],[36.085,32.472],[36.084,32.486],[36.081,32.503],[36.076,32.514],[36.076,32.537],[36.07,32.551],[36.047,32.588],[36.033,32.599],[36.025,32.611],[36.03,32.643],[36.027,32.652],[36.019,32.658],[36.008,32.663],[35.997,32.663],[35.989,32.659],[35.979,32.661],[35.958,32.673],[35.957,32.68],[35.962,32.683],[35.966,32.691],[35.96,32.695],[35.943,32.697],[35.938,32.703],[35.936,32.712],[35.916,32.715],[35.874,32.727],[35.86,32.728],[35.834,32.727],[35.824,32.73],[35.807,32.741],[35.793,32.746],[35.78,32.748],[35.772,32.746],[35.762,32.741],[35.753,32.734],[35.741,32.726],[35.69,32.711],[35.682,32.703],[35.679,32.696],[35.673,32.688],[35.661,32.686],[35.618,32.683],[35.608,32.677],[35.604,32.668],[35.593,32.659],[35.568,32.649],[35.563,32.642],[35.564,32.636],[35.569,32.631],[35.57,32.623],[35.566,32.617],[35.566,32.608],[35.571,32.602],[35.575,32.59],[35.575,32.577],[35.57,32.567],[35.56,32.556],[35.556,32.544],[35.553,32.527],[35.565,32.497],[35.562,32.486],[35.563,32.467],[35.546,32.428],[35.549,32.42],[35.549,32.412],[35.542,32.398],[35.546,32.392],[35.547,32.383],[35.544,32.377],[35.543,32.371],[35.542,32.345],[35.545,32.329],[35.555,32.309],[35.555,32.302],[35.549,32.287],[35.55,32.279],[35.553,32.274],[35.553,32.267],[35.549,32.26],[35.549,32.253],[35.554,32.248],[35.554,32.239],[35.546,32.225],[35.547,32.215],[35.551,32.207],[35.601,32.202],[35.626,32.203]]]},{"en":"Mafraq","ar":"المفرق","rings":[[[35.966,32.213],[35.973,32.214],[35.982,32.214],[35.995,32.209],[35.998,32.207],[36.0,32.2],[35.999,32.194],[35.993,32.183],[35.991,32.176],[35.993,32.172],[36.0,32.165],[36.014,32.157],[36.026,32.154],[36.038,32.154],[36.043,32.156],[36.049,32.159],[36.06,32.171],[36.065,32.173],[36.071,32.171],[36.08,32.159],[36.093,32.15],[36.099,32.147],[36.106,32.146],[36.118,32.147],[36.163,32.16],[36.19,32.163],[36.213,32.162],[36.228,32.159],[36.269,32.141],[36.28,32.137],[36.289,32.136],[36.302,32.136],[36.313,32.138],[36.333,32.152],[36.372,32.154],[36.388,32.151],[36.395,32.151],[36.409,32.153],[36.428,32.153],[36.438,32.146],[36.444,32.125],[36.454,32.115],[36.461,32.112],[36.572,32.075],[36.9,31.962],[37.049,31.914],[37.188,31.873],[37.33,31.834],[37.608,31.759],[37.815,31.701],[38.144,31.782],[38.463,31.863],[38.985,31.99],[39.301,32.232],[39.259,32.355],[39.039,32.303],[38.983,32.479],[39.088,32.503],[39.025,32.709],[38.96,32.905],[38.882,33.126],[38.791,33.38],[38.505,33.23],[38.277,33.107],[38.058,32.986],[37.819,32.852],[37.622,32.738],[37.382,32.602],[37.187,32.495],[37.091,32.443],[36.977,32.384],[36.873,32.334],[36.838,32.309],[36.723,32.331],[36.707,32.323],[36.695,32.333],[36.629,32.344],[36.492,32.362],[36.481,32.372],[36.396,32.38],[36.307,32.458],[36.248,32.493],[36.195,32.531],[36.171,32.517],[36.161,32.515],[36.152,32.519],[36.141,32.521],[36.125,32.521],[36.091,32.517],[36.076,32.514],[36.081,32.503],[36.084,32.486],[36.085,32.472],[36.081,32.409],[36.078,32.405],[36.063,32.403],[36.056,32.405],[36.046,32.416],[36.03,32.422],[36.02,32.422],[36.011,32.421],[35.998,32.417],[35.994,32.412],[35.991,32.4],[35.994,32.395],[36.015,32.38],[36.018,32.375],[36.017,32.368],[36.014,32.364],[36.005,32.355],[35.992,32.345],[35.991,32.334],[35.986,32.323],[35.978,32.315],[35.964,32.304],[35.935,32.287],[35.93,32.282],[35.93,32.269],[35.935,32.262],[35.951,32.245],[35.964,32.219],[35.966,32.213]]]},{"en":"Tafilah","ar":"الطفيلة","rings":[[[36.028,30.78],[36.006,30.796],[35.978,30.819],[35.959,30.828],[35.929,30.848],[35.917,30.861],[35.914,30.869],[35.909,30.872],[35.894,30.873],[35.886,30.882],[35.878,30.887],[35.867,30.893],[35.859,30.895],[35.849,30.901],[35.844,30.905],[35.839,30.92],[35.835,30.924],[35.826,30.926],[35.8,30.929],[35.792,30.932],[35.754,30.951],[35.72,30.964],[35.683,30.983],[35.662,30.984],[35.629,30.98],[35.59,30.982],[35.569,30.985],[35.559,30.989],[35.547,30.997],[35.54,31.006],[35.533,31.006],[35.508,31.002],[35.492,31.005],[35.482,31.004],[35.476,31.001],[35.474,30.996],[35.474,30.989],[35.478,30.975],[35.477,30.969],[35.462,30.946],[35.462,30.904],[35.46,30.899],[35.455,30.894],[35.439,30.89],[35.418,30.892],[35.41,30.896],[35.383,30.915],[35.365,30.921],[35.351,30.904],[35.345,30.886],[35.34,30.836],[35.336,30.823],[35.318,30.812],[35.309,30.804],[35.303,30.792],[35.297,30.776],[35.291,30.73],[35.284,30.715],[35.296,30.71],[35.322,30.696],[35.333,30.686],[35.353,30.675],[35.366,30.671],[35.376,30.665],[35.383,30.659],[35.401,30.625],[35.419,30.618],[35.438,30.617],[35.456,30.616],[35.465,30.62],[35.504,30.61],[35.516,30.609],[35.549,30.609],[35.61,30.613],[35.63,30.612],[35.646,30.608],[35.662,30.6],[35.671,30.6],[35.677,30.603],[35.695,30.617],[35.71,30.619],[35.746,30.622],[35.832,30.634],[35.841,30.641],[35.856,30.658],[35.867,30.661],[35.884,30.662],[35.898,30.658],[35.946,30.639],[35.962,30.668],[36.006,30.742],[36.028,30.78]]]},{"en":"Aqaba","ar":"العقبة","rings":[[[35.456,30.616],[35.438,30.617],[35.419,30.618],[35.401,30.625],[35.383,30.659],[35.376,30.665],[35.366,30.671],[35.353,30.675],[35.333,30.686],[35.322,30.696],[35.296,30.71],[35.284,30.715],[35.258,30.67],[35.221,30.61],[35.211,30.585],[35.209,30.571],[35.198,30.541],[35.195,30.511],[35.18,30.468],[35.166,30.439],[35.164,30.426],[35.169,30.416],[35.183,30.4],[35.185,30.391],[35.186,30.377],[35.185,30.363],[35.17,30.33],[35.159,30.281],[35.156,30.239],[35.173,30.163],[35.174,30.143],[35.173,30.121],[35.168,30.104],[35.134,30.066],[35.12,30.057],[35.109,30.042],[35.102,30.022],[35.099,30.004],[35.098,29.971],[35.083,29.956],[35.082,29.85],[35.063,29.817],[35.027,29.735],[35.024,29.725],[35.024,29.711],[35.017,29.677],[35.004,29.638],[34.99,29.619],[34.982,29.592],[34.978,29.543],[35.0,29.527],[34.998,29.499],[34.994,29.49],[34.982,29.474],[34.97,29.456],[34.961,29.404],[34.957,29.357],[35.367,29.295],[35.737,29.237],[35.726,29.332],[35.716,29.443],[35.703,29.531],[35.683,29.646],[35.668,29.688],[35.648,29.772],[35.637,29.792],[35.63,29.801],[35.615,29.813],[35.611,29.819],[35.601,29.862],[35.591,29.888],[35.573,29.912],[35.565,29.92],[35.555,29.927],[35.53,29.94],[35.505,29.95],[35.475,29.958],[35.442,29.957],[35.428,29.954],[35.412,29.949],[35.375,29.95],[35.356,29.955],[35.337,29.966],[35.325,29.981],[35.312,29.998],[35.302,30.024],[35.302,30.051],[35.311,30.083],[35.313,30.103],[35.318,30.126],[35.324,30.136],[35.335,30.149],[35.36,30.172],[35.381,30.198],[35.398,30.223],[35.396,30.253],[35.368,30.345],[35.435,30.46],[35.434,30.493],[35.435,30.504],[35.458,30.552],[35.458,30.587],[35.458,30.606],[35.456,30.616]]]},{"en":"Amman","ar":"عمّان","rings":[[[37.246,31.269],[36.999,31.501],[37.008,31.503],[36.7,31.781],[36.613,31.742],[36.608,31.742],[36.593,31.747],[36.567,31.76],[36.557,31.768],[36.548,31.772],[36.533,31.783],[36.494,31.815],[36.463,31.845],[36.444,31.86],[36.442,31.867],[36.451,31.884],[36.46,31.895],[36.535,31.929],[36.515,31.951],[36.422,32.037],[36.397,32.055],[36.377,32.063],[36.366,32.063],[36.34,32.058],[36.312,32.056],[36.286,32.061],[36.275,32.065],[36.256,32.064],[36.242,32.055],[36.237,32.049],[36.231,32.033],[36.226,32.027],[36.219,32.022],[36.182,32.014],[36.169,32.013],[36.157,32.016],[36.144,32.021],[36.125,32.023],[36.114,32.017],[36.102,32.002],[36.094,31.998],[36.064,31.998],[36.052,31.996],[36.044,31.994],[36.025,31.984],[36.018,31.983],[36.005,31.987],[35.997,31.992],[35.988,32.0],[35.98,32.011],[35.976,32.018],[35.969,32.028],[35.953,32.04],[35.934,32.049],[35.922,32.058],[35.919,32.062],[35.918,32.07],[35.906,32.077],[35.897,32.07],[35.888,32.066],[35.884,32.061],[35.879,32.05],[35.872,32.041],[35.853,32.027],[35.808,32.025],[35.8,32.021],[35.795,32.016],[35.793,31.998],[35.789,31.984],[35.762,31.965],[35.658,31.923],[35.653,31.916],[35.648,31.902],[35.649,31.893],[35.653,31.889],[35.671,31.883],[35.689,31.881],[35.699,31.877],[35.714,31.863],[35.715,31.857],[35.713,31.85],[35.7,31.84],[35.697,31.832],[35.694,31.823],[35.695,31.798],[35.699,31.798],[35.72,31.809],[35.735,31.813],[35.782,31.812],[35.792,31.816],[35.798,31.824],[35.81,31.823],[35.817,31.815],[35.818,31.805],[35.817,31.782],[35.824,31.733],[35.822,31.724],[35.806,31.714],[35.798,31.706],[35.795,31.7],[35.793,31.69],[35.792,31.677],[35.794,31.667],[35.803,31.638],[35.806,31.632],[35.814,31.624],[35.84,31.615],[35.851,31.606],[35.861,31.59],[35.862,31.577],[35.855,31.56],[35.874,31.543],[35.87,31.537],[35.86,31.509],[35.848,31.484],[35.838,31.452],[35.81,31.425],[35.825,31.41],[35.834,31.394],[35.839,31.383],[35.84,31.35],[35.825,31.3],[35.825,31.289],[35.829,31.278],[35.845,31.273],[35.873,31.271],[36.029,31.274],[36.143,31.274],[36.467,31.273],[36.623,31.269],[37.002,31.265],[37.088,31.265],[37.246,31.269]]]},{"en":"Zarqa","ar":"الزرقاء","rings":[[[35.906,32.077],[35.918,32.07],[35.919,32.062],[35.922,32.058],[35.934,32.049],[35.953,32.04],[35.969,32.028],[35.976,32.018],[35.98,32.011],[35.988,32.0],[35.997,31.992],[36.005,31.987],[36.018,31.983],[36.025,31.984],[36.044,31.994],[36.052,31.996],[36.064,31.998],[36.094,31.998],[36.102,32.002],[36.114,32.017],[36.125,32.023],[36.144,32.021],[36.157,32.016],[36.169,32.013],[36.182,32.014],[36.219,32.022],[36.226,32.027],[36.231,32.033],[36.237,32.049],[36.242,32.055],[36.256,32.064],[36.275,32.065],[36.286,32.061],[36.312,32.056],[36.34,32.058],[36.366,32.063],[36.377,32.063],[36.397,32.055],[36.422,32.037],[36.515,31.951],[36.535,31.929],[36.46,31.895],[36.451,31.884],[36.442,31.867],[36.444,31.86],[36.463,31.845],[36.494,31.815],[36.533,31.783],[36.548,31.772],[36.557,31.768],[36.567,31.76],[36.593,31.747],[36.608,31.742],[36.613,31.742],[36.7,31.781],[37.008,31.503],[37.293,31.576],[37.815,31.701],[37.608,31.759],[37.33,31.834],[37.188,31.873],[37.049,31.914],[36.9,31.962],[36.572,32.075],[36.461,32.112],[36.454,32.115],[36.444,32.125],[36.438,32.146],[36.428,32.153],[36.409,32.153],[36.395,32.151],[36.388,32.151],[36.372,32.154],[36.333,32.152],[36.313,32.138],[36.302,32.136],[36.289,32.136],[36.28,32.137],[36.269,32.141],[36.228,32.159],[36.213,32.162],[36.19,32.163],[36.163,32.16],[36.118,32.147],[36.106,32.146],[36.099,32.147],[36.093,32.15],[36.08,32.159],[36.071,32.171],[36.065,32.173],[36.06,32.171],[36.049,32.159],[36.043,32.156],[36.038,32.154],[36.026,32.154],[36.014,32.157],[36.0,32.165],[35.993,32.172],[35.991,32.176],[35.993,32.183],[35.999,32.194],[36.0,32.2],[35.998,32.207],[35.995,32.209],[35.982,32.214],[35.973,32.214],[35.966,32.213],[35.967,32.21],[35.964,32.189],[35.959,32.177],[35.95,32.171],[35.93,32.169],[35.906,32.155],[35.882,32.136],[35.869,32.119],[35.87,32.101],[35.886,32.087],[35.906,32.077]]]}];
+const HOST_GOV = 'Amman';
+
+/* ------------------------------------------------------------------ helpers */
+const $ = (s) => document.querySelector(s);
+const AMMAN_TZ = 'Asia/Amman';
+
+/** YYYY-MM-DD as it reads in Amman, not in the viewer's timezone — a manager
+    opening this from abroad must still see the Jordanian business day. */
+function ymd(d) { return new Intl.DateTimeFormat('en-CA', { timeZone: AMMAN_TZ }).format(d); }
+function addDays(iso, n) {
+  const [y, m, d] = iso.split('-').map(Number);
+  const t = new Date(Date.UTC(y, m - 1, d + n));
+  return t.toISOString().slice(0, 10);
+}
+function monthStart(iso) { return iso.slice(0, 8) + '01'; }
+function fmt(n, dp) {
+  return (n || 0).toLocaleString('en-US', { minimumFractionDigits: dp || 0, maximumFractionDigits: dp || 0 });
+}
+function esc(s) {
+  return String(s == null ? '' : s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+}
+
+const TODAY = ymd(new Date());
+const PRESETS = [
+  { id: 'today',     label: 'اليوم',        range: () => [TODAY, TODAY] },
+  { id: 'yesterday', label: 'أمس',          range: () => [addDays(TODAY, -1), addDays(TODAY, -1)] },
+  { id: 'd7',        label: 'آخر ٧ أيام',   range: () => [addDays(TODAY, -6), TODAY] },
+  { id: 'd30',       label: 'آخر ٣٠ يوم',   range: () => [addDays(TODAY, -29), TODAY] },
+  { id: 'mtd',       label: 'هذا الشهر',    range: () => [monthStart(TODAY), TODAY] },
+  { id: 'lastmo',    label: 'الشهر الماضي', range: () => {
+      const first = monthStart(TODAY), lastEnd = addDays(first, -1);
+      return [monthStart(lastEnd), lastEnd];
+    } },
+];
+
+const state = { from: TODAY, to: TODAY, preset: 'today', view: 'amman', rows: [], sel: null, geoFromDb: false };
+
+/* --------------------------------------------------------------- PostgREST */
+async function pg(path) {
+  const res = await fetch(CFG.url + '/rest/v1/' + path, {
+    headers: { apikey: CFG.key, Authorization: 'Bearer ' + CFG.key, Accept: 'application/json' },
+  });
+  if (!res.ok) {
+    const body = await res.text();
+    const err = new Error('HTTP ' + res.status + ' — ' + body.slice(0, 200));
+    err.status = res.status;
+    throw err;
+  }
+  return res.json();
+}
+
+async function loadBranches() {
+  // lat/lng only exist after the geo migration; fall back rather than fail.
+  try {
+    const r = await pg('branches?select=id,code,name_ar,pos_count,is_active,lat,lng&kind=eq.branch&order=code');
+    state.geoFromDb = true;
+    return r;
+  } catch (e) {
+    if (e.status !== 400) throw e;
+    state.geoFromDb = false;
+    return pg('branches?select=id,code,name_ar,pos_count,is_active&kind=eq.branch&order=code');
+  }
+}
+
+/** Every sales_daily row in range. Paged, because PostgREST caps a response
+    and a silent cut here would understate a branch's day. */
+async function loadSales(from, to) {
+  const PAGE = 1000, out = [];
+  for (let offset = 0; ; offset += PAGE) {
+    const batch = await pg(
+      'sales_daily?select=branch_id,sale_date,total_sales,invoice_count,refund_value,discount_value'
+      + '&sale_date=gte.' + from + '&sale_date=lte.' + to
+      + '&order=sale_date.asc,branch_id.asc&limit=' + PAGE + '&offset=' + offset);
+    out.push.apply(out, batch);
+    if (batch.length < PAGE) return out;
+  }
+}
+
+/* ------------------------------------------------------------- projections */
+function bboxOf(pts) {
+  let a = Infinity, b = Infinity, c = -Infinity, d = -Infinity;
+  for (const [lng, lat] of pts) {
+    if (lng < a) a = lng; if (lat < b) b = lat;
+    if (lng > c) c = lng; if (lat > d) d = lat;
+  }
+  return [a, b, c, d];
+}
+const ALL_PTS = GOV.flatMap((g) => g.rings.flat());
+const JORDAN_BBOX = bboxOf(ALL_PTS);
+
+/** Equirectangular, with the longitude axis scaled by cos(lat) so Jordan is not
+    stretched sideways. Good enough at this scale and needs no library. */
+/** Widen (or heighten) a bbox until it matches the canvas aspect, so the zoom
+ *  is filled with map instead of with blank margin. Extending the geography
+ *  rather than letterboxing keeps the scale honest — nothing is stretched. */
+function fitAspect(bbox, w, h, pad) {
+  let [minLng, minLat, maxLng, maxLat] = bbox;
+  const k = Math.cos(((minLat + maxLat) / 2) * Math.PI / 180);
+  const want = (w - 2 * pad) / (h - 2 * pad);
+  const dx = (maxLng - minLng) * k, dy = maxLat - minLat;
+  if (dx / dy < want) {
+    const need = (dy * want) / k, mid = (minLng + maxLng) / 2;
+    minLng = mid - need / 2; maxLng = mid + need / 2;
+  } else {
+    const need = dx / want, mid = (minLat + maxLat) / 2;
+    minLat = mid - need / 2; maxLat = mid + need / 2;
+  }
+  return [minLng, minLat, maxLng, maxLat];
+}
+
+function projector(bbox, w, h, pad) {
+  const [minLng, minLat, maxLng, maxLat] = bbox;
+  const k = Math.cos(((minLat + maxLat) / 2) * Math.PI / 180);
+  const dx = (maxLng - minLng) * k, dy = maxLat - minLat;
+  const s = Math.min((w - 2 * pad) / dx, (h - 2 * pad) / dy);
+  const ox = (w - dx * s) / 2, oy = (h - dy * s) / 2;
+  return (lng, lat) => [ox + (lng - minLng) * k * s, oy + (maxLat - lat) * s];
+}
+
+/* ------------------------------------------------------------------ colours */
+const RAMP = ['#EDE8F8', '#CFC3EC', '#A996DC', '#8570C8', '#6C5CB4', '#4E4490'];
+function rampColor(t) {
+  if (!(t > 0)) return RAMP[0];
+  return RAMP[Math.min(RAMP.length - 1, 1 + Math.floor(t * (RAMP.length - 1)))];
+}
+
+/* ------------------------------------------------------------------- render */
+const SVG_NS = 'http://www.w3.org/2000/svg';
+function el(name, attrs, text) {
+  const n = document.createElementNS(SVG_NS, name);
+  for (const k in attrs) n.setAttribute(k, attrs[k]);
+  if (text != null) n.textContent = text;
+  return n;
+}
+
+/**
+ * Place the branch labels so they neither cover a bubble nor each other.
+ *
+ * The eight shops sit within a few kilometres of each other, so at Amman zoom
+ * the naive "caption above the circle" collides on almost every render and the
+ * map becomes unreadable. Each label tries a ring of candidate slots — above,
+ * below, then either side, widening — and takes the first that is clear of the
+ * bubbles and of every label already placed. A displaced label gets a leader
+ * line back to its bubble so the pairing stays obvious.
+ *
+ * Labels are laid out biggest-branch-first: the branches that matter most get
+ * the closest, most readable slot.
+ */
+function layoutLabels(pins) {
+  const g = el('g', {});
+  const LH = 9.5, H = 20, GAPS = [7, 19, 32, 47, 64];
+  const placedBoxes = [];
+  const circles = pins.map((p) => ({ x: p._x, y: p._y, r: p._r }));
+
+  const clearOf = (b) =>
+    !placedBoxes.some((o) => b.x0 < o.x1 && b.x1 > o.x0 && b.y0 < o.y1 && b.y1 > o.y0) &&
+    !circles.some((c) => {
+      // closest point of the box to the circle centre
+      const nx = Math.max(b.x0, Math.min(c.x, b.x1));
+      const ny = Math.max(b.y0, Math.min(c.y, b.y1));
+      return (nx - c.x) ** 2 + (ny - c.y) ** 2 < (c.r - 1) ** 2;
+    });
+
+  for (const p of pins) {
+    const val = fmt(p.sales, 0) + ' د.أ';
+    // No text metrics without a layout pass; 5.4px/char is a safe over-estimate
+    // for these two font sizes and errs toward extra clearance.
+    const w = Math.max(p.name.length, val.length) * 5.4 + 8;
+
+    const cands = [];
+    for (const gap of GAPS) {
+      cands.push({ cx: p._x, y0: p._y - p._r - gap - H });          // above
+      cands.push({ cx: p._x, y0: p._y + p._r + gap });              // below
+    }
+    for (const gap of [8, 24, 42]) {
+      cands.push({ cx: p._x + p._r + gap + w / 2, y0: p._y - H / 2 });  // right
+      cands.push({ cx: p._x - p._r - gap - w / 2, y0: p._y - H / 2 });  // left
+    }
+
+    let pick = cands[0], moved = true;
+    for (let i = 0; i < cands.length; i++) {
+      const c = cands[i];
+      const box = { x0: c.cx - w / 2, x1: c.cx + w / 2, y0: c.y0, y1: c.y0 + H };
+      if (clearOf(box)) { pick = c; moved = i > 0; placedBoxes.push(box); break; }
+      if (i === cands.length - 1) placedBoxes.push({ x0: c.cx - w / 2, x1: c.cx + w / 2, y0: c.y0, y1: c.y0 + H });
+    }
+
+    if (moved) {
+      // Leader line, starting at the bubble's edge rather than its centre.
+      const tx = pick.cx, ty = pick.y0 + H / 2;
+      const dx = tx - p._x, dy = ty - p._y, d = Math.hypot(dx, dy) || 1;
+      g.appendChild(el('line', {
+        x1: (p._x + (dx / d) * p._r).toFixed(1), y1: (p._y + (dy / d) * p._r).toFixed(1),
+        x2: tx.toFixed(1), y2: ty.toFixed(1), class: 'leader',
+      }));
+    }
+    g.appendChild(el('text', { x: pick.cx.toFixed(1), y: (pick.y0 + LH).toFixed(1),
+                               'text-anchor': 'middle', class: 'pinlabel' }, p.name));
+    g.appendChild(el('text', { x: pick.cx.toFixed(1), y: (pick.y0 + LH + 9).toFixed(1),
+                               'text-anchor': 'middle', class: 'pinval' }, val));
+  }
+  return g;
+}
+
+function drawMap() {
+  const svg = $('#svg');
+  svg.textContent = '';
+  const W = 760, H = 560;
+
+  const placed = state.rows.filter((r) => r.lat != null && r.lng != null);
+  let bbox = JORDAN_BBOX, pad = 26;
+  if (state.view === 'amman' && placed.length) {
+    const [a, b, c, d] = bboxOf(placed.map((r) => [r.lng, r.lat]));
+    const m = Math.max(0.015, (c - a) * 0.22, (d - b) * 0.22);
+    pad = 34;
+    bbox = fitAspect([a - m, b - m, c + m, d + m], W, H, pad);
+  }
+  const P = projector(bbox, W, H, pad);
+
+  // Governorates. In the Amman view they are drawn too — they clip out of the
+  // viewBox naturally and give the zoom a recognisable coastline of borders.
+  const gGov = el('g', {});
+  for (const g of GOV) {
+    let d = '';
+    for (const ring of g.rings) {
+      d += 'M' + ring.map(([lng, lat]) => P(lng, lat).map((v) => v.toFixed(1)).join(',')).join('L') + 'Z';
+    }
+    const path = el('path', { d, class: 'gov' + (g.en === HOST_GOV ? ' host' : '') });
+    path.appendChild(el('title', {}, g.ar));
+    gGov.appendChild(path);
+    // Named in both views: at Amman zoom the surrounding governorates are what
+    // tell you which way is Zarqa and which way is Balqa.
+    const c = bboxOf(g.rings.flat());
+    const [x, y] = P((c[0] + c[2]) / 2, (c[1] + c[3]) / 2);
+    gGov.appendChild(el('text', {
+      x: x.toFixed(1), y: y.toFixed(1), class: 'govlabel',
+      style: state.view === 'amman' ? 'font-size:11px' : '',
+    }, g.ar));
+  }
+  svg.appendChild(gGov);
+
+  const max = placed.reduce((m, r) => Math.max(m, r.sales), 0);
+  // Area, not radius, tracks the value — a radius-proportional bubble reads as
+  // several times the difference that is actually there.
+  const R_MIN = 6, R_MAX = state.view === 'amman' ? 30 : 20;
+
+  // Biggest first, so a small branch sitting on top of a large one stays clickable.
+  const ordered = placed.slice().sort((a, b) => b.sales - a.sales);
+  const gPins = el('g', {});
+  for (const r of ordered) {
+    const [x, y] = P(r.lng, r.lat);
+    const t = max > 0 ? r.sales / max : 0;
+    r._x = x; r._y = y;
+    r._r = r.sales > 0 ? R_MIN + (R_MAX - R_MIN) * Math.sqrt(t) : R_MIN * 0.8;
+
+    const g = el('g', { class: 'pin' + (state.sel === r.id ? ' sel' : ''), 'data-id': r.id, tabindex: '0',
+                        role: 'button', 'aria-label': r.name + ' — ' + fmt(r.sales, 1) + ' دينار' });
+    g.appendChild(el('circle', r.sales > 0
+      ? { class: 'bub', cx: x.toFixed(1), cy: y.toFixed(1), r: r._r.toFixed(1), fill: rampColor(t), 'fill-opacity': .92 }
+      : { class: 'zero', cx: x.toFixed(1), cy: y.toFixed(1), r: r._r.toFixed(1) }));
+    gPins.appendChild(g);
+    r._g = g;
+  }
+  svg.appendChild(gPins);
+  // Labels last, in their own layer, so no bubble can be painted over them.
+  if (state.view === 'amman') svg.appendChild(layoutLabels(ordered));
+
+  if (!placed.length) {
+    svg.appendChild(el('text', { x: W / 2, y: H / 2, 'text-anchor': 'middle', class: 'govlabel',
+                                 style: 'font-size:13px' }, 'لا يوجد فرع بإحداثيات'));
+  }
+
+  // Legend scale
+  $('#rampHi').textContent = fmt(max, 0) + ' د.أ';
+  const ramp = $('#ramp');
+  ramp.textContent = '';
+  RAMP.forEach((c) => { const i = document.createElement('i'); i.style.background = c; ramp.appendChild(i); });
+  $('#geoSrc').textContent = state.geoFromDb
+    ? 'الإحداثيات من قاعدة البيانات'
+    : 'إحداثيات تقريبية مدمجة — طبّق 20260810_branch_geo.sql';
+}
+
+function drawTable() {
+  const rows = state.rows.slice().sort((a, b) => b.sales - a.sales);
+  const max = rows.reduce((m, r) => Math.max(m, r.sales), 0);
+  const total = rows.reduce((s, r) => s + r.sales, 0);
+
+  if (!rows.length) { $('#tableWrap').innerHTML = '<div class="msg">لا يوجد فروع</div>'; return; }
+
+  let html = '<table><thead><tr><th>#</th><th>الفرع</th><th class="num">المبيعات</th>'
+           + '<th class="num">الفواتير</th><th class="num">الحصة</th><th class="barcell"></th></tr></thead><tbody>';
+  rows.forEach((r, i) => {
+    const share = total > 0 ? (r.sales / total) * 100 : 0;
+    html += '<tr data-id="' + esc(r.id) + '"' + (state.sel === r.id ? ' class="sel"' : '') + '>'
+          + '<td class="rank">' + (i + 1) + '</td>'
+          + '<td>' + esc(r.name) + (r.lat == null ? ' <span class="rank">(بلا موقع)</span>' : '') + '</td>'
+          + '<td class="num">' + fmt(r.sales, 1) + '</td>'
+          + '<td class="num">' + fmt(r.invoices, 0) + '</td>'
+          + '<td class="num">' + share.toFixed(1) + '%</td>'
+          + '<td class="barcell"><div class="bar" style="width:' + (max > 0 ? (r.sales / max) * 100 : 0).toFixed(1) + '%;'
+          + 'background:' + rampColor(max > 0 ? r.sales / max : 0) + '"></div></td></tr>';
+  });
+  html += '</tbody></table>';
+  $('#tableWrap').innerHTML = html;
+
+  const missing = rows.filter((r) => r.lat == null).map((r) => r.name);
+  const noSales = rows.filter((r) => r.sales === 0).length;
+  const notes = [];
+  if (missing.length) notes.push('بلا إحداثيات: ' + missing.join('، '));
+  if (noSales) notes.push(noSales + ' فرع بلا مبيعات مسجّلة في هذه الفترة');
+  notes.push('المصدر: جدول sales_daily — نفس أرقام الداشبورد الأساسية.');
+  $('#tableNote').textContent = notes.join(' · ');
+}
+
+function drawKpis() {
+  const sales = state.rows.reduce((s, r) => s + r.sales, 0);
+  const inv = state.rows.reduce((s, r) => s + r.invoices, 0);
+  $('#kSales').innerHTML = fmt(sales, 1) + ' <small>د.أ</small>';
+  $('#kInv').textContent = fmt(inv, 0);
+  $('#kAvg').innerHTML = (inv > 0 ? fmt(sales / inv, 2) : '—') + ' <small>د.أ</small>';
+  $('#kBr').textContent = state.rows.filter((r) => r.sales > 0).length + ' / ' + state.rows.length;
+}
+
+function render() { drawKpis(); drawMap(); drawTable(); }
+
+/* -------------------------------------------------------------------- load */
+let busy = false;
+async function refresh() {
+  if (busy) return;
+  if (!CFG.url || !CFG.key) { openCfg(); return; }
+  busy = true;
+  $('#reloadBtn').disabled = true;
+  $('#tableWrap').innerHTML = '<div class="msg">جارٍ التحميل…</div>';
+  try {
+    const [branches, sales] = await Promise.all([loadBranches(), loadSales(state.from, state.to)]);
+
+    const agg = new Map();
+    for (const s of sales) {
+      const a = agg.get(s.branch_id) || { sales: 0, invoices: 0, refunds: 0, discounts: 0 };
+      a.sales += Number(s.total_sales) || 0;
+      a.invoices += Number(s.invoice_count) || 0;
+      a.refunds += Number(s.refund_value) || 0;
+      a.discounts += Number(s.discount_value) || 0;
+      agg.set(s.branch_id, a);
+    }
+
+    state.rows = branches.filter((b) => b.is_active !== false).map((b) => {
+      const fb = FALLBACK_GEO[b.code];
+      const a = agg.get(b.id) || { sales: 0, invoices: 0, refunds: 0, discounts: 0 };
+      return {
+        id: b.id, code: b.code, name: b.name_ar || b.code,
+        lat: b.lat != null ? Number(b.lat) : (fb ? fb[0] : null),
+        lng: b.lng != null ? Number(b.lng) : (fb ? fb[1] : null),
+        sales: a.sales, invoices: a.invoices, refunds: a.refunds, discounts: a.discounts,
+      };
+    });
+
+    $('#stamp').textContent = 'آخر تحديث ' + new Date().toLocaleTimeString('en-GB',
+      { timeZone: AMMAN_TZ, hour: '2-digit', minute: '2-digit' })
+      + (sales.length ? '' : ' · لا توجد حركة مسجّلة في هذه الفترة');
+    render();
+  } catch (e) {
+    $('#tableWrap').innerHTML = '<div class="msg err">تعذّر جلب البيانات<br><small>' + esc(e.message) + '</small></div>';
+    $('#stamp').textContent = '';
+  } finally {
+    busy = false;
+    $('#reloadBtn').disabled = false;
+  }
+}
+
+/* ------------------------------------------------------------ interactions */
+function setRange(from, to, preset) {
+  state.from = from; state.to = to; state.preset = preset || null;
+  $('#from').value = from; $('#to').value = to;
+  document.querySelectorAll('#presets .chip').forEach((c) => c.classList.toggle('on', c.dataset.id === state.preset));
+  refresh();
+}
+
+const presetBox = $('#presets');
+PRESETS.forEach((p) => {
+  const b = document.createElement('button');
+  b.className = 'chip' + (p.id === state.preset ? ' on' : '');
+  b.textContent = p.label; b.dataset.id = p.id;
+  b.onclick = () => { const [f, t] = p.range(); setRange(f, t, p.id); };
+  presetBox.appendChild(b);
+});
+
+$('#from').value = state.from; $('#to').value = state.to;
+function onDate() {
+  let f = $('#from').value, t = $('#to').value;
+  if (!f || !t) return;
+  if (f > t) { const x = f; f = t; t = x; }   // a reversed range would return nothing
+  setRange(f, t, null);
+}
+$('#from').onchange = onDate;
+$('#to').onchange = onDate;
+$('#reloadBtn').onclick = refresh;
+
+document.querySelectorAll('[data-view]').forEach((b) => {
+  b.onclick = () => {
+    state.view = b.dataset.view;
+    document.querySelectorAll('[data-view]').forEach((x) => x.classList.toggle('on', x === b));
+    drawMap();
+  };
+});
+
+function select(id) {
+  state.sel = state.sel === id ? null : id;
+  drawMap(); drawTable();
+}
+$('#svg').addEventListener('click', (e) => {
+  const pin = e.target.closest('.pin');
+  if (pin) select(pin.dataset.id);
+});
+$('#svg').addEventListener('keydown', (e) => {
+  const pin = e.target.closest && e.target.closest('.pin');
+  if (pin && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); select(pin.dataset.id); }
+});
+$('#tableWrap').addEventListener('click', (e) => {
+  const tr = e.target.closest('tr[data-id]');
+  if (tr) select(tr.dataset.id);
+});
+
+const tip = $('#tip');
+$('#svg').addEventListener('mousemove', (e) => {
+  const pin = e.target.closest('.pin');
+  if (!pin) { tip.classList.remove('show'); return; }
+  const r = state.rows.find((x) => x.id === pin.dataset.id);
+  if (!r) return;
+  const box = $('#mapbox').getBoundingClientRect();
+  tip.innerHTML = '<b>' + esc(r.name) + '</b><br>'
+    + 'المبيعات <span class="n">' + fmt(r.sales, 1) + '</span> د.أ<br>'
+    + 'الفواتير <span class="n">' + fmt(r.invoices, 0) + '</span>'
+    + (r.invoices ? ' · معدل <span class="n">' + fmt(r.sales / r.invoices, 2) + '</span> د.أ' : '')
+    + (r.refunds ? '<br>مرتجعات <span class="n">' + fmt(r.refunds, 1) + '</span> د.أ' : '')
+    + (r.discounts ? '<br>خصومات <span class="n">' + fmt(r.discounts, 1) + '</span> د.أ' : '');
+  tip.classList.add('show');
+  // Keep the tip inside the card; near the right edge it flips to the left.
+  const x = e.clientX - box.left, y = e.clientY - box.top;
+  tip.style.left = Math.min(x + 14, box.width - tip.offsetWidth - 8) + 'px';
+  tip.style.top = Math.max(6, y - tip.offsetHeight - 12) + 'px';
+});
+$('#svg').addEventListener('mouseleave', () => tip.classList.remove('show'));
+
+$('#csvBtn').onclick = () => {
+  const rows = state.rows.slice().sort((a, b) => b.sales - a.sales);
+  const head = ['branch_code', 'branch_ar', 'lat', 'lng', 'sales', 'invoices', 'refunds', 'discounts', 'from', 'to'];
+  const body = rows.map((r) => [r.code, r.name, r.lat, r.lng, r.sales.toFixed(3), r.invoices,
+                                r.refunds.toFixed(3), r.discounts.toFixed(3), state.from, state.to]);
+  const csv = '﻿' + [head].concat(body)
+    .map((line) => line.map((c) => '"' + String(c == null ? '' : c).replace(/"/g, '""') + '"').join(',')).join('\r\n');
+  const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
+  const a = document.createElement('a');
+  a.href = url; a.download = 'almond-branch-sales-' + state.from + '_' + state.to + '.csv';
+  a.click();
+  URL.revokeObjectURL(url);
+};
+
+/* ----------------------------------------------------------------- config UI */
+const dlg = $('#cfgDlg');
+function openCfg() { $('#cfgUrl').value = CFG.url; $('#cfgKey').value = CFG.key; dlg.showModal(); }
+$('#cfgBtn').onclick = openCfg;
+dlg.addEventListener('close', () => {
+  if (dlg.returnValue !== 'save') return;
+  CFG.url = $('#cfgUrl').value.trim().replace(/\/+$/, '');
+  CFG.key = $('#cfgKey').value.trim();
+  localStorage.setItem(LS_URL, CFG.url);
+  localStorage.setItem(LS_KEY, CFG.key);
+  refresh();
+});
+
+/* -------------------------------------------------------------------- boot */
+render();
+refresh();
+})();
+</script>
+</body>
+</html>
