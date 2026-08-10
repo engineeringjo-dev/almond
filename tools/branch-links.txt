@@ -1,0 +1,10 @@
+# Branch code + its Google Maps pin, in opening order.
+# Resolve with:  python3 tools/resolve_branch_pins.py tools/branch-links.txt > pins.sql
+MAKKAH    https://maps.app.goo.gl/kxWJcNQtWCR33gDE9
+RABIA     https://maps.app.goo.gl/EAyknS4W914Zvha98
+KHALDA    https://maps.app.goo.gl/RyRC7CxwCrLx7nBN9
+THAMEN    https://maps.app.goo.gl/1TC8Eh1AUUmwgKPy6
+CITYMALL  https://maps.app.goo.gl/cYippZ4jTPsBAQUd6
+JAMIAA    https://maps.app.goo.gl/iXX1TNu9dmNs44KMA
+SHAFA     https://maps.app.goo.gl/Z5LmaFr22mdFsUUQ9
+MADINA    https://maps.app.goo.gl/NWeiz3Ghm7fgrAMA8
