@@ -118,13 +118,13 @@ def main() -> None:
     # ── ٦) أصنافُ المخزون ─────────────────────────────────────────────
     print("═══ ٦) أصنافُ المخزون ═══")
     inv = o.read_all("product.template", [["type", "=", "consu"]],
-        ["name", "default_code", "barcode", "uom_id", "uom_po_id", "standard_price",
+        ["name", "default_code", "barcode", "uom_id", "standard_price",
          "categ_id", "company_id", "active", "available_in_pos"])
     csvout.write(out, "06_inventory_items.csv",
-        ["odoo_id", "item_name", "sku", "barcode", "stock_uom", "purchase_uom",
+        ["odoo_id", "item_name", "sku", "barcode", "stock_uom",
          "cost", "category", "company", "sold_in_pos", "active", "odoo_model"],
         [[t["id"], t["name"], t.get("default_code") or "", t.get("barcode") or "",
-          _m2o(t.get("uom_id")), _m2o(t.get("uom_po_id")), t.get("standard_price") or 0,
+          _m2o(t.get("uom_id")), t.get("standard_price") or 0,
           _m2o(t.get("categ_id")), comp(_id(t.get("company_id"))) or "(كلُّ الشركات)",
           "yes" if t.get("available_in_pos") else "no",
           "yes" if t.get("active") else "no", "product.template"] for t in inv])
@@ -168,13 +168,13 @@ def main() -> None:
     # ── ٩) المورّدون ──────────────────────────────────────────────────
     print("═══ ٩) المورّدون ═══")
     sup = o.read_all("res.partner", [["supplier_rank", ">", 0]],
-        ["name", "vat", "phone", "mobile", "email", "street", "city",
+        ["name", "vat", "phone", "email", "street", "city",
          "company_id", "active", "property_supplier_payment_term_id"])
     csvout.write(out, "09_suppliers.csv",
-        ["odoo_id", "supplier_name", "vat", "phone", "mobile", "email",
+        ["odoo_id", "supplier_name", "vat", "phone", "email",
          "street", "city", "payment_term", "company", "active", "odoo_model"],
         [[p["id"], p["name"], p.get("vat") or "", p.get("phone") or "",
-          p.get("mobile") or "", p.get("email") or "", p.get("street") or "",
+          p.get("email") or "", p.get("street") or "",
           p.get("city") or "", _m2o(p.get("property_supplier_payment_term_id")),
           comp(_id(p.get("company_id"))) or "(كلُّ الشركات)",
           "yes" if p.get("active") else "no", "res.partner"] for p in sup])
@@ -193,10 +193,10 @@ def main() -> None:
 
     # ── ١١) وحداتُ القياس ─────────────────────────────────────────────
     print("═══ ١١) وحداتُ القياس ═══")
-    uoms = o.read_all("uom.uom", [], ["name", "factor", "rounding", "uom_type", "relative_uom_id"])
+    uoms = o.read_all("uom.uom", [], ["name", "factor", "rounding", "relative_uom_id"])
     csvout.write(out, "11_uom.csv",
-        ["odoo_id", "uom_name", "type", "factor", "rounding", "reference_uom", "odoo_model"],
-        [[u["id"], u["name"], u.get("uom_type") or "", u.get("factor") or 1,
+        ["odoo_id", "uom_name", "factor", "rounding", "reference_uom", "odoo_model"],
+        [[u["id"], u["name"], u.get("factor") or 1,
           u.get("rounding") or 0, _m2o(u.get("relative_uom_id")), "uom.uom"] for u in uoms])
 
     # ── التحقّق ───────────────────────────────────────────────────────
