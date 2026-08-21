@@ -18,3 +18,8 @@ almond-web/next-env.d.ts
 # TypeScript incremental build info
 *.tsbuildinfo
 .claude/settings.local.json
+
+# حزمة تصدير Foodics — مخرجات محلية لا تُودَع
+foodics_export/
+*.csv
+.odoo_env
