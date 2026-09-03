@@ -1923,7 +1923,7 @@ def premise_check() -> None:
     else:
         print("   MEMBER COVERAGE: NOT MEASURED (pos.order unreadable or window empty).")
         unknowns.append("member coverage — the most important unknown; re-run with POS read access")
-    h = EV.get("history") or {}
+    h = EV.get("history")
     if h is None:
         print("   REDEMPTION RATE: NOT MEASURED (loyalty.history unreadable — this is a failure "
               "to read, not a measured zero).")
@@ -1969,8 +1969,8 @@ def premise_check() -> None:
         print("   EXPIRY: the field exists but NO card carries a date — in practice nothing expires.")
         discrepancies.append("expiration_date exists but is unpopulated: expiry is nominal only.")
     elif e.get("with_date"):
-        print("   EXPIRY: %s of %s cards carry an expiration date (%s → %s); %s carry none and "
-              "therefore never age out."
+        print("   EXPIRY: %s of %s cards carry an expiration date (%s → %s); %s card(s) carry no "
+              "date at all and therefore never age out."
               % (e["with_date"], e.get("total"), e.get("earliest"), e.get("latest"),
                  e.get("without_date")))
         if e.get("without_date"):
