@@ -56,9 +56,13 @@ export const config = {
   // `getDay() === 5` literal that used to be hardcoded in BOTH bff/src/earn.ts
   // and loyalty.service.mock.ts. Jordan's weekend is Fri-Sat. Empty array = off.
   // Admin-configurable; changing it is a PRODUCT decision, not a deploy.
+  // The assertion is `readonly` so this dial is frozen like every other one in
+  // this object: earnRulesFromConfig() hands the SAME array through as
+  // EarnRules.weekdayBonus, so a mutable type would let any caller rewrite the
+  // weekday bonus for every subsequent grant in the process.
   WEEKDAY_EARN_BONUS: [
     { weekday: 5, rate: 0.5 }, // Friday +50% — the value that was hardcoded
-  ] as { weekday: number; rate: number }[],
+  ] as readonly { readonly weekday: number; readonly rate: number }[],
   // Gentle bean expiry (SB "Star expiration"): beans stay active for this many
   // months after the last activity for Bean/Silver; Gold/Black never expire.
   // Kept generous on purpose (§5 — never punish the regular member).

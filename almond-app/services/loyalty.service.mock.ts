@@ -55,7 +55,11 @@ export interface LoyaltyUser {
 
 const ROLLING_WINDOW_MS = 365 * 86400000;
 
-const todayKey = (): string => new Date().toISOString().slice(0, 10);
+/** One business day for the whole system (§3.6) — Amman, not UTC; the mirror of
+ *  bff/src/backend/memory.ts's todayKey. It moves the daily free-drink
+ *  counter's reset from 03:00 Amman to 00:00 Amman. The day BOUNDARY only:
+ *  `drinksPerDay` is untouched, and the cap's VALUE is §8.5 (D7). */
+const todayKey = (): string => ammanDayKey();
 function subStateOf(u: LoyaltyUser): Subscription {
   const active = u.subRenewsAt > Date.now();
   const redeemedToday = active && u.subDay === todayKey() ? u.subDayCount : 0;

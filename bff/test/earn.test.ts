@@ -16,6 +16,7 @@ import type { CartItem } from '@almond/shared/types';
 import * as bffEarn from '../src/earn';
 import { reprice } from '../src/pricing';
 import { build } from '../src/server';
+import { createMemoryBackend } from '../src/backend/memory';
 
 /**
  * §7 of docs/LOYALTY-EARN-PATCH.md: T1-T10, T12 and T14. T11, T13 and T15 need
@@ -396,6 +397,40 @@ describe('T7 earn: no module outside @almond/shared/loyalty/earn computes points
     expect(src).not.toMatch(/[+\-*/]\s|\breturn\b|\bfunction\b|=>/);
   });
 
+  it('T7c every server call site pins bonusDayActivated to false (D2)', () => {
+    // The server has NO record of a bonus-day activation (promoStore is device
+    // state), so a client-asserted flag is a self-crediting vector — §3.2 / §8.1.
+    // The explicit `false` in routes/checkout.ts is the only thing enforcing
+    // that, and T10 alone cannot see it: T10's expected value is built with the
+    // parameter OMITTED (which also defaults to false), so on six days out of
+    // seven a route that started paying the bonus day would cancel out and stay
+    // green. This assertion is source-level, so it holds on every weekday.
+    const offenders: string[] = [];
+    for (const f of sources) {
+      if (!f.path.startsWith('bff/src/')) continue;
+      f.code.forEach((line, i) => {
+        // (1) Every computeEarn/earnedPoints call must pass it explicitly.
+        if (/\b(?:computeEarn|earnedPoints)\s*\(/.test(line)) {
+          const callSite = f.code.slice(i, i + 14).join('\n');
+          if (!/bonusDayActivated\s*:\s*false/.test(callSite)) {
+            offenders.push(`${f.path}:${i + 1}: call does not pin bonusDayActivated: false`);
+          }
+        }
+        // (2) ... and the ONLY value the server may ever give it is `false`,
+        // so it can never be read off a request body or a member record.
+        if (/\bbonusDayActivated\b/.test(line) && !/bonusDayActivated\s*:\s*false/.test(line)) {
+          offenders.push(`${f.path}:${i + 1}: ${f.raw[i].trim()}`);
+        }
+      });
+    }
+    expect(
+      offenders,
+      'the BFF must never pay an activated bonus day: there is no server-side'
+      + ' activation record, so a client-supplied flag is self-crediting.'
+      + ` See §3.2 / §8.1. Offending lines: ${offenders.join(' | ')}`,
+    ).toEqual([]);
+  });
+
   it('the walk actually looked at the files it claims to guard', () => {
     // A walk that silently found nothing would pass every assertion above.
     const paths = new Set(sources.map((f) => f.path));
@@ -429,14 +464,12 @@ describe('T8 earn: the Friday literal is gone from every codebase', () => {
     expect(hits).toEqual([]);
   });
 
-  it('the remaining host-clock weekday reads are the known, enumerated ones', () => {
-    // A ratchet, not a blessing. §3.6 names the sites ammanWeekday replaces and
-    // almond-app/lib/bonusDay.ts is NOT among them, so no work unit has closed
-    // it; it still gates the ×2 banner off the device clock. This assertion
-    // exists so a NEW host-clock read cannot be added silently, and so the
-    // remaining one is visible. §9's checklist item 2 is not satisfied until
-    // this list is empty.
-    const KNOWN_OPEN = ['almond-app/lib/bonusDay.ts'];
+  it('no host-clock weekday read survives anywhere (§9 checklist item 2)', () => {
+    // The ratchet, now closed. almond-app/lib/bonusDay.ts was the last one: it
+    // gated the ×2 banner and its Activate control on the DEVICE clock while
+    // computeEarn gated the grant on ammanWeekday(), so off an Amman timezone
+    // the app advertised a double it would then not pay — D2 reopened on the
+    // bonus-day dial. Both now read ammanWeekday(). This list stays empty.
     const hits: string[] = [];
     for (const f of sources) {
       if (f.path === 'packages/shared/src/lib/ammanWeekday.ts') continue;
@@ -444,7 +477,7 @@ describe('T8 earn: the Friday literal is gone from every codebase', () => {
         if (/\.getDay\(\)/.test(line)) hits.push(`${f.path}:${i + 1}`);
       });
     }
-    expect(hits.map((h) => h.split(':')[0])).toEqual(KNOWN_OPEN);
+    expect(hits).toEqual([]);
   });
 });
 
@@ -537,17 +570,52 @@ describe('T10 checkout: the points the route grants equal computeEarn on the sam
 
     // body.total is the TAX-INCLUSIVE total (§1.1). Asserting against
     // body.subtotal is the bug this test exists to catch.
-    const expected = computeEarn({
+    // `bonusDayActivated: false` is EXPLICIT here, matching the route. Omitting
+    // it defaults to false too, which is exactly why omitting it was unsafe:
+    // the two calls then differed only on a BONUS_BEAN_DAY weekday, so a route
+    // that began self-crediting the bonus day would pass six days out of seven.
+    const at = new Date();
+    const ctx = {
       total: body.total,
       windowSpend: before.windowSpend,
       paidFromBalance: true,
       comboPairs: 0,
-      at: new Date(),
-    }).points;
-
-    expect(body.pointsEarned).toBe(expected);
+      bonusDayActivated: false,
+      at,
+    };
+    expect(body.pointsEarned).toBe(computeEarn(ctx).points);
     expect(body.pointsEarned).toBeGreaterThan(0);
     expect(body.total).toBeGreaterThan(body.subtotal); // tax really is in there
+
+    // On a bonus-day weekday the two answers genuinely differ, so the assertion
+    // above has teeth on that day. On every other day T7c is what holds the
+    // line — this branch is the belt, T7c is the braces.
+    const rules = earnRulesFromConfig();
+    if (rules.bonusDay.enabled && rules.bonusDay.weekdays.includes(ammanWeekday(at))) {
+      expect(body.pointsEarned).not.toBe(computeEarn({ ...ctx, bonusDayActivated: true }).points);
+    }
+  });
+
+  it('T10b checkout: the breakdown behind the grant is persisted on the order (§5b)', async () => {
+    // A return value nothing writes down observes nothing (§4 D8 item 1). The
+    // route must call backend.recordEarnBreakdown, or the shadow delta in §5b
+    // cannot be reconstructed and D8's goal is not met.
+    const src = readFileSync(join(REPO, 'bff/src/routes/checkout.ts'), 'utf8');
+    expect(src).toMatch(/backend\.recordEarnBreakdown\(\s*order\.id\s*,\s*earn\s*\)/);
+
+    // ... and the backend really stores it, with points that match the grant.
+    const backend = createMemoryBackend();
+    const member = await backend.findOrCreateByPhone('+962790000111', 'T10b');
+    const order = await backend.createOrder({
+      memberId: member.id, branchId: 'b1', type: 'pickup', paymentMethod: 'cash',
+      subtotal: 10, tax: 1.6, total: 11.6, pointsEarned: 0,
+    });
+    const earn = computeEarn({ total: 11.6, bonusDayActivated: false, at: MON }, RULES);
+    await backend.recordEarnBreakdown(order.id, earn);
+    // The memory backend stores the record by reference, so the object
+    // createOrder handed back IS the stored row.
+    expect(order.earn).toEqual(earn);
+    expect(order.pointsEarned).toBe(earn.points);
   });
 });
 

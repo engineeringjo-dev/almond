@@ -1,4 +1,5 @@
 import type { OrderType, PaymentMethodId } from '@almond/shared/types';
+import type { EarnBreakdown } from '@almond/shared/loyalty/earn';
 
 export interface Member {
   id: string;
@@ -51,6 +52,10 @@ export interface NewOrder {
 export interface OrderRecord extends NewOrder {
   id: string;
   createdAt: string;
+  /** The full earn breakdown the grant was derived from (§5b). Absent only
+   *  between createOrder() and recordEarnBreakdown() inside the checkout saga,
+   *  and on orders written before this field existed. */
+  earn?: EarnBreakdown;
 }
 
 /** The single seam to the source of truth. `memory` today; `odoo` later. */
@@ -65,6 +70,11 @@ export interface Backend {
   spendPoints(id: string, points: number, reasonAr: string, reasonEn: string): Promise<number>;
   addSpend(id: string, jod: number): Promise<void>;
   createOrder(o: NewOrder): Promise<OrderRecord>;
+  /** Persist the earn breakdown on the order. NOT optional: without it a grant
+   *  cannot be re-derived, the §5b shadow delta cannot be reconstructed, and
+   *  D8's "make the total observable" goal is not met — a return value nothing
+   *  writes down observes nothing. See LOYALTY-EARN-PATCH.md §3.5 row 2 / §5b. */
+  recordEarnBreakdown(orderId: string, breakdown: EarnBreakdown): Promise<void>;
   getHistory(id: string): Promise<HistoryEntry[]>;
   // "Almond Club" subscription
   activateSubscription(id: string): Promise<SubscriptionState>;

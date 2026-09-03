@@ -65,6 +65,9 @@ export function registerCheckoutRoutes(app: FastifyInstance, backend: Backend): 
         bonusDayActivated: false,
       });
       const pointsEarned = earn.points;
+      // The whole breakdown is persisted on the order (§5b) so a grant can be
+      // re-derived and the shadow delta reconstructed after the fact.
+      await backend.recordEarnBreakdown(order.id, earn);
       const pointsBalance = await backend.addPoints(id, pointsEarned, 'نقاط طلب', 'Order points');
       await backend.addSpend(id, totals.total);
       const after = await backend.getMember(id);

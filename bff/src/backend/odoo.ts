@@ -25,6 +25,9 @@ export function createOdooBackend(): Backend {
     spendPoints: () => todo('spendPoints'),
     addSpend: () => todo('addSpend'),
     createOrder: () => todo('createOrder'),
+    // recordEarnBreakdown → the EarnBreakdown JSON on the sale.order / pos.order
+    // record, which is what §5b's shadow analysis reads back.
+    recordEarnBreakdown: () => todo('recordEarnBreakdown'),
     getHistory: () => todo('getHistory'),
     // Subscription → a recurring loyalty.program membership + sale.subscription.
     activateSubscription: () => todo('activateSubscription'),

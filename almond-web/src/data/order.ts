@@ -7,7 +7,7 @@ import type {
 } from '@almond/shared/types';
 import type { CartTotals } from '@almond/shared/cart';
 import { toAmmanISO } from '@almond/shared/lib/format';
-import { earnRulesFromConfig } from '@almond/shared/loyalty/earn';
+import { earnRulesFromConfig, type EarnRules } from '@almond/shared/loyalty/earn';
 import { config } from '@/lib/config';
 
 /** Prep time = the slowest item, floored at the default (section 7.3). */
@@ -27,8 +27,13 @@ export function estimatePrepMinutes(items: CartItem[]): number {
  * compiled config except `weekdayBonus: []`, which keeps Friday out of the
  * displayed number exactly as it is today. Showing it is the marketing decision
  * held in docs/LOYALTY-EARN-PATCH.md §8.9; drop the override to ship it.
+ *
+ * The `: EarnRules` annotation is load-bearing, not decoration: without a
+ * contextual type there is no excess-property check, so a misspelled override
+ * key would compile clean, the spread would supply the real `weekdayBonus`, and
+ * §8.9's Friday bonus would silently start appearing in the displayed number.
  */
-export const DISPLAY_EARN_RULES = { ...earnRulesFromConfig(), weekdayBonus: [] };
+export const DISPLAY_EARN_RULES: EarnRules = { ...earnRulesFromConfig(), weekdayBonus: [] };
 
 export interface PlaceOrderInput {
   items: CartItem[];

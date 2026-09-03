@@ -1,10 +1,16 @@
 import { randomUUID } from 'node:crypto';
 import { config as loyalty } from '@almond/shared/config';
+import { ammanDayKey } from '@almond/shared/lib/ammanWeekday';
 import { conflict, notFound } from '../http-error';
 import { toFils } from '../money';
 import type { Backend, Member, HistoryEntry, NewOrder, OrderRecord, SubscriptionState } from './types';
 
-const todayKey = (): string => new Date().toISOString().slice(0, 10);
+/** One business day for the whole system (§3.6) — Amman, not the host's UTC.
+ *  This is the §5 step 1 repoint. It moves the daily free-drink counter's reset
+ *  from 03:00 Amman (the UTC rollover) to 00:00 Amman. That is the day
+ *  BOUNDARY, not the cap: `drinksPerDay` is untouched, and the cap's VALUE is
+ *  the product decision held in §8.5 (D7). */
+const todayKey = (): string => ammanDayKey();
 
 /** In-memory, runnable adapter. State lives in process memory (fine for dev /
  *  demo / tests); swap for the Odoo adapter in production. */
@@ -74,6 +80,15 @@ export function createMemoryBackend(): Backend {
       const rec: OrderRecord = { ...o, id: `ord_${randomUUID()}`, createdAt: new Date().toISOString() };
       orders.push(rec);
       return rec;
+    },
+    async recordEarnBreakdown(orderId, breakdown) {
+      const rec = orders.find((o) => o.id === orderId);
+      if (!rec) throw notFound('order not found');
+      // The whole breakdown, not just the points: §5b reconstructs the grant
+      // and the shadow delta from this record. `pointsEarned` on the order is
+      // set from the same number the moment it is known.
+      rec.earn = breakdown;
+      rec.pointsEarned = breakdown.points;
     },
     async getHistory(id) { must(id); return history.get(id) ?? []; },
 

@@ -1,6 +1,9 @@
 import { describe, it, expect, afterEach } from 'vitest';
 import { ammanWeekday } from '@almond/shared/lib/ammanWeekday';
 import { expiryAt } from '@almond/shared/loyalty/expiry';
+import { computeEarn } from '@almond/shared/loyalty/earn';
+import { comboPairs } from '@almond/shared/lib/combo';
+import type { CartItem } from '@almond/shared/types';
 import {
   mockLoyaltyService,
   expirePoints,
@@ -8,6 +11,7 @@ import {
   __getMockUser,
   type LoyaltyUser,
 } from '@/services/loyalty.service.mock';
+import { estimateEarnedPoints, ESTIMATE_RULES } from '@/lib/earnEstimate';
 import { defaultSpinConfig } from '@/services/spinDefaults';
 
 /**
@@ -19,11 +23,26 @@ import { defaultSpinConfig } from '@/services/spinDefaults';
  * per day'; T15 is 'a stale balance actually reaches zero' plus 'a GET never
  * mutates' and 'runs on the write path too'. T13 is held behind §8.3, below.
  * Everything else in §7 lives in bff/test/earn.test.ts.
+ *
+ * Plus the APP-SIDE half of T7. bff/test/earn.test.ts's T7b binds the server's
+ * earn module to the shared function by identity; nothing bound the app's. T7's
+ * static walk is name-based, so a fork written with numeric literals is
+ * invisible to it — and a fork in the app is D2 itself, since DATA_SOURCE is
+ * 'mock' and this mock IS the app's live grant. 'D2 — one earn calculation'
+ * below binds both app paths (the grant and the displayed estimate) by VALUE.
  */
 
 const DAY = 86400000;
 let seq = 0;
 const newUserId = () => `test-user-${++seq}`;
+
+function cartLine(itemId: string, unitBasePrice: number, qty: number, isDrink: boolean): CartItem {
+  return {
+    lineId: `${itemId}__M`, itemId, nameAr: '', nameEn: '', emoji: '',
+    sizeId: 'M', sizeNameAr: '', sizeNameEn: '',
+    unitBasePrice, customizations: [], qty, isDrink,
+  };
+}
 
 /** A Bean member (no qualifying spend in the window) who last earned `ageDays`
  *  ago. Bean, not Silver: the seeded spend log would otherwise put them a tier
@@ -39,6 +58,93 @@ function staleBeanUser(ageDays: number, points: number): { id: string; u: Loyalt
 
 afterEach(() => {
   __setMockSpinConfig(JSON.parse(JSON.stringify(defaultSpinConfig)));
+});
+
+describe('D2 — one earn calculation: the app grants what computeEarn returns', () => {
+  const MON = new Date('2026-09-07T10:00:00Z'); // Monday in Amman
+  const TUE = new Date('2026-09-08T10:00:00Z'); // Tuesday — BONUS_BEAN_DAY
+  const FRI = new Date('2026-09-11T10:00:00Z'); // Friday — WEEKDAY_EARN_BONUS
+
+  /** A member whose rolling-12m spend is exactly `windowSpend`, with a fresh
+   *  `lastEarnAt` so expiry never fires and points start at zero. */
+  function memberWithSpend(windowSpend: number): string {
+    const id = newUserId();
+    const u = __getMockUser(id);
+    u.spendLog = windowSpend > 0 ? [{ amount: windowSpend, at: Date.now() - DAY }] : [];
+    u.points = 0;
+    u.lastEarnAt = Date.now();
+    return id;
+  }
+
+  it('earn: pointsEarned === computeEarn(...).points over the whole input matrix', async () => {
+    // THIS IS THE APP-SIDE ANTI-DIVERGENCE TEST. T7's walk is name-based, so a
+    // hand-rolled fork using numeric literals passes it; this does not.
+    for (const total of [7.2, 20.3]) {
+      for (const windowSpend of [0, 150, 750]) {
+        for (const paidFromBalance of [false, true]) {
+          for (const pairs of [0, 2]) {
+            for (const bonusDayActivated of [false, true]) {
+              for (const at of [MON, TUE, FRI]) {
+                const id = memberWithSpend(windowSpend);
+                const where = JSON.stringify({
+                  total, windowSpend, paidFromBalance, pairs, bonusDayActivated,
+                  at: at.toISOString(),
+                });
+                const res = await mockLoyaltyService.earn({
+                  userId: id,
+                  invoiceAmount: total,
+                  paidFromBalance,
+                  comboPairs: pairs,
+                  bonusDayActivated,
+                  at,
+                });
+                const expected = computeEarn({
+                  total, windowSpend, paidFromBalance, comboPairs: pairs,
+                  bonusDayActivated, at,
+                }).points;
+                expect(res.pointsEarned, where).toBe(expected);
+                // ... and the balance moves by exactly that, never by that plus
+                // a separately-added combo bonus (the pre-patch app did add it
+                // twice-over, outside the ceiling — §4 D4).
+                expect(__getMockUser(id).points, where).toBe(expected);
+              }
+            }
+          }
+        }
+      }
+    }
+  });
+
+  it('earn: one absolute number, so a change to BOTH sides at once still shows', async () => {
+    // 10 JOD x 5 pts/JOD = 50 base, wallet x1.5 = 75. Bean, Monday, no pairs.
+    const id = memberWithSpend(0);
+    const res = await mockLoyaltyService.earn({
+      userId: id, invoiceAmount: 10, paidFromBalance: true, at: MON,
+    });
+    expect(res.pointsEarned).toBe(75);
+  });
+
+  it('estimate: the number shown at checkout is computeEarn on the shipped rules', () => {
+    // §3.5 row 5: the estimate must equal the grant BY CONSTRUCTION. The one
+    // deliberate difference is ESTIMATE_RULES' `weekdayBonus: []` (§8.9), and
+    // binding against that same object is what keeps the difference deliberate.
+    const items: CartItem[] = [
+      cartLine('mineral-water', 0.75, 2, true),
+      cartLine('cake-pop', 1.0, 2, false),
+    ];
+    expect(comboPairs(items)).toBe(2);
+
+    for (const windowSpend of [0, 150, 750]) {
+      for (const paidFromBalance of [false, true]) {
+        const shown = estimateEarnedPoints({ total: 20.3, items, windowSpend, paidFromBalance });
+        const expected = computeEarn(
+          { total: 20.3, windowSpend, paidFromBalance, comboPairs: comboPairs(items) },
+          ESTIMATE_RULES,
+        ).points;
+        expect(shown, JSON.stringify({ windowSpend, paidFromBalance })).toBe(expected);
+      }
+    }
+  });
 });
 
 describe('D9 — free-spin day', () => {

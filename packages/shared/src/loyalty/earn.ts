@@ -58,8 +58,15 @@ export interface EarnBreakdown {
   tierBonus: number;
   weekdayBonus: number;
   comboBonus: number;
-  subtotal: number;        // everything, before the ceiling
+  /** Everything before the ceiling, `comboBonus` INCLUDED — but the ceiling
+   *  does not cover the combo while D4 is held (§8.7), so `subtotal > cap` with
+   *  `capApplied === false` is a normal, expected record. The grant is
+   *  `Math.round(Math.min(subtotal - comboBonus, cap)) + comboBonus`. */
+  subtotal: number;
   cap: number;             // base × maxEarnMultiplier
+  /** Whether the ceiling actually trimmed the grant — i.e. whether it bound on
+   *  the CAPPABLE component (`subtotal - comboBonus`), which is the only part
+   *  it covers today. Not `subtotal > cap`. See the ceiling block below. */
   capApplied: boolean;
   points: number;          // the ONLY number that may be granted
   effectiveMultiplier: number; // points / base — for the giveback ceiling test

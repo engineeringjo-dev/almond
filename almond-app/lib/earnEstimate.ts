@@ -1,4 +1,4 @@
-import { computeEarn, earnRulesFromConfig } from '@almond/shared/loyalty/earn';
+import { computeEarn, earnRulesFromConfig, type EarnRules } from '@almond/shared/loyalty/earn';
 import { comboPairs } from '@/lib/combo';
 import type { CartItem } from '@/types';
 
@@ -17,8 +17,16 @@ import type { CartItem } from '@/types';
  *
  * The bonus-day multiplier is excluded for the same reason and by default:
  * `bonusDayActivated` is not passed, so it is false.
+ *
+ * The `: EarnRules` annotation is load-bearing, not decoration: without a
+ * contextual type there is no excess-property check, so a misspelled override
+ * key would compile clean, the spread would supply the real `weekdayBonus`, and
+ * §8.9's Friday bonus would silently start appearing at checkout.
+ *
+ * Exported so the app's test can bind the displayed estimate to the shared
+ * function by VALUE against the very rules the app ships (§7 T7).
  */
-const ESTIMATE_RULES = { ...earnRulesFromConfig(), weekdayBonus: [] };
+export const ESTIMATE_RULES: EarnRules = { ...earnRulesFromConfig(), weekdayBonus: [] };
 
 export function estimateEarnedPoints(opts: {
   total: number;
