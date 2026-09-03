@@ -45,6 +45,7 @@ export default function PayScreen() {
   const qrSize = Math.min(width - spacing.lg * 2 - spacing.xl * 2, 300);
 
   // Earn-rate label scales with the tier multiplier (e.g. Gold ×1.5).
+  // earn-arith-exempt: display rate only — no invoice, no grant. §3.5 / §7 T7.
   const earnRate = config.POINTS_PER_JOD * (balance?.multiplier ?? 1);
 
   // Max out brightness while the tab is focused; restore on blur/exit (§4.3).

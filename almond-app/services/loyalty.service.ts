@@ -17,13 +17,16 @@ import { liveLoyaltyService } from './loyalty.service.live';
 
 export interface EarnInput {
   userId: string;
+  /** Tax-INCLUSIVE invoice total, i.e. computeTotals(...).total. See §1.1. */
   invoiceAmount: number;
   paidFromBalance: boolean;
-  isFriday?: boolean;
-  /** Extra multiplier from an activated bonus-bean day (e.g. 2 = double). */
-  bonusMultiplier?: number;
-  /** Flat bonus points for drink+food combos in the order (see lib/combo.ts). */
-  comboBonusPoints?: number;
+  /** Drink+food pairs from comboPairs(items). The POINTS per pair are the
+   *  shared earn function's business, never the caller's. */
+  comboPairs?: number;
+  /** True only when the member activated today's bonus day. */
+  bonusDayActivated?: boolean;
+  /** Decision clock (tests / deterministic estimates). */
+  at?: Date;
 }
 
 export interface SendGiftInput {

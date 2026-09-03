@@ -35,8 +35,7 @@ import { paymentService } from '@/services/payment.service';
 import { loyaltyService } from '@/services/loyalty.service';
 import { integration } from '@/constants/integration';
 import { usePromoStore } from '@/stores/promoStore';
-import { activeBonusDay } from '@/lib/bonusDay';
-import { comboBonusPoints } from '@/lib/combo';
+import { comboPairs } from '@/lib/combo';
 import { aggregatorService } from '@/services/aggregator.service';
 
 export default function CartScreen() {
@@ -87,7 +86,7 @@ export default function CartScreen() {
       estimateEarnedPoints({
         total: totals.total,
         items,
-        tierMultiplier: loyalty?.multiplier ?? 1,
+        windowSpend: loyalty?.windowSpend ?? 0,
         paidFromBalance: paymentMethod === 'wallet',
       }),
     [totals.total, items, loyalty, paymentMethod],
@@ -160,14 +159,14 @@ export default function CartScreen() {
       });
 
       // Award loyalty beans + cup (section 8.2). Server does this in prod.
-      const bonusDay = activeBonusDay();
-      const bonusActive = !!bonusDay && usePromoStore.getState().isActivatedToday();
+      // The bonus-day RULE (which weekday, which multiplier) lives in the shared
+      // earn function; the caller only reports whether the member activated it.
       await loyaltyService.earn({
         userId,
         invoiceAmount: totals.total,
         paidFromBalance: paymentMethod === 'wallet',
-        bonusMultiplier: bonusActive ? bonusDay!.multiplier : 1,
-        comboBonusPoints: comboBonusPoints(items),
+        bonusDayActivated: usePromoStore.getState().isActivatedToday(),
+        comboPairs: comboPairs(items),
       });
       invalidateLoyalty();
 

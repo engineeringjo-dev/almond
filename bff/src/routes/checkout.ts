@@ -31,7 +31,7 @@ export function registerCheckoutRoutes(app: FastifyInstance, backend: Backend): 
     const member = await backend.getMember(id);
 
     // 1) Authoritative re-price from the menu (ignore any client totals).
-    const { items, totals, comboBonus } = reprice(input.lines);
+    const { items, totals, comboPairs } = reprice(input.lines);
     const paidFromBalance = input.paymentMethod === 'wallet';
 
     // 2) Atomic saga with compensation.
@@ -53,9 +53,18 @@ export function registerCheckoutRoutes(app: FastifyInstance, backend: Backend): 
         orderType: input.orderType, items,
       });
 
-      const pointsEarned = computeEarn({
-        total: totals.total, windowSpend: member.windowSpend, paidFromBalance, comboBonus,
+      // Bonus-day activation is not yet server-side state (promoStore is on the
+      // device). Until POST /v1/promo/bonus-day/activate exists, the server
+      // never pays the bonus day — a client-asserted flag would be a
+      // self-crediting vector. See docs/LOYALTY-EARN-PATCH.md §3.2 / §8.1.
+      const earn = computeEarn({
+        total: totals.total,          // tax-inclusive, per §1.1
+        windowSpend: member.windowSpend,
+        paidFromBalance,
+        comboPairs,
+        bonusDayActivated: false,
       });
+      const pointsEarned = earn.points;
       const pointsBalance = await backend.addPoints(id, pointsEarned, 'نقاط طلب', 'Order points');
       await backend.addSpend(id, totals.total);
       const after = await backend.getMember(id);

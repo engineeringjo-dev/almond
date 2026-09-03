@@ -4,8 +4,9 @@ import { useEffect, useState } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
 import { CheckCircle2, Sparkles } from 'lucide-react';
 import { useOrderStore } from '@/store/orderStore';
-import { comboBonusPoints } from '@almond/shared/lib/combo';
-import { estimatedBeans } from '@/data/order';
+import { comboPairs } from '@almond/shared/lib/combo';
+import { earnedPoints } from '@almond/shared/loyalty/earn';
+import { DISPLAY_EARN_RULES } from '@/data/order';
 import { asLang, formatJOD } from '@/lib/format';
 import { Button } from '@/components/ui/Button';
 
@@ -40,7 +41,10 @@ export function OrderSuccessView() {
   }
 
   const branch = lang === 'ar' ? order.branchNameAr : order.branchNameEn;
-  const beans = estimatedBeans(order.total) + comboBonusPoints(order.items);
+  const beans = earnedPoints(
+    { total: order.total, comboPairs: comboPairs(order.items) },
+    DISPLAY_EARN_RULES,
+  );
 
   return (
     <section className="container-content flex flex-col items-center py-xxl text-center">

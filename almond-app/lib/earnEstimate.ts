@@ -1,24 +1,39 @@
-import { config } from '@/constants/config';
-import { comboBonusPoints } from '@/lib/combo';
+import { computeEarn, earnRulesFromConfig } from '@almond/shared/loyalty/earn';
+import { comboPairs } from '@/lib/combo';
 import type { CartItem } from '@/types';
 
 /**
  * Estimated points the customer will earn for this order — shown at checkout so
  * the loyalty value is visible at the moment of payment (strongest retention
- * nudge). Mirrors the deterministic levers of the server earn calculation
- * (base × wallet × tier + combo bonus). Friday / bonus-day multipliers are
- * intentionally excluded so we never over-promise.
+ * nudge).
+ *
+ * The arithmetic is the SHARED earn function; nothing is re-implemented here
+ * (docs/LOYALTY-EARN-PATCH.md §3.5 row 5). The one deliberate difference is the
+ * `weekdayBonus: []` override: today's estimate omits the Friday bonus "so we
+ * never over-promise", and showing it would move a Bean 7.20 JOD Friday basket
+ * from 36 to 54 displayed points. That is a marketing decision held in §8.9 —
+ * until it is made, the displayed number stays exactly what it is today while
+ * the formula behind it lives in one place. Drop the override to ship §8.9.
+ *
+ * The bonus-day multiplier is excluded for the same reason and by default:
+ * `bonusDayActivated` is not passed, so it is false.
  */
+const ESTIMATE_RULES = { ...earnRulesFromConfig(), weekdayBonus: [] };
+
 export function estimateEarnedPoints(opts: {
   total: number;
   items: CartItem[];
-  tierMultiplier: number;
+  /** Rolling-12-month qualifying spend → tier (LoyaltyBalance.windowSpend). */
+  windowSpend: number;
   paidFromBalance: boolean;
 }): number {
-  const walletMult = opts.paidFromBalance ? config.WALLET_EARN_MULTIPLIER : 1;
-  const base = opts.total * config.POINTS_PER_JOD * walletMult;
-  const tierBonus = base * (Math.max(1, opts.tierMultiplier) - 1);
-  // Respect the same earn cap the server applies (margin protection).
-  const cap = opts.total * config.POINTS_PER_JOD * config.MAX_EARN_MULTIPLIER;
-  return Math.round(Math.min(base + tierBonus, cap)) + comboBonusPoints(opts.items);
+  return computeEarn(
+    {
+      total: opts.total,
+      windowSpend: opts.windowSpend,
+      paidFromBalance: opts.paidFromBalance,
+      comboPairs: comboPairs(opts.items),
+    },
+    ESTIMATE_RULES,
+  ).points;
 }

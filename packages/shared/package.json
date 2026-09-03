@@ -13,6 +13,8 @@
     "./config": "./src/config/index.ts",
     "./integration": "./src/integration/index.ts",
     "./loyalty": "./src/loyalty/index.ts",
+    "./loyalty/earn": "./src/loyalty/earn.ts",
+    "./loyalty/expiry": "./src/loyalty/expiry.ts",
     "./menu": "./src/menu/index.ts",
     "./menu/menu.generated": "./src/menu/menu.generated.ts",
     "./menu/seed": "./src/menu/seed.ts",
@@ -21,7 +23,8 @@
     "./lib/format": "./src/lib/format.ts",
     "./lib/recommendations": "./src/lib/recommendations.ts",
     "./cart": "./src/cart/index.ts",
-    "./lib/calendar": "./src/lib/calendar.ts"
+    "./lib/calendar": "./src/lib/calendar.ts",
+    "./lib/ammanWeekday": "./src/lib/ammanWeekday.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit"

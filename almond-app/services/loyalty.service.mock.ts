@@ -12,6 +12,11 @@ import type {
 import type { GiftCard, Subscription, PaymentMethodId } from '@/types';
 import type { LoyaltyService, EarnInput } from './loyalty.service';
 import { config } from '@/constants/config';
+import { computeEarn } from '@almond/shared/loyalty/earn';
+import { expiryAt, isExpired } from '@almond/shared/loyalty/expiry';
+import { ammanDayKey, ammanWeekday } from '@almond/shared/lib/ammanWeekday';
+// The earn multiplier is computeEarn's business only; this is the tier itself.
+// earn-arith-exempt: tier lookup for the expiry rule and the balance. §7 T7.
 import { tierFromSpend } from './seed';
 import { delay, genId } from './util';
 import { defaultSpinConfig, pickWeightedPrize } from './spinDefaults';
@@ -22,7 +27,7 @@ interface SpendEntry {
   at: number; // epoch ms
 }
 
-interface LoyaltyUser {
+export interface LoyaltyUser {
   points: number;
   /** Every qualifying purchase with its timestamp → rolling-12m tier (§A). */
   spendLog: SpendEntry[];
@@ -34,6 +39,10 @@ interface LoyaltyUser {
   /** Epoch ms of the last bean-earning activity (drives gentle expiry). */
   lastEarnAt: number;
   spinsAvailable: number;
+  /** Amman day-key of the last free-spin-day / campaign grant claim, and how
+   *  many of that day's grants were already banked (D9). */
+  grantDay: string;
+  grantDayCount: number;
   hasRatedBranchEver: boolean;
   hasReferralRewardEver: boolean;
   referralCode: string;
@@ -121,6 +130,7 @@ function ensureUser(userId: string): LoyaltyUser {
       visits: 4,
       lastEarnAt: Date.now() - 86400000 * 7, // last earned a week ago
       spinsAvailable: 1,
+      grantDay: '', grantDayCount: 0,
       hasRatedBranchEver: false,
       hasReferralRewardEver: false,
       referralCode: `ALM${Math.floor(1000 + Math.random() * 9000)}`,
@@ -132,21 +142,34 @@ function ensureUser(userId: string): LoyaltyUser {
   return u;
 }
 
-const EXPIRY_MS = config.BEAN_EXPIRY_MONTHS * 30 * 86400000;
+/** Expiry is an EXPLICIT operation, never a side effect of a read (D11).
+ *  Returns the points destroyed, so a caller/test can assert it happened.
+ *  The RULE is unchanged here — Gold/Black are still exempt; removing that
+ *  exemption is the offer change in §8.3. */
+export function expirePoints(u: LoyaltyUser, now = Date.now()): number {
+  // earn-arith-exempt: the EXPIRY rule is tier-sensitive (§8.3), not the grant. §7 T7.
+  const tier = tierFromSpend(rolling12mSpend(u, now));
+  // TODAY'S RULE, unchanged: Gold/Black are exempt. Removing this exemption is
+  // the offer change held behind LOYALTY-EARN-PATCH §8.3.
+  if (tier.id === 'gold' || tier.id === 'black') return 0;
+  if (!isExpired(u.lastEarnAt, now)) return 0;
+  const lost = u.points;
+  u.points = 0;
+  return lost;
+}
 
 /** Top tiers (Gold/Black) never expire; lower tiers expire after inactivity. */
-function beansExpireAt(u: LoyaltyUser, tierId: string): string | null {
+export function beansExpireAt(u: LoyaltyUser, tierId: string): string | null {
   if (tierId === 'gold' || tierId === 'black') return null;
-  return new Date(u.lastEarnAt + EXPIRY_MS).toISOString();
+  return new Date(expiryAt(u.lastEarnAt)).toISOString();
 }
 
 function buildBalance(userId: string, u: LoyaltyUser): LoyaltyBalance {
   const windowSpend = rolling12mSpend(u);
+  // earn-arith-exempt: tier shown on the balance payload; no invoice, no grant. §7 T7.
   const tier = tierFromSpend(windowSpend);
-  // Enforce gentle expiry: lower tiers lose beans after a long inactivity gap.
-  if (tier.id !== 'gold' && tier.id !== 'black' && Date.now() > u.lastEarnAt + EXPIRY_MS) {
-    u.points = 0;
-  }
+  // NOTE: expiry is an explicit job (expirePoints), never a side effect of a
+  // read. buildBalance is called from getBalance — a GET must not mutate.
   return {
     userId,
     points: u.points,
@@ -158,26 +181,48 @@ function buildBalance(userId: string, u: LoyaltyUser): LoyaltyBalance {
   };
 }
 
-/** Spins available = banked spins + a free-spin-day grant + active campaign grant. */
+/** How many spins today's free-spin day / active campaign grant — at most one
+ *  each. The day is the Amman business day (§3.6), never the host clock. */
+function dailyGrantsDue(at: Date): number {
+  if (!spinConfig.eligibility.enabled) return 0;
+  let due = 0;
+  if (spinConfig.eligibility.freeSpinDays.includes(ammanWeekday(at))) due += 1;
+  const key = ammanDayKey(at);
+  const hasActiveCampaign = spinConfig.campaigns.some(
+    (c) => c.active && c.startDate <= key && c.endDate >= key,
+  );
+  if (hasActiveCampaign) due += 1;
+  return due;
+}
+
+/** Bank today's grants into `spinsAvailable`, once per Amman day. Before this,
+ *  the grants were added to the eligibility COUNT but never consumed by spin(),
+ *  so canSpin stayed true all day and the wheel was unlimited (D9). */
+function claimDailyGrants(u: LoyaltyUser, at = new Date()): void {
+  const key = ammanDayKey(at);
+  if (u.grantDay !== key) {
+    u.grantDay = key;
+    u.grantDayCount = 0;
+  }
+  const due = dailyGrantsDue(at);
+  if (due > u.grantDayCount) {
+    u.spinsAvailable += due - u.grantDayCount;
+    u.grantDayCount = due;
+  }
+}
+
+/** Spins available = banked spins, after today's grants have been banked.
+ *  Eligibility and consumption read the SAME counter so they cannot disagree. */
 function computeEligibility(u: LoyaltyUser): SpinEligibility {
   if (!spinConfig.eligibility.enabled) return { canSpin: false, spinsAvailable: 0 };
-  let available = u.spinsAvailable;
-  const today = new Date();
-  if (spinConfig.eligibility.freeSpinDays.includes(today.getDay())) {
-    available += 1;
-  }
-  // Active scheduled campaign (today within start/end) can also grant a spin.
-  const todayIso = today.toISOString().slice(0, 10);
-  const hasActiveCampaign = spinConfig.campaigns.some(
-    (c) => c.active && c.startDate <= todayIso && c.endDate >= todayIso,
-  );
-  if (hasActiveCampaign) available += 1;
-  return { canSpin: available > 0, spinsAvailable: available };
+  claimDailyGrants(u);
+  return { canSpin: u.spinsAvailable > 0, spinsAvailable: u.spinsAvailable };
 }
 
 export const mockLoyaltyService: LoyaltyService = {
   getBalance: (userId) => {
     const u = ensureUser(userId);
+    expirePoints(u, Date.now()); // explicit, before the response is built
     return delay(buildBalance(userId, u));
   },
 
@@ -212,23 +257,22 @@ export const mockLoyaltyService: LoyaltyService = {
   },
 
   // Mirror of section 8.2 earn calculation.
-  earn: ({ userId, invoiceAmount, paidFromBalance, isFriday, bonusMultiplier, comboBonusPoints }: EarnInput) => {
+  earn: ({ userId, invoiceAmount, paidFromBalance, at, bonusDayActivated, comboPairs }: EarnInput) => {
     const u = ensureUser(userId);
-    // Tier multiplier uses the rolling-12-month spend (§A).
-    const tier = tierFromSpend(rolling12mSpend(u));
-    // Pay-from-wallet ×1.5 and an activated bonus-day multiplier both apply to
-    // ALL beans BEFORE the tier multiplier; the tier then stacks on top
-    // (Wallet spec §1.2). E.g. Gold + wallet + double-day = ×1.5 × ×2 × ×1.5.
-    const walletMult = paidFromBalance ? config.WALLET_EARN_MULTIPLIER : 1;
-    const bonusMult = bonusMultiplier && bonusMultiplier > 1 ? bonusMultiplier : 1;
-    const basePoints = invoiceAmount * config.POINTS_PER_JOD * walletMult * bonusMult;
-    const tierBonus = basePoints * (tier.multiplier - 1);
-    const friday = isFriday ?? new Date().getDay() === 5;
-    const fridayBonus = friday ? basePoints * 0.5 : 0;
-    // Cap the stacked multiplier so wallet × bonus-day × tier × Friday can never
-    // exceed MAX_EARN_MULTIPLIER × the base earn (margin protection).
-    const earnCap = invoiceAmount * config.POINTS_PER_JOD * config.MAX_EARN_MULTIPLIER;
-    const pointsEarned = Math.round(Math.min(basePoints + tierBonus + fridayBonus, earnCap));
+    // Expiry runs BEFORE the grant, explicitly — never as a side effect of a
+    // read (D11). See expirePoints above.
+    expirePoints(u, Date.now());
+    // ONE earn calculation, shared with the BFF (packages/shared/src/loyalty/earn.ts).
+    // The mock must never re-implement it — see docs/LOYALTY-EARN-PATCH.md §3.
+    const earn = computeEarn({
+      total: invoiceAmount,   // tax-inclusive, per §1.1
+      windowSpend: rolling12mSpend(u),
+      paidFromBalance,
+      comboPairs,
+      bonusDayActivated,
+      at,
+    });
+    const pointsEarned = earn.points;
     u.lastEarnAt = Date.now();
 
     u.points += pointsEarned;
@@ -236,6 +280,7 @@ export const mockLoyaltyService: LoyaltyService = {
     u.visits += 1;
 
     // Cup fill uses the same pay-from-balance multiplier for consistency.
+    // earn-arith-exempt: cup stamps, not points — no invoice, no grant. §7 T7.
     const cupBeans = paidFromBalance ? config.WALLET_EARN_MULTIPLIER : 1;
     u.cup.current = Math.min(u.cup.target, u.cup.current + cupBeans);
     let freeDrinkIssued = false;
@@ -260,19 +305,18 @@ export const mockLoyaltyService: LoyaltyService = {
       createdAt: new Date().toISOString(),
     });
 
-    // Drink + food combo bonus — flat points (not a price discount).
-    const combo = comboBonusPoints && comboBonusPoints > 0 ? Math.round(comboBonusPoints) : 0;
-    if (combo > 0) {
-      u.points += combo;
+    // The combo bonus is already INSIDE pointsEarned (computeEarn adds it).
+    // Log it for transparency; never add it again.
+    if (earn.comboBonus > 0) {
       u.history.unshift({
-        id: genId('log'), deltaPoints: combo,
-        reasonAr: 'مكافأة كومبو (مشروب + طعام)',
-        reasonEn: 'Combo bonus (drink + food)',
+        id: genId('log'), deltaPoints: 0,
+        reasonAr: `تتضمن مكافأة كومبو (${earn.comboBonus} نقطة)`,
+        reasonEn: `Includes combo bonus (${earn.comboBonus} points)`,
         createdAt: new Date().toISOString(),
       });
     }
 
-    return delay({ pointsEarned: pointsEarned + combo, cup: { ...u.cup }, freeDrinkIssued });
+    return delay({ pointsEarned, cup: { ...u.cup }, freeDrinkIssued });
   },
 
   getHistory: (userId) => delay(ensureUser(userId).history),
@@ -287,8 +331,9 @@ export const mockLoyaltyService: LoyaltyService = {
     if (!elig.canSpin) return Promise.reject(new Error('No spins available'));
 
     const { prize, index } = pickWeightedPrize(spinConfig.prizes);
-    // Consume a banked spin if any (free-spin-day/campaign grants aren't banked).
-    if (u.spinsAvailable > 0) u.spinsAvailable -= 1;
+    // Every spin — banked, free-spin-day or campaign — is consumed from the one
+    // counter computeEligibility just claimed into. canSpin implies > 0 (D9).
+    u.spinsAvailable -= 1;
 
     // Issue the prize as a voucher / wallet credit.
     if (prize.type === 'credit' && prize.creditValue) {
@@ -461,4 +506,10 @@ export const mockLoyaltyService: LoyaltyService = {
 /** Test/admin hook so the in-app mock and admin demo can share config changes. */
 export function __setMockSpinConfig(cfg: SpinConfig) {
   spinConfig = cfg;
+}
+
+/** Test hook: the stored user record, so a test can age `lastEarnAt` past the
+ *  expiry window. There is no public way to build a stale member (§7 T15). */
+export function __getMockUser(userId: string): LoyaltyUser {
+  return ensureUser(userId);
 }

@@ -26,6 +26,7 @@ import { config } from '@/constants/config';
 import { useI18n } from '@/hooks/useI18n';
 import { formatNumber, formatDate } from '@/lib/format';
 import { useLoyaltyBalance, useRedeemReward } from '@/hooks/useLoyalty';
+// earn-arith-exempt: tier ramp for the progress UI only. §7 T7.
 import { tiers, tierFromSpend, nextTier } from '@/services/seed';
 import { menuItems } from '@/services/seed';
 import i18n from '@/lib/i18n';
@@ -154,6 +155,7 @@ export default function RewardsScreen() {
     ]);
   };
 
+  // earn-arith-exempt: tier badge + progress bar; no invoice, no grant. §7 T7.
   const currentTier = tierFromSpend(balance.windowSpend);
   const next = nextTier(balance.windowSpend);
   const remaining = next ? Math.max(0, next.threshold - balance.windowSpend) : 0;

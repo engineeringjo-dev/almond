@@ -1,4 +1,6 @@
 import type { GiftOccasion, Tier } from '@almond/shared/types';
+// The website never grants points; the earn multiplier is loyalty/earn.ts's.
+// earn-arith-exempt: tier ramp for the progress display only. §7 T7.
 import { tierFromSpend, nextTier } from '@almond/shared/loyalty';
 import { config } from '@/lib/config';
 
@@ -40,6 +42,7 @@ export interface TierProgress {
 
 /** Progress through the rolling-12-month tier ramp. */
 export function tierProgress(windowSpend: number): TierProgress {
+  // earn-arith-exempt: tier progress display; no invoice, no grant. §7 T7.
   const current = tierFromSpend(windowSpend);
   const next = nextTier(windowSpend);
   const ratio = next
