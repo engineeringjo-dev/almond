@@ -58,7 +58,7 @@ const RULES: EarnRules = {
  *  an uncapped grant back in the programme. The tests below keep demonstrating
  *  that, which is why the dial is set to 0 here rather than the hazard tests
  *  being deleted. */
-const SHIPPED: EarnRules = { ...RULES, comboBonusPoints: 0 };
+const SHIPPED: EarnRules = { ...RULES, comboBonusPoints: 0, maxEarnMultiplier: 2.5 };
 
 function cartLine(itemId: string, unitBasePrice: number, qty: number, isDrink: boolean): CartItem {
   return {
@@ -73,6 +73,40 @@ describe('earn: the dials the tests are written against', () => {
     // If this fails, a config value moved. Decide whether that was an offer
     // change (§8) before touching any other expectation in this file.
     expect(earnRulesFromConfig()).toEqual(SHIPPED);
+  });
+
+  it('earn: the shipped ceiling BINDS — 2.5x base, i.e. 12.5% of the invoice', () => {
+    // Until 2026-09-03 the ceiling was 5x (25%) while the reachable stack was
+    // 3.75x, so it never fired. At 2.5x it fires, and these are the members it
+    // fires on. If someone raises the dial back, these numbers move and this
+    // test says so.
+    // The heaviest stacker: top tier, paying from the wallet, on a Friday.
+    // windowSpend 800 is Black (>=750); Gold (>=300) is x1.5 and reaches 2.0x.
+    const heaviest = { total: 10, windowSpend: 800, paidFromBalance: true, at: FRI };
+
+    const uncapped = computeEarn(heaviest, { ...SHIPPED, maxEarnMultiplier: 5 });
+    expect(uncapped.points).toBe(188);          // 18.75% of a 10 JOD invoice
+    expect(uncapped.capApplied).toBe(false);    // the old ceiling never fired
+
+    const capped = computeEarn(heaviest, SHIPPED);
+    expect(capped.points).toBe(125);            // 12.5% of a 10 JOD invoice
+    expect(capped.capApplied).toBe(true);
+    // The ceiling is 2.5 x (total x pointsPerJod), i.e. the UNSCALED base, so
+    // it bounds the invoice share directly: 125 points = 1.25 JOD on 10 JOD.
+    expect(capped.points).toBe(10 * SHIPPED.pointsPerJod * SHIPPED.maxEarnMultiplier);
+    expect(capped.points / (heaviest.total * 100)).toBe(0.125);
+
+    // The floor tier on an ordinary weekday is untouched by the change.
+    const bean = { total: 10, at: MON };
+    expect(computeEarn(bean, SHIPPED).points)
+      .toBe(computeEarn(bean, { ...SHIPPED, maxEarnMultiplier: 5 }).points);
+  });
+
+  it('earn: the subscription is off — it lost money on every existing member', () => {
+    // 18 JOD for up to 60 drinks against a member already worth 34.5 JOD of
+    // monthly contribution. Re-enabling needs a monthly cap and a food
+    // condition, not a flag flip.
+    expect(config.SUBSCRIPTION.enabled).toBe(false);
   });
 
   it('earn: the combo grants no points — the discount is the whole reward', () => {

@@ -33,7 +33,17 @@ export const config = {
   // the design decision in §8 must.
   // Lowering it below the reachable stack changes the customer offer — do not
   // do it as a bug fix. See LOYALTY-EARN-PATCH §8.2. Admin-configurable.
-  MAX_EARN_MULTIPLIER: 5,
+  //
+  // 2026-09-03, owner's decision: lowered 5 → 2.5, i.e. the ceiling moves from
+  // 25% of the invoice to 12.5%. This is DELIBERATELY below the reachable stack,
+  // so unlike before it actually binds:
+  //   Bean, no wallet, weekday        1.00×  → unaffected
+  //   Gold, wallet, Friday            3.75×  → CUT to 2.5× (18.75% → 12.5%)
+  //   any tier, activated bonus day   7.50×  → CUT to 2.5×
+  // It is a real reduction for the members who stack the most, not a bug fix,
+  // and it ships with notice and in-app copy the way §8.3 requires — the
+  // Dunkin' 2022 and Starbucks 2026 precedents in BRIEF §4 are exactly this.
+  MAX_EARN_MULTIPLIER: 2.5,
   // Digital reload bonus beans (pre-commitment lever, adapted from the SB ToU
   // "Digital Reload Bonus Stars"). Highest qualifying tier applies. Admin-set.
   WALLET_RELOAD_BONUS: [
@@ -80,11 +90,24 @@ export const config = {
   // Setting this above 0 re-opens the double payment; the ceiling does not
   // cover it (§8.7 of docs/LOYALTY-EARN-PATCH.md).
   COMBO_BONUS_POINTS: 0,
-  // "Almond Club" monthly subscription (Panera/Pret-style — proven to lift
-  // repeat visits >200%). HARD daily cap avoids the margin bleed that forced
-  // Pret off its unlimited model. Admin-configurable.
+  // "Almond Club" monthly subscription — CANCELLED before launch (owner,
+  // 2026-09-03). It converts a member's own revenue into a smaller number:
+  // a member buying 12 drinks/month brings 39.7 JOD against 5.2 JOD of material
+  // cost (contribution 34.5). On 18 JOD for 30 drinks that becomes 18 against
+  // 12.9 (contribution 5.1) — a loss of 29.4 JOD/month per EXISTING member, and
+  // −7.8 contribution if they use the full 60-drink allowance.
+  //
+  // The daily cap does not protect it: 2/day permits 60/month, and the binding
+  // cap would have to be monthly — Pret's cap was 5/day and it still failed.
+  // It only wins on NEW members who attach food, and the basket says otherwise:
+  // 1.8 items, drink as the anchor, 85% of revenue from drinks at 87% material
+  // margin. Panera's version works because there the drink is the attachment to
+  // a food business; here the drink IS the business.
+  //
+  // Kept configured rather than deleted so the numbers above stay attached to
+  // the decision. Re-enabling needs a monthly cap and a food condition.
   SUBSCRIPTION: {
-    enabled: true,
+    enabled: false,
     priceJod: 18,
     drinksPerDay: 2, // hard cap per day
     periodDays: 30,
