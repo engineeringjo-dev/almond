@@ -78,18 +78,26 @@ export const config = {
   // Kept generous on purpose (§5 — never punish the regular member).
   BEAN_EXPIRY_MONTHS: 12,
   TAX_RATE: 0.16, // 16% (section 4.6)
-  // The combo reward is the PRICE DISCOUNT, and only the discount: -1.000 JOD
-  // per drink+food pair, applied in cart/totals.ts.
-  BRUNCH_COMBO_DISCOUNT: 1.0,
-  // ...and therefore the combo grants NO points (owner's decision, 2026-09-03).
-  // Until now both were live at once: totals.ts took 1.000 JOD off the price
-  // AND earn.ts added 50 points (0.500 JOD) on top, so a pair cost 1.500 JOD.
-  // The two also disagreed on what a pair IS — totals.ts counts the `isBrunch`
-  // flag, combo.ts counts the item's category — so they could price the same
-  // basket differently. The discount stays as the single combo reward.
-  // Setting this above 0 re-opens the double payment; the ceiling does not
-  // cover it (§8.7 of docs/LOYALTY-EARN-PATCH.md).
-  COMBO_BONUS_POINTS: 0,
+  // The combo price discount is WITHDRAWN — the business stopped running it
+  // (owner, 2026-09-04: "الكومبو راح من كل مكان"). Kept at 0 rather than
+  // deleted so cart/totals.ts keeps its shape and `brunchDiscount` still
+  // reports a line the UI can render if it ever comes back.
+  BRUNCH_COMBO_DISCOUNT: 0,
+  // The 50 points ARE the combo now, and the only combo reward. This is what
+  // the app already advertises on the offers carousel and in the cart upsell —
+  // "مشروب + طعام = 50 نقطة" — so code and promise finally agree.
+  //
+  // Both were live at once until 2026-09-04: totals.ts took 1.000 JOD off the
+  // price AND earn.ts added 50 points (0.500 JOD), so a pair cost 1.500 JOD.
+  // They also disagreed on what a pair IS — totals.ts counts the `isBrunch`
+  // flag, combo.ts counts the item's category — so one basket could be priced
+  // two ways. Only one side survives, and it is this one.
+  //
+  // WATCH THIS: combo points are added AFTER the ceiling (D4/§8.7 of
+  // docs/LOYALTY-EARN-PATCH.md), so they are the one grant MAX_EARN_MULTIPLIER
+  // does not bound. On a small pair — a 2.50 drink and a 1.90 cookie — 50
+  // points is 11.4% of the bill on top of everything else.
+  COMBO_BONUS_POINTS: 50,
   // "Almond Club" monthly subscription — CANCELLED before launch (owner,
   // 2026-09-03). It converts a member's own revenue into a smaller number:
   // a member buying 12 drinks/month brings 39.7 JOD against 5.2 JOD of material

@@ -42,23 +42,22 @@ const TUE = new Date('2026-09-08T10:00:00Z'); // Tuesday (BONUS_BEAN_DAY weekday
 const RULES: EarnRules = {
   pointsPerJod: 5,
   walletMultiplier: 1.5,
-  maxEarnMultiplier: 5,
   // Deliberately NOT the shipped value — see SHIPPED below.
+  maxEarnMultiplier: 5,
   comboBonusPoints: 50,
   weekdayBonus: [{ weekday: 5, rate: 0.5 }],
   bonusDay: { enabled: true, multiplier: 2, weekdays: [2] },
 };
 
-/** The dials as actually shipped. The combo grants NO points (owner's decision,
- *  2026-09-03): the -1.000 JOD discount in cart/totals.ts is the whole combo
- *  reward, and paying points on top made a pair cost 1.500 JOD.
+/** The dials as actually shipped. Only the ceiling differs from RULES: it was
+ *  lowered 5 → 2.5 on 2026-09-03, which is the one value above that would let a
+ *  grant through that the business no longer permits.
  *
- *  RULES deliberately keeps a non-zero combo so the D4 hazard stays proven —
- *  combo points sit OUTSIDE the ceiling, so raising this dial again would put
- *  an uncapped grant back in the programme. The tests below keep demonstrating
- *  that, which is why the dial is set to 0 here rather than the hazard tests
- *  being deleted. */
-const SHIPPED: EarnRules = { ...RULES, comboBonusPoints: 0, maxEarnMultiplier: 2.5 };
+ *  The combo is 50 points and the price discount is gone (owner, 2026-09-04).
+ *  Note what that means for the ceiling: combo points are added AFTER it, so
+ *  they are the single grant MAX_EARN_MULTIPLIER does not bound — which is why
+ *  the T6 matrix below still has to prove the escape rather than assume it. */
+const SHIPPED: EarnRules = { ...RULES, maxEarnMultiplier: 2.5 };
 
 function cartLine(itemId: string, unitBasePrice: number, qty: number, isDrink: boolean): CartItem {
   return {
@@ -109,12 +108,24 @@ describe('earn: the dials the tests are written against', () => {
     expect(config.SUBSCRIPTION.enabled).toBe(false);
   });
 
-  it('earn: the combo grants no points — the discount is the whole reward', () => {
-    // Both were live at once until 2026-09-03: totals.ts took 1.000 JOD off the
-    // price and earn.ts added 50 points (0.500 JOD) on the same pair. Raising
-    // this dial re-opens that, and the ceiling does not cover it (§8.7).
-    expect(earnRulesFromConfig().comboBonusPoints).toBe(0);
-    expect(computeEarn({ total: 10, comboPairs: 3, at: MON }, SHIPPED).comboBonus).toBe(0);
+  it('earn: the combo is 50 points, and the price discount is gone', () => {
+    // Both were live at once until 2026-09-04 — totals.ts took 1.000 JOD off
+    // the price AND earn.ts added 50 points on the same pair, so a pair cost
+    // 1.500 JOD. Only the points survive. If BRUNCH_COMBO_DISCOUNT ever goes
+    // back above 0 without this dial going to 0, the double payment is back.
+    expect(earnRulesFromConfig().comboBonusPoints).toBe(50);
+    expect(config.BRUNCH_COMBO_DISCOUNT).toBe(0);
+    expect(computeEarn({ total: 10, comboPairs: 3, at: MON }, SHIPPED).comboBonus).toBe(150);
+  });
+
+  it('earn: combo points escape the ceiling — the one grant it does not bound', () => {
+    // Not a bug to fix here: D4/§8.7 gates moving the combo inside the cap as an
+    // offer change. This test exists so the escape is visible and measured
+    // rather than discovered later. A 2.50 drink + a 1.90 cookie is 4.40 JOD.
+    const r = computeEarn({ total: 4.4, comboPairs: 1, at: MON }, SHIPPED);
+    expect(r.points).toBeGreaterThan(Math.round(r.cap));
+    expect(r.points - r.comboBonus).toBeLessThanOrEqual(Math.round(r.cap));
+    expect(r.comboBonus / (4.4 * 100)).toBeCloseTo(0.1136, 3); // 11.4% of the bill
   });
 });
 
