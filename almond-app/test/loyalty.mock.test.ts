@@ -158,6 +158,10 @@ describe('D9 — free-spin day', () => {
       ...defaultSpinConfig,
       eligibility: {
         ...defaultSpinConfig.eligibility,
+        // The wheel ships OFF (owner, 2026-09-03). D9 is about the grant
+        // logic, so it is turned on explicitly here — the shipped default is
+        // asserted separately below.
+        enabled: true,
         freeSpinDays: [ammanWeekday(new Date())],
       },
     });
@@ -179,6 +183,10 @@ describe('D9 — free-spin day', () => {
       ...defaultSpinConfig,
       eligibility: {
         ...defaultSpinConfig.eligibility,
+        // The wheel ships OFF (owner, 2026-09-03). D9 is about the grant
+        // logic, so it is turned on explicitly here — the shipped default is
+        // asserted separately below.
+        enabled: true,
         freeSpinDays: [ammanWeekday(new Date())],
       },
     });
@@ -193,9 +201,22 @@ describe('D9 — free-spin day', () => {
     const id = newUserId();
     const u = __getMockUser(id);
     u.spinsAvailable = 1; // the seeded default
+    __setMockSpinConfig({
+      ...defaultSpinConfig,
+      eligibility: { ...defaultSpinConfig.eligibility, enabled: true },
+    });
 
     await expect(mockLoyaltyService.spin(id)).resolves.toBeTruthy();
     await expect(mockLoyaltyService.spin(id)).rejects.toThrow('No spins available');
+  });
+
+  it('spin: the wheel ships OFF — re-enabling it is a product decision', () => {
+    // The branches stopped running it (owner, 2026-09-03) and the code now
+    // agrees. It is also the most expensive mechanism in the programme if
+    // switched on: no losing slot, so every spin wins, and the prize table is
+    // worth ~2.67 JOD a spin at menu prices — one spin per five visits is
+    // ~7.4% of an average 7.16 JOD invoice, on top of points (§8.4).
+    expect(defaultSpinConfig.eligibility.enabled).toBe(false);
   });
 });
 

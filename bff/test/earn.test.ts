@@ -43,10 +43,22 @@ const RULES: EarnRules = {
   pointsPerJod: 5,
   walletMultiplier: 1.5,
   maxEarnMultiplier: 5,
+  // Deliberately NOT the shipped value — see SHIPPED below.
   comboBonusPoints: 50,
   weekdayBonus: [{ weekday: 5, rate: 0.5 }],
   bonusDay: { enabled: true, multiplier: 2, weekdays: [2] },
 };
+
+/** The dials as actually shipped. The combo grants NO points (owner's decision,
+ *  2026-09-03): the -1.000 JOD discount in cart/totals.ts is the whole combo
+ *  reward, and paying points on top made a pair cost 1.500 JOD.
+ *
+ *  RULES deliberately keeps a non-zero combo so the D4 hazard stays proven —
+ *  combo points sit OUTSIDE the ceiling, so raising this dial again would put
+ *  an uncapped grant back in the programme. The tests below keep demonstrating
+ *  that, which is why the dial is set to 0 here rather than the hazard tests
+ *  being deleted. */
+const SHIPPED: EarnRules = { ...RULES, comboBonusPoints: 0 };
 
 function cartLine(itemId: string, unitBasePrice: number, qty: number, isDrink: boolean): CartItem {
   return {
@@ -60,7 +72,15 @@ describe('earn: the dials the tests are written against', () => {
   it('earn: earnRulesFromConfig() still matches the pinned rule set', () => {
     // If this fails, a config value moved. Decide whether that was an offer
     // change (§8) before touching any other expectation in this file.
-    expect(earnRulesFromConfig()).toEqual(RULES);
+    expect(earnRulesFromConfig()).toEqual(SHIPPED);
+  });
+
+  it('earn: the combo grants no points — the discount is the whole reward', () => {
+    // Both were live at once until 2026-09-03: totals.ts took 1.000 JOD off the
+    // price and earn.ts added 50 points (0.500 JOD) on the same pair. Raising
+    // this dial re-opens that, and the ceiling does not cover it (§8.7).
+    expect(earnRulesFromConfig().comboBonusPoints).toBe(0);
+    expect(computeEarn({ total: 10, comboPairs: 3, at: MON }, SHIPPED).comboBonus).toBe(0);
   });
 });
 

@@ -68,11 +68,18 @@ export const config = {
   // Kept generous on purpose (§5 — never punish the regular member).
   BEAN_EXPIRY_MONTHS: 12,
   TAX_RATE: 0.16, // 16% (section 4.6)
-  BRUNCH_COMBO_DISCOUNT: 1.0, // -1.000 JOD (section 5) — superseded by COMBO_BONUS_POINTS
-  // Drink + food combo: each drink paired with a food item earns the customer
-  // 50 bonus points (= 0.5 JOD value at 100 points = 1 JOD). Bonus POINTS, not a
-  // price discount. Admin-configurable.
-  COMBO_BONUS_POINTS: 50,
+  // The combo reward is the PRICE DISCOUNT, and only the discount: -1.000 JOD
+  // per drink+food pair, applied in cart/totals.ts.
+  BRUNCH_COMBO_DISCOUNT: 1.0,
+  // ...and therefore the combo grants NO points (owner's decision, 2026-09-03).
+  // Until now both were live at once: totals.ts took 1.000 JOD off the price
+  // AND earn.ts added 50 points (0.500 JOD) on top, so a pair cost 1.500 JOD.
+  // The two also disagreed on what a pair IS — totals.ts counts the `isBrunch`
+  // flag, combo.ts counts the item's category — so they could price the same
+  // basket differently. The discount stays as the single combo reward.
+  // Setting this above 0 re-opens the double payment; the ceiling does not
+  // cover it (§8.7 of docs/LOYALTY-EARN-PATCH.md).
+  COMBO_BONUS_POINTS: 0,
   // "Almond Club" monthly subscription (Panera/Pret-style — proven to lift
   // repeat visits >200%). HARD daily cap avoids the margin bleed that forced
   // Pret off its unlimited model. Admin-configurable.
