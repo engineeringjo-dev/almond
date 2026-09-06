@@ -59,10 +59,9 @@ const REWARD_MENU: {
 ];
 
 const TIER_COLOR: Record<TierId, string> = {
-  bean: colors.tierBean,
-  silver: colors.tierSilver,
-  gold: colors.tierGold,
-  black: colors.tierBlack,
+  base: colors.tierBean,
+  plus: colors.tierGold,
+  top: colors.tierBlack,
 };
 
 // Full per-tier benefit lists (each card is self-contained, Starbucks-style).
@@ -82,15 +81,18 @@ const B = {
 const SHARED: Benefit[] = [B.birthday, B.freeMod, B.offers, B.reload, B.cup];
 const earn = (key: string): Benefit => ({ icon: 'bean', key });
 
+// The benefit lists are what the rungs now differ by. The rate step (×2, then
+// ×1.5) is the headline, but 0.117 JOD a visit is not what anyone feels — the
+// felt difference is the monthly upgrade coupon and the birthday item. Every
+// 2026 redesign in the sector (Starbucks, Chipotle, Panera) moved
+// differentiation off the earn rate and onto benefits for exactly this reason.
 const TIER_BENEFITS: Record<TierId, Benefit[]> = {
-  bean: [earn('tierBenefits.earnBean'), ...SHARED],
-  silver: [earn('tierBenefits.earnSilver'), ...SHARED],
-  gold: [earn('tierBenefits.earnGold'), B.noExpire, ...SHARED, { icon: 'sparkles', key: 'tierBenefits.doubleDays4' }],
-  black: [
+  base: [earn('tierBenefits.earnBean'), ...SHARED],
+  plus: [earn('tierBenefits.earnGold'), ...SHARED, { icon: 'sparkles', key: 'tierBenefits.doubleDays4' }],
+  top: [
     earn('tierBenefits.earnBlack'), B.noExpire, ...SHARED,
     { icon: 'globe', key: 'tierBenefits.experiences' },
     { icon: 'card', key: 'tierBenefits.memberCard' },
-    { icon: 'sparkles', key: 'tierBenefits.doubleDays6' },
   ],
 };
 
@@ -318,7 +320,7 @@ export default function RewardsScreen() {
         {tiers.map((tr) => {
           const isCurrent = tr.id === currentTier.id;
           const fg = colors.white; // tier colours are all dark enough for white text
-          const sub = tr.id === 'bean'
+          const sub = tr.id === 'base'
             ? t('rewards.statusSubBelow', { spend: tiers[1].threshold })
             : t('rewards.statusSubAbove', { spend: tr.threshold });
           return (

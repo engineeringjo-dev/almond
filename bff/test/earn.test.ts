@@ -44,6 +44,16 @@ const TUE = new Date('2026-09-08T10:00:00Z'); // Tuesday (BONUS_BEAN_DAY weekday
  *  edit changes exactly one test (the first), not the meaning of all of them. */
 const RULES: EarnRules = {
   pointsPerJod: 5,
+  // The OLD four-rung ramp, kept deliberately: these arithmetic tests exist to
+  // prove the CALCULATION, and pinning a ramp that is no longer shipped is the
+  // strongest possible statement that they do not depend on the current offer.
+  // The shipped ladder is asserted separately, against SHIPPED.
+  tierRamp: [
+    { id: 'bean', threshold: 0, multiplier: 1.0 },
+    { id: 'silver', threshold: 100, multiplier: 1.25 },
+    { id: 'gold', threshold: 300, multiplier: 1.5 },
+    { id: 'black', threshold: 750, multiplier: 2.0 },
+  ],
   walletMultiplier: 1.5,
   // Deliberately NOT the shipped value — see SHIPPED below.
   maxEarnMultiplier: 5,
@@ -52,15 +62,33 @@ const RULES: EarnRules = {
   bonusDay: { enabled: true, multiplier: 2, weekdays: [2] },
 };
 
-/** The dials as actually shipped. Only the ceiling differs from RULES: it was
- *  lowered 5 → 2.5 on 2026-09-03, which is the one value above that would let a
- *  grant through that the business no longer permits.
+/** The dials as actually shipped, 2026-09-06. This is now a WHOLLY different
+ *  offer from RULES, not a one-value variation of it:
  *
- *  The combo is 50 points and the price discount is gone (owner, 2026-09-04).
- *  Note what that means for the ceiling: combo points are added AFTER it, so
- *  they are the single grant MAX_EARN_MULTIPLIER does not bound — which is why
- *  the T6 matrix below still has to prove the escape rather than assume it. */
-const SHIPPED: EarnRules = { ...RULES, maxEarnMultiplier: 2.5 };
+ *    - the ladder is 2 / 4 / 6 points per JOD — a base of 2 with a 1.0/2.0/3.0
+ *      ramp — qualifying on 20 and 65 JOD of 90-day spend;
+ *    - the wallet multiplier, the bonus day and the Friday bonus are RETIRED,
+ *      all three having had zero rows in 171,291 live transactions;
+ *    - the ceiling is a safety valve at 3.5×, above the reachable 3.0×, not the
+ *      binding 2.5× it briefly was;
+ *    - the combo is 25 points (owner: it is already a discount).
+ *
+ *  Combo points are still added AFTER the ceiling, so they remain the single
+ *  grant MAX_EARN_MULTIPLIER does not bound — which is why the T6 matrix below
+ *  still has to prove the escape rather than assume it. */
+const SHIPPED: EarnRules = {
+  pointsPerJod: 2,
+  tierRamp: [
+    { id: 'base', threshold: 0, multiplier: 1.0 },
+    { id: 'plus', threshold: 20, multiplier: 2.0 },
+    { id: 'top', threshold: 65, multiplier: 3.0 },
+  ],
+  walletMultiplier: 1.0,
+  maxEarnMultiplier: 3.5,
+  comboBonusPoints: 25,
+  weekdayBonus: [],
+  bonusDay: { enabled: false, multiplier: 2, weekdays: [2] },
+};
 
 function cartLine(itemId: string, unitBasePrice: number, qty: number, isDrink: boolean): CartItem {
   return {
@@ -77,31 +105,52 @@ describe('earn: the dials the tests are written against', () => {
     expect(earnRulesFromConfig()).toEqual(SHIPPED);
   });
 
-  it('earn: the shipped ceiling BINDS — 2.5x base, i.e. 12.5% of the invoice', () => {
-    // Until 2026-09-03 the ceiling was 5x (25%) while the reachable stack was
-    // 3.75x, so it never fired. At 2.5x it fires, and these are the members it
-    // fires on. If someone raises the dial back, these numbers move and this
-    // test says so.
-    // The heaviest stacker: top tier, paying from the wallet, on a Friday.
-    // windowSpend 800 is Black (>=750); Gold (>=300) is x1.5 and reaches 2.0x.
-    const heaviest = { total: 10, windowSpend: 800, paidFromBalance: true, at: FRI };
+  it('earn: the shipped ladder is exactly 2 / 4 / 6 points per JOD', () => {
+    // 1 point = 1 qirsh, so these ARE cashback percentages. If any of the three
+    // numbers below moves, the customer-facing promise moved with it.
+    const at = MON;
+    expect(computeEarn({ total: 10, windowSpend: 0, at }, SHIPPED).points).toBe(20);   // 2%
+    expect(computeEarn({ total: 10, windowSpend: 20, at }, SHIPPED).points).toBe(40);  // 4%
+    expect(computeEarn({ total: 10, windowSpend: 65, at }, SHIPPED).points).toBe(60);  // 6%
 
-    const uncapped = computeEarn(heaviest, { ...SHIPPED, maxEarnMultiplier: 5 });
-    expect(uncapped.points).toBe(188);          // 18.75% of a 10 JOD invoice
-    expect(uncapped.capApplied).toBe(false);    // the old ceiling never fired
+    // The steps the member is told: "×2", then "×1.5".
+    const ramp = SHIPPED.tierRamp;
+    expect(ramp[1].multiplier / ramp[0].multiplier).toBe(2);
+    expect(ramp[2].multiplier / ramp[1].multiplier).toBe(1.5);
 
-    const capped = computeEarn(heaviest, SHIPPED);
-    expect(capped.points).toBe(125);            // 12.5% of a 10 JOD invoice
-    expect(capped.capApplied).toBe(true);
-    // The ceiling is 2.5 x (total x pointsPerJod), i.e. the UNSCALED base, so
-    // it bounds the invoice share directly: 125 points = 1.25 JOD on 10 JOD.
-    expect(capped.points).toBe(10 * SHIPPED.pointsPerJod * SHIPPED.maxEarnMultiplier);
-    expect(capped.points / (heaviest.total * 100)).toBe(0.125);
+    // Just below each threshold the member is still on the rung below — the
+    // gate is `>=`, and an off-by-one here would hand out a rate nobody earned.
+    expect(computeEarn({ total: 10, windowSpend: 19.99, at }, SHIPPED).tierId).toBe('base');
+    expect(computeEarn({ total: 10, windowSpend: 64.99, at }, SHIPPED).tierId).toBe('plus');
+  });
 
-    // The floor tier on an ordinary weekday is untouched by the change.
-    const bean = { total: 10, at: MON };
-    expect(computeEarn(bean, SHIPPED).points)
-      .toBe(computeEarn(bean, { ...SHIPPED, maxEarnMultiplier: 5 }).points);
+  it('earn: the ceiling is a SAFETY VALVE now — it must never bind on a real input', () => {
+    // Until 2026-09-06 the ceiling was an offer dial: at 2.5x it deliberately
+    // trimmed the heaviest stackers. That stack no longer exists — the wallet
+    // multiplier, the bonus day and the Friday bonus are all retired — so the
+    // only thing left that stacks is the ramp itself and the reachable maximum
+    // is exactly the top rung.
+    const reachable = Math.max(...SHIPPED.tierRamp.map((r) => r.multiplier));
+    expect(reachable).toBe(3);
+    expect(SHIPPED.maxEarnMultiplier).toBeGreaterThan(reachable);
+
+    // The heaviest input that exists: top rung, paying from the wallet, Friday,
+    // activated bonus day. Every one of those levers is off, so it is just 6%.
+    const heaviest = {
+      total: 10, windowSpend: 10_000, paidFromBalance: true, bonusDayActivated: true, at: FRI,
+    };
+    const r = computeEarn(heaviest, SHIPPED);
+    expect(r.capApplied).toBe(false);
+    expect(r.points).toBe(60);
+    expect(r.effectiveMultiplier).toBe(3);
+
+    // 🔴 THE REGRESSION THIS TEST EXISTS FOR. Lowering the ceiling below the top
+    // rung does not raise an error anywhere — it silently pays the 6% member
+    // less than 6% while the app goes on calling them the 6% tier.
+    const throttled = computeEarn(heaviest, { ...SHIPPED, maxEarnMultiplier: 2.5 });
+    expect(throttled.capApplied).toBe(true);
+    expect(throttled.points).toBe(50);          // 5%, not the 6% promised
+    expect(throttled.points).toBeLessThan(r.points);
   });
 
   it('earn: the subscription is off — it lost money on every existing member', () => {
@@ -111,24 +160,52 @@ describe('earn: the dials the tests are written against', () => {
     expect(config.SUBSCRIPTION.enabled).toBe(false);
   });
 
-  it('earn: the combo is 50 points, and the price discount is gone', () => {
+  it('earn: the combo is 25 points, and the price discount is gone', () => {
     // Both were live at once until 2026-09-04 — totals.ts took 1.000 JOD off
     // the price AND earn.ts added 50 points on the same pair, so a pair cost
-    // 1.500 JOD. Only the points survive. If BRUNCH_COMBO_DISCOUNT ever goes
-    // back above 0 without this dial going to 0, the double payment is back.
-    expect(earnRulesFromConfig().comboBonusPoints).toBe(50);
+    // 1.500 JOD. Only the points survive, and on 2026-09-06 the owner halved
+    // them to 25 "because the combo is already a discount". If
+    // BRUNCH_COMBO_DISCOUNT ever goes back above 0 without this dial going to 0,
+    // the double payment is back.
+    expect(earnRulesFromConfig().comboBonusPoints).toBe(25);
     expect(config.BRUNCH_COMBO_DISCOUNT).toBe(0);
-    expect(computeEarn({ total: 10, comboPairs: 3, at: MON }, SHIPPED).comboBonus).toBe(150);
+    expect(computeEarn({ total: 10, comboPairs: 3, at: MON }, SHIPPED).comboBonus).toBe(75);
+  });
+
+  it('earn: the four zombie promotions are retired and stay retired', () => {
+    // Wallet x1.5, Tuesday x2, Friday +50%: ZERO rows in 171,291 live
+    // transactions between them. They were never used by anyone, and each one
+    // undercuts the ladder's single promised multiplier (the x2 at promotion).
+    // Turning any of them back on is an offer change, not a config tweak.
+    expect(config.WALLET_EARN_MULTIPLIER).toBe(1);
+    expect(config.BONUS_BEAN_DAY.enabled).toBe(false);
+    expect(config.WEEKDAY_EARN_BONUS).toEqual([]);
+
+    // ...and prove they are inert rather than merely unset: the heaviest input
+    // that could trigger all three earns exactly the plain rate.
+    const plain = computeEarn({ total: 10, windowSpend: 65, at: MON }, SHIPPED);
+    const stacked = computeEarn(
+      { total: 10, windowSpend: 65, paidFromBalance: true, bonusDayActivated: true, at: FRI },
+      SHIPPED,
+    );
+    expect(stacked.points).toBe(plain.points);
+    expect(stacked.walletBonus).toBe(0);
+    expect(stacked.bonusDayBonus).toBe(0);
+    expect(stacked.weekdayBonus).toBe(0);
   });
 
   it('earn: combo points escape the ceiling — the one grant it does not bound', () => {
     // Not a bug to fix here: D4/§8.7 gates moving the combo inside the cap as an
     // offer change. This test exists so the escape is visible and measured
     // rather than discovered later. A 2.50 drink + a 1.90 cookie is 4.40 JOD.
+    //
+    // Halving the combo 50 → 25 halved the escape with it: it was 11.4% of this
+    // bill on top of everything else, and is now 5.7%. The escape is still real
+    // — it is simply half the size.
     const r = computeEarn({ total: 4.4, comboPairs: 1, at: MON }, SHIPPED);
     expect(r.points).toBeGreaterThan(Math.round(r.cap));
     expect(r.points - r.comboBonus).toBeLessThanOrEqual(Math.round(r.cap));
-    expect(r.comboBonus / (4.4 * 100)).toBeCloseTo(0.1136, 3); // 11.4% of the bill
+    expect(r.comboBonus / (4.4 * 100)).toBeCloseTo(0.0568, 3); // 5.7% of the bill
   });
 });
 

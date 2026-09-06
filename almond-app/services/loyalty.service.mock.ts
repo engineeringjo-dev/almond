@@ -148,23 +148,26 @@ function ensureUser(userId: string): LoyaltyUser {
 
 /** Expiry is an EXPLICIT operation, never a side effect of a read (D11).
  *  Returns the points destroyed, so a caller/test can assert it happened.
- *  The RULE is unchanged here — Gold/Black are still exempt; removing that
+ *  The RULE is unchanged here — the top rung is still exempt; removing that
  *  exemption is the offer change in §8.3. */
 export function expirePoints(u: LoyaltyUser, now = Date.now()): number {
   // earn-arith-exempt: the EXPIRY rule is tier-sensitive (§8.3), not the grant. §7 T7.
   const tier = tierFromSpend(rolling12mSpend(u, now));
-  // TODAY'S RULE, unchanged: Gold/Black are exempt. Removing this exemption is
-  // the offer change held behind LOYALTY-EARN-PATCH §8.3.
-  if (tier.id === 'gold' || tier.id === 'black') return 0;
+  // TODAY'S RULE, unchanged in substance: the top rung is exempt (owner:
+  // "الأسود ما بينتهي"). Under the 2/4/6 ladder that is the 6% rung; it used to
+  // be Gold+Black on the four-tier ramp. Removing the exemption altogether is
+  // the offer change held behind LOYALTY-EARN-PATCH §8.3 — and the liability
+  // lane now prices expiry at ~557 JOD/yr harvested, i.e. barely worth having.
+  if (tier.id === 'top') return 0;
   if (!isExpired(u.lastEarnAt, now)) return 0;
   const lost = u.points;
   u.points = 0;
   return lost;
 }
 
-/** Top tiers (Gold/Black) never expire; lower tiers expire after inactivity. */
+/** The 6% rung never expires; the rungs below it expire after inactivity. */
 export function beansExpireAt(u: LoyaltyUser, tierId: string): string | null {
-  if (tierId === 'gold' || tierId === 'black') return null;
+  if (tierId === 'top') return null;
   return new Date(expiryAt(u.lastEarnAt)).toISOString();
 }
 

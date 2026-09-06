@@ -116,12 +116,25 @@ describe('D2 — one earn calculation: the app grants what computeEarn returns',
   });
 
   it('earn: one absolute number, so a change to BOTH sides at once still shows', async () => {
-    // 10 JOD x 5 pts/JOD = 50 base, wallet x1.5 = 75. Bean, Monday, no pairs.
+    // The matrix above binds the app to computeEarn, so it stays green if BOTH
+    // sides drift together. This one literal is the anchor that does not.
+    //
+    // 10 JOD at the 2% entry rung = 20 points. Monday, no pairs, and paying
+    // from the wallet adds NOTHING since 2026-09-06 — the wallet multiplier is
+    // retired, which is exactly the kind of change this test exists to surface.
     const id = memberWithSpend(0);
     const res = await mockLoyaltyService.earn({
       userId: id, invoiceAmount: 10, paidFromBalance: true, at: MON,
     });
-    expect(res.pointsEarned).toBe(75);
+    expect(res.pointsEarned).toBe(20);
+
+    // The two rungs above it, on the same invoice: 4% and 6%.
+    expect((await mockLoyaltyService.earn({
+      userId: memberWithSpend(20), invoiceAmount: 10, paidFromBalance: false, at: MON,
+    })).pointsEarned).toBe(40);
+    expect((await mockLoyaltyService.earn({
+      userId: memberWithSpend(65), invoiceAmount: 10, paidFromBalance: false, at: MON,
+    })).pointsEarned).toBe(60);
   });
 
   it('estimate: the number shown at checkout is computeEarn on the shipped rules', () => {

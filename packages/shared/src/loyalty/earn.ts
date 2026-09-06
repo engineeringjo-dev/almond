@@ -1,11 +1,26 @@
 import { config } from '../config';
-import { tierFromSpend } from './constants';
+import { tiers } from './constants';
 import { ammanWeekday } from '../lib/ammanWeekday';
+
+/** One rung of the ladder, as the earn calculation needs it. */
+export interface TierRung {
+  id: string;
+  /** Qualifying spend in JOD over config.TIER_WINDOW_DAYS. */
+  threshold: number;
+  /** Ramp against pointsPerJod. 1.0 / 2.0 / 3.0 on a base of 2 → 2 / 4 / 6. */
+  multiplier: number;
+}
 
 /** Every dial the earn calculation reads. Injectable so tests are deterministic
  *  and so an admin/server-pushed ruleset can replace the compiled defaults. */
 export interface EarnRules {
   pointsPerJod: number;
+  /** THE LADDER. It used to be read straight from loyalty/constants.ts, which
+   *  meant it was the one dial the tests could not pin — so editing the ramp
+   *  silently moved every "pinned" expectation in bff/test/earn.test.ts. It is
+   *  the earn RATE now (2/4/6 is the ramp, not a cosmetic tier ladder), so it
+   *  belongs here with the others. Must be ascending by threshold. */
+  tierRamp: readonly TierRung[];
   walletMultiplier: number;
   maxEarnMultiplier: number;
   comboBonusPoints: number;
@@ -14,9 +29,19 @@ export interface EarnRules {
   bonusDay: { enabled: boolean; multiplier: number; weekdays: readonly number[] };
 }
 
+/** The rung a qualifying spend earns at. Pure function of the ramp handed in. */
+export function rungFromSpend(spend: number, ramp: readonly TierRung[]): TierRung {
+  let current = ramp[0];
+  for (const rung of ramp) {
+    if (spend >= rung.threshold) current = rung;
+  }
+  return current;
+}
+
 export function earnRulesFromConfig(): EarnRules {
   return {
     pointsPerJod: config.POINTS_PER_JOD,
+    tierRamp: tiers.map((t) => ({ id: t.id, threshold: t.threshold, multiplier: t.multiplier })),
     walletMultiplier: config.WALLET_EARN_MULTIPLIER,
     maxEarnMultiplier: config.MAX_EARN_MULTIPLIER,
     comboBonusPoints: config.COMBO_BONUS_POINTS,
@@ -101,17 +126,24 @@ export function computeEarn(
   const walletBonus = base * (walletMult - 1);
   const bonusDayBonus = scaled - base - walletBonus;
 
-  // Additive bonuses, as fractions of the scaled base.
-  const tier = tierFromSpend(Math.max(0, ctx.windowSpend ?? 0));
+  // Additive bonuses, as fractions of the scaled base. The tier ramp IS the
+  // earn rate: a base of 2 with a 3.0 rung is 6 pts/JOD, i.e. 6% back.
+  const tier = rungFromSpend(Math.max(0, ctx.windowSpend ?? 0), rules.tierRamp);
   const tierBonus = scaled * (tier.multiplier - 1);
   const rate = rules.weekdayBonus.find((w) => w.weekday === weekday)?.rate ?? 0;
   const weekdayBonus = scaled * rate;
   const comboBonus =
     Math.max(0, Math.floor(ctx.comboPairs ?? 0)) * rules.comboBonusPoints;
 
-  // THE CEILING (D1). It is live: with BONUS_BEAN_DAY enabled an activated
-  // bonus day reaches wallet 1.5 × bonus-day 2 × (1 + (tier 2.0 - 1) + Friday
-  // 0.5) = 7.5× base, so `cap` at 5× binds and trims the grant.
+  // THE CEILING (D1). Since 2026-09-06 it is a SAFETY VALVE, not an offer dial.
+  // The wallet multiplier, the bonus day and the weekday bonus are all retired,
+  // so the only thing that stacks is the ramp itself and the reachable maximum
+  // is exactly the top rung — 3.0× base. The cap sits above it at 3.5× and does
+  // not bind on any reachable input.
+  //
+  // 🔴 Lowering maxEarnMultiplier below the top rung's multiplier silently trims
+  // the top rung back toward the one below it: the member is shown 6% and paid
+  // less, with no error raised anywhere. That is what T6 exists to catch.
   //
   // The combo bonus sits OUTSIDE the ceiling, which is what the pre-patch
   // server did (bff/src/earn.ts:21 — `Math.round(Math.min(...)) + comboBonus`)

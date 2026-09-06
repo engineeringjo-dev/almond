@@ -7,20 +7,23 @@ import { useI18n } from '@/hooks/useI18n';
 import type { TierId } from '@/types';
 
 /**
- * Premium tier badge (Revision Pack §O): warm, exclusive feel. The Black tier
- * is gold-on-dark to feel special; higher tiers get a coffee-bean icon (the
- * loyalty currency — no stars per the Wallet/Loyalty spec §0).
+ * Premium tier badge (Revision Pack §O): warm, exclusive feel. The top rung is
+ * dark to feel special; the two upper rungs get a coffee-bean icon (the loyalty
+ * currency — no stars per the Wallet/Loyalty spec §0).
+ *
+ * The label is the RATE — "٢٪" / "٤٪" / "٦٪" — not a metal. See
+ * packages/shared/src/loyalty/constants.ts for why.
  */
 export function TierBadge({ tier, small }: { tier: TierId; small?: boolean }) {
   const { t } = useI18n();
   const def = tiers.find((x) => x.id === tier) ?? tiers[0];
 
-  const isBlack = tier === 'black';
-  const bg = isBlack ? colors.dark : def.color;
+  const isTop = tier === 'top';
+  const bg = isTop ? colors.dark : def.color;
   const fg = colors.white;
-  const border = isBlack ? colors.dark : def.color;
+  const border = isTop ? colors.dark : def.color;
   const iconColor = colors.white;
-  const exclusive = tier === 'gold' || tier === 'black';
+  const exclusive = tier === 'plus' || tier === 'top';
 
   return (
     <View

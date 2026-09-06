@@ -152,13 +152,19 @@ export interface Order {
 
 // ---------- Loyalty ----------
 
-export type TierId = 'bean' | 'silver' | 'gold' | 'black';
+/** The three rungs of the 2% → 4% → 6% ladder. The ids are semantic so code
+ *  stays readable; the member never sees them — `nameAr`/`nameEn` carry the
+ *  rate, which is the name. See loyalty/constants.ts. */
+export type TierId = 'base' | 'plus' | 'top';
 
 export interface Tier {
   id: TierId;
+  /** Display name = the rate itself ("٢٪" / "٤٪" / "٦٪"). */
   nameAr: string;
   nameEn: string;
-  threshold: number; // lifetime spend JOD
+  /** Qualifying spend in JOD over config.TIER_WINDOW_DAYS (90). */
+  threshold: number;
+  /** Ramp against config.POINTS_PER_JOD: 1.0 / 2.0 / 3.0 → 2 / 4 / 6 pts/JOD. */
   multiplier: number;
   color: string;
 }
