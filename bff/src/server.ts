@@ -1,6 +1,6 @@
 import Fastify, { type FastifyInstance } from 'fastify';
 import jwt from '@fastify/jwt';
-import { config } from './config';
+import { config, insecureBootReasons } from './config';
 import { createBackend } from './backend';
 import { HttpError } from './http-error';
 import { registerAuthRoutes } from './routes/auth';
@@ -13,6 +13,16 @@ import { registerSubscriptionRoutes } from './routes/subscription';
 import { registerForecastRoutes } from './routes/forecast';
 
 export async function build(): Promise<FastifyInstance> {
+  // §G gate 0. Every secret below has a working development fallback, which is
+  // what let `OTP_DEV_CODE = '123456'` sit in the codebase unnoticed: nothing
+  // ever complained. Production now refuses to start rather than start weak.
+  const insecure = insecureBootReasons();
+  if (insecure.length > 0) {
+    throw new Error(
+      `refusing to boot in production with insecure configuration:\n  - ${insecure.join('\n  - ')}`,
+    );
+  }
+
   const app = Fastify({ logger: { level: process.env.LOG_LEVEL ?? 'info' } });
   await app.register(jwt, { secret: config.JWT_SECRET });
 

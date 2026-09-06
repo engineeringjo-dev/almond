@@ -1,7 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import { readFileSync, readdirSync, statSync } from 'node:fs';
-import { dirname, join, relative, resolve, sep } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { randomUUID } from 'node:crypto';
 import type { FastifyInstance } from 'fastify';
 import { config } from '@almond/shared/config';
@@ -17,6 +16,10 @@ import * as bffEarn from '../src/earn';
 import { reprice } from '../src/pricing';
 import { build } from '../src/server';
 import { createMemoryBackend } from '../src/backend/memory';
+import {
+  REPO, ROOTS, EXT, collectSources, stripComments, type SourceFile,
+} from './lib/sources';
+import { signIn } from './lib/signIn';
 
 /**
  * §7 of docs/LOYALTY-EARN-PATCH.md: T1-T10, T12 and T14. T11, T13 and T15 need
@@ -333,70 +336,13 @@ describe('T6 earn: total giveback ceiling — no input can exceed MAX_EARN_MULTI
 });
 
 // ---------------------------------------------------------------------------
-// T7 / T8 — the static walk over every workspace.
+// T7 / T8 / T27 — the static walk over every workspace.
+//
+// The walk itself now lives in bff/test/lib/sources.ts (§G gate 1): it also
+// covers `integrations/` and `.py` / `.js`, so the Odoo module and the POS
+// JavaScript are inside T7's reach rather than invisible to it. T27 below is
+// what keeps that true.
 // ---------------------------------------------------------------------------
-
-const REPO = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..');
-const ROOTS = ['almond-app', 'almond-web', 'bff', 'packages'];
-const SKIP_DIRS = new Set([
-  'node_modules', '.expo', '.next', 'dist', 'build', 'coverage', '.git',
-  'test', '__tests__', '.turbo',
-]);
-
-interface SourceFile {
-  /** Repo-relative, POSIX separators. */
-  path: string;
-  raw: string[];
-  /** Same lines with comments blanked out — see stripComments(). */
-  code: string[];
-}
-
-/**
- * Comments are blanked, not matched. T7 and T8 are about CODE: a line that
- * merely NAMES `COMBO_BONUS_POINTS` or `getDay() === 5` while explaining why it
- * must not be used is not an offender, and four such lines exist today (this
- * file's own header among them). §9's checklist grep is a plain grep and does
- * hit them, which is why the checklist and the test disagree there — the test
- * is the authority (§9's own scope note) and this is the reading that makes
- * §9's stated expected result true.
- */
-function stripComments(lines: string[]): string[] {
-  let inBlock = false;
-  return lines.map((line) => {
-    let out = '';
-    for (let i = 0; i < line.length; i++) {
-      if (inBlock) {
-        if (line[i] === '*' && line[i + 1] === '/') { inBlock = false; i++; }
-        continue;
-      }
-      if (line[i] === '/' && line[i + 1] === '*') { inBlock = true; i++; continue; }
-      if (line[i] === '/' && line[i + 1] === '/') break; // rest of the line
-      out += line[i];
-    }
-    return out;
-  });
-}
-
-function collectSources(): SourceFile[] {
-  const out: SourceFile[] = [];
-  const walk = (dir: string): void => {
-    for (const entry of readdirSync(dir)) {
-      const full = join(dir, entry);
-      if (statSync(full).isDirectory()) {
-        if (!SKIP_DIRS.has(entry)) walk(full);
-      } else if (/\.tsx?$/.test(entry)) {
-        const raw = readFileSync(full, 'utf8').split('\n');
-        out.push({
-          path: relative(REPO, full).split(sep).join('/'),
-          raw,
-          code: stripComments(raw),
-        });
-      }
-    }
-  };
-  for (const root of ROOTS) walk(join(REPO, root));
-  return out;
-}
 
 let sources: SourceFile[];
 beforeAll(() => { sources = collectSources(); });
@@ -456,7 +402,7 @@ describe('T7 earn: no module outside @almond/shared/loyalty/earn computes points
     expect(bffEarn.earnedPoints).toBe(earnedPoints);
     expect(bffEarn.earnRulesFromConfig).toBe(earnRulesFromConfig);
     // ... and the file itself is a re-export: no operator, no Math, no body.
-    const src = stripComments(readFileSync(join(REPO, 'bff/src/earn.ts'), 'utf8').split('\n'))
+    const src = stripComments(readFileSync(join(REPO, 'bff/src/earn.ts'), 'utf8').split('\n'), 'ts')
       .join('\n');
     expect(src).not.toMatch(/Math\./);
     expect(src).not.toMatch(/[+\-*/]\s|\breturn\b|\bfunction\b|=>/);
@@ -504,6 +450,75 @@ describe('T7 earn: no module outside @almond/shared/loyalty/earn computes points
     expect(paths.has('bff/src/routes/checkout.ts')).toBe(true);
     expect(paths.has('packages/shared/src/loyalty/earn.ts')).toBe(true);
     expect(sources.length).toBeGreaterThan(100);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// T27 — the walk reaches what it claims to guard, and the stripper preserves
+// code. docs/LOYALTY-ODOO-ARCHITECTURE.md §F.0 / §G gate 1.
+//
+// The test above is the ancestor of this one and is deliberately kept: it
+// guards the four TypeScript files. T27 guards the WIDENING — the roots and
+// extensions added so that an Odoo-side earn evaluator cannot be written
+// outside T7's view — and, more importantly, guards the widening's own hazard.
+// ---------------------------------------------------------------------------
+describe('T27 the static walk covers what it claims, and does not eat the code', () => {
+  it('walks integrations/ and collects Python and POS JavaScript', () => {
+    // These are real files in the repo today, not placeholders for future work:
+    // the previous walk (`ROOTS` without `integrations`, `/\.tsx?$/`) saw NONE
+    // of them, and reported nothing while doing so.
+    const paths = new Set(sources.map((f) => f.path));
+    expect(paths.has('integrations/almond_followers_guard/models/pos_order.py')).toBe(true);
+    expect(paths.has('integrations/almond_branch/models/pos_order.py')).toBe(true);
+    expect(paths.has('integrations/pos_meps_apex/static/src/app/payment_meps.js')).toBe(true);
+
+    // And the extensions are actually reaching files, not just declared.
+    expect(sources.filter((f) => f.path.endsWith('.py')).length).toBeGreaterThan(5);
+    expect(sources.filter((f) => f.path.endsWith('.js')).length).toBeGreaterThan(0);
+  });
+
+  it('the roots and extensions the Odoo work will land in are declared', () => {
+    // Gate 4 writes integrations/almond_loyalty/{services/earn.py,
+    // static/src/app/earn_formula.js}. If either root or extension is dropped
+    // later, T7 goes quiet instead of red — so assert the configuration itself.
+    expect(ROOTS).toContain('integrations');
+    expect(EXT.test('earn.py')).toBe(true);
+    expect(EXT.test('earn_formula.js')).toBe(true);
+    expect(EXT.test('pay.tsx')).toBe(true);
+  });
+
+  it('THE CANARY: comment stripping did not blank the TypeScript', () => {
+    // The hazard §F.0 names. A single unconditional stripper with a '#' rule
+    // truncates every hex colour literal, and they are pervasive in the app.
+    // T7, T8 and T24 would keep passing over the wreckage.
+    for (const p of [
+      'almond-app/components/ui/Button.tsx',
+      'almond-app/components/loyalty/Cup.tsx',
+    ]) {
+      const f = sources.find((s) => s.path === p);
+      expect(f, `${p} must be in the walk`).toBeDefined();
+      expect(f!.code.join('\n'), `${p}: hex literals were eaten by the stripper`)
+        .toContain('#');
+    }
+
+    // The stripper is not simply a no-op either: it still removes comments.
+    expect(stripComments(['const a = 1; // POINTS_PER_JOD'], 'ts')).toEqual(['const a = 1; ']);
+    expect(stripComments(['const c = "#ABCDEF";'], 'ts')).toEqual(['const c = "#ABCDEF";']);
+  });
+
+  it('the Python branch strips comments and docstrings, not code', () => {
+    // A '#' comment goes; a '#' inside a string stays; a docstring naming an
+    // earn constant is prose, not an implementation — otherwise the only way to
+    // keep T7 green would be to delete the explanation.
+    expect(stripComments(['rate = 4  # POINTS_PER_JOD'], 'py')).toEqual(['rate = 4  ']);
+    expect(stripComments(['colour = "#ABCDEF"'], 'py')).toEqual(['colour = "#ABCDEF"']);
+    expect(stripComments(['x = 1', '"""POINTS_PER_JOD lives in shared."""', 'y = 2'], 'py'))
+      .toEqual(['x = 1', '', 'y = 2']);
+    const block = stripComments(
+      ['"""', 'MAX_EARN_MULTIPLIER is not applied here.', '"""', 'z = 3'],
+      'py',
+    );
+    expect(block).toEqual(['', '', '', 'z = 3']);
   });
 });
 
@@ -609,12 +624,7 @@ describe('T10 checkout: the points the route grants equal computeEarn on the sam
 
   beforeAll(async () => {
     app = await build();
-    await app.inject({ method: 'POST', url: '/v1/auth/otp/request', payload: { phone: '0790000000' } });
-    const v = await app.inject({
-      method: 'POST', url: '/v1/auth/otp/verify',
-      payload: { phone: '0790000000', code: '123456' },
-    });
-    token = v.json().token;
+    token = await signIn(app, '0790000000');
   });
 
   it('grants exactly computeEarn({ total, windowSpend, paidFromBalance, comboPairs }).points', async () => {

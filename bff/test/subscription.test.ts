@@ -3,6 +3,7 @@ import type { FastifyInstance } from 'fastify';
 import { randomUUID } from 'node:crypto';
 import { config as loyalty } from '@almond/shared/config';
 import { build } from '../src/server';
+import { signIn } from './lib/signIn';
 
 let app: FastifyInstance;
 let token: string;
@@ -12,8 +13,7 @@ const post = (url: string, body: any) =>
 
 beforeAll(async () => {
   app = await build();
-  await app.inject({ method: 'POST', url: '/v1/auth/otp/request', payload: { phone: '0790000000' } });
-  token = (await app.inject({ method: 'POST', url: '/v1/auth/otp/verify', payload: { phone: '0790000000', code: '123456' } })).json().token;
+  token = await signIn(app, '0790000000');
 });
 
 describe('Almond Club subscription', () => {
@@ -36,8 +36,7 @@ describe('Almond Club subscription', () => {
 
   it('rejects redeem without an active subscription', async () => {
     // a fresh member (different phone) has no subscription
-    await app.inject({ method: 'POST', url: '/v1/auth/otp/request', payload: { phone: '0788888888' } });
-    const t2 = (await app.inject({ method: 'POST', url: '/v1/auth/otp/verify', payload: { phone: '0788888888', code: '123456' } })).json().token;
+    const t2 = await signIn(app, '0788888888');
     const r = await app.inject({ method: 'POST', url: '/v1/subscription/redeem', payload: {}, headers: { authorization: `Bearer ${t2}`, 'idempotency-key': randomUUID() } });
     expect(r.statusCode).toBe(409);
     expect(r.json().error).toBe('not_subscribed');
