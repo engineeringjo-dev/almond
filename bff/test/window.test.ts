@@ -2,6 +2,8 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { randomUUID } from 'node:crypto';
 import type { FastifyInstance } from 'fastify';
 import { config } from '@almond/shared/config';
+import { menuItems } from '@almond/shared/menu';
+import { itemKind } from '@almond/shared/lib/categoryKind';
 import { ammanDayKey } from '@almond/shared/lib/ammanWeekday';
 import { computeEarn, earnRulesFromConfig, higherRung } from '@almond/shared/loyalty/earn';
 import { tiers, MEASURED_MEMBER_BASKET_JOD } from '@almond/shared/loyalty';
@@ -489,7 +491,13 @@ describe('W1-10 the window reaches the wire', () => {
   let app: FastifyInstance;
   let token: string;
   const auth = () => ({ authorization: `Bearer ${token}` });
-  const line = { itemId: 'hot-americano', sizeId: 'M' as const, optionIds: [], qty: 1 };
+  // Chosen FROM the menu, not hardcoded: `itemId: 'hot-americano'` was a
+  // Talabat id, and the Odoo pull renumbered every item to `p-<odooId>` — the
+  // checkout then 400'd on an unknown item and this read as a broken window.
+  const DRINK = menuItems.find(
+    (m) => itemKind(m.id) === 'drink' && m.inStock !== false && m.sizes[0]?.price > 0,
+  )!;
+  const line = { itemId: DRINK.id, sizeId: DRINK.sizes[0].id, optionIds: [], qty: 1 };
 
   beforeAll(async () => {
     app = await build();

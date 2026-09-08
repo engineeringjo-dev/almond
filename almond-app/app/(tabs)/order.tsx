@@ -22,7 +22,7 @@ import { useI18n } from '@/hooks/useI18n';
 import { useCategories, useMenuItems } from '@/hooks/useMenu';
 import { useOrderHistory } from '@/hooks/useOrder';
 import { formatJOD, formatDate } from '@/lib/format';
-import { cdnImage } from '@/lib/cdnImage';
+import { menuImage } from '@/lib/menuImage';
 import { iconForCategory, iconForItem } from '@/lib/productIcon';
 import { useFavouritesStore } from '@/stores/favouritesStore';
 import { useCartStore } from '@/stores/cartStore';
@@ -207,7 +207,7 @@ function MenuTab({
                   <Pressable key={item.id} style={styles.trendItem} onPress={() => onSelect(item)}>
                     <View style={styles.trendThumb}>
                       {item.imageUrl ? (
-                        <Image source={{ uri: cdnImage(item.imageUrl, 200) }} style={styles.trendPhoto} resizeMode="cover" />
+                        <Image source={{ uri: menuImage(item.imageUrl, 200) }} style={styles.trendPhoto} resizeMode="cover" />
                       ) : (
                         <Icon name={iconForCategory(item.categoryId)} size={30} color={colors.brown} strokeWidth={1.6} />
                       )}

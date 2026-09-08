@@ -28,10 +28,11 @@ export function getItemById(id: string): MenuItem | undefined {
   return menuItems.find((item) => item.id === id);
 }
 
-/** Lowest size price for an item — used for "from X" labels. */
-export function itemFromPrice(item: MenuItem): number {
-  return item.sizes.reduce((min, s) => Math.min(min, s.price), Infinity);
-}
+/** The least a member can actually pay — size floor PLUS any mandatory
+ *  single-choice group. Lives in @almond/shared so the app and the website
+ *  quote one number; this local `min(sizes)` advertised «من ٠٫٠٠٠ د.أ» for the
+ *  thirty items the export prices entirely through a required modifier. */
+export { itemFromPrice } from '@almond/shared/menu';
 
 export interface CategorySection {
   category: Category;

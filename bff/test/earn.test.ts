@@ -11,6 +11,7 @@ import { ammanWeekday } from '@almond/shared/lib/ammanWeekday';
 import { computeTotals } from '@almond/shared/cart';
 import { comboPairs } from '@almond/shared/lib/combo';
 import { menuItems } from '@almond/shared/menu';
+import { itemKind } from '@almond/shared/lib/categoryKind';
 import type { CartItem } from '@almond/shared/types';
 import * as bffEarn from '../src/earn';
 import { reprice } from '../src/pricing';
@@ -110,6 +111,17 @@ const SHIPPED: EarnRules = {
   weekdayBonus: [],
   bonusDay: { enabled: false, multiplier: 2, weekdays: [2] },
 };
+
+/**
+ * A real drink and a real food item, chosen by the SAME classifier `comboPairs`
+ * uses. The literals here were `'mineral-water'` and `'cake-pop'` — Talabat ids
+ * — and the Odoo pull renumbered everything to `p-<odooId>`, so `itemKind` fell
+ * through to 'other' for both, `comboPairs` returned 0 where the test expected
+ * 10, and a passing combo rule read as a broken one. Prices stay explicit
+ * because the arithmetic below is the point; only the identity is derived.
+ */
+const COMBO_DRINK = menuItems.find((m) => itemKind(m.id) === 'drink')!;
+const COMBO_FOOD = menuItems.find((m) => itemKind(m.id) === 'food')!;
 
 function cartLine(itemId: string, unitBasePrice: number, qty: number, isDrink: boolean): CartItem {
   return {
@@ -589,8 +601,8 @@ describe('earn: the ceiling (D1) and where the combo sits (D4) — T5, T5b', () 
     // §4 D4 secondary example, priced through computeTotals so the tax basis
     // (§1.1) cannot drift: a 17.50 subtotal is a 20.30 INVOICE.
     const cart = [
-      cartLine('mineral-water', 0.75, 10, true),
-      cartLine('cake-pop', 1.0, 10, false),
+      cartLine(COMBO_DRINK.id, 0.75, 10, true),
+      cartLine(COMBO_FOOD.id, 1.0, 10, false),
     ];
     expect(computeTotals(cart, 0).total).toBeCloseTo(20.3, 6);
     expect(comboPairs(cart)).toBe(10);
@@ -615,8 +627,14 @@ describe('earn: the ceiling (D1) and where the combo sits (D4) — T5, T5b', () 
     // §4 D4 primary example: 10 x mineral water + 10 x a ZERO-priced Mother's
     // Day cake ⇒ subtotal 7.50, invoice 8.70.
     const cart = [
-      cartLine('mineral-water', 0.75, 10, true),
-      cartLine('mother-s-day-coffee-cake', 0, 10, false),
+      cartLine(COMBO_DRINK.id, 0.75, 10, true),
+      // The zero price is supplied HERE, by the fixture — it is the point of the
+      // test. The identity is derived because 'mother-s-day-coffee-cake' was a
+      // Talabat id; and note the Odoo pull now refuses to ship any item whose
+      // cheapest complete configuration is 0.000, so no such menu row exists to
+      // point at any more. A zero-priced LINE is still reachable (a voucher, a
+      // staff item) and still mints combo points, which is what §8.7 is about.
+      cartLine(COMBO_FOOD.id, 0, 10, false),
     ];
     expect(computeTotals(cart, 0).total).toBeCloseTo(8.7, 6);
     expect(comboPairs(cart)).toBe(10);

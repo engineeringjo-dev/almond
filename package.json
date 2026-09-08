@@ -15,6 +15,7 @@
     "shared:typecheck": "npm run typecheck --workspace @almond/shared",
     "web:dev": "npm run dev --workspace almond-web",
     "web:build": "npm run build --workspace almond-web",
-    "web:typecheck": "npm run typecheck --workspace almond-web"
+    "web:typecheck": "npm run typecheck --workspace almond-web",
+    "menu:pull": "tsx scripts/odoo-menu-pull.ts"
   }
 }

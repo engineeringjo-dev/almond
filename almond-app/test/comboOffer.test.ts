@@ -81,20 +81,22 @@ describe('O1 the cold-start pair', () => {
     expect(itemKind(s.food.id)).toBe('food');
   });
 
-  it('has a real price on both halves, and unpriced rows exist to get it wrong with', () => {
-    // 30 of the 267 shipped items are priced 0.000 — price-on-request rows in
-    // the Talabat export. A card whose claim is "you pay the FULL PRICE of
-    // both" cannot suggest a half with no price to pay, and a "cheapest" rule
-    // without a price floor picks exactly those rows.
+  it('has a real price on both halves — and the menu no longer has unpriced rows', () => {
+    // 🔴 THIS TEST REVERSED WITH THE ODOO MENU (2026-09-08).
     //
-    // Stated honestly: the floor does NOT bind on today's menu. The unpriced
-    // foods tie on relevance with the croissants that fill the candidate
-    // window and are held out of it only by menu order. Both halves of that
-    // are asserted, so the day a menu reorder makes the floor load-bearing,
-    // this test is already watching the right thing.
+    // It used to assert that 30 of the 267 shipped items were priced 0.000 —
+    // price-on-request rows in the Talabat export — because a "cheapest pair"
+    // rule with no price floor picks exactly those, and a card promising "you
+    // pay the FULL PRICE of both" cannot suggest a half with no price to pay.
+    // The comment recorded honestly that the floor did not yet bind.
+    //
+    // The Odoo pull removes the hazard at the source: it refuses to emit any
+    // item whose cheapest complete configuration is 0.000, so there is nothing
+    // left for the floor to catch. The floor STAYS — a future menu source could
+    // reintroduce such rows — but the guarantee is now upstream of it, and this
+    // asserts that guarantee rather than the hazard it replaced.
     const unpriced = menuItems.filter((m) => Math.min(...m.sizes.map((z) => z.price)) === 0);
-    expect(unpriced.length, 'no unpriced rows — the floor guards nothing').toBe(30);
-    expect(unpriced.some((m) => itemKind(m.id) === 'food')).toBe(true);
+    expect(unpriced.map((m) => m.nameEn), 'the pull must not emit unpriced rows').toEqual([]);
 
     const s = getComboStarter()!;
     expect(s.drinkSize.price).toBeGreaterThan(0);
@@ -130,16 +132,21 @@ describe('O1 the cold-start pair', () => {
       .toEqual([b.drink.id, b.drinkSize.id, b.food.id, b.foodSize.id]);
   });
 
-  it('94% of the menu can pair, which is why the card suggests instead of filtering', () => {
+  it('96% of the menu can pair, which is why the card suggests instead of filtering', () => {
     // The number behind the design decision, pinned so a menu change that
-    // invalidated it would be seen. 267 items: 69 drink, 182 food, 16 other.
+    // invalidated it would be seen — and on 2026-09-08 it was seen, which is
+    // this test doing its job rather than breaking. The Talabat export's 267
+    // items (69 drink / 182 food / 16 other, 94% pairable) became the Odoo
+    // shop menu's 373 (77 / 282 / 14, 96% pairable). The design holds and the
+    // margin widened; only the census moved.
     const kinds = menuItems.map((m) => itemKind(m.id));
     const pairable = kinds.filter((k) => k !== 'other').length;
-    expect(menuItems.length).toBe(267);
-    expect(kinds.filter((k) => k === 'drink').length).toBe(69);
-    expect(kinds.filter((k) => k === 'food').length).toBe(182);
-    // A "combo-eligible" menu filter would remove 16 of 267 items and hand the
-    // member back the menu they were already looking at.
+    expect(menuItems.length).toBe(373);
+    expect(kinds.filter((k) => k === 'drink').length).toBe(77);
+    expect(kinds.filter((k) => k === 'food').length).toBe(282);
+    // A "combo-eligible" menu filter would remove 14 of 373 items and hand the
+    // member back the menu they were already looking at. The 14 are the coffee
+    // equipment and the candles/flowers/gift-box "Sides" — genuinely neither.
     expect(pairable / menuItems.length).toBeGreaterThan(0.93);
   });
 });

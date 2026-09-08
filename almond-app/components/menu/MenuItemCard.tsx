@@ -1,13 +1,14 @@
 import { memo } from 'react';
 import { Pressable, StyleSheet, View, Image } from 'react-native';
 import { Text } from '@/components/ui/Text';
-import { cdnImage } from '@/lib/cdnImage';
+import { menuImage } from '@/lib/menuImage';
 import { Icon } from '@/components/ui/Icon';
 import { colors, radius, spacing, shadow } from '@/constants/theme';
 import { useI18n } from '@/hooks/useI18n';
 import { formatJOD } from '@/lib/format';
 import { iconForCategory } from '@/lib/productIcon';
 import type { MenuItem } from '@/types';
+import { itemFromPrice } from '@almond/shared/menu';
 
 interface Props {
   item: MenuItem;
@@ -17,7 +18,7 @@ interface Props {
 /** Grid tile (2-col). Shows the lowest size price as "from". */
 function MenuItemCardBase({ item, onPress }: Props) {
   const { t, lang } = useI18n();
-  const minPrice = Math.min(...item.sizes.map((s) => s.price));
+  const minPrice = itemFromPrice(item);
   const soldOut = item.inStock === false;
 
   return (
@@ -29,7 +30,7 @@ function MenuItemCardBase({ item, onPress }: Props) {
     >
       <View style={styles.thumb}>
         {item.imageUrl ? (
-          <Image source={{ uri: cdnImage(item.imageUrl, 320) }} style={styles.photo} resizeMode="contain" />
+          <Image source={{ uri: menuImage(item.imageUrl, 320) }} style={styles.photo} resizeMode="contain" />
         ) : (
           <Icon name={iconForCategory(item.categoryId)} size={44} color={colors.brown} strokeWidth={1.6} />
         )}

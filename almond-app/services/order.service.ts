@@ -1,4 +1,6 @@
-import type { Order, OrderStatus } from '@/types';
+import type { CartItem, Order, OrderStatus } from '@/types';
+import { menuItems } from '@almond/shared/menu';
+import { itemKind } from '@almond/shared/lib/categoryKind';
 import { config } from '@/constants/config';
 import { toAmmanISO } from '@/lib/format';
 import { delay, genId } from './util';
@@ -43,33 +45,64 @@ const STATUS_FLOW: OrderStatus[] = ['received', 'preparing', 'ready', 'completed
 // In-memory order store for the mock (resets on reload).
 const orders = new Map<string, Order>();
 
+/**
+ * Two real menu rows for the seeded history.
+ *
+ * 🔴 THE IDS MUST EXIST IN THE MENU, NOT JUST LOOK LIKE FOOD. This seed used to
+ * hardcode `itemId: 'latte'` and `'butter-croissant'` — Talabat ids. The Odoo
+ * pull renumbered every item to `p-<odooId>`, and because "Reorder" copies these
+ * stored lines straight into the cart (app/profile/orders.tsx), a member
+ * reordering their demo history would have built a basket of items the server
+ * has never heard of and been refused at checkout. The card would have rendered
+ * perfectly on the way there: the line carries its own name and price, so
+ * nothing looks wrong until the 400.
+ *
+ * Derived by the same classifier the rest of the app uses, so this cannot rot
+ * against the next menu source either.
+ */
+const SEED_DRINK = menuItems.find(
+  (m) => itemKind(m.id) === 'drink' && m.sizes[0]?.price > 0,
+)!;
+const SEED_FOOD = menuItems.find(
+  (m) => itemKind(m.id) === 'food' && m.sizes[0]?.price > 0,
+)!;
+
+const seedLine = (item: typeof SEED_DRINK, isDrink: boolean): CartItem => ({
+  lineId: `${item.id}__${item.sizes[0].id}__`,
+  itemId: item.id,
+  nameAr: item.nameAr, nameEn: item.nameEn, emoji: item.emoji,
+  sizeId: item.sizes[0].id,
+  sizeNameAr: item.sizes[0].nameAr, sizeNameEn: item.sizes[0].nameEn,
+  unitBasePrice: item.sizes[0].price, customizations: [], qty: 1, isDrink,
+});
+
 function seedHistory(userId: string) {
   if ([...orders.values()].some((o) => o.userId === userId)) return;
   // Seed a couple of past orders so "My Usual" and history work (section 7.2).
   const now = Date.now();
+  const drink = seedLine(SEED_DRINK, true);
+  const food = seedLine(SEED_FOOD, false);
+  // Totals follow the seeded lines rather than restating them, so the history
+  // cannot claim a price the basket does not add up to.
+  const t = (lines: CartItem[]) => {
+    const subtotal = lines.reduce((sum, l) => sum + l.unitBasePrice * l.qty, 0);
+    const tax = Math.round(subtotal * config.TAX_RATE * 1000) / 1000;
+    return { subtotal, tax, discount: 0, total: Math.round((subtotal + tax) * 1000) / 1000 };
+  };
   const past: Order[] = [
     {
       id: genId('order'), userId, type: 'pickup', branchId: 'khalda',
       branchNameAr: 'الخالدة', branchNameEn: 'Khalda',
-      items: [{
-        lineId: 'latte__M__', itemId: 'latte', nameAr: 'لاتيه', nameEn: 'Latte', emoji: '🥛',
-        sizeId: 'M', sizeNameAr: 'وسط', sizeNameEn: 'Medium', unitBasePrice: 2.5, customizations: [], qty: 1, isDrink: true,
-      }],
-      subtotal: 2.5, tax: 0.4, discount: 0, total: 2.9, paymentMethod: 'cash',
+      items: [drink],
+      ...t([drink]), paymentMethod: 'cash',
       paidFromBalance: false, status: 'completed', createdAt: new Date(now - 86400000 * 3).toISOString(),
       targetReadyAt: new Date(now - 86400000 * 3 + 420000).toISOString(), prepMinutes: 7,
     },
     {
       id: genId('order'), userId, type: 'pickup', branchId: 'khalda',
       branchNameAr: 'الخالدة', branchNameEn: 'Khalda',
-      items: [{
-        lineId: 'latte__M__', itemId: 'latte', nameAr: 'لاتيه', nameEn: 'Latte', emoji: '🥛',
-        sizeId: 'M', sizeNameAr: 'وسط', sizeNameEn: 'Medium', unitBasePrice: 2.5, customizations: [], qty: 1, isDrink: true,
-      }, {
-        lineId: 'butter-croissant__M__', itemId: 'butter-croissant', nameAr: 'كرواسان بالزبدة', nameEn: 'Butter Croissant', emoji: '🥐',
-        sizeId: 'M', sizeNameAr: 'عادي', sizeNameEn: 'Regular', unitBasePrice: 1.8, customizations: [], qty: 1, isDrink: false,
-      }],
-      subtotal: 4.3, tax: 0.69, discount: 0, total: 4.99, paymentMethod: 'wallet',
+      items: [drink, food],
+      ...t([drink, food]), paymentMethod: 'wallet',
       paidFromBalance: true, status: 'completed', createdAt: new Date(now - 86400000 * 7).toISOString(),
       targetReadyAt: new Date(now - 86400000 * 7 + 420000).toISOString(), prepMinutes: 7,
     },

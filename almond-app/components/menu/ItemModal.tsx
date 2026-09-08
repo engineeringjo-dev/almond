@@ -3,7 +3,7 @@ import { View, StyleSheet, Pressable, Image } from 'react-native';
 
 import { BottomSheet } from '@/components/ui/BottomSheet';
 import { Text } from '@/components/ui/Text';
-import { cdnImage } from '@/lib/cdnImage';
+import { menuImage } from '@/lib/menuImage';
 import { Button } from '@/components/ui/Button';
 import { Stepper } from '@/components/ui/Stepper';
 import { Icon } from '@/components/ui/Icon';
@@ -17,6 +17,7 @@ import { getSizeUpsell, getItemPairings } from '@/lib/recommendations';
 import { useCartStore } from '@/stores/cartStore';
 import { useFavouritesStore } from '@/stores/favouritesStore';
 import type { MenuItem, ItemSize, CartCustomization } from '@/types';
+import { itemFromPrice } from '@almond/shared/menu';
 
 interface Props {
   item: MenuItem | null;
@@ -118,7 +119,7 @@ export function ItemModal({ item, visible, onClose }: Props) {
         </Pressable>
         <View style={styles.thumb}>
           {item.imageUrl ? (
-            <Image source={{ uri: cdnImage(item.imageUrl, 560) }} style={styles.photo} resizeMode="contain" />
+            <Image source={{ uri: menuImage(item.imageUrl, 560) }} style={styles.photo} resizeMode="contain" />
           ) : (
             <Icon name={iconForCategory(item.categoryId)} size={52} color={colors.brown} strokeWidth={1.6} />
           )}
@@ -255,7 +256,7 @@ export function ItemModal({ item, visible, onClose }: Props) {
                     {lang === 'ar' ? p.nameAr : p.nameEn}
                   </Text>
                   <Text variant="caption" color={isAdded ? colors.white : colors.gold}>
-                    {isAdded ? t('menu.added') : `+${formatJOD(Math.min(...p.sizes.map((s) => s.price)), lang)}`}
+                    {isAdded ? t('menu.added') : `+${formatJOD(itemFromPrice(p), lang)}`}
                   </Text>
                 </Pressable>
               );

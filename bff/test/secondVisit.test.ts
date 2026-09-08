@@ -5,7 +5,7 @@ import { config } from '@almond/shared/config';
 import { liveBalance } from '@almond/shared/loyalty/lots';
 import { menuItems } from '@almond/shared/menu';
 import { basketHasDrink } from '@almond/shared/lib/combo';
-import { itemKind } from '@almond/shared/lib/categoryKind';
+import { categoryGroup, itemKind } from '@almond/shared/lib/categoryKind';
 import {
   assignHoldout, holdoutSpecFromConfig, receivesTreatment, type HoldoutStamp,
 } from '@almond/shared/loyalty/holdout';
@@ -44,9 +44,10 @@ const TREATMENT_KEYS = ['demo', 'm_0'];
 /** A real drink and a real not-a-drink, both chosen from the shipped menu by
  *  the same classifier production uses. */
 const DRINK = menuItems.find((m) => itemKind(m.id) === 'drink' && m.inStock !== false && m.sizes[0]?.price > 0)!;
-/** 250 g of retail beans: `isDrink === true` on the record, `itemKind 'other'`
- *  in reality. This is the 14-of-83 case (see T32l). */
-const BEANS = menuItems.find((m) => m.id === 'espresso-blend-250-gm-specialty-coffee')!;
+/** Coffee EQUIPMENT — a V60 dripper. Sits in a `beans` category, so `itemKind`
+ *  calls it 'other'; a classifier keying off the word "coffee" would call it a
+ *  drink and issue "the second one's on us" on a plastic cone. See T32l. */
+const BEANS = menuItems.find((m) => categoryGroup(m.categoryId) === 'beans')!;
 
 const lineOf = (id: string) => {
   const item = menuItems.find((m) => m.id === id)!;
@@ -538,23 +539,32 @@ describe('T32l the drink test is itemKind, not item.isDrink', () => {
     sizeNameAr: '', sizeNameEn: '', unitBasePrice: 1, customizations: [], qty: 1,
   } as unknown as CartItem]);
 
-  it('a basket of 250 g retail beans contains no drink, though the record says isDrink', () => {
-    expect(BEANS.isDrink, 'the fixture must be one of the 14 mislabelled items').toBe(true);
+  it('coffee EQUIPMENT is not a drink, however much its name says coffee', () => {
     expect(basketHasDrink(cart(BEANS.id))).toBe(false);
     expect(basketHasDrink(cart(DRINK.id))).toBe(true);
   });
 
-  it('every itemKind drink is flagged, but 14 flagged items are not drinks', () => {
-    // Measured over the shipped menu: 267 items, 83 carry isDrink, 69 classify
-    // as 'drink', and the 69 are a strict subset of the 83. The 14 extras are
-    // seven retail coffee bags, a V60 dripper, a V60 craft maker, V60 PAPER
-    // FILTERS, three granola cups and a chia pudding. `item.isDrink` would
-    // issue "the second one's on us" on a pack of paper filters.
-    const flagged = menuItems.filter((m) => m.isDrink === true);
-    const drinks = menuItems.filter((m) => itemKind(m.id) === 'drink');
-    expect(drinks.every((d) => d.isDrink === true)).toBe(true);
-    expect(flagged.length - drinks.length).toBeGreaterThan(0);
-    expect(menuItems.some((m) => m.isDrink === true && itemKind(m.id) !== 'drink')).toBe(true);
+  it('the menu carries no isDrink flag to disagree with — itemKind is the only classifier', () => {
+    // 🔴 THIS TEST REVERSED WITH THE ODOO MENU (2026-09-08), AND THE REVERSAL IS
+    // THE FIX LANDING.
+    //
+    // It used to assert a DISCREPANCY: the Talabat export flagged 83 items
+    // `isDrink` of which only 69 were drinks — seven retail bean bags, a V60
+    // dripper, V60 PAPER FILTERS, granola cups, a chia pudding. The test's job
+    // was to keep that discrepancy visible so nobody wired the voucher to the
+    // flag and gave away a free drink on a pack of filters.
+    //
+    // The Odoo pull emits no `isDrink` at all, deliberately: Odoo's own tree
+    // files the "Sides" category under Drink, and Sides holds four candles, a
+    // flowers cup and a gift box — the same defect wearing a different costume
+    // (scripts/odoo-menu-pull.ts records the measurement). A field that cannot
+    // be made right is not shipped.
+    //
+    // So there is nothing left to disagree with `itemKind`, and what this test
+    // guards now is that it STAYS that way: reintroducing the flag re-opens the
+    // free-drink-on-paper-filters hole this suite was written for.
+    expect(menuItems.filter((m) => m.isDrink !== undefined)).toEqual([]);
+    expect(menuItems.some((m) => itemKind(m.id) === 'drink')).toBe(true);
   });
 
   it('a zero-quantity drink line is not a drink', () => {

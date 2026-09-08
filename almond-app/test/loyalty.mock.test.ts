@@ -9,6 +9,8 @@ import {
   qualifyingSpend, qualifyingVisitDays, spendEntry, windowRulesFromConfig,
 } from '@almond/shared/loyalty/window';
 import { comboPairs } from '@almond/shared/lib/combo';
+import { itemKind } from '@almond/shared/lib/categoryKind';
+import { menuItems } from '@almond/shared/menu';
 import type { CartItem } from '@almond/shared/types';
 import {
   mockLoyaltyService,
@@ -39,6 +41,11 @@ import { defaultSpinConfig } from '@/services/spinDefaults';
  */
 
 const DAY = 86400000;
+
+/** A real drink and a real food item, chosen by the same classifier comboPairs
+ *  uses, so the pair is countable whatever the menu source is called today. */
+const COMBO_DRINK = menuItems.find((m) => itemKind(m.id) === 'drink')!;
+const COMBO_FOOD = menuItems.find((m) => itemKind(m.id) === 'food')!;
 let seq = 0;
 const newUserId = () => `test-user-${++seq}`;
 
@@ -231,9 +238,13 @@ describe('D2 — one earn calculation: the app grants what computeEarn returns',
     // §3.5 row 5: the estimate must equal the grant BY CONSTRUCTION. The one
     // deliberate difference is ESTIMATE_RULES' `weekdayBonus: []` (§8.9), and
     // binding against that same object is what keeps the difference deliberate.
+    // Identities derived, prices explicit: 'mineral-water' and 'cake-pop' were
+    // Talabat ids, and after the Odoo pull renumbered every item to
+    // `p-<odooId>` both fell through `itemKind` to 'other' — so comboPairs
+    // returned 0 and the estimate looked broken when only the fixture was.
     const items: CartItem[] = [
-      cartLine('mineral-water', 0.75, 2, true),
-      cartLine('cake-pop', 1.0, 2, false),
+      cartLine(COMBO_DRINK.id, 0.75, 2, true),
+      cartLine(COMBO_FOOD.id, 1.0, 2, false),
     ];
     expect(comboPairs(items)).toBe(2);
 

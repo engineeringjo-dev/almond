@@ -2,7 +2,7 @@ import { View, StyleSheet, ScrollView, Pressable, Image } from 'react-native';
 import { useMemo, useState } from 'react';
 
 import { Text } from '@/components/ui/Text';
-import { cdnImage } from '@/lib/cdnImage';
+import { menuImage } from '@/lib/menuImage';
 import { Icon } from '@/components/ui/Icon';
 import { ItemModal } from '@/components/menu/ItemModal';
 import { colors, spacing, radius, shadow } from '@/constants/theme';
@@ -11,6 +11,7 @@ import { formatJOD } from '@/lib/format';
 import { iconForCategory } from '@/lib/productIcon';
 import { menuItems } from '@/services/seed';
 import type { MenuItem } from '@/types';
+import { itemFromPrice } from '@almond/shared/menu';
 
 export function FeaturedRow() {
   const { t, lang } = useI18n();
@@ -40,7 +41,7 @@ export function FeaturedRow() {
           >
             <View style={styles.thumb}>
               {item.imageUrl ? (
-                <Image source={{ uri: cdnImage(item.imageUrl, 260) }} style={styles.photo} resizeMode="contain" />
+                <Image source={{ uri: menuImage(item.imageUrl, 260) }} style={styles.photo} resizeMode="contain" />
               ) : (
                 <Icon name={iconForCategory(item.categoryId)} size={46} color={colors.primary} strokeWidth={1.6} />
               )}
@@ -50,7 +51,7 @@ export function FeaturedRow() {
             </Text>
             <Text variant="price">
               {item.sizes.length > 1 ? (lang === 'ar' ? 'من ' : 'from ') : ''}
-              {formatJOD(Math.min(...item.sizes.map((s) => s.price)), lang)}
+              {formatJOD(itemFromPrice(item), lang)}
             </Text>
           </Pressable>
         ))}

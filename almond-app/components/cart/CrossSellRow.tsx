@@ -11,6 +11,7 @@ import { iconForCategory } from '@/lib/productIcon';
 import { getCartCrossSell, getComboUpsell } from '@/lib/recommendations';
 import { useCartStore } from '@/stores/cartStore';
 import type { CartItem } from '@/types';
+import { itemFromPrice } from '@almond/shared/menu';
 
 /**
  * Cart cross-sell carousel (UX / Starbucks "complete your order"). Suggests
@@ -64,7 +65,7 @@ export function CrossSellRow({ items }: { items: CartItem[] }) {
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.row}>
         {suggestions.map((item) => {
           const isAdded = added[item.id];
-          const minPrice = Math.min(...item.sizes.map((s) => s.price));
+          const minPrice = itemFromPrice(item);
           return (
             <View key={item.id} style={styles.card}>
               <View style={styles.thumb}>

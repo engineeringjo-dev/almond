@@ -11,7 +11,7 @@ import {
   consumeFifo, grantLot, liveBalance, walletLotRulesFromConfig,
 } from '@almond/shared/loyalty/lots';
 import { computeEarn, earnRulesFromConfig } from '@almond/shared/loyalty/earn';
-import { menuItems } from '@almond/shared/menu';
+import { menuItems, itemFromPrice } from '@almond/shared/menu';
 import { build } from '../src/server';
 import { signIn } from './lib/signIn';
 
@@ -392,5 +392,73 @@ describe('T33m the Wafii migration must not pay for names it already carries', (
     for (const p of [{ name: 'حمزة' }, { name: '  حمزة  ' }, { name: '' }, {}]) {
       expect(migratedProfileBonusAt(p, CUTOVER) !== null).toBe(isProfileComplete(p));
     }
+  });
+});
+
+describe('T34 the "from" price is the least a member can actually pay', () => {
+  // 🔴 THIRTY SHIPPED ITEMS PRICE ENTIRELY THROUGH A MANDATORY MODIFIER. Every
+  // full cake and all ten pizzas are base 0.000 with a single-choice group
+  // holding the real money (Medium 16.000 / Large 20.000). Six call sites each
+  // computed min(sizes) and so advertised «من ٠٫٠٠٠ د.أ» for a 16-dinar cake.
+  //
+  // Nothing was ever sold at zero — the configurator pre-selects the first
+  // option — so this is a lie on the grid, not a leak at the till. It is still
+  // a lie.
+  const cake = {
+    id: 'c', categoryId: 'k', nameAr: 'كيكة', nameEn: 'Cake', emoji: '',
+    sizes: [{ id: 'M' as const, nameAr: 'عادي', nameEn: 'Regular', price: 0 }],
+    customizations: [{
+      id: 'g', nameAr: 'اختار', nameEn: 'Your choice', multiple: false,
+      options: [
+        { id: 'm', nameAr: 'وسط', nameEn: 'Medium', priceDelta: 16 },
+        { id: 'l', nameAr: 'كبير', nameEn: 'Large', priceDelta: 20 },
+      ],
+    }],
+  };
+
+  it('a mandatory single-choice group is part of the floor', () => {
+    expect(itemFromPrice(cake)).toBe(16);      // not 0
+  });
+
+  it('an OPTIONAL group is not — extras must never inflate the card', () => {
+    const withExtras = {
+      ...cake,
+      sizes: [{ id: 'M' as const, nameAr: 'عادي', nameEn: 'Regular', price: 2.5 }],
+      customizations: [{
+        id: 'x', nameAr: 'إضافات', nameEn: 'Extras', multiple: true,
+        options: [{ id: 'e', nameAr: 'شوكولاتة', nameEn: 'Chocolate', priceDelta: 0.5 }],
+      }],
+    };
+    expect(itemFromPrice(withExtras)).toBe(2.5);
+  });
+
+  it('the ordinary item is unchanged — cheapest size, nothing added', () => {
+    expect(itemFromPrice({
+      ...cake, customizations: [],
+      sizes: [
+        { id: 'M' as const, nameAr: 'وسط', nameEn: 'M', price: 2.5 },
+        { id: 'L' as const, nameAr: 'كبير', nameEn: 'L', price: 3.2 },
+      ],
+    })).toBe(2.5);
+  });
+
+  it('every shipped item can now be paid at the price its card advertises', () => {
+    // The regression net over the REAL menu: no card may quote a price below
+    // what the cheapest complete configuration of that item actually costs.
+    for (const item of menuItems) {
+      const floor = itemFromPrice(item);
+      const cheapestSize = item.sizes.length
+        ? Math.min(...item.sizes.map((s) => s.price)) : 0;
+      const forced = (item.customizations ?? [])
+        .filter((g) => !g.multiple && g.options.length > 0)
+        .reduce((sum, g) => sum + Math.min(...g.options.map((o) => o.priceDelta)), 0);
+      expect(floor).toBe(cheapestSize + forced);
+      if (forced > 0) expect(floor).toBeGreaterThan(cheapestSize);
+    }
+  });
+
+  it('no shipped item advertises 0.000 any more', () => {
+    const free = menuItems.filter((i) => itemFromPrice(i) <= 0);
+    expect(free.map((i) => i.nameEn)).toEqual([]);
   });
 });

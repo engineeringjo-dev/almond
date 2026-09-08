@@ -81,6 +81,20 @@ const DRINK = menuItems.find(
 
 const line = (qty = 1) => ({ itemId: DRINK.id, sizeId: DRINK.sizes[0].id, optionIds: [] as string[], qty });
 
+/**
+ * How many of DRINK it takes to push the window PAST `jod`.
+ *
+ * 🔴 THIS USED TO BE THE LITERAL 6 AND 12, AND THAT COUPLED THE WALK TO ONE
+ * MENU'S PRICE LEVELS. The Talabat export's first drink was ~3.5 JOD, so "buy 6"
+ * happened to clear the 20 JOD rung; the Odoo menu's first drink is Ahmad Tea at
+ * 0.500, so the same 6 bought 3.48 JOD and four rung assertions failed —
+ * reporting a broken ladder when the ladder was fine and the basket was small.
+ *
+ * Deriving the quantity from the price states what the test actually means, and
+ * the next menu change cannot make it lie again.
+ */
+const qtyToExceed = (jod: number) => Math.ceil(jod / DRINK.sizes[0].price) + 1;
+
 /** The offer, written out: points = round(tax-inclusive total × 2 × the rung's
  *  ramp). A single-kind basket makes no combo pair, so nothing is added. */
 const expectedPoints = (total: number, rungId: string): number =>
@@ -242,7 +256,7 @@ describe('SMOKE: one member, one server, sign-in to the top rung', () => {
     // Cross the threshold in one basket. The rung is read BEFORE the sale, so
     // this invoice is still paid at 2% — deliberate, and the assertion inside
     // buy() is what pins it.
-    const crossing = await buy(token, 6);
+    const crossing = await buy(token, qtyToExceed(tiers[1].threshold));
     expect(crossing.before.tier.id).toBe('base');
     expect(crossing.body.total).toBeGreaterThan(tiers[1].threshold);
     expect(crossing.body.pointsEarned).toBe(expectedPoints(crossing.body.total, 'base'));
@@ -294,8 +308,8 @@ describe('SMOKE: one member, one server, sign-in to the top rung', () => {
 
   it('S4 crossing 65 JOD pays 6%, and there is nothing left to promise', async () => {
     const { token } = await enrol();
-    await buy(token, 6);   // → plus
-    await buy(token, 12);  // → over 65 JOD
+    await buy(token, qtyToExceed(tiers[1].threshold));   // → plus
+    await buy(token, qtyToExceed(tiers[2].threshold));  // → over 65 JOD
     const top = await balance(token);
     expect(top.windowSpend).toBeGreaterThan(tiers[2].threshold);
     expect(top.tier.id).toBe('top');
@@ -317,8 +331,8 @@ describe('SMOKE: one member, one server, sign-in to the top rung', () => {
     // Ageing the stored day keys is the injected half — 90 days of wall clock
     // is not available over HTTP. Everything asserted below is over HTTP.
     const { token, id } = await enrol();
-    await buy(token, 6);
-    await buy(token, 12);
+    await buy(token, qtyToExceed(tiers[1].threshold));
+    await buy(token, qtyToExceed(tiers[2].threshold));
     expect((await balance(token)).tier.id).toBe('top');
 
     const member = await backend.getMember(id);
@@ -416,7 +430,7 @@ describe('SMOKE: one member, one server, sign-in to the top rung', () => {
     // Here the REAL bytes go through the shared parser and mapper, and the
     // result is checked against what the server actually paid.
     const { token } = await enrol();
-    await buy(token, 6); // → the 4% rung
+    await buy(token, qtyToExceed(tiers[1].threshold)); // → the 4% rung
     const res = await app.inject({ method: 'GET', url: '/v1/me/balance', headers: authOf(token) });
     const view = toLoyaltyBalance(parseMeBalance(res.json()), 'u_smoke');
 
@@ -582,7 +596,12 @@ describe('SMOKE: one member, one server, sign-in to the top rung', () => {
 
     // 5) A redemption within the live balance spends the LIVE lot, oldest
     //    first, and leaves the dead row alone.
-    const spend = 3;
+    // Derived from the lot, not the literal 3. The walk buys DRINK, and the
+    // Odoo menu's cheapest drink is 0.500 JOD — about one point a cup — so a
+    // hardcoded 3 asked for more than the ledger held and the redemption came
+    // back 409 `insufficient_points`, reading as a broken FIFO. What the step
+    // actually needs is "spend SOME of the live lot, not all of it".
+    const spend = Math.max(1, Math.floor(second.body.pointsEarned / 2));
     const ok = await app.inject({
       method: 'POST', url: '/v1/loyalty/redeem',
       payload: { points: spend },

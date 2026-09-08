@@ -35,7 +35,13 @@ const RULES: { group: CategoryGroup; en: RegExp; ar: RegExp }[] = [
   { group: 'beans', en: /bean|mug|tool|tumbler|grinder|equipment|merch/i, ar: /حبوب|بنّ|أكواب|كوب|أدوات|طاحون|معدّات|معدات/ },
   { group: 'matcha', en: /matcha/i, ar: /ماتشا/ },
   { group: 'cake', en: /cake|cheesecake/i, ar: /كيك|تشيز/ },
-  { group: 'dessert', en: /dessert|sweet|cookie|muffin|m[a']?moul|brownie|tart|granola|pie|donut|waffle|crepe|pudding/i, ar: /حلو|كوكي|مافن|معمول|براوني|تارت|جرانولا|فطير|دونات|وافل|كريب/ },
+  // `bite` and `bar` were added with the Odoo menu (2026-09-08): its "Mini
+  // Bites" (52 items — mini croissants, muffins, tarts, skewers) and "Bars"
+  // (6 oat/protein bars) matched no rule and fell through to `other`, which
+  // would have hidden 58 food items from cross-sell and from the combo's food
+  // side. The Talabat export had no category by either name, so nothing here
+  // was wrong before — the vocabulary simply grew.
+  { group: 'dessert', en: /dessert|sweet|cookie|muffin|m[a']?moul|brownie|tart|granola|pie|donut|waffle|crepe|pudding|\bbites?\b|\bbars?\b/i, ar: /حلو|كوكي|مافن|معمول|براوني|تارت|جرانولا|فطير|دونات|وافل|كريب|ألواح|قطع صغيرة/ },
   { group: 'pastry', en: /croissant|pastry|bakery|bun/i, ar: /كروسان|كرواسون|معجن|مخبوز/ },
   { group: 'salad', en: /salad/i, ar: /سلط/ },
   { group: 'savory', en: /pizza|manaqeesh|manakish|sandwich|meal|pasta|hotdog|wrap|sourdough|bread|bagel|keto|breakfast|brunch/i, ar: /بيتزا|مناقيش|ساندويش|سندويش|وجب|معكرون|باستا|ساوردو|خبز|بيغل|بيجل|كيتو|فطور|برانش/ },
