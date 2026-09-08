@@ -109,3 +109,6 @@ npx vercel inspect dpl_91KKWoHarxUMtpeoT7ZkQigk6nXC --logs
 ```
 
 (أو أيّ مُعرّف نشرٍ فاشل من فحوصات الـPR.)
+
+> تحقّق 2026-09-08: بعد فصل المشاريع الأربعة الزائدة على Vercel،
+> يجب أن يبني مشروع `almond` وحده على كل دفعة إلى `main`.
