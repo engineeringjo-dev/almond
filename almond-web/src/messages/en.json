@@ -21,7 +21,7 @@
   "Home": {
     "hero": {
       "badge": "Earn points with every order",
-      "title": "Your favourite coffee, with rewards that grow every cup",
+      "title": "Your favourite coffee, with rewards that grow with every cup",
       "subtitle": "Order from the real menu, pick up in-store or get it delivered, and collect points that turn into free drinks — on the same account as the app.",
       "cta": "Order now",
       "ctaSecondary": "Explore rewards"
@@ -43,7 +43,7 @@
     },
     "featured": {
       "title": "Most loved",
-      "subtitle": "A handpicked selection Almond regulars order again and again",
+      "subtitle": "A handpicked selection that Almond regulars order again and again",
       "viewAll": "View the full menu"
     },
     "branches": {
@@ -54,7 +54,7 @@
     "usual": {
       "title": "Your usual",
       "reorder": "Reorder",
-      "items": "{count} items"
+      "items": "Items: {count}"
     }
   },
   "Menu": {
@@ -62,7 +62,7 @@
     "subtitle": "Browse the full menu and order what you love",
     "searchPlaceholder": "Search the menu…",
     "all": "All",
-    "resultsCount": "{count} results",
+    "resultsCount": "Results: {count}",
     "noResults": "No results for “{query}”",
     "clearSearch": "Clear search",
     "customize": "Customise your order",
@@ -72,7 +72,7 @@
     "added": "Added",
     "goesWellWith": "Goes well with",
     "back": "Back to menu",
-    "soldOut": "Currently unavailable",
+    "soldOut": "Sold out",
     "from": "from",
     "total": "Total",
     "upsize": "Go {size} for +{price}"
@@ -95,7 +95,7 @@
     "promoApplied": "Code “{code}” applied",
     "promoInvalid": "Invalid code",
     "removePromo": "Remove code",
-    "freeDrink": "{n} orders to your free drink",
+    "freeDrink": "Orders to your free drink: {n}",
     "freeDrinkReady": "🎉 Your free drink is ready!",
     "comboAddFood": "Add a food item to earn +{points} points 🍽️",
     "comboAddDrink": "Add a drink to earn +{points} points ☕",
@@ -117,7 +117,7 @@
     "summary": "Order summary",
     "placeOrder": "Place order",
     "selectBranch": "Please choose a branch to continue",
-    "earnBeans": "You'll earn {beans} points on this order",
+    "earnBeans": "Points on this order: {beans}",
     "addExtra": "Add a little extra",
     "secure": "Secure, encrypted checkout",
     "accepted": "Accepted payment methods",
@@ -144,13 +144,13 @@
     "beans": "points",
     "yourBeans": "Your points",
     "tier": "Your tier",
-    "toNextTier": "Spend {jod} more to reach {tier}",
+    "toNextTier": "Spend {jod} JOD more to reach {tier}",
     "topTier": "👑 You made it — {tier} back",
     "cupProgress": "{current} of {target} orders to your free drink",
     "redeemTitle": "Redeem your points",
     "redeem": "Redeem",
     "redeemed": "Redeemed",
-    "cost": "{cost} points",
+    "cost": "Points: {cost}",
     "vouchersTitle": "Your vouchers",
     "noVouchers": "No vouchers yet",
     "expires": "Expires {date}",
@@ -160,7 +160,7 @@
     "worthNow": "Your points are worth",
     "noPointsYet": "Earn points on your next order and spend them here",
     "wholeBalance": "all your points",
-    "redeemA11y": "Take {jod} off your bill, using {points} points"
+    "redeemA11y": "Take {jod} JOD off your bill for {points} points"
   },
   "Wallet": {
     "title": "Wallet",

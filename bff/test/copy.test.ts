@@ -308,7 +308,24 @@ describe('C14 the promotion copy does not claim the invoice that earned it', () 
    * both languages, must carry a forward reference. Changing the phrasing is
    * fine; dropping the forward reference silently re-creates the contradiction.
    */
-  const FORWARD = { ar: 'زيارتك الجاية', en: 'next visit' };
+  /**
+   * 🔴 A SET, NOT A STRING — and the reason is the editorial pass of 2026-09-08.
+   *
+   * This pinned the literal «زيارتك الجاية». Raising the Arabic from colloquial
+   * to standard («القادمة» for «الجاية», the owner's «ادعُ صديقك بدل عزم»
+   * direction) turned it red for a rewrite that preserved the meaning exactly.
+   *
+   * A copy test that forbids rewording is a copy test that will be deleted the
+   * first time someone needs to reword. What is LOAD-BEARING here is the
+   * forward-pointing promise — the invoice that triggered the promotion was
+   * paid at the OLD rung, so a present-tense claim contradicts the receipt in
+   * the member's hand. Any phrasing that says "next visit" keeps that; the
+   * particular adjective does not.
+   */
+  const FORWARD: Record<'ar' | 'en', readonly string[]> = {
+    ar: ['زيارتك القادمة', 'زيارتك الجاية', 'الزيارة القادمة'],
+    en: ['next visit'],
+  };
 
   for (const lang of ['ar', 'en'] as const) {
     it(`${lang}: promotedDoubled and promotedTop both point at the next visit`, () => {
@@ -317,12 +334,12 @@ describe('C14 the promotion copy does not claim the invoice that earned it', () 
         const value = strings[key];
         expect(value, `${key} is missing from ${lang}.json`).toBeDefined();
         expect(
-          value,
+          FORWARD[lang].some((phrase) => value.includes(phrase)),
           `${key} (${lang}) must say the rate starts on the NEXT visit — the`
           + ' invoice that triggered the promotion was paid at the old rung, so'
           + ' a present-tense claim reads as a contradiction against the receipt'
           + ` the member is holding. Got: ${value}`,
-        ).toContain(FORWARD[lang]);
+        ).toBe(true);
       }
     });
   }
