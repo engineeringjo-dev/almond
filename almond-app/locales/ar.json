@@ -87,8 +87,8 @@
     "viewCart": "السلة"
   },
   "home": {
-    "greetingMorning": "صباح الكيف، {{name}}",
-    "greetingEvening": "مساء الكيف، {{name}}",
+    "greetingMorning": "صباح الخير، {{name}}",
+    "greetingEvening": "مساء الخير، {{name}}",
     "guest": "ضيف",
     "usualOrder": "طلبك المعتاد",
     "usualOrderCta": "أضف للسلة بنقرة",
@@ -113,8 +113,8 @@
     "welcomeTitle": "هديتنا الترحيبية 🎁",
     "welcomeBody": "مشروب مجاني مع أول طلب لك",
     "welcomeCta": "اطلب الآن",
-    "greetingMorningGuest": "صباح الكيف ☕",
-    "greetingEveningGuest": "مساء الكيف ☕",
+    "greetingMorningGuest": "صباح الخير ☕",
+    "greetingEveningGuest": "مساء الخير ☕",
     "nudgeCart": "لديك {{count}} صنف بسلتك — أكمل طلبك",
     "nudgeExpiry": "{{points}} من نقاطك تنتهي في {{date}} — اصرفها قبل فوات الأوان"
   },
