@@ -116,8 +116,31 @@ export function registerCheckoutRoutes(app: FastifyInstance, backend: Backend): 
       // device). Until POST /v1/promo/bonus-day/activate exists, the server
       // never pays the bonus day — a client-asserted flag would be a
       // self-crediting vector. See docs/LOYALTY-EARN-PATCH.md §3.2 / §8.1.
+      //
+      // 🔴 WHAT THE MEMBER PAID FOR THIS ORDER WITH POINTS — `pointsRedeemed`
+      // below. Points are money (owner, 2026-09-08) and the part of a bill paid
+      // with them earns nothing, so computeEarn takes the redeemed points off
+      // the invoice before the ceiling and before the rate.
+      //
+      // IT IS ZERO HERE, AND THAT IS A FACT ABOUT THIS ROUTE, NOT A DEFAULT.
+      // /v1/checkout takes NO payment in points: its body has no points field,
+      // reprice() prices the menu, and the only balance it can debit is the
+      // wallet. Redemption is a SEPARATE rail — POST /v1/loyalty/redeem spends
+      // points and hands back `valueJod` for the till to take off an Odoo order
+      // this route never sees, exactly like the second-visit voucher's free
+      // line. Nothing in this repo joins a redemption to an order id, so there
+      // is no number to pass here and inventing one ("points spent in the last
+      // few minutes") would be a guess written into a grant.
+      //
+      // WHEN THE TWO RAILS ARE JOINED — a points field on this body, or an Odoo
+      // POS order carrying both the redemption and the sale — the real figure
+      // goes in on that line, and it must be the points ACTUALLY spent against
+      // THIS invoice, resolved server-side and never asserted by a client.
+      // Until then a member who redeems at the till and then orders in the app
+      // earns on the full app invoice, because those are two different bills.
       const earn = computeEarn({
         total: totals.total,          // tax-inclusive, per §1.1
+        pointsRedeemed: 0,            // see above: no points rail on this route
         windowSpend: standing.windowSpend,
         // The FLOOR, not an override: computeEarn pays max(live rung, held
         // rung), so a member whose 90-day window has rolled off keeps the rate

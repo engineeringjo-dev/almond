@@ -1,6 +1,6 @@
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
-import { config as loyalty } from '@almond/shared/config';
+import { jodFromPoints } from '@almond/shared/loyalty/earn';
 import { toSecondVisitView } from '@almond/shared/loyalty/secondVisit';
 import { parse } from '../validate';
 import { requireMember, memberId } from '../plugins/auth';
@@ -14,9 +14,17 @@ export function registerLoyaltyRoutes(app: FastifyInstance, backend: Backend): v
   }, async (req, reply) => {
     const id = memberId(req);
     const { points } = parse(z.object({ points: z.number().int().positive() }), req.body);
+    // NO MINIMUM. Owner, 2026-09-08: points are money and a member may take any
+    // number of them off their bill — «فهي تقلل الفاتورة او تعملها مجانية».
+    // There is no catalogue and therefore no cheapest thing to be able to
+    // afford; `positive()` is the only floor and it is arithmetic, not an offer.
     const pointsBalance = await backend.spendPoints(id, points, 'استبدال نقاط', 'Points redeemed');
     return reply.code(201).send({
-      redeemed: true, pointsBalance, valueJod: points / loyalty.POINTS_PER_JOD_REDEEM,
+      // ONE conversion, in loyalty/earn.ts. The same rate now decides what the
+      // member is handed AND what comes off the invoice before the earn, so a
+      // second copy of it here would pay them at one rate and charge them at
+      // another.
+      redeemed: true, pointsBalance, valueJod: jodFromPoints(points),
     });
   });
 

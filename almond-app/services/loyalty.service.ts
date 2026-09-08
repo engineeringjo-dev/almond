@@ -21,6 +21,17 @@ export interface EarnInput {
   /** Tax-INCLUSIVE invoice total, i.e. computeTotals(...).total. See §1.1. */
   invoiceAmount: number;
   paidFromBalance: boolean;
+  /**
+   * WHOLE POINTS spent against this invoice — the redeem that made the bill
+   * cheaper or free. Absent means zero.
+   *
+   * Points are money (owner, 2026-09-08) and «لا يكسب نقاط على الجزء المدفوع
+   * بالنقاط»: the part of the bill paid with points earns nothing. POINTS, not
+   * JOD — the conversion is the shared earn function's business (its
+   * `pointsPerJodRedeem`), exactly like the points per pair below, so the phone
+   * cannot convert at one rate while the server charges at another.
+   */
+  pointsRedeemed?: number;
   /** Drink+food pairs from comboPairs(items). The POINTS per pair are the
    *  shared earn function's business, never the caller's. */
   comboPairs?: number;

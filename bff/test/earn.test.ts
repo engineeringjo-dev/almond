@@ -5,7 +5,7 @@ import { randomUUID } from 'node:crypto';
 import type { FastifyInstance } from 'fastify';
 import { config } from '@almond/shared/config';
 import {
-  computeEarn, earnedPoints, earnRulesFromConfig, type EarnRules,
+  computeEarn, earnedPoints, earnRulesFromConfig, jodFromPoints, type EarnRules,
 } from '@almond/shared/loyalty/earn';
 import { ammanWeekday } from '@almond/shared/lib/ammanWeekday';
 import { computeTotals } from '@almond/shared/cart';
@@ -44,6 +44,13 @@ const TUE = new Date('2026-09-08T10:00:00Z'); // Tuesday (BONUS_BEAN_DAY weekday
  *  edit changes exactly one test (the first), not the meaning of all of them. */
 const RULES: EarnRules = {
   pointsPerJod: 5,
+  // Deliberately NOT the shipped 100. Points are money now — the redeemed part
+  // of a bill comes off before the rate — so this rate is inside the grant, and
+  // a test suite that pinned it at 100 could not tell "reads the dial" from
+  // "divides by a literal 100". At 10, one point is worth ten times what the
+  // shipped rate makes it worth, and every expectation below moves if the
+  // implementation stops reading the field.
+  pointsPerJodRedeem: 10,
   // The OLD four-rung ramp, kept deliberately: these arithmetic tests exist to
   // prove the CALCULATION, and pinning a ramp that is no longer shipped is the
   // strongest possible statement that they do not depend on the current offer.
@@ -63,6 +70,7 @@ const RULES: EarnRules = {
   // 1e9 JOD ceiling are "effectively unbounded" without being Infinity, which
   // the guards in computeEarn reject.
   comboMaxPairsPerInvoice: 999,
+  comboBonusOnPointsPaidInvoice: false,
   maxEarningInvoiceJod: 1e9,
   weekdayBonus: [{ weekday: 5, rate: 0.5 }],
   bonusDay: { enabled: true, multiplier: 2, weekdays: [2] },
@@ -85,6 +93,7 @@ const RULES: EarnRules = {
  *  still has to prove the escape rather than assume it. */
 const SHIPPED: EarnRules = {
   pointsPerJod: 2,
+  pointsPerJodRedeem: 100,
   tierRamp: [
     { id: 'base', threshold: 0, multiplier: 1.0 },
     { id: 'plus', threshold: 20, multiplier: 2.0 },
@@ -94,6 +103,7 @@ const SHIPPED: EarnRules = {
   maxEarnMultiplier: 3.5,
   comboBonusPoints: 50,
   comboMaxPairsPerInvoice: 1,
+  comboBonusOnPointsPaidInvoice: false,
   maxEarningInvoiceJod: 100,
   weekdayBonus: [],
   bonusDay: { enabled: false, multiplier: 2, weekdays: [2] },
@@ -254,6 +264,236 @@ describe('earn: the dials the tests are written against', () => {
     expect(r.points).toBeGreaterThan(Math.round(r.cap));
     expect(r.points - r.comboBonus).toBeLessThanOrEqual(Math.round(r.cap));
     expect(r.comboBonus / (4.4 * 100)).toBeCloseTo(0.1136, 3); // 11.4% of the bill
+  });
+});
+
+// ---------------------------------------------------------------------------
+// T33 — POINTS ARE MONEY: the earn is on the CASH portion of the bill.
+//
+// Owner, 2026-09-08: «رح اعامل النقاط كنقود يستطيع استخدامها او الخصم من فاتورته
+// بعمل redeem لنقاطه. فهي تقلل الفاتورة او تعملها مجانية» — points are money and
+// a redeem takes them off the bill, making it cheaper or free. And, asked
+// whether a member earns on the part they paid with points: «لا يكسب نقاط على
+// الجزء المدفوع بالنقاط» — no.
+//
+// Without this, points mint points. A 5 JOD bill settled with 3 JOD of points
+// earning on 5 pays the member for money they never handed over; it is small at
+// 2% but it never terminates, and 65.1% of live redemption days carried no cash
+// transaction at all. Starbucks awards no stars on a redemption either.
+// ---------------------------------------------------------------------------
+describe('T33 earn: the redeemed portion of a bill earns nothing', () => {
+  it('T33a a bill paid entirely with points earns nothing on the rate', () => {
+    // 10 JOD, settled with 1000 points (= 10.00 JOD at 100 points/JOD).
+    const free = computeEarn({ total: 10, pointsRedeemed: 1000, at: MON }, SHIPPED);
+    expect(free.redeemedJod).toBe(10);
+    expect(free.cashTotal).toBe(0);
+    expect(free.earningTotal).toBe(0);
+    expect(free.base).toBe(0);
+    expect(free.points).toBe(0);
+    expect(free.effectiveMultiplier).toBe(0);
+
+    // ... at EVERY rung. The rate is a percentage of nothing, so the ladder
+    // cannot rescue it — this is the loop the owner closed.
+    for (const windowSpend of [0, 20, 65, 10_000]) {
+      expect(computeEarn({ total: 10, pointsRedeemed: 1000, windowSpend, at: MON }, SHIPPED).points)
+        .toBe(0);
+    }
+    // And the invoice is still on the record: §5b re-derives the grant from the
+    // breakdown, and `total` alone no longer determines it.
+    expect(free.total).toBe(10);
+    expect(free.pointsRedeemed).toBe(1000);
+  });
+
+  it('T33b a partly-paid bill earns on the remainder, and on nothing else', () => {
+    // THE OWNER'S OWN EXAMPLE: a 5 JOD bill settled with 3 JOD of points.
+    const r = computeEarn({ total: 5, pointsRedeemed: 300, at: MON }, SHIPPED);
+    expect(r.redeemedJod).toBe(3);
+    expect(r.cashTotal).toBe(2);
+    expect(r.points).toBe(4);                       // 2% of the 2 JOD of cash
+
+    // It is EXACTLY the grant on a 2 JOD cash bill — the equivalence is the
+    // whole rule, stated as an assertion rather than as arithmetic.
+    expect(r.points).toBe(computeEarn({ total: 2, at: MON }, SHIPPED).points);
+    // ... and it is not the grant on the 5 JOD invoice, which is what the code
+    // paid before this change.
+    expect(computeEarn({ total: 5, at: MON }, SHIPPED).points).toBe(10);
+    expect(r.points).toBeLessThan(10);
+  });
+
+  it('T33c redeeming more than the bill can never produce a negative base', () => {
+    // Over-redemption is the NORMAL case for "make it free": paying a bill to
+    // exactly zero needs ceil(total x 100) points, which usually overshoots.
+    const over = computeEarn({ total: 4, pointsRedeemed: 100_000, at: MON }, SHIPPED);
+    expect(over.cashTotal).toBe(0);
+    expect(over.base).toBe(0);
+    expect(over.points).toBe(0);
+    expect(over.points).toBeGreaterThanOrEqual(0);
+    expect(over.cashTotal).toBeGreaterThanOrEqual(0);
+
+    // A negative or fractional count cannot buy anything either: points are
+    // whole and a redemption is never negative.
+    expect(computeEarn({ total: 4, pointsRedeemed: -1000, at: MON }, SHIPPED).points)
+      .toBe(computeEarn({ total: 4, at: MON }, SHIPPED).points);
+    expect(computeEarn({ total: 4, pointsRedeemed: 250.9, at: MON }, SHIPPED).pointsRedeemed)
+      .toBe(250);
+  });
+
+  it('T33d the redemption comes off BEFORE the invoice ceiling', () => {
+    // 150 JOD invoice, 60 JOD of it paid with points, ceiling 100.
+    //   redemption first (correct): min(150 - 60, 100) = 90 JOD earns.
+    //   ceiling first (wrong):      min(150, 100) - 60 = 40 JOD earns.
+    // The ceiling guards against a mis-key at the till; it is not an allowance
+    // for a redemption to eat.
+    const r = computeEarn({ total: 150, pointsRedeemed: 6000, at: MON }, SHIPPED);
+    expect(r.cashTotal).toBe(90);
+    expect(r.earningTotal).toBe(90);
+    expect(r.invoiceCapApplied).toBe(false);
+    expect(r.points).toBe(180);
+    // The other order, spelled out so the failure is legible if it ever returns.
+    expect(r.points).not.toBe(80);
+  });
+
+  it('T33e the ceiling still binds on the cash that is left', () => {
+    // 200 JOD invoice, 50 JOD of points: 150 JOD of cash, clamped to 100.
+    const r = computeEarn({ total: 200, pointsRedeemed: 5000, at: MON }, SHIPPED);
+    expect(r.cashTotal).toBe(150);
+    expect(r.earningTotal).toBe(100);
+    expect(r.invoiceCapApplied).toBe(true);
+    expect(r.points).toBe(200);
+
+    // ... including on the mis-key the ceiling exists for. 6000 points is 60
+    // JOD against 7,085,718.64: a redemption cannot lift the clamp.
+    const misKey = computeEarn(
+      { total: 7_085_718.64, pointsRedeemed: 6000, windowSpend: 10_000, at: MON }, SHIPPED,
+    );
+    expect(misKey.invoiceCapApplied).toBe(true);
+    expect(misKey.earningTotal).toBe(100);
+    expect(misKey.points).toBe(600);
+  });
+
+  it('T33f the points→JOD conversion is read off the rules, in one place', () => {
+    // Same 50 points, two rule sets. At RULES (10 points/JOD) they are worth
+    // 5 JOD; at SHIPPED (100 points/JOD) they are worth 0.50. An implementation
+    // that divided by a literal 100 would give the same answer twice.
+    const cheap = computeEarn({ total: 10, pointsRedeemed: 50, at: MON }, RULES);
+    expect(cheap.redeemedJod).toBe(5);
+    expect(cheap.cashTotal).toBe(5);
+    expect(cheap.points).toBe(25);                  // 5 JOD x 5 points/JOD
+
+    const shipped = computeEarn({ total: 10, pointsRedeemed: 50, at: MON }, SHIPPED);
+    expect(shipped.redeemedJod).toBe(0.5);
+    expect(shipped.points).toBe(19);                // 9.50 JOD x 2 points/JOD
+
+    // The exported conversion is the SAME one, so POST /v1/loyalty/redeem hands
+    // the member the number the earn will later charge against.
+    expect(jodFromPoints(50, RULES)).toBe(cheap.redeemedJod);
+    expect(jodFromPoints(50, SHIPPED)).toBe(shipped.redeemedJod);
+    expect(jodFromPoints(100)).toBe(1);             // config: 100 points = 1 JOD
+  });
+
+  it('T33g the flat combo bonus does not pay on a bill settled entirely with points', () => {
+    // The rate needs no rule here — a percentage of zero cash is zero — but
+    // COMBO_BONUS_POINTS is 50 FLAT and sits outside every ceiling, so a pair
+    // bought with points alone would still collect it.
+    const ctx = { total: 4.4, comboPairs: 1, pointsRedeemed: 440, at: MON };
+    const withheld = computeEarn(ctx, SHIPPED);
+    expect(withheld.cashTotal).toBe(0);
+    expect(withheld.comboSuppressedByRedemption).toBe(true);
+    expect(withheld.comboPairsPaid).toBe(0);
+    expect(withheld.comboBonus).toBe(0);
+    expect(withheld.points).toBe(0);
+
+    // THE DIAL, and the cost of the other side. It is one boolean, and it is
+    // the generous reading: the member spends 440 points on the pair and gets
+    // 50 back, so a balance falls to 11.4% of itself each cycle — bounded, but
+    // it inflates what an existing balance eventually grants by ~12.9%.
+    const generous = computeEarn(ctx, { ...SHIPPED, comboBonusOnPointsPaidInvoice: true });
+    expect(generous.comboSuppressedByRedemption).toBe(false);
+    expect(generous.comboBonus).toBe(50);
+    expect(generous.points).toBe(50);
+    expect(generous.comboBonus / (4.4 * config.POINTS_PER_JOD_REDEEM)).toBeCloseTo(0.1136, 3);
+  });
+
+  it('T33h a partly-paid bill still pays the combo — the rule is about a FREE bill', () => {
+    // 4.40 JOD with 4.00 of points: 0.40 of cash is still cash.
+    const r = computeEarn({ total: 4.4, comboPairs: 1, pointsRedeemed: 400, at: MON }, SHIPPED);
+    expect(r.comboSuppressedByRedemption).toBe(false);
+    expect(r.comboBonus).toBe(50);
+    expect(r.points).toBe(51);
+  });
+
+  it('T33i a genuinely free invoice is unchanged — the test is the REDEMPTION', () => {
+    // A 0 JOD basket (comped, staff, a fully-discounted line) has no redemption
+    // behind it. Its behaviour is deliberately untouched, which is why the
+    // suppression tests `redeemedJod > 0 && cashTotal === 0` and not
+    // `cashTotal === 0`. T6's grid asserts this case at every weekday.
+    const free = computeEarn({ total: 0, comboPairs: 1, at: MON }, SHIPPED);
+    expect(free.comboSuppressedByRedemption).toBe(false);
+    expect(free.comboBonus).toBe(50);
+    expect(free.points).toBe(50);
+  });
+
+  it('T33j a nonsensical redemption rate fails loudly instead of zeroing the grant', () => {
+    // A rate of 0 makes every redemption worth Infinity JOD, so cashTotal is 0
+    // and EVERY member silently earns nothing — the same shape as the NaN the
+    // invoice-ceiling guard exists to prevent.
+    for (const bad of [0, -100, Number.NaN, undefined as unknown as number]) {
+      expect(() => computeEarn({ total: 10, at: MON }, { ...SHIPPED, pointsPerJodRedeem: bad }))
+        .toThrow(/pointsPerJodRedeem/);
+      expect(() => jodFromPoints(100, { ...SHIPPED, pointsPerJodRedeem: bad }))
+        .toThrow(/pointsPerJodRedeem/);
+    }
+  });
+
+  it('T33k an absent redemption means zero — every existing call site is unmoved', () => {
+    // The field is optional and defaults to nothing, exactly as heldRungId did.
+    const omitted = computeEarn({ total: 10, windowSpend: 65, comboPairs: 1, at: MON }, SHIPPED);
+    const explicitZero = computeEarn(
+      { total: 10, windowSpend: 65, comboPairs: 1, pointsRedeemed: 0, at: MON }, SHIPPED,
+    );
+    expect(omitted).toEqual(explicitZero);
+    expect(omitted.pointsRedeemed).toBe(0);
+    expect(omitted.redeemedJod).toBe(0);
+    expect(omitted.cashTotal).toBe(omitted.total);
+    expect(omitted.earningTotal).toBe(omitted.total);
+  });
+
+  it('T33l no redemption can ever RAISE a grant, and none escapes the ceiling', () => {
+    // The monotonicity is the property that makes this safe to expose on the
+    // wire later: a caller cannot buy points by claiming a redemption.
+    const REDEEMED = [0, 1, 250, 1000, 100_000];
+    for (const total of [0, 4.4, 8.31, 20.3, 150]) {
+      for (const pairs of [0, 1]) {
+        for (const windowSpend of [0, 65]) {
+          let previous = Number.POSITIVE_INFINITY;
+          for (const pointsRedeemed of REDEEMED) {
+            const r = computeEarn(
+              { total, pointsRedeemed, comboPairs: pairs, windowSpend, at: MON }, SHIPPED,
+            );
+            const where = JSON.stringify({ total, pointsRedeemed, pairs, windowSpend });
+            expect(r.points, where).toBeGreaterThanOrEqual(0);
+            expect(r.cashTotal, where).toBeGreaterThanOrEqual(0);
+            expect(r.cashTotal, where).toBeLessThanOrEqual(total);
+            expect(r.earningTotal, where).toBeLessThanOrEqual(SHIPPED.maxEarningInvoiceJod);
+            // The ceiling invariant of T6, still holding under redemption.
+            expect(r.points - r.comboBonus, where).toBeLessThanOrEqual(Math.round(r.cap));
+            expect(r.points, where).toBeLessThanOrEqual(previous);
+            previous = r.points;
+          }
+        }
+      }
+    }
+  });
+
+  it('T33m checkout states what was redeemed on the order, explicitly', () => {
+    // The VALUE is not pinned here — unlike bonusDayActivated, which may only
+    // ever be false, a real redemption rail SHOULD put a real number on this
+    // line. What is pinned is that the field is stated at all, so that when
+    // /v1/checkout learns to take points off a bill the grant cannot silently
+    // keep earning on the full invoice. It is 0 today because the two rails are
+    // separate: POST /v1/loyalty/redeem spends points against no order id.
+    const src = readFileSync(join(REPO, 'bff/src/routes/checkout.ts'), 'utf8');
+    expect(src).toMatch(/pointsRedeemed:/);
   });
 });
 

@@ -371,7 +371,9 @@ export const mockLoyaltyService: LoyaltyService = {
   },
 
   // Mirror of section 8.2 earn calculation.
-  earn: ({ userId, invoiceAmount, paidFromBalance, at, bonusDayActivated, comboPairs }: EarnInput) => {
+  earn: ({
+    userId, invoiceAmount, paidFromBalance, at, bonusDayActivated, comboPairs, pointsRedeemed,
+  }: EarnInput) => {
     const u = ensureUser(userId);
     // Book any expiry that has come due into the history BEFORE the grant, so
     // the ledger reads in order. It does not change what is granted, and it
@@ -384,6 +386,13 @@ export const mockLoyaltyService: LoyaltyService = {
     // The mock must never re-implement it — see docs/LOYALTY-EARN-PATCH.md §3.
     const earn = computeEarn({
       total: invoiceAmount,   // tax-inclusive, per §1.1
+      // The part of the bill paid with points earns nothing — the phone must
+      // show the same grant the server will pay, so it passes the same field.
+      // Undefined here today: this mock has no rail that spends points against
+      // an invoice either (redeemReward issues a voucher; the BFF's
+      // /v1/loyalty/redeem is a separate call with no order id), so it forwards
+      // whatever the caller states and never guesses.
+      pointsRedeemed,
       windowSpend: st.windowSpend,
       heldRungId: st.held.id, // a FLOOR — there is no demotion
       paidFromBalance,

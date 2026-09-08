@@ -148,6 +148,34 @@ describe('D2 — one earn calculation: the app grants what computeEarn returns',
     }
   });
 
+  it('earn: a redemption reaches the shared calculation, and only cash earns', async () => {
+    // Owner, 2026-09-08: points are money off the bill, and «لا يكسب نقاط على
+    // الجزء المدفوع بالنقاط». The phone must show the grant the server will
+    // pay, so the mock forwards `pointsRedeemed` rather than holding its own
+    // idea of what a redemption is worth — a second conversion here would show
+    // one number on the phone and charge another at the till.
+    //
+    // 10 JOD with 300 points (3.00 JOD) spent on it: 7 JOD of cash at the 2%
+    // entry rung = 14 points, not the 20 the full invoice would have paid.
+    const partial = await mockLoyaltyService.earn({
+      userId: memberWithSpend(0), invoiceAmount: 10, paidFromBalance: false,
+      pointsRedeemed: 300, at: MON,
+    });
+    expect(partial.pointsEarned).toBe(14);
+    expect(partial.pointsEarned).toBe(
+      computeEarn({ total: 10, pointsRedeemed: 300, at: MON }).points,
+    );
+
+    // ... and a bill made FREE with points earns nothing and banks no lot.
+    const id = memberWithSpend(65);            // the 6% rung: the ladder cannot
+    const free = await mockLoyaltyService.earn({ //  rescue a percentage of zero
+      userId: id, invoiceAmount: 10, paidFromBalance: false,
+      pointsRedeemed: 1000, at: MON,
+    });
+    expect(free.pointsEarned).toBe(0);
+    expect(liveBalance(__getMockUser(id).lots)).toBe(0);
+  });
+
   it('earn: one absolute number, so a change to BOTH sides at once still shows', async () => {
     // The matrix above binds the app to computeEarn, so it stays green if BOTH
     // sides drift together. This one literal is the anchor that does not.

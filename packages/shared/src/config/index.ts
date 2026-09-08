@@ -187,6 +187,33 @@ export const config = {
    */
   COMBO_MAX_PAIRS_PER_INVOICE: 1,
   /**
+   * 🔴 DOES THE FLAT COMBO BONUS PAY ON A BILL SETTLED ENTIRELY WITH POINTS?
+   *
+   * Owner, 2026-09-08: «رح اعامل النقاط كنقود يستطيع استخدامها او الخصم من
+   * فاتورته» — points are money off the bill — and «لا يكسب نقاط على الجزء
+   * المدفوع بالنقاط»: the part paid with points earns nothing. The RATE obeys
+   * that automatically (loyalty/earn.ts earns on the cash portion only, and a
+   * bill paid in full with points has no cash portion).
+   *
+   * COMBO_BONUS_POINTS does not, because it is a FLAT grant that sits outside
+   * every ceiling — see the comment above it. A 2.50 drink and a 1.90 pastry
+   * paid for entirely out of a points balance would still collect 50 points.
+   *
+   * IT IS NOT A MINT, AND THE ARITHMETIC MATTERS HERE: the member spends 440
+   * points on that 4.40 JOD pair and receives 50 back, so the balance falls to
+   * 11.4% of itself each cycle and the loop terminates. What it does is inflate
+   * the liability an existing balance eventually grants, by the geometric sum
+   * P/(1 − 0.114) ≈ 1.129 P — i.e. up to ~12.9% more points than were ever
+   * earned on a purchase, in the worst case where every single redemption is
+   * exactly one combo pair paid entirely with points.
+   *
+   * `false` applies the owner's principle consistently: no reward on a portion
+   * the member did not pay cash for. `true` is the generous side and costs the
+   * number above. It is one line either way; the trade-off is written down here
+   * so nobody has to re-derive it to flip it.
+   */
+  COMBO_BONUS_ON_POINTS_PAID_INVOICE: false,
+  /**
    * 🔴 THE INVOICE CEILING. Points are earned on `min(invoice, this)`.
    *
    * This is not an offer dial and it is not there to trim a generous basket —
