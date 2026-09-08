@@ -14,7 +14,11 @@ interface AuthState {
 }
 
 const USER_KEY = 'almond.user';
-const GUEST: User = { id: 'guest', phone: '', name: 'ضيف', isGuest: true };
+// `name: ''` for the same reason as auth.service.ts: the word for "guest" is
+// language-dependent, so it lives in the locale files (`home.guest`) and is
+// resolved at render time. Storing 'ضيف' here put one language's word into
+// state that both languages read.
+const GUEST: User = { id: 'guest', phone: '', name: '', isGuest: true };
 
 export const useAuthStore = create<AuthState>((set) => ({
   user: null,

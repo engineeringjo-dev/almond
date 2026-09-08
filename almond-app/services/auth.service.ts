@@ -21,7 +21,17 @@ const mockAuthService: AuthService = {
     const user: User = {
       id: genId('user'),
       phone,
-      name: 'ضيف ألموند',
+      // 🔴 EMPTY, AND NEVER A LITERAL. This used to be 'ضيف ألموند', which the
+      // home greeting then interpolated into whatever language the UI was in:
+      // an English member saw "Good evening, ضيف ألموند". A display name is a
+      // fact about a PERSON, so it has no translation and cannot be invented —
+      // and a name the app made up is not a name, it is a label, and a label
+      // belongs in the locale files where both languages exist.
+      //
+      // OTP verification learns a PHONE NUMBER and nothing else. Odoo will fill
+      // this in from the real customer record; until then it is honestly blank,
+      // and every consumer falls back to the localized `home.guest`.
+      name: '',
       isGuest: false,
     };
     return delay(user);
