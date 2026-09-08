@@ -701,3 +701,27 @@ describe('C14 the combo offer is surfaced, and its count comes from the dial', (
     ).toBe(false);
   });
 });
+
+// ---------------------------------------------------------------------------
+// C17 — the currency unit lives in formatJOD, never beside {jod} in a string.
+// ---------------------------------------------------------------------------
+describe('C17 no string carries a currency unit next to a {jod} placeholder', () => {
+  // Seen live on almond-gules.vercel.app, 2026-09-08: "Spend JOD 8.000 JOD
+  // more to reach 4%". formatJOD() returns the amount WITH its localised unit
+  // ("JOD 8.000" / «٨٫٠٠٠ د.أ») and every call site passes that in as {jod} —
+  // so a string that also says "JOD" prints it twice. An editorial reviewer
+  // who only sees the strings will keep "fixing" the missing unit back in; this
+  // is the test that stops that. The unit is the FORMATTER'S job, in one place,
+  // per language.
+  const UNIT_BESIDE_JOD = /\{\{?jod\}?\}\s*(JOD|د\.أ|دينار|JD)\b|\b(JOD|JD)\s*\{\{?jod\}?\}|د\.أ\s*\{\{?jod\}?\}/;
+  it('in all four locale files', () => {
+    const offenders: string[] = [];
+    for (const rel of ALL_LOCALES) {
+      const flat = load(rel);
+      for (const [k, v] of Object.entries(flat)) {
+        if (typeof v === 'string' && UNIT_BESIDE_JOD.test(v)) offenders.push(`${rel}: ${k} = ${JSON.stringify(v)}`);
+      }
+    }
+    expect(offenders, 'a string repeats the unit formatJOD already renders').toEqual([]);
+  });
+});

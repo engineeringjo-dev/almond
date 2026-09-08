@@ -141,7 +141,7 @@
     "beans": "points",
     "yourBeans": "Your points",
     "tier": "Your tier",
-    "toNextTier": "Spend {jod} JOD more to reach {tier}",
+    "toNextTier": "Spend {jod} more to reach {tier}",
     "topTier": "👑 You made it — {tier} back",
     "redeemTitle": "Redeem your points",
     "redeem": "Redeem",
@@ -152,11 +152,11 @@
     "expires": "Expires {date}",
     "activityTitle": "Recent activity",
     "earnRate": "{rate} back on every order",
-    "redeemHint": "Your points are money off your bill — take off as much as you like",
+    "redeemHint": "Your points come straight off your bill — use as many as you like",
     "worthNow": "Your points are worth",
     "noPointsYet": "Earn points on your next order and spend them here",
     "wholeBalance": "all your points",
-    "redeemA11y": "Take {jod} JOD off your bill for {points} points"
+    "redeemA11y": "Take {jod} off your bill for {points} points"
   },
   "Wallet": {
     "title": "Wallet",
