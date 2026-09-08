@@ -1,3 +1,5 @@
+import { config as shared } from '@almond/shared/config';
+
 /** Server-side config. Secrets are read from the environment and NEVER shipped
  *  to any client bundle (that is the whole point of the BFF). */
 export const config = {
@@ -9,7 +11,15 @@ export const config = {
   JWT_TTL: process.env.JWT_TTL ?? '30d',
 
   POS_TOKEN_SECRET: process.env.POS_TOKEN_SECRET ?? 'dev-insecure-pos-change-me',
-  POS_TOKEN_TTL_SECONDS: Number(process.env.POS_TOKEN_TTL_SECONDS ?? 60),
+  // The TTL is the SHARED number (packages/shared/src/config: 60 seconds), not
+  // a literal repeated here. The phone's mock loyalty service has to report the
+  // same `expiresIn` the real server mints with, or the QR refresh cadence is
+  // tuned against a figure production does not use — and a mismatched literal
+  // in two workspaces is exactly the class of drift that put "Earn 5 points per
+  // 1 JOD" on screen beside a 2% grant. The env var still wins, so an operator
+  // can shorten the window without an app release: the app reads the TTL off
+  // each response (`expiresIn`), never off its own copy of the constant.
+  POS_TOKEN_TTL_SECONDS: Number(process.env.POS_TOKEN_TTL_SECONDS ?? shared.POS_TOKEN_TTL_SECONDS),
 
   // There is deliberately NO fixed OTP here. A constant that verifies every
   // phone is a master password for every account in the system, and it shipped

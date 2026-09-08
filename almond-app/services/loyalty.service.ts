@@ -11,6 +11,7 @@ import type {
   Subscription,
   PaymentMethodId,
 } from '@/types';
+import type { PosMode, PosTokenWire } from '@almond/shared/pos/tokenWire';
 import { config } from '@/constants/config';
 import { mockLoyaltyService } from './loyalty.service.mock';
 import { liveLoyaltyService } from './loyalty.service.live';
@@ -37,6 +38,18 @@ export interface SendGiftInput {
   recipientPhone?: string;
   message?: string;
 }
+
+/**
+ * The code the member shows at the till, exactly as the server minted it.
+ *
+ * The app cannot build one: it is signed with a secret only the BFF holds, it
+ * expires (config.POS_TOKEN_TTL_SECONDS), and it is burned on first scan. The
+ * screen that renders it obtains it HERE and nowhere else — there is no
+ * fallback format, because the fallback WAS the defect (a static
+ * `MEMBER|<userId>|MODE=…` string that anyone who learned a member id could
+ * render and anyone with a photograph could replay).
+ */
+export type { PosMode, PosTokenWire } from '@almond/shared/pos/tokenWire';
 
 /** POS scan confirmation polled by the barcode screen (Odoo POS → server). */
 export interface ScanStatus {
@@ -76,6 +89,24 @@ export interface LoyaltyService {
   topUp(userId: string, amount: number): Promise<number>;
   /** Deduct from the e-wallet (in-app wallet payment or POS charge). */
   chargeWallet(userId: string, amount: number): Promise<{ walletBalance: number }>;
+
+  /**
+   * Mint the code the member shows at the till. Called on the Pay screen and by
+   * nothing else.
+   *
+   * `mode` is the member's stated intent (pay with the wallet vs earn only). It
+   * is a parameter of the REQUEST — not something the client writes into the
+   * code — so the server can sign it into the token and `POST /v1/pos/scan` can
+   * hand it to the till alongside the member id. That is the whole reason it
+   * travels here: after this change the barcode is opaque, so a mode the token
+   * does not carry cannot reach the counter at all.
+   *
+   * Never returns a locally-constructed value, in ANY data source. The mock
+   * returns an obviously unsigned token of the same shape; it does not return
+   * the retired static string, and @almond/shared/pos/tokenWire refuses that
+   * format at the seam even if something upstream tries.
+   */
+  getPosToken(userId: string, mode: PosMode): Promise<PosTokenWire>;
 
   // POS integration: app polls after showing the barcode; the till reports the
   // scan + earn/redeem/charge it performed (Odoo POS → loyalty server).

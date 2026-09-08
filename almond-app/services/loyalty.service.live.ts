@@ -13,6 +13,7 @@ import type {
 import type { LoyaltyService, EarnInput, ScanStatus } from './loyalty.service';
 import { integration, loyaltyAuthHeaders } from '@/constants/integration';
 import { parseMeBalance, toLoyaltyBalance } from '@almond/shared/loyalty/balanceWire';
+import { parsePosToken, type PosTokenWire } from '@almond/shared/pos/tokenWire';
 import { apiGet, apiPost } from '@/lib/apiClient';
 
 /**
@@ -82,6 +83,31 @@ export const liveLoyaltyService: LoyaltyService = {
   getSentGifts: (userId) => get<GiftCard[]>(E.giftSent(userId)),
   redeemGiftCode: (userId, code) =>
     post<{ amount: number; walletBalance: number }>(E.giftRedeem, { userId, code }),
+
+  // ---- The till handshake ----
+  // Validated, not cast, for the same reason getBalance is — and with more at
+  // stake: this value is rendered as a barcode and held up to a scanner. The
+  // member id is NOT sent; the server takes the identity from the JWT subject,
+  // which is the property the retired client-built barcode did not have. `mode`
+  // goes UP so the server can sign it into the token, and comes back down so
+  // the screen can prove the code it is showing belongs to the toggle's state.
+  //
+  // ⚠️ This is one of the two endpoints in the map whose PATH really is the
+  // BFF's (see the header). TWO things still stand between it and a working
+  // live call, not one:
+  //   - the BASE. It is sent to `integration.baseUrls.loyalty`
+  //     (config.LOYALTY_BASE_URL) like everything else in this client, and that
+  //     is the hypothetical standalone loyalty server, not the BFF. A real path
+  //     on the wrong host is still a 404.
+  //   - the AUTH. The route takes the member from the JWT subject and the app
+  //     holds no JWT (`stores/authStore.ts` has no token field), so even
+  //     pointed at the BFF it would 401.
+  // Either way apiPost throws under DATA_SOURCE='odoo' today, and that is the
+  // designed outcome — the Pay screen renders an actionable failure state and
+  // the member is looked up by the cashier. There is deliberately no fallback:
+  // a code the server did not sign is exactly what this package deletes.
+  getPosToken: async (_userId, mode): Promise<PosTokenWire> =>
+    parsePosToken(await post<unknown>(E.posToken, { mode })),
 
   // ---- POS scan confirmation ----
   getScanStatus: (userId) => get<ScanStatus>(E.scanStatus(userId)),

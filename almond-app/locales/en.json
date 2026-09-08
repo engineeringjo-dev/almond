@@ -118,6 +118,12 @@
     "nudgeCart": "You have {{count}} items in your cart — finish your order",
     "nudgeExpiry": "Your points expire on {{date}} — redeem them before they're gone"
   },
+  "offers": {
+    "comboTitle": "Any drink + any food = {{points}} points 🍽️",
+    "comboBody": "Order something to drink and something to eat together, and we add {{points}} points to your balance on top of your usual cashback. You pay the full price of both — the points are the whole offer.",
+    "comboExample": "Like {{drink}} + {{food}}",
+    "comboCta": "Add both"
+  },
   "club": {
     "pitch": "{{count}} drinks a day for {{price}}/month",
     "subscribe": "Subscribe now",
@@ -245,7 +251,14 @@
     "seeRewards": "Redeem your points in Rewards",
     "scanAndPay": "Scan & Pay",
     "scanOnly": "Scan only",
-    "earnRate": "You earn {{rate}} back on every order"
+    "earnRate": "You earn {{rate}} back on every order",
+    "codeLoading": "Getting your code…",
+    "codeRefreshes": "Your code refreshes itself — just keep this screen open",
+    "codeExpiredTitle": "This code has expired",
+    "codeExpiredBody": "Codes are short-lived on purpose, so nobody can reuse yours. Get a fresh one.",
+    "codeUnavailableTitle": "We can't show your code",
+    "codeUnavailableBody": "You may be offline. Try again — or give the cashier your member ID below and they'll find your account.",
+    "codeRetry": "Get a new code"
   },
   "track": {
     "title": "Track Order",
@@ -289,7 +302,10 @@
     "toPlus": "{{visits}} more visits and your cashback DOUBLES ×2 ⚡",
     "toTop": "About {{visits}} more visits and your rate becomes {{tier}} — our top tier",
     "nearlyNext": "You're close — one more visit could take you to {{tier}}",
-    "oneVisitLeft": "Just one more visit! 🔥 Your rate becomes {{tier}}"
+    "oneVisitLeft": "Just one more visit! 🔥 Your rate becomes {{tier}}",
+    "promotedDoubled": "🎉 Your cashback just DOUBLED — you are on {{tier}}",
+    "promotedTop": "🎉 You made it — you are on {{tier}}, our top rate",
+    "promotedNext": "About {{visits}} more visits to reach {{tier}}"
   },
   "rewards": {
     "title": "Rewards",

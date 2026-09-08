@@ -20,6 +20,7 @@
     "./loyalty/balanceWire": "./src/loyalty/balanceWire.ts",
     "./loyalty/rewardRungs": "./src/loyalty/rewardRungs.ts",
     "./loyalty/secondVisit": "./src/loyalty/secondVisit.ts",
+    "./pos/tokenWire": "./src/pos/tokenWire.ts",
     "./menu": "./src/menu/index.ts",
     "./menu/menu.generated": "./src/menu/menu.generated.ts",
     "./menu/seed": "./src/menu/seed.ts",

@@ -67,9 +67,30 @@ export const integration = {
 
     // ---- POS scan (earn + redeem + wallet charge at the till) ----
     /**
+     * The member asks for a fresh, short-lived, single-use code to show at the
+     * till. THE APP CALLS THIS, and it is the only way it can obtain a barcode:
+     * the screen no longer knows how to build one (it used to render
+     * `MEMBER|<userId>|MODE=…` out of data printed under the QR, which anyone
+     * who saw a member id could forge and anyone with a photo could replay).
+     *
+     * This path is the BFF's real route (`bff/src/routes/pos.ts`), unlike most
+     * of the `/loyalty/*` paths in this map, which were written against a
+     * standalone loyalty server that does not exist — see the header of
+     * almond-app/services/loyalty.service.live.ts. Its AUTH is still the open
+     * item: the route authenticates the member by JWT subject and the app holds
+     * no JWT (`stores/authStore.ts` has no token field), so under
+     * DATA_SOURCE='odoo' today this returns 401 and the Pay screen shows its
+     * failure state. That is the correct outcome, and it is why there is no
+     * fallback: a member who cannot be authenticated must be looked up by the
+     * cashier, not handed a code the server never signed.
+     */
+    posToken: '/v1/pos/token',
+    /**
      * Server-to-server: Odoo POS posts the scanned member token + invoice here
      * so the loyalty server can earn beans / redeem a reward / charge the
-     * wallet. The app does NOT call this — documented for the POS team.
+     * wallet. The app does NOT call this — documented for the POS team. The
+     * response carries `{memberId, mode}`: the member's pay-vs-earn choice
+     * travels inside the signed token, because the barcode is opaque now.
      */
     posScan: '/pos/scan',
     /** App polls this after showing the barcode to confirm the till scanned it. */

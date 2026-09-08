@@ -304,6 +304,31 @@ export const config = {
     holdoutShareBp: { secondVisitVoucher: 2000 } as Readonly<Record<string, number>>,
   },
 
+  // ---- The till handshake (the QR the member shows at the counter) ----
+  //
+  // How long a minted POS token stays valid, in seconds. It lives HERE and not
+  // only in bff/src/config.ts because two independent things need the same
+  // number and neither may guess it:
+  //   - the BFF mints with it (bff/src/pos/token.ts sets `exp = now + this`);
+  //   - almond-app's MOCK loyalty service has to report the same `expiresIn`,
+  //     or the phone's refresh cadence under DATA_SOURCE='mock' would be tuned
+  //     against a number the server does not use.
+  // The live app never reads this constant: it refreshes off the `expiresIn`
+  // the server sends back with each token, so an operator who raises the TTL by
+  // env var does not need a new app build. bff/src/config.ts reads this as its
+  // default and still honours POS_TOKEN_TTL_SECONDS from the environment.
+  //
+  // 60 seconds is the whole security argument made concrete. The barcode this
+  // replaced was `ALMOND|MEMBER|<userId>|MODE=PAY` — no signature, no expiry,
+  // no single-use — so one camera phone pointed at a member's screen earned on
+  // that member's account forever. A minute is longer than any real scan (the
+  // measured till interaction is ~0.2 s of scanning plus 0.0-0.4 s of partner
+  // resolution) and short enough that a photographed code is worthless before
+  // the photographer has left the counter. It is also single-use: the jti is
+  // burned on the first successful scan, so 60 seconds is the ceiling on a
+  // window that normally closes in under a second.
+  POS_TOKEN_TTL_SECONDS: 60,
+
   // Points needed for the first reward a member can actually take.
   //
   // 138, not 40. The 40-point rung was reachable in 3 visits, which was the

@@ -4,6 +4,7 @@ import type { FastifyInstance } from 'fastify';
 import { config } from '@almond/shared/config';
 import { menuItems } from '@almond/shared/menu';
 import { itemKind } from '@almond/shared/lib/categoryKind';
+import { getComboStarter } from '@almond/shared/lib/recommendations';
 import { ammanDayKey } from '@almond/shared/lib/ammanWeekday';
 import { tiers } from '@almond/shared/loyalty';
 import {
@@ -13,6 +14,8 @@ import {
   BalanceWireError, parseMeBalance, toLoyaltyBalance,
 } from '@almond/shared/loyalty/balanceWire';
 import { shiftDayKey } from '@almond/shared/loyalty/window';
+import { parsePosToken } from '@almond/shared/pos/tokenWire';
+import { verifyPosToken } from '../src/pos/token';
 import { build } from '../src/server';
 import { createMemoryBackend } from '../src/backend/memory';
 import type { Backend } from '../src/backend';
@@ -47,6 +50,10 @@ import { signIn } from './lib/signIn';
  *   S7  a checkout retried with the same Idempotency-Key grants once
  *   S8  the app/server seam: the real body, parsed and mapped into the type
  *       the screens actually read
+ *   S9  the till handshake: the member asks for a code, the code is signed,
+ *       fresh on every ask, and burns on the first scan
+ *   S10 the offers-page combo: the exact pair the card's one tap adds is
+ *       recognised by the checkout route and paid the bonus it advertises
  *
  * TWO SETUP STEPS CANNOT GO OVER HTTP and are honest about it: back-dating a
  * sale (S3b) and moving the clock (S5). There is no route that does either —
@@ -417,6 +424,14 @@ describe('SMOKE: one member, one server, sign-in to the top rung', () => {
     expect(view.multiplier).toBe(2);
     expect(view.nextTier!.id).toBe('top');
     expect(view.nextTier!.visitsGuaranteed).toBe(false);
+    // The two fields the PROMOTION CELEBRATION renders verbatim
+    // (almond-app/lib/promotion.ts): `tier`, which it detects the rise on and
+    // names in «مبروك! خصمك تضاعف — صرت على ٤٪», and the count in its second
+    // clause, which it prints exactly as it arrives and never recomputes — a
+    // second projection is the defect FINAL.md §2.1 removed. A zero or
+    // fractional count here would silently drop half the approved sentence.
+    expect(Number.isInteger(view.nextTier!.visitsRemaining)).toBe(true);
+    expect(view.nextTier!.visitsRemaining).toBeGreaterThan(0);
     // The BFF keeps no cup state, and the type no longer pretends otherwise —
     // this used to be a required field that threw on two screens.
     expect(view.cup).toBeUndefined();
@@ -426,6 +441,54 @@ describe('SMOKE: one member, one server, sign-in to the top rung', () => {
     expect(next.body.pointsEarned).toBe(
       Math.round(next.body.total * config.POINTS_PER_JOD * view.multiplier),
     );
+  });
+
+  it('S9 the code the member shows at the till is minted, signed and single-use', async () => {
+    // THE WIRE NOBODY WAS USING. `POST /v1/pos/token` and the signed token
+    // behind it have existed and been tested since before this walk; the Pay
+    // screen built its own barcode anyway, out of a member id printed under the
+    // QR. A unit test cannot see "nothing calls it" — this can.
+    const { token: jwt, id } = await enrol();
+
+    // It is member-authenticated. Anonymous minting would hand a code for
+    // somebody's account to whoever asked, which is what the old screen did to
+    // itself.
+    const anon = await app.inject({ method: 'POST', url: '/v1/pos/token', payload: {} });
+    expect(anon.statusCode).toBe(401);
+
+    const res = await app.inject({
+      method: 'POST', url: '/v1/pos/token', headers: authOf(jwt), payload: { mode: 'earn' },
+    });
+    expect(res.statusCode, res.body).toBe(200);
+
+    // Read through the SHARED parser the phone uses, so a shape drift on this
+    // route fails here rather than on a phone at a counter. It also refuses the
+    // retired static format outright.
+    const wire = parsePosToken(res.json());
+    expect(wire.expiresIn).toBe(config.POS_TOKEN_TTL_SECONDS); // the shared dial, not a literal 60
+    expect(wire.mode).toBe('earn');
+
+    // FRESH ON EVERY ASK. The retired code was a pure function of the member id
+    // and the toggle, so it was the same square forever; this one is not the
+    // same square twice, which is what makes a photograph of it worthless.
+    const second = parsePosToken((await app.inject({
+      method: 'POST', url: '/v1/pos/token', headers: authOf(jwt), payload: { mode: 'earn' },
+    })).json());
+    expect(second.token).not.toBe(wire.token);
+
+    // The till's half: the signature resolves to THIS member, with the mode the
+    // member chose on their phone — and the second presentation of the same
+    // code is refused, so a captured screen is spent the moment it is used.
+    expect(verifyPosToken(wire.token)).toEqual({ memberId: id, mode: 'earn' });
+    expect(() => verifyPosToken(wire.token)).toThrow(/already used/);
+
+    // Default when the client says nothing: 'pay', the same thing the old
+    // barcode said before the member touched the toggle.
+    const plain = parsePosToken((await app.inject({
+      method: 'POST', url: '/v1/pos/token', headers: authOf(jwt), payload: {},
+    })).json());
+    expect(plain.mode).toBe('pay');
+    expect(verifyPosToken(plain.token).mode).toBe('pay');
   });
 
   it('S8b the parser refuses the shape the client used to assume', async () => {
@@ -446,5 +509,97 @@ describe('SMOKE: one member, one server, sign-in to the top rung', () => {
     expect(() => parseMeBalance({ ...wire, tier: { ...wire.tier, id: 'gold' } })).toThrow(BalanceWireError);
     // A 404/HTML body, which is what the live client would receive today.
     expect(() => parseMeBalance('<html>404</html>')).toThrow(BalanceWireError);
+  });
+
+  it('S10 the basket the offers card builds earns the combo bonus it advertises', async () => {
+    /**
+     * The offers-page card (almond-app/components/home/ComboOfferCard.tsx) is
+     * the first surface that states the combo to a member with no basket, and
+     * its one tap ADDS A SPECIFIC PAIR — `getComboStarter()` — and sends them to
+     * the cart. That pair is chosen on the phone by `categoryKind`; the grant is
+     * priced on the server by `comboPairs`, through `reprice` in
+     * bff/src/pricing.ts, from an itemId and a sizeId over HTTP.
+     *
+     * Nothing else in this repo joins those two halves. The app tests assert the
+     * suggestion satisfies `comboPairs()` in-process; the earn tests assert
+     * computeEarn prices a pair. Neither can see a pair the CHECKOUT ROUTE fails
+     * to recognise — an item id the server cannot resolve, a size the schema
+     * rejects, a classifier that disagrees across the seam. If any of those
+     * broke, the card would promise points the till would not pay.
+     */
+    const starter = getComboStarter();
+    expect(starter, 'the offers card has no pair to suggest').not.toBeNull();
+    const { drink, drinkSize, food, foodSize } = starter!;
+
+    const pairLines = [
+      { itemId: drink.id, sizeId: drinkSize.id, optionIds: [] as string[], qty: 1 },
+      { itemId: food.id, sizeId: foodSize.id, optionIds: [] as string[], qty: 1 },
+    ];
+
+    const { token } = await enrol();
+    const before = await balance(token);
+    expect(before.tier.id).toBe('base');
+
+    const res = await app.inject({
+      method: 'POST',
+      url: '/v1/checkout',
+      payload: { branchId: 'b1', orderType: 'pickup', paymentMethod: 'cash', lines: pairLines },
+      headers: authOf(token, { 'idempotency-key': randomUUID() }),
+    });
+    expect(res.statusCode, res.body).toBe(201);
+    const body = res.json();
+
+    // The offer written out: the rung's rate on the invoice, PLUS the flat
+    // combo grant. Stated against config, not re-derived with computeEarn.
+    expect(body.pointsEarned).toBe(
+      expectedPoints(body.total, before.tier.id) + config.COMBO_BONUS_POINTS,
+    );
+
+    // ... and the bonus really is the pair, not something the basket size
+    // bought: the same drink alone, at the same rung, earns exactly
+    // COMBO_BONUS_POINTS fewer per JOD-matched invoice.
+    const solo = await enrol();
+    const soloRes = await app.inject({
+      method: 'POST',
+      url: '/v1/checkout',
+      payload: {
+        branchId: 'b1', orderType: 'pickup', paymentMethod: 'cash',
+        lines: [pairLines[0]],
+      },
+      headers: authOf(solo.token, { 'idempotency-key': randomUUID() }),
+    });
+    expect(soloRes.statusCode, soloRes.body).toBe(201);
+    const soloBody = soloRes.json();
+    expect(soloBody.pointsEarned).toBe(expectedPoints(soloBody.total, 'base'));
+    expect(body.pointsEarned - soloBody.pointsEarned).toBe(
+      expectedPoints(body.total, 'base') - expectedPoints(soloBody.total, 'base')
+      + config.COMBO_BONUS_POINTS,
+    );
+
+    // 🔴 THE COST NOTE, pinned rather than written down somewhere. There is no
+    // per-invoice pair cap: `comboPairs` is min(drinks, foods), so a basket of
+    // four drinks and four foods grants four times the bonus. The whole cost
+    // model rests on 35% of invoices containing a pair — the figure this card
+    // exists to raise (at 50% the programme is ~21,109 JOD/yr and at 65%
+    // ~23,867, against ~18,999 for the programme it replaces). A cap is an
+    // OFFER change and is the owner's; this assertion is here so that adding
+    // one is a deliberate act with a test to update, not a silent one.
+    const bulk = await enrol();
+    const bulkRes = await app.inject({
+      method: 'POST',
+      url: '/v1/checkout',
+      payload: {
+        branchId: 'b1', orderType: 'pickup', paymentMethod: 'cash',
+        lines: pairLines.map((l) => ({ ...l, qty: 4 })),
+      },
+      headers: authOf(bulk.token, { 'idempotency-key': randomUUID() }),
+    });
+    // Asserted before the body is read: a 400 here would otherwise surface as
+    // "expected undefined to be 250" and read like an arithmetic failure.
+    expect(bulkRes.statusCode, bulkRes.body).toBe(201);
+    const bulkBody = bulkRes.json();
+    expect(bulkBody.pointsEarned).toBe(
+      expectedPoints(bulkBody.total, 'base') + 4 * config.COMBO_BONUS_POINTS,
+    );
   });
 });

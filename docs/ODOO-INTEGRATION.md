@@ -22,16 +22,33 @@ through `lib/apiClient.ts` (base URL + bearer/API-key + timeout).
 
 ## 1) POS deduction (earn / redeem / wallet charge at the till)
 
-The barcode screen shows `ALMOND|MEMBER|{userId}|MODE=PAY|EARN`.
+**⚠️ THE BARCODE FORMAT CHANGED (2026-09-08). Do not build a scanner against
+the old one.** The screen used to show a plaintext string it assembled itself,
+`ALMOND|MEMBER|{userId}|MODE=PAY|EARN`. That was forgeable (the member id is
+printed under the QR on the same screen), never expired, and could be replayed
+from a photograph. It is gone, and `packages/shared/src/pos/tokenWire.ts`
+refuses it at the client seam so it cannot come back.
 
-- **MODE=PAY** → till charges the order (cash/card/wallet) **and** earns beans.
-- **MODE=EARN** → earn only (customer pays separately).
+The barcode is now an **opaque, HMAC-signed, single-use token** minted by the
+BFF and valid for `config.POS_TOKEN_TTL_SECONDS` (60s):
+
+- The app calls `POST /v1/pos/token` (member JWT) → `{ token, expiresIn, mode }`
+  and re-mints at half the lifetime while the screen is open.
+- **Do not parse the token.** It carries the member and the mode as signed
+  claims; the only way to read it is to present it to `/v1/pos/scan`.
+- **mode=pay** → till charges the order (cash/card/wallet) **and** earns beans.
+- **mode=earn** → earn only (customer pays separately).
+  The member chooses on their phone and the choice is signed into the token, so
+  the till learns it from the scan response, not from the barcode's text.
 
 Flow:
-1. Odoo POS scans the token and `POST`s to the loyalty server:
-   `POST /pos/scan` → `{ memberId, mode, invoiceAmount, paidFromWallet, branchId }`
-   The server then earns beans (`/loyalty/earn` logic), redeems any applied
-   reward, and—if `paidFromWallet`—charges the wallet (`/loyalty/wallet/charge`).
+1. Odoo POS scans the token and `POST`s it, with the shared `x-pos-key` header:
+   `POST /v1/pos/scan` → `{ token }` → `{ memberId, mode }`
+   The token is single-use: the second presentation of the same code returns
+   **409 `pos_token_replay`**, and an expired one returns **401**. Both are
+   normal — the cashier asks the member to let the screen refresh. The server
+   then earns beans (`/loyalty/earn` logic), redeems any applied reward, and—if
+   paying from the wallet—charges it (`/loyalty/wallet/charge`).
 2. The app, while the barcode is on screen, polls
    `GET /loyalty/scan-status/{userId}` → `{ scanned: boolean, result? }`.
    On `scanned: true` it shows the success state and refreshes the balance.

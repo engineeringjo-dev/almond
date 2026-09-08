@@ -540,6 +540,38 @@ export const mockLoyaltyService: LoyaltyService = {
     return delay({ walletBalance: u.walletBalance });
   },
 
+  /**
+   * An obviously unsigned code, of the real code's shape.
+   *
+   * THE MOCK IS WHERE THE STATIC BARCODE WOULD COME BACK, so it is worth being
+   * explicit about what this returns and why.
+   *
+   * Shape: `<opaque>.<signature>`, the same two halves the BFF mints
+   * (`base64url(payload).base64url(hmac)`), so the screen, the refresh timer
+   * and the wire parser all exercise the identical path under DATA_SOURCE
+   * 'mock'. Content: a fresh random id and a signature half that says, in
+   * words, that it is not a signature. The mock holds no secret and must not
+   * look as though it does — an ersatz HMAC here would be a credential-shaped
+   * object minted inside a client bundle, which is the thing this whole package
+   * removes.
+   *
+   * It ROTATES on every call, so the refresh cadence is visible in the demo
+   * (the QR really does change) and a test can prove the code is not a constant
+   * derived from the member id — which is exactly what the retired string was.
+   *
+   * `expiresIn` is config.POS_TOKEN_TTL_SECONDS, the SHARED number the BFF
+   * mints with. Not a literal: a mock that reported a different lifetime would
+   * tune the phone's refresh cadence against a figure production does not use.
+   */
+  getPosToken: (userId, mode) => {
+    ensureUser(userId);
+    return delay({
+      token: `${genId('posmock')}-${Math.random().toString(36).slice(2, 10)}.mock-unsigned-not-a-real-signature`,
+      expiresIn: config.POS_TOKEN_TTL_SECONDS,
+      mode,
+    });
+  },
+
   // POS not connected in the mock — the till never reports a scan.
   getScanStatus: () => delay({ scanned: false }),
 
