@@ -13,6 +13,7 @@ import {
 import {
   BalanceWireError, parseMeBalance, toLoyaltyBalance,
 } from '@almond/shared/loyalty/balanceWire';
+import { addMonthsToDayKey, liveBalance } from '@almond/shared/loyalty/lots';
 import { shiftDayKey } from '@almond/shared/loyalty/window';
 import { parsePosToken } from '@almond/shared/pos/tokenWire';
 import { verifyPosToken } from '../src/pos/token';
@@ -54,6 +55,8 @@ import { signIn } from './lib/signIn';
  *       fresh on every ask, and burns on the first scan
  *   S10 the offers-page combo: the exact pair the card's one tap adds is
  *       recognised by the checkout route and paid the bonus it advertises
+ *   S11 the point ledger: a grant gets its own 12-month clock, a redemption
+ *       spends the oldest lot first, and an expired lot is refused
  *
  * TWO SETUP STEPS CANNOT GO OVER HTTP and are honest about it: back-dating a
  * sale (S3b) and moving the clock (S5). There is no route that does either —
@@ -509,6 +512,100 @@ describe('SMOKE: one member, one server, sign-in to the top rung', () => {
     expect(() => parseMeBalance({ ...wire, tier: { ...wire.tier, id: 'gold' } })).toThrow(BalanceWireError);
     // A 404/HTML body, which is what the live client would receive today.
     expect(() => parseMeBalance('<html>404</html>')).toThrow(BalanceWireError);
+  });
+
+  it('S11 points are a ledger: one clock per grant, FIFO out, and dead is dead', async () => {
+    /**
+     * THE MONEY LEDGER, END TO END. Every other assertion about it constructs
+     * its own array of lots; none of them can see the balance route, the
+     * redemption route and the backend disagreeing about which points exist.
+     *
+     * Owner's rule: «كل نقطة تعيش ١٢ شهر ولا تتجدد بشراء جديد وصرف النقاط
+     * FIFO». Setup is injected where it must be (there is no route that moves
+     * a clock); every payout below is measured over HTTP.
+     */
+    const { token, id } = await enrol();
+
+    // 1) A real checkout grants a real lot, dated today in AMMAN and dead
+    //    twelve calendar months later — the day the app will print.
+    const first = await buy(token);
+    const afterFirst = await balance(token);
+    expect(afterFirst.points).toBe(first.body.pointsEarned);
+    expect(afterFirst.nextExpiry).not.toBeNull();
+    expect(afterFirst.nextExpiry!.amount).toBe(first.body.pointsEarned);
+    expect(afterFirst.nextExpiry!.on).toBe(addMonthsToDayKey(ammanDayKey(), config.POINT_LOT_LIFE_MONTHS));
+
+    // 2) A SECOND purchase adds a lot; it does not renew the first. Both are
+    //    live, and the wire still names the OLDER slice as the next to die.
+    const second = await buy(token);
+    const afterSecond = await balance(token);
+    expect(afterSecond.points).toBe(first.body.pointsEarned + second.body.pointsEarned);
+    const member = await backend.getMember(id);
+    expect(member.lots).toHaveLength(2);
+    expect(member.lots.every((l) => l.source === 'earn')).toBe(true);
+
+    // 3) AGE THE FIRST LOT PAST ITS OWN EXPIRY — the injected half. The member
+    //    kept buying, and it does not save those points: this is the entire
+    //    difference from the inactivity rule this replaced, over HTTP.
+    const dying = member.lots[0];
+    const dead = { ...dying, grantedOn: shiftDayKey(dying.grantedOn, -400), expiresOn: shiftDayKey(dying.expiresOn, -400) };
+    member.lots[0] = dead;
+    // The settle stamp moves with it. A member whose lot has died last wrote
+    // BEFORE it died — stamping "settled through today" over a back-dated lot
+    // would claim its expiry had already been booked and would quietly measure
+    // nothing. (In production the invariant holds for free: settleExpiry stamps
+    // today and every lot granted after it expires later than today.)
+    member.expirySettledThrough = dead.grantedOn;
+
+    const aged = await balance(token);
+    expect(aged.points).toBe(second.body.pointsEarned);   // not the sum, and not zero
+    expect(aged.nextExpiry!.amount).toBe(second.body.pointsEarned);
+    expect(aged.nextExpiry!.on).toBe(member.lots[1].expiresOn);
+
+    // 4) A redemption for MORE than the live balance is refused — measured
+    //    against what is alive, not against the rows.
+    const over = await app.inject({
+      method: 'POST', url: '/v1/loyalty/redeem',
+      payload: { points: aged.points + 1 },
+      headers: authOf(token, { 'idempotency-key': randomUUID() }),
+    });
+    expect(over.statusCode).toBe(409);
+    expect(over.json().error).toBe('insufficient_points');
+    // ... and it moved nothing.
+    expect((await balance(token)).points).toBe(aged.points);
+
+    // 5) A redemption within the live balance spends the LIVE lot, oldest
+    //    first, and leaves the dead row alone.
+    const spend = 3;
+    const ok = await app.inject({
+      method: 'POST', url: '/v1/loyalty/redeem',
+      payload: { points: spend },
+      headers: authOf(token, { 'idempotency-key': randomUUID() }),
+    });
+    expect(ok.statusCode, ok.body).toBe(201);
+    expect(ok.json().pointsBalance).toBe(aged.points - spend);
+    expect((await balance(token)).points).toBe(aged.points - spend);
+    const afterSpend = await backend.getMember(id);
+    expect(afterSpend.lots[0].remaining).toBe(dead.remaining); // the dead lot is untouched
+    expect(afterSpend.lots[1].remaining).toBe(second.body.pointsEarned - spend);
+    // The partly-spent lot kept its own dates: the remainder dies when it
+    // always would have, never twelve fresh months from the redemption.
+    expect(afterSpend.lots[1].expiresOn).toBe(member.lots[1].expiresOn);
+    expect(afterSpend.lots[1].amount).toBe(second.body.pointsEarned);
+
+    // 6) THE LEDGER LINE. The expired points appear in the member's history
+    //    exactly once, so `unexplainedPoints` stays exact and the member can
+    //    see where the points went.
+    const history = (await app.inject({
+      method: 'GET', url: '/v1/me/history', headers: authOf(token),
+    })).json();
+    const expired = history.filter((h: { reasonEn: string }) => h.reasonEn === 'Points expired');
+    expect(expired).toHaveLength(1);
+    expect(expired[0].deltaPoints).toBe(-dead.remaining);
+    // liveBalance − Σ(history deltas) is the second-visit guard's input, and
+    // for a member the BFF granted everything to it must be exactly 0.
+    const sum = history.reduce((s: number, h: { deltaPoints: number }) => s + h.deltaPoints, 0);
+    expect(liveBalance(afterSpend.lots) - sum).toBe(0);
   });
 
   it('S10 the basket the offers card builds earns the combo bonus it advertises', async () => {

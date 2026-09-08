@@ -6,9 +6,10 @@ import type { Backend } from './types';
  *
  *  Mapping (target):
  *   - findOrCreateByPhone → res.partner search/create keyed by normalized +962 phone
- *   - getMember          → res.partner + loyalty.card (points) + ewallet balance
+ *   - getMember          → res.partner + the LOT LEDGER (below) + ewallet balance
  *   - debit/creditWallet → ewallet transaction (idempotent)
- *   - addPoints/spend    → loyalty.card update via loyalty.program/reward
+ *   - addPoints/spend    → an INSERT and a FIFO walk over the lot table (below),
+ *                          not a loyalty.card scalar
  *   - createOrder        → sale.order (or pos.order) confirm, idempotent
  *   - getHistory         → loyalty.history / points log
  */
@@ -21,6 +22,40 @@ export function createOdooBackend(): Backend {
     getMember: () => todo('getMember'),
     debitWallet: () => todo('debitWallet'),
     creditWallet: () => todo('creditWallet'),
+    // 🔴 THE POINT LEDGER IS A TABLE, NOT A COLUMN, for the same reason the
+    // window is a bucket engine and not a scalar. Owner: «كل نقطة تعيش ١٢ شهر
+    // ولا تتجدد بشراء جديد وصرف النقاط FIFO» and «لا إعفاء — القاعدة للجميع».
+    //   almond_loyalty_lot(partner_id, seq, granted_on DATE, expires_on DATE,
+    //     amount INT, remaining INT, source)
+    //     UNIQUE(partner_id, seq); INDEX(partner_id, granted_on, seq)
+    // Both DATE columns are AMMAN business days, decided by the writer and
+    // never re-derived from a server's clock (pos.order.date_order in Amman,
+    // not Odoo's UTC) — the enforced day and the day the app prints must be the
+    // same day. `expires_on` is WRITTEN AT GRANT TIME, never computed on read:
+    // a lot carries the promise it was issued under, so editing
+    // POINT_LOT_LIFE_MONTHS can only affect grants made after the edit.
+    //   addPoints   → one INSERT. It touches no existing row; a purchase
+    //                 renews nothing.
+    //   spendPoints → SELECT ... WHERE remaining > 0 AND expires_on >= today
+    //                 ORDER BY granted_on, seq FOR UPDATE, then check the SUM
+    //                 BEFORE the first UPDATE and decrement `remaining` only —
+    //                 never `amount`, and never re-dating a partly-spent row.
+    //   the balance → SUM(remaining) over that same predicate. Do NOT add a
+    //                 cached scalar column: a second number is a second opinion.
+    // 🔴 AND: the cutover needs a MIGRATION that turns each member's existing
+    //   balance into ONE lot dated at the CUTOVER DAY (source 'migration', seq
+    //   0), NOT at their last activity — a rule may not take money
+    //   retroactively, and dating it at last activity kills most of the dormant
+    //   tail on day one with no notice. That lot must NOT be written to the
+    //   points history: `unexplainedPoints` is balance − Σ(history rows), and
+    //   logging it would mark all 47,720 migrated members "explained" and
+    //   disarm the second-visit guard below. *.odoo.com is unreachable from
+    //   this environment, so like the backfill below this is a documented
+    //   probe, and no test in this repo can enforce it.
+    // ⚠ Cutover + 12 months is a CLIFF: every unredeemed migrated point dies on
+    //   one calendar day. That is an owner decision, not a code one. See
+    //   packages/shared/src/loyalty/lots.ts migrationLot for the storage-free
+    //   jitter that would smear it, and the instruction not to ship it unasked.
     addPoints: () => todo('addPoints'),
     spendPoints: () => todo('spendPoints'),
     // The rolling window on the Odoo side is a BUCKET ENGINE, not a scalar:
