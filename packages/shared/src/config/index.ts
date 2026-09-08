@@ -455,6 +455,36 @@ export const config = {
    */
   REDEEM_PRESET_JOD: [1, 2, 5],
 
+  /**
+   * 🔴 ONE-TIME POINTS FOR FILLING IN A PROFILE. Owner, 2026-09-08: «٥٠ نقطة
+   * اذا بحط معلوماته».
+   *
+   * WHAT IT COSTS, BEFORE ANYONE IS SURPRISED BY IT. 50 points is 0.500 JOD at
+   * the shipped redemption rate (POINTS_PER_JOD_REDEEM = 100). Against the
+   * 47,720 members in the live Wafii table, paying every one of them is
+   * ~23,860 JOD — a ONE-OFF, but of the same order as the entire 2/4/6 ladder's
+   * ~22,276 JOD/YEAR. Realistic completion is a fraction of that; the point is
+   * that the ceiling is not small and belongs in a cost model, not in a
+   * surprise.
+   *
+   * 🔴 AND IT INTERACTS WITH THE MIGRATION. The Wafii export ALREADY CARRIES a
+   * name for those members. If they are migrated with their names, they are
+   * complete on arrival and this must not fire — paying 50 points for a fact we
+   * already hold is paying twice for nothing. Whoever writes the migration owes
+   * a decision here, and the once-only stamp is the lever: set it AT migration
+   * for every member whose name came across. That is why the stamp is a
+   * timestamp on the member record and not a derived "has a name" check.
+   *
+   * WHY IT IS WORTH PAYING AT ALL. The tier cards already promise a birthday
+   * benefit (`tierBenefits.birthday`) and nothing in this repo has ever had
+   * anywhere to store a birthday. A profile is what makes that promise real,
+   * and a named greeting is the visible half of the same thing.
+   *
+   * 0 switches it off entirely — the profile screen keeps working and simply
+   * pays nothing.
+   */
+  PROFILE_COMPLETION_BONUS: 50,
+
   CUP_TARGET: 10,
   CUP_HEAD_START: 1,
   DEFAULT_PREP_MINUTES: 7, // section 7.3

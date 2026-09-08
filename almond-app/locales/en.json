@@ -21,7 +21,8 @@
     "points": "points",
     "free": "Free",
     "add": "Add",
-    "confirm": "Confirm"
+    "confirm": "Confirm",
+    "error": "Something went wrong"
   },
   "onboarding": {
     "slide1Title": "Welcome to Almond",
@@ -384,7 +385,9 @@
     "addAddress": "Add address",
     "reloadBonus": "+{{beans}} bonus points",
     "reloadBonusNote": "Reload more and earn bonus points instantly ☕",
-    "giftCards": "Gift cards"
+    "giftCards": "Gift cards",
+    "details": "Your details",
+    "detailsEarn": "+{{points}} points"
   },
   "referral": {
     "title": "Invite friends",
@@ -463,5 +466,20 @@
     "addRecipient": "Add a person",
     "sentCount": "Sent {{count}} gift(s) 🎉",
     "payNote": "Paid from your wallet (balance {{jod}} JOD)"
+  },
+  "details": {
+    "nameLabel": "Your name",
+    "namePlaceholder": "e.g. Hamza",
+    "nameRequiredTitle": "We need a name",
+    "nameRequiredBody": "Type the name you would like us to greet you by.",
+    "birthdayLabel": "Birthday (optional)",
+    "birthdayHint": "So we can send you something on the day. You can leave this empty.",
+    "phoneFixed": "Signed in as {{phone}}",
+    "bonusPitch": "Tell us your name and collect {{points}} points — once.",
+    "saveAndEarn": "Save and collect {{points}} points",
+    "savedTitle": "Saved",
+    "savedBody": "Your details are up to date.",
+    "savedBonus": "{{points}} points added — thank you 🎉",
+    "saveFailed": "We couldn't save that. Please try again."
   }
 }

@@ -1,3 +1,4 @@
+import type { MemberProfile } from '@almond/shared/loyalty/profile';
 import type {
   LoyaltyBalance,
   Voucher,
@@ -62,6 +63,14 @@ export interface SendGiftInput {
  */
 export type { PosMode, PosTokenWire } from '@almond/shared/pos/tokenWire';
 
+/** What the server did with a profile save. */
+export interface ProfileSaveResult {
+  profile: MemberProfile;
+  /** Points actually granted — 0 on every save after the first. */
+  bonusGranted: number;
+  pointsBalance: number;
+}
+
 /** POS scan confirmation polled by the barcode screen (Odoo POS → server). */
 export interface ScanStatus {
   scanned: boolean;
@@ -104,6 +113,15 @@ export interface LoyaltyService {
    * one from the other would make points refundable, which they are not.
    */
   redeemReward(userId: string, input: RedeemRewardInput): Promise<{ points: number; voucher: Voucher }>;
+  /**
+   * Save the member's own details, and collect the one-time completion bonus.
+   *
+   * 🔴 THE CLIENT SENDS A NAME AND NOTHING ELSE. `bonusGranted` in the reply is
+   * what the SERVER decided and paid — the phone may predict it with
+   * @almond/shared/loyalty/profile to render an honest "+50" on the button, but
+   * it never asserts it. A client that could would be a mint.
+   */
+  updateProfile(userId: string, profile: MemberProfile): Promise<ProfileSaveResult>;
   earn(input: EarnInput): Promise<EarnResult>;
   getHistory(userId: string): Promise<PointsLogEntry[]>;
 

@@ -18,6 +18,7 @@
     "./loyalty/holdout": "./src/loyalty/holdout.ts",
     "./loyalty/window": "./src/loyalty/window.ts",
     "./loyalty/balanceWire": "./src/loyalty/balanceWire.ts",
+    "./loyalty/profile": "./src/loyalty/profile.ts",
     "./loyalty/redeem": "./src/loyalty/redeem.ts",
     "./loyalty/secondVisit": "./src/loyalty/secondVisit.ts",
     "./pos/tokenWire": "./src/pos/tokenWire.ts",

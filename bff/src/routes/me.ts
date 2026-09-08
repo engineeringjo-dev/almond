@@ -3,6 +3,8 @@ import { tiers } from '@almond/shared/loyalty';
 import { liveBalance, nextExpiry } from '@almond/shared/loyalty/lots';
 import type { TierId } from '@almond/shared/types';
 import type { MeBalanceWire } from '@almond/shared/loyalty/balanceWire';
+import { z } from 'zod';
+import { parse } from '../validate';
 import { requireMember, memberId } from '../plugins/auth';
 import { toJod } from '../money';
 import type { Backend } from '../backend';
@@ -19,6 +21,45 @@ function wireTierId(rungId: string): TierId {
 }
 
 export function registerMeRoutes(app: FastifyInstance, backend: Backend): void {
+  /**
+   * The member tells us who they are, and is paid once for it.
+   *
+   * 🔴 THE BODY CARRIES A NAME. IT DOES NOT CARRY POINTS, AND IT DOES NOT
+   * CARRY "I DESERVE THE BONUS". Both would be self-crediting vectors of
+   * exactly the kind the static POS QR was. The backend holds the once-only
+   * stamp, decides the grant, and reports what it actually did in
+   * `bonusGranted` — the client renders that number, it never proposes one.
+   *
+   * Not idempotency-keyed like the financial POSTs: it does not need to be. The
+   * stamp makes a repeat save pay 0 rather than pay twice, so a retried request
+   * converges on the same state by construction instead of by replay.
+   */
+  app.post('/v1/me/profile', { preHandler: [requireMember] }, async (req, reply) => {
+    const id = memberId(req);
+    const body = parse(
+      z.object({
+        // Bounded HERE as well as normalized in shared, and the two bounds do
+        // DIFFERENT jobs. normalizeName truncates to MAX_NAME_LENGTH because a
+        // greeting is a sentence; this one refuses a payload that was never a
+        // name at all. It is deliberately far above any paste a person could
+        // make by accident — a fumbled select-all of a page is trimmed and
+        // saved, a megabyte is refused — because rejecting a real member's
+        // clumsy paste with a 400 they cannot interpret is the worse failure.
+        name: z.string().max(4096),
+        // An Amman DAY KEY or null — never an ISO instant, which would render a
+        // day early west of Greenwich. The regex is the shape; a nonsense date
+        // like 2026-02-31 is the client's to avoid and costs nothing here.
+        birthday: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable().default(null),
+      }),
+      req.body,
+    );
+    // `birthday` is `.default(null)`, so zod always produces it — but the
+    // inferred type keeps it optional and MemberProfile does not. Naming the
+    // field rather than casting keeps the wire and the domain type honest.
+    const result = await backend.setProfile(id, { name: body.name, birthday: body.birthday ?? null });
+    return reply.code(200).send(result);
+  });
+
   // The return type is the SHARED wire contract, not an inferred anonymous
   // object. This route and almond-app's LoyaltyBalance were two hand-written
   // shapes that had already drifted (tier as an object here, a TierId string

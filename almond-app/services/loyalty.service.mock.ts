@@ -13,6 +13,7 @@ import type { GiftCard, Subscription, PaymentMethodId, TierId } from '@/types';
 import type { LoyaltyService, EarnInput } from './loyalty.service';
 import { config } from '@/constants/config';
 import { computeEarn } from '@almond/shared/loyalty/earn';
+import { normalizeName, profileBonusFor } from '@almond/shared/loyalty/profile';
 import {
   consumeFifo, expiredBetween, grantLot, liveBalance, lotRulesFromConfig, migrateBalance,
   nextExpiry, pruneLots, type PointLot,
@@ -41,6 +42,15 @@ export interface LoyaltyUser {
    * redemption they can see on their screen.
    */
   lots: PointLot[];
+  /** The member's own name, once they have told us. '' until then — never an
+   *  invented one, in either language. Feeds the home greeting. */
+  name: string;
+  /** Amman day key of birth, or null. */
+  birthday: string | null;
+  /** 🔴 When the profile bonus was paid. A TIMESTAMP, not a boolean, and never
+   *  derived from "has a name" — otherwise clearing the name and re-saving it
+   *  pays again, forever. Mirrors Member.profileBonusAt in the BFF. */
+  profileBonusAt: string | null;
   /** The Amman day key through which expiry has been written into `history`.
    *  The BALANCE never needs this — a dead lot contributes 0 to every sum from
    *  the instant it dies. Only the ledger LINE does. */
@@ -157,6 +167,9 @@ function ensureUser(userId: string): LoyaltyUser {
         migrateBalance(1000, ammanDayKey(new Date(Date.now() - 86400000 * 355)), LOTS),
         240, 'migration', new Date(Date.now() - 86400000 * 10), LOTS,
       ).lots,
+      name: '',
+      birthday: null,
+      profileBonusAt: null,
       expirySettledThrough: ammanDayKey(),
       // 🔴 THE SEED DECIDES WHETHER W4'S CENTREPIECE RENDERS AT ALL.
       //
@@ -369,6 +382,35 @@ export const mockLoyaltyService: LoyaltyService = {
       createdAt: new Date().toISOString(),
     });
     return delay({ points: liveBalance(u.lots), voucher });
+  },
+
+  // The profile, and the once-only bonus. A FAITHFUL MIRROR of
+  // bff/src/backend/memory.ts setProfile — including the stamp being a
+  // timestamp on the user rather than "does this user have a name", so the
+  // clear-and-resave mint is closed here too. A mock that is generous where the
+  // server is strict teaches the app the wrong shape.
+  updateProfile: (userId, profile) => {
+    const u = ensureUser(userId);
+    settleExpiry(u);
+    const name = normalizeName(profile.name);
+    const bonus = profileBonusFor({ name, birthday: profile.birthday }, u.profileBonusAt !== null);
+    u.name = name;
+    u.birthday = profile.birthday;
+    if (bonus > 0) {
+      u.profileBonusAt = new Date().toISOString();
+      u.lots = grantLot(u.lots, bonus, 'bonus', new Date(), LOTS).lots;
+      u.history.unshift({
+        id: genId('log'), deltaPoints: bonus,
+        reasonAr: 'إكمال الملف الشخصي',
+        reasonEn: 'Profile completed',
+        createdAt: new Date().toISOString(),
+      });
+    }
+    return delay({
+      profile: { name, birthday: u.birthday },
+      bonusGranted: bonus,
+      pointsBalance: liveBalance(u.lots),
+    });
   },
 
   // Mirror of section 8.2 earn calculation.

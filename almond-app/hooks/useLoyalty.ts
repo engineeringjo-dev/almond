@@ -4,6 +4,7 @@ import { loyaltyService, type RedeemRewardInput, type SendGiftInput } from '@/se
 import { integration } from '@/constants/integration';
 import { posQrRefreshMs } from '@/lib/posQr';
 import { useUserId } from '@/stores/authStore';
+import type { MemberProfile } from '@almond/shared/loyalty/profile';
 import type { PosMode } from '@almond/shared/pos/tokenWire';
 import type { PaymentMethodId } from '@/types';
 
@@ -55,6 +56,17 @@ export function useRedeemReward() {
   const invalidate = useInvalidateLoyalty();
   return useMutation({
     mutationFn: (input: RedeemRewardInput) => loyaltyService.redeemReward(userId, input),
+    onSuccess: invalidate,
+  });
+}
+
+/** Save the member's details. Invalidates loyalty so the balance the bonus
+ *  changed is refetched, and the home greeting re-renders with the name. */
+export function useUpdateProfile() {
+  const userId = useUserId();
+  const invalidate = useInvalidateLoyalty();
+  return useMutation({
+    mutationFn: (profile: MemberProfile) => loyaltyService.updateProfile(userId, profile),
     onSuccess: invalidate,
   });
 }

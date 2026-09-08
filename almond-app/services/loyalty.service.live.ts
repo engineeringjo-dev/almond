@@ -10,7 +10,7 @@ import type {
   GiftCard,
   Subscription,
 } from '@/types';
-import type { LoyaltyService, EarnInput, ScanStatus } from './loyalty.service';
+import type { LoyaltyService, EarnInput, ScanStatus, ProfileSaveResult } from './loyalty.service';
 import { integration, loyaltyAuthHeaders } from '@/constants/integration';
 import { parseMeBalance, toLoyaltyBalance } from '@almond/shared/loyalty/balanceWire';
 import { parsePosToken, type PosTokenWire } from '@almond/shared/pos/tokenWire';
@@ -64,6 +64,12 @@ export const liveLoyaltyService: LoyaltyService = {
   getVouchers: (userId) => get<Voucher[]>(E.vouchers(userId)),
   redeemReward: (userId, input) =>
     post<{ points: number; voucher: Voucher }>(E.redeemReward, { userId, ...input }),
+
+  // POST /v1/me/profile. Sends the NAME; reads back what the server granted.
+  // `userId` is not in the body on purpose — identity is the bearer token's
+  // `sub`, and a client-supplied id is the vector the BFF exists to close.
+  updateProfile: (_userId, profile) =>
+    post<ProfileSaveResult>('/v1/me/profile', profile),
   earn: (input: EarnInput) => post<EarnResult>(E.earn, input),
   getHistory: (userId) => get<PointsLogEntry[]>(E.history(userId)),
 
