@@ -31,14 +31,20 @@ export const ESTIMATE_RULES: EarnRules = { ...earnRulesFromConfig(), weekdayBonu
 export function estimateEarnedPoints(opts: {
   total: number;
   items: CartItem[];
-  /** Rolling-12-month qualifying spend → tier (LoyaltyBalance.windowSpend). */
+  /** Qualifying spend inside the 90-day window (LoyaltyBalance.windowSpend). */
   windowSpend: number;
+  /** The rung the member HOLDS (LoyaltyBalance.tier). Optional, but omitting it
+   *  under-quotes a ratcheted member: their window may have rolled below the
+   *  threshold they once crossed while they are still PAID the higher rate, and
+   *  the estimate must equal the grant. */
+  heldRungId?: string;
   paidFromBalance: boolean;
 }): number {
   return computeEarn(
     {
       total: opts.total,
       windowSpend: opts.windowSpend,
+      heldRungId: opts.heldRungId,
       paidFromBalance: opts.paidFromBalance,
       comboPairs: comboPairs(opts.items),
     },

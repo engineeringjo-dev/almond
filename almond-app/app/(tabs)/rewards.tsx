@@ -26,37 +26,13 @@ import { config } from '@/constants/config';
 import { useI18n } from '@/hooks/useI18n';
 import { formatNumber, formatDate } from '@/lib/format';
 import { useLoyaltyBalance, useRedeemReward } from '@/hooks/useLoyalty';
-// earn-arith-exempt: tier ramp for the progress UI only. §7 T7.
-import { tiers, tierFromSpend, nextTier } from '@/services/seed';
-import { menuItems } from '@/services/seed';
+// earn-arith-exempt: the tier ramp, for DISPLAY only — no invoice, no grant. §7 T7.
+import { tiers } from '@/services/seed';
+import { tierName } from '@almond/shared/loyalty';
+import { rewardCatalogue, type RewardRung } from '@/services/rewardCatalogue';
+import { tierProgressCopy } from '@/lib/tierCopy';
 import i18n from '@/lib/i18n';
-import type { TierId } from '@/types';
-
-/**
- * Beans redemption ladder (§3.2) — modelled on Starbucks' tiered catalog
- * (25/60/100/200/300/400) with rising reward types + locked "X away" states.
- * The 60-beans flat discount is the simple, flexible option (§4.3).
- */
-// A representative real product photo for each reward (temporary if the exact
-// reward item doesn't exist) — falls back to the first photographed item.
-const rewardImg = (re: RegExp): string | undefined =>
-  (menuItems.find((i) => i.imageUrl && re.test(i.nameEn)) ??
-    menuItems.find((i) => i.imageUrl))?.imageUrl;
-
-const REWARD_MENU: {
-  points: number;
-  labelKey: string;
-  icon: IconName;
-  type: 'free-item' | 'discount';
-  image?: string;
-}[] = [
-  { points: 25, labelKey: 'rewardItems.customization', icon: 'plus', type: 'discount', image: rewardImg(/syrup|caramel|vanilla|shot|latte/i) },
-  { points: 60, labelKey: 'rewardItems.flatDiscount', icon: 'gift', type: 'discount', image: rewardImg(/gift|box/i) },
-  { points: 100, labelKey: 'rewardItems.brewedCoffee', icon: 'coffee', type: 'free-item', image: rewardImg(/americano|brew|drip|filter|coffee/i) },
-  { points: 200, labelKey: 'rewardItems.handcraftedDrink', icon: 'cold', type: 'free-item', image: rewardImg(/latte|frappe|iced|spanish/i) },
-  { points: 300, labelKey: 'rewardItems.brunchPlate', icon: 'brunch', type: 'free-item', image: rewardImg(/croissant|sandwich|manaqeesh|bagel/i) },
-  { points: 400, labelKey: 'rewardItems.packagedCoffee', icon: 'cake', type: 'free-item', image: rewardImg(/beans|whole bean|packaged/i) },
-];
+import type { Lang, Tier, TierId } from '@/types';
 
 const TIER_COLOR: Record<TierId, string> = {
   base: colors.tierBean,
@@ -65,32 +41,51 @@ const TIER_COLOR: Record<TierId, string> = {
 };
 
 // Full per-tier benefit lists (each card is self-contained, Starbucks-style).
-// Tiers differ ONLY by reward generosity (earn rate, no-expiry, extra bonus
-// days, exclusive perks) — never by service/treatment. Shared benefits (free
-// monthly customization, birthday drink, personalized offers, reload bonus,
-// personal-cup bonus) are identical for everyone — no treatment discrimination.
-type Benefit = { icon: IconName; key: string };
+// Tiers differ ONLY by reward generosity — never by service/treatment.
+//
+// 🔴 WHAT CAME OFF THESE CARDS, AND WHY. Four rows were promising mechanics the
+// code does not run:
+//   - earnBean/earnSilver/earnGold/earnBlack said "Earn 5 / 6.25 / 7.5 / 10
+//     points per 1 JOD". The code pays 2 / 4 / 6. Every one of them was wrong on
+//     screen, in both languages, on ids (bean/silver/gold/black) that stopped
+//     existing when the ladder became base/plus/top.
+//   - doubleDays4 promised Double Points Days: config.BONUS_BEAN_DAY.enabled is
+//     false and WEEKDAY_EARN_BONUS is empty. Retired 2026-09-06.
+//   - cupBonus promised double points for a personal cup. No such mechanic
+//     exists anywhere in the repo.
+//   - reloadBonus is REAL (config.WALLET_RELOAD_BONUS, granted in
+//     bff/src/routes/wallet.ts) but is identical at every rung, so listing it as
+//     a TIER benefit implied a differentiation it does not carry. It is now said
+//     where it is true instead — home.walletHint, on the wallet card.
+//
+// One row replaces all four earn* rows: `tierBenefits.cashback`, whose {{rate}}
+// IS the tier's name. 1 point = 1 qirsh exactly (10,621 live redemptions), so
+// the rate and the cashback percentage are the same number — "Earn 2 points per
+// 1 JOD" said one fact twice in two units, and a string with no numeral in it
+// cannot go stale.
+type BenefitParams = (tier: Tier, lang: Lang) => Record<string, string | number>;
+type Benefit = { icon: IconName; key: string; params?: BenefitParams };
 const B = {
   birthday: { icon: 'gift', key: 'tierBenefits.birthday' } as Benefit,
   freeMod: { icon: 'sparkles', key: 'tierBenefits.freeMod' } as Benefit,
   offers: { icon: 'ticket', key: 'tierBenefits.offers' } as Benefit,
-  reload: { icon: 'coins', key: 'tierBenefits.reloadBonus' } as Benefit,
-  cup: { icon: 'coffee', key: 'tierBenefits.cupBonus' } as Benefit,
   noExpire: { icon: 'history', key: 'tierBenefits.noExpire' } as Benefit,
 };
-const SHARED: Benefit[] = [B.birthday, B.freeMod, B.offers, B.reload, B.cup];
-const earn = (key: string): Benefit => ({ icon: 'bean', key });
+const SHARED: Benefit[] = [B.birthday, B.freeMod, B.offers];
+// The rate row, and the only place a rung's rate is stated on this screen.
+const CASHBACK: Benefit = {
+  icon: 'bean',
+  key: 'tierBenefits.cashback',
+  params: (tier, lang) => ({ rate: tierName(tier, lang) }),
+};
 
-// The benefit lists are what the rungs now differ by. The rate step (×2, then
-// ×1.5) is the headline, but 0.117 JOD a visit is not what anyone feels — the
-// felt difference is the monthly upgrade coupon and the birthday item. Every
-// 2026 redesign in the sector (Starbucks, Chipotle, Panera) moved
-// differentiation off the earn rate and onto benefits for exactly this reason.
+// `Record<TierId, …>` on purpose: TypeScript makes it exhaustive, so a fourth
+// rung cannot be added to the ramp and silently render an empty card.
 const TIER_BENEFITS: Record<TierId, Benefit[]> = {
-  base: [earn('tierBenefits.earnBean'), ...SHARED],
-  plus: [earn('tierBenefits.earnGold'), ...SHARED, { icon: 'sparkles', key: 'tierBenefits.doubleDays4' }],
+  base: [CASHBACK, ...SHARED],
+  plus: [CASHBACK, ...SHARED],
   top: [
-    earn('tierBenefits.earnBlack'), B.noExpire, ...SHARED,
+    CASHBACK, B.noExpire, ...SHARED,
     { icon: 'globe', key: 'tierBenefits.experiences' },
     { icon: 'card', key: 'tierBenefits.memberCard' },
   ],
@@ -135,7 +130,7 @@ export default function RewardsScreen() {
   const balance = balanceQ.data;
   const points = balance.points;
 
-  const onRedeem = (r: (typeof REWARD_MENU)[number]) => {
+  const onRedeem = (r: RewardRung) => {
     if (points < r.points || redeemReward.isPending) return;
     const item = t(r.labelKey);
     Alert.alert(t('rewards.confirmTitle'), t('rewards.confirmBody', { item, beans: r.points }), [
@@ -157,10 +152,19 @@ export default function RewardsScreen() {
     ]);
   };
 
-  // earn-arith-exempt: tier badge + progress bar; no invoice, no grant. §7 T7.
-  const currentTier = tierFromSpend(balance.windowSpend);
-  const next = nextTier(balance.windowSpend);
-  const remaining = next ? Math.max(0, next.threshold - balance.windowSpend) : 0;
+  // The rung the balance ALREADY CARRIES — not tierFromSpend(windowSpend).
+  // Those two disagree for any ratcheted member: there is no demotion, so a
+  // member whose 90-day window rolled below a threshold they crossed is still
+  // paid the higher rate, and re-deriving it here would show them the lower one
+  // right next to a TierBadge showing the higher one.
+  const curIdx = Math.max(0, tiers.findIndex((tr) => tr.id === balance.tier));
+  const currentTier = tiers[curIdx];
+  const next = tiers[curIdx + 1] ?? null;
+  // The sentence itself is decided in ONE place, in visits, for all three
+  // screens — see lib/tierCopy.ts. This screen used to say "Spend 8.000 JOD to
+  // reach tiers.plus": a dinar figure the copy rules forbid, next to a literal
+  // unresolved i18n key.
+  const progress = tierProgressCopy(balance, lang);
   const segFrom = currentTier.threshold;
   const segTo = next ? next.threshold : currentTier.threshold;
   const segPct = next
@@ -249,7 +253,7 @@ export default function RewardsScreen() {
       </Text>
       <View style={styles.rewardGrid}>
         {/* Each reward is a max value; pay the difference if the item costs more */}
-        {REWARD_MENU.map((r) => {
+        {rewardCatalogue.map((r) => {
           const unlocked = points >= r.points;
           const jod = (r.points / config.POINTS_PER_JOD_REDEEM).toFixed(3);
           return (
@@ -320,9 +324,15 @@ export default function RewardsScreen() {
         {tiers.map((tr) => {
           const isCurrent = tr.id === currentTier.id;
           const fg = colors.white; // tier colours are all dark enough for white text
+          // The qualifying door, said the way the member can act on it. The
+          // second rung has a REAL visits door (config.TIER2_VISITS_ALTERNATIVE
+          // = 4, and ceil(20 / 5.85) = 4 too, so the two doors agree); the top
+          // rung has none, so it does not pretend to.
           const sub = tr.id === 'base'
-            ? t('rewards.statusSubBelow', { spend: tiers[1].threshold })
-            : t('rewards.statusSubAbove', { spend: tr.threshold });
+            ? t('rewards.statusSubBase')
+            : tr.id === 'plus'
+              ? t('rewards.statusSubPlus', { visits: config.TIER2_VISITS_ALTERNATIVE })
+              : t('rewards.statusSubTop');
           return (
             <View key={tr.id} style={[styles.statusCard, { width: cardW, backgroundColor: TIER_COLOR[tr.id] }]}>
               {isCurrent ? (
@@ -334,19 +344,19 @@ export default function RewardsScreen() {
               ) : null}
 
               <Text variant="h2" center color={fg}>
-                {t(`tiers.${tr.id}`)}
+                {tierName(tr, lang)}
               </Text>
               <Text variant="caption" center color={fg} style={styles.statusSub}>
                 {sub}
               </Text>
 
-              {isCurrent && next ? (
+              {isCurrent && progress ? (
                 <View style={styles.progressBlock}>
                   <View style={styles.progressTrack}>
                     <View style={[styles.progressFill, { width: `${segPct}%` }]} />
                   </View>
                   <Text variant="caption" center color={fg}>
-                    {t('rewards.progressToNext', { remaining: remaining.toFixed(3), tier: t(`tiers.${next.id}`) })}
+                    {t(progress.key, progress.params)}
                   </Text>
                 </View>
               ) : null}
@@ -356,7 +366,7 @@ export default function RewardsScreen() {
                   <View key={b.key} style={styles.benefitRow}>
                     <Icon name={b.icon} size={16} color={fg} strokeWidth={1.9} />
                     <Text variant="caption" color={fg} style={styles.flex}>
-                      {t(b.key)}
+                      {t(b.key, b.params ? b.params(tr, lang) : undefined)}
                     </Text>
                   </View>
                 ))}

@@ -18,8 +18,9 @@ import { Logo } from '@/components/ui/Logo';
 import { colors, spacing, radius, shadow } from '@/constants/theme';
 import { useI18n } from '@/hooks/useI18n';
 import { formatNumber } from '@/lib/format';
-import { config } from '@/constants/config';
 import { useLoyaltyBalance, useScanStatus } from '@/hooks/useLoyalty';
+import { tiers } from '@/services/seed';
+import { tierName } from '@almond/shared/loyalty';
 import { useUserId } from '@/stores/authStore';
 
 /**
@@ -44,9 +45,13 @@ export default function PayScreen() {
   const qrValue = `ALMOND|MEMBER|${userId}|MODE=${mode === 'pay' ? 'PAY' : 'EARN'}`;
   const qrSize = Math.min(width - spacing.lg * 2 - spacing.xl * 2, 300);
 
-  // Earn-rate label scales with the tier multiplier (e.g. Gold ×1.5).
-  // earn-arith-exempt: display rate only — no invoice, no grant. §3.5 / §7 T7.
-  const earnRate = config.POINTS_PER_JOD * (balance?.multiplier ?? 1);
+  // The earn rate the member is told IS the rung's name: 1 point = 1 qirsh
+  // exactly (10,621 live redemptions), so "2%" and "2 points per JOD" are the
+  // same fact in two units. This used to compute POINTS_PER_JOD × multiplier and
+  // print "Earn 4 points per 1 JOD" next to a 4% badge; now there is one number
+  // and it comes from the ramp, so it cannot drift from what is paid.
+  // earn-arith-exempt: tier lookup for a display label — no invoice, no grant. §3.5 / §7 T7.
+  const tierDef = tiers.find((x) => x.id === balance?.tier) ?? tiers[0];
 
   // Max out brightness while the tab is focused; restore on blur/exit (§4.3).
   useFocusEffect(
@@ -150,7 +155,7 @@ export default function PayScreen() {
       <View style={styles.earnRate}>
         <Icon name="bean" size={14} color={colors.primary} strokeWidth={2} />
         <Text variant="caption" color={colors.primary}>
-          {t('pay.earnRate', { n: Number.isInteger(earnRate) ? earnRate : earnRate.toFixed(2) })}
+          {t('pay.earnRate', { rate: tierName(tierDef, lang) })}
         </Text>
       </View>
 

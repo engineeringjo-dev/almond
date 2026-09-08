@@ -79,7 +79,11 @@ export default function LoyaltyScreen() {
           <Text variant="title" style={styles.sectionTitle}>
             {t('loyalty.tier')}
           </Text>
-          <TierProgress tier={balance.tier} windowSpend={balance.windowSpend} />
+          <TierProgress
+            tier={balance.tier}
+            windowSpend={balance.windowSpend}
+            nextTier={balance.nextTier}
+          />
         </Card>
 
         {/* Vouchers */}

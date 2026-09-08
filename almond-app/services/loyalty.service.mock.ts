@@ -9,28 +9,44 @@ import type {
   ReferralInfo,
   CupState,
 } from '@/types';
-import type { GiftCard, Subscription, PaymentMethodId } from '@/types';
+import type { GiftCard, Subscription, PaymentMethodId, TierId } from '@/types';
 import type { LoyaltyService, EarnInput } from './loyalty.service';
 import { config } from '@/constants/config';
 import { computeEarn } from '@almond/shared/loyalty/earn';
 import { expiryAt, isExpired } from '@almond/shared/loyalty/expiry';
+import {
+  evaluationPeriod, holdRung, qualifiedRung, spendEntry, standing, windowRulesFromConfig,
+  type SpendEntry,
+} from '@almond/shared/loyalty/window';
 import { ammanDayKey, ammanWeekday } from '@almond/shared/lib/ammanWeekday';
 // The earn multiplier is computeEarn's business only; this is the tier itself.
 // earn-arith-exempt: tier lookup for the expiry rule and the balance. §7 T7.
-import { tierFromSpend } from './seed';
+import { tiers } from './seed';
 import { delay, genId } from './util';
 import { defaultSpinConfig, pickWeightedPrize } from './spinDefaults';
 import { reloadBonusBeans } from '@/lib/walletBonus';
 
-interface SpendEntry {
-  amount: number;
-  at: number; // epoch ms
-}
-
 export interface LoyaltyUser {
   points: number;
-  /** Every qualifying purchase with its timestamp → rolling-12m tier (§A). */
+  /**
+   * Every qualifying purchase, dated by the AMMAN day it happened on. The type
+   * and the window that reads it are the SHARED ones
+   * (@almond/shared/loyalty/window), not a second local definition — the local
+   * one measured a rolling 365 days while the BFF measured "forever", so the
+   * same member could be two different tiers on the phone and on the server.
+   * One window, in one place, used by both.
+   *
+   * Unlike the BFF's log this one is deliberately NOT pruned, so the seeded
+   * 400-day-old entry keeps demonstrating the roll-off.
+   */
   spendLog: SpendEntry[];
+  /** The floor: the best rung ever qualified for. There is no demotion, so it
+   *  may only ever rise, and only through holdRung(). */
+  heldTierId: TierId;
+  /** Latest evaluation period closed, e.g. '2026-Q3'. Carried so this record
+   *  has the same shape as the BFF's Member; the APP never closes a period —
+   *  the requalification stamp belongs to the server (Odoo gate 4's cron). */
+  evaluatedThrough: string;
   cup: CupState;
   walletBalance: number;
   vouchers: Voucher[];
@@ -53,7 +69,8 @@ export interface LoyaltyUser {
   subDayCount: number;
 }
 
-const ROLLING_WINDOW_MS = 365 * 86400000;
+/** The 90-day window, read once from config — the same object the BFF reads. */
+const WINDOW = windowRulesFromConfig();
 
 /** One business day for the whole system (§3.6) — Amman, not UTC; the mirror of
  *  bff/src/backend/memory.ts's todayKey. It moves the daily free-drink
@@ -72,11 +89,10 @@ function subStateOf(u: LoyaltyUser): Subscription {
   };
 }
 
-/** Sum of qualifying spend within the last 365 days (Revision Pack §A). */
-function rolling12mSpend(u: LoyaltyUser, now = Date.now()): number {
-  return u.spendLog
-    .filter((e) => e.at >= now - ROLLING_WINDOW_MS)
-    .reduce((s, e) => s + e.amount, 0);
+/** The member's rung, window spend and visit days — the shared computation,
+ *  never a local one. Pure: it mutates nothing (D11). */
+function standingOf(u: LoyaltyUser, at: Date = new Date()) {
+  return standing(u.spendLog, u.heldTierId, WINDOW, at);
 }
 
 const store = new Map<string, LoyaltyUser>();
@@ -105,17 +121,22 @@ let spinConfig: SpinConfig = JSON.parse(JSON.stringify(defaultSpinConfig));
 function ensureUser(userId: string): LoyaltyUser {
   let u = store.get(userId);
   if (!u) {
-    // Demo-friendly starting state: Silver tier, head-start cup, one spin.
+    // Demo-friendly starting state: the 6% rung, head-start cup, one spin.
     u = {
       points: 1240,
-      // Rolling-12m spend ≈ 150 JOD → Silver. The 400-day-old entry is OUTSIDE
-      // the window and intentionally does not count (§A — tier can drop).
+      // 72 JOD over three days INSIDE the 90-day window → the 6% rung (>= 65).
+      // The 30/120/300-day amounts this replaced were sized for a rolling
+      // 365-day window that no longer exists (two of them were outside 90 days
+      // and would have quietly demoted the demo user to 2%). The 400-day entry
+      // is kept exactly as it was: it is the roll-off demonstration.
       spendLog: [
-        { amount: 60, at: Date.now() - 86400000 * 30 },
-        { amount: 50, at: Date.now() - 86400000 * 120 },
-        { amount: 40, at: Date.now() - 86400000 * 300 },
-        { amount: 200, at: Date.now() - 86400000 * 400 },
+        spendEntry(32, new Date(Date.now() - 86400000 * 5)),
+        spendEntry(24, new Date(Date.now() - 86400000 * 30)),
+        spendEntry(16, new Date(Date.now() - 86400000 * 70)),
+        spendEntry(200, new Date(Date.now() - 86400000 * 400)),
       ],
+      heldTierId: 'top',
+      evaluatedThrough: evaluationPeriod(ammanDayKey(), WINDOW.evaluation),
       cup: { current: config.CUP_HEAD_START, target: config.CUP_TARGET },
       walletBalance: 12.5,
       vouchers: [
@@ -151,8 +172,11 @@ function ensureUser(userId: string): LoyaltyUser {
  *  The RULE is unchanged here — the top rung is still exempt; removing that
  *  exemption is the offer change in §8.3. */
 export function expirePoints(u: LoyaltyUser, now = Date.now()): number {
+  // The rung the member is actually PAID at — max(floor, live 90-day window) —
+  // not tierFromSpend on a spend figure. The RULE is unchanged; what changed is
+  // that "which rung is this member on" now has one answer instead of two.
   // earn-arith-exempt: the EXPIRY rule is tier-sensitive (§8.3), not the grant. §7 T7.
-  const tier = tierFromSpend(rolling12mSpend(u, now));
+  const tier = standingOf(u, new Date(now)).held;
   // TODAY'S RULE, unchanged in substance: the top rung is exempt (owner:
   // "الأسود ما بينتهي"). Under the 2/4/6 ladder that is the 6% rung; it used to
   // be Gold+Black on the four-tier ramp. Removing the exemption altogether is
@@ -172,17 +196,35 @@ export function beansExpireAt(u: LoyaltyUser, tierId: string): string | null {
 }
 
 function buildBalance(userId: string, u: LoyaltyUser): LoyaltyBalance {
-  const windowSpend = rolling12mSpend(u);
+  // ONE window, the shared one. `windowSpend` here is the same number the BFF
+  // puts on GET /v1/me/balance, computed by the same function.
+  const st = standingOf(u);
   // earn-arith-exempt: tier shown on the balance payload; no invoice, no grant. §7 T7.
-  const tier = tierFromSpend(windowSpend);
+  const tier = tiers.find((x) => x.id === st.held.id) ?? tiers[0];
   // NOTE: expiry is an explicit job (expirePoints), never a side effect of a
   // read. buildBalance is called from getBalance — a GET must not mutate.
   return {
     userId,
     points: u.points,
-    windowSpend,
+    windowSpend: st.windowSpend,
+    visitDays: st.visitDays,
     tier: tier.id,
     multiplier: tier.multiplier,
+    // The progress copy is written in VISITS and it must come from the real
+    // standing, not from a spend projection: standing() knows the 4-visits door
+    // and the no-demotion floor, and `progressToNextTier(windowSpend)` knows
+    // neither. `null` here means the top rung — the sentence disappears.
+    nextTier: st.next
+      ? {
+          id: st.next.rung.id as TierId,
+          jodRemaining: st.next.jodRemaining,
+          visitsRemaining: st.next.visitsRemaining,
+          // The door is a guarantee; the spend projection above it is not. The
+          // copy layer needs to know which one it was handed.
+          visitsGuaranteed: st.next.visitsGuaranteed,
+          step: st.next.step,
+        }
+      : null,
     cup: u.cup,
     beansExpireAt: beansExpireAt(u, tier.id),
   };
@@ -269,11 +311,15 @@ export const mockLoyaltyService: LoyaltyService = {
     // Expiry runs BEFORE the grant, explicitly — never as a side effect of a
     // read (D11). See expirePoints above.
     expirePoints(u, Date.now());
+    // The standing BEFORE this transaction — the same read the BFF's checkout
+    // route does, so the phone and the server grant on the same window.
+    const st = standingOf(u, at ?? new Date());
     // ONE earn calculation, shared with the BFF (packages/shared/src/loyalty/earn.ts).
     // The mock must never re-implement it — see docs/LOYALTY-EARN-PATCH.md §3.
     const earn = computeEarn({
       total: invoiceAmount,   // tax-inclusive, per §1.1
-      windowSpend: rolling12mSpend(u),
+      windowSpend: st.windowSpend,
+      heldRungId: st.held.id, // a FLOOR — there is no demotion
       paidFromBalance,
       comboPairs,
       bonusDayActivated,
@@ -283,7 +329,13 @@ export const mockLoyaltyService: LoyaltyService = {
     u.lastEarnAt = Date.now();
 
     u.points += pointsEarned;
-    u.spendLog.push({ amount: invoiceAmount, at: Date.now() });
+    // Dated by the AMMAN day, by the same helper the BFF uses. Not pruned here:
+    // the seeded 400-day entry is the mock's roll-off demonstration.
+    u.spendLog.push(spendEntry(invoiceAmount, at ?? new Date()));
+    // 🔴 The only assignment of heldTierId, and it names holdRung — which
+    // cannot lower a floor. W1-2 in bff/test/window.test.ts asserts that.
+    const after = standingOf(u, at ?? new Date());
+    u.heldTierId = holdRung(u.heldTierId, qualifiedRung(after.windowSpend, after.visitDays, WINDOW), WINDOW).id as TierId;
     u.visits += 1;
 
     // Cup fill uses the same pay-from-balance multiplier for consistency.
@@ -307,8 +359,11 @@ export const mockLoyaltyService: LoyaltyService = {
 
     u.history.unshift({
       id: genId('log'), deltaPoints: pointsEarned,
-      reasonAr: paidFromBalance ? 'نقاط طلب (+50% دفع من الرصيد)' : 'نقاط طلب',
-      reasonEn: paidFromBalance ? 'Order points (+50% wallet)' : 'Order points',
+      // No "+50% wallet" clause: config.WALLET_EARN_MULTIPLIER is 1.0, so the
+      // ledger row was claiming a bonus that computeEarn never granted — a
+      // receipt that disagrees with the balance beside it.
+      reasonAr: 'نقاط طلب',
+      reasonEn: 'Order points',
       createdAt: new Date().toISOString(),
     });
 

@@ -87,6 +87,10 @@ export default function CartScreen() {
         total: totals.total,
         items,
         windowSpend: loyalty?.windowSpend ?? 0,
+        // The rung the member is PAID at. Without it a ratcheted member — one
+        // whose 90-day window rolled below a threshold they already crossed —
+        // is quoted the lower rate at checkout and then granted the higher one.
+        heldRungId: loyalty?.tier,
         paidFromBalance: paymentMethod === 'wallet',
       }),
     [totals.total, items, loyalty, paymentMethod],
@@ -288,14 +292,16 @@ export default function CartScreen() {
                 {t('cart.earnAllMethods')}
               </Text>
 
-              {/* Pay-from-wallet upsell (Wallet spec §1.2): +50% beans. Shown as
-                  a one-tap nudge when not already paying from balance and the
-                  wallet covers the order; becomes a confirmation once selected. */}
+              {/* Pay-from-wallet nudge. It used to promise "+50% points": that
+                  is config.WALLET_EARN_MULTIPLIER, RETIRED to 1.0 on 2026-09-06
+                  after zero rows in 171,291 live transactions, so the claim had
+                  been false on screen ever since. The nudge stays — prepayment
+                  is still worth encouraging — and now says only what is true. */}
               {paymentMethod === 'wallet' ? (
                 <View style={styles.walletBonus}>
                   <Icon name="bean" size={16} color={colors.green} strokeWidth={2} />
                   <Text variant="caption" color={colors.green}>
-                    {t('cart.walletEarnBonus')}
+                    {t('cart.walletSelected')}
                   </Text>
                 </View>
               ) : (walletBalance ?? 0) >= totals.total ? (

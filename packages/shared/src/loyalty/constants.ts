@@ -36,12 +36,14 @@
  * dates, so a percentile-defined threshold would move the ladder under the
  * members standing on it.
  *
- * WHAT THIS FILE DOES NOT DO. It does not implement the 90-day window or the
- * quarterly evaluation — `tierFromSpend` is a pure function of whatever
- * `windowSpend` its caller supplies, and today's callers still supply a
- * rolling-12-month figure (the app) or an ever-accumulating one (the BFF's
- * `addSpend`, which never rolls anything off). See config.TIER_WINDOW_DAYS.
+ * WHAT THIS FILE DOES NOT DO. It does not implement the 90-day window, the
+ * quarterly evaluation or the visits door — `tierFromSpend` is a pure function
+ * of whatever `windowSpend` its caller hands it. That window now exists, in
+ * loyalty/window.ts: `qualifyingSpend()` produces the number these functions
+ * take, and `standing()` is what a CALLER SHOULD USE, because it also knows
+ * about the 4-visits door and about the floor a member holds.
  */
+import { config } from '../config';
 import type { Tier } from '../types';
 
 export const tiers: Tier[] = [
@@ -63,19 +65,79 @@ export function nextTier(spend: number): Tier | null {
 }
 
 /**
+ * The rung's DISPLAYED name — "٢٪" / "٤٪" / "٦٪" in Arabic, "2%" / "4%" / "6%"
+ * in English. It is read off the tier itself, never out of a locale file.
+ *
+ * 🔴 WHY THERE IS NO `tiers.*` LOCALE NAMESPACE ANY MORE. There was one, and it
+ * still held `bean / silver / gold / black` two commits after the ids became
+ * base/plus/top. i18next returns the KEY when a key is missing and
+ * `fallbackLng: 'ar'` does not help when ar.json is missing the same key, so
+ * every `t(`tiers.${id}`)` call site rendered the literal text "tiers.base" /
+ * "tiers.plus" / "tiers.top" on screen — on the badge, the rewards carousel
+ * headings, the /loyalty ladder and the home card, in BOTH languages. Two
+ * sources for one name is what let the locale drift past the rename; with no
+ * key left there is nothing to drift, and C5 in bff/test/copy.test.ts keeps it
+ * that way. almond-web has always rendered the name this way (RewardsView.tsx).
+ *
+ * The name IS the rate because 1 point = 1 qirsh exactly (10,621 live
+ * redemptions), so it can never contradict what the member is paid: change the
+ * ramp and the name changes with it.
+ */
+export function tierName(tier: Tier, lang: 'ar' | 'en'): string {
+  return lang === 'ar' ? tier.nameAr : tier.nameEn;
+}
+
+/** The measured member basket, from 160,935 earn rows. It is what turns a
+ *  dinar threshold into a sayable number of visits. */
+export const MEASURED_MEMBER_BASKET_JOD = 5.85;
+
+/**
  * How much more spend, and how many more visits at the measured member basket,
  * until the next rung. The VISITS figure is what the member is shown: "20 JOD
  * in 90 days" is not a sayable sentence, "3 more visits" is.
  *
  * Returns null at the top of the ladder — there is nothing left to progress to,
  * and a progress bar with no destination reads as a broken one.
+ *
+ * ⚠ THIS IS A FUNCTION OF SPEND ALONE. It knows nothing about the 4-visits door
+ * (config.TIER2_VISITS_ALTERNATIVE) and nothing about the rung a member already
+ * HOLDS, so for a ratcheted member it will happily report progress toward a
+ * rung they are already being paid at. Where a real member's standing is
+ * available, use `standing()` in loyalty/window.ts instead; this stays for the
+ * guest/website case, where all that exists is a spend figure.
+ *
+ * WHO RENDERS THIS. `almond-app/lib/tierCopy.ts` (via tierProgressCopy, which
+ * prefers a real standing when the balance carries one) and
+ * `almond-web/src/data/loyalty.ts` (which has only a spend figure and says so).
+ *
+ * 🔴 `visitsRemaining` AT THE SECOND RUNG IS THE VISITS DOOR, NOT THE SPEND
+ * PROJECTION. It used to be `ceil(jodRemaining / 5.85)` throughout, with a
+ * docstring claiming that at the second rung the projection "is a GUARANTEE and
+ * the copy may promise it" because ceil(20 / 5.85) = 4 = TIER2_VISITS_ALTERNATIVE.
+ * That equality holds at spend 0 AND NOWHERE ELSE: at 15 JOD the projection said
+ * 1 while the door still needed up to 3, so a member who returned for a 2.50 JOD
+ * americano was promised 4% and paid 2%.
+ *
+ * Knowing only the spend, the guaranteed count is `TIER2_VISITS_ALTERNATIVE`
+ * minus the visit days already banked — and any spend at all means at least one
+ * banked day (qualifying spend only accrues on days with jod > 0), so the safe
+ * bound is 4 at zero spend and 3 above it. It over-states what most members
+ * need, which is the only safe direction for a promise; a caller holding a real
+ * standing gets the exact door from `standing()` in loyalty/window.ts instead.
+ *
+ * Above the second rung there is no door at all, `visitsGuaranteed` is false and
+ * the count is a bare projection the copy may only ever hedge.
+ *
+ * `step` is returned but is deliberately NOT rendered at the top rung: the
+ * approved copy says "×2" exactly once, on the promotion to 4%, and never says
+ * "×1.5" (repeating a multiplier spends it).
  */
-export const MEASURED_MEMBER_BASKET_JOD = 5.85;
-
 export function progressToNextTier(spend: number): {
   next: Tier;
   jodRemaining: number;
   visitsRemaining: number;
+  /** True only where a visits door exists. See TierStanding.next in window.ts. */
+  visitsGuaranteed: boolean;
   /** The multiplier step the member is moving toward — "×2", then "×1.5". */
   step: number;
 } | null {
@@ -83,10 +145,15 @@ export function progressToNextTier(spend: number): {
   if (!next) return null;
   const current = tierFromSpend(spend);
   const jodRemaining = Math.max(0, next.threshold - spend);
+  const isDoorRung = next.id === tiers[1]?.id;
+  const bankedDays = spend > 0 ? 1 : 0;
   return {
     next,
     jodRemaining,
-    visitsRemaining: Math.max(1, Math.ceil(jodRemaining / MEASURED_MEMBER_BASKET_JOD)),
+    visitsRemaining: isDoorRung
+      ? Math.max(1, config.TIER2_VISITS_ALTERNATIVE - bankedDays)
+      : Math.max(1, Math.ceil(jodRemaining / MEASURED_MEMBER_BASKET_JOD)),
+    visitsGuaranteed: isDoorRung,
     step: next.multiplier / current.multiplier,
   };
 }

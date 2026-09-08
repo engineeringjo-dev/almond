@@ -38,6 +38,21 @@ export function rungFromSpend(spend: number, ramp: readonly TierRung[]): TierRun
   return current;
 }
 
+/**
+ * The better of two rungs, compared on the number the member is actually PAID
+ * on. Defined once, here, because both sides of the ladder need it and they
+ * must not disagree: loyalty/window.ts's `holdRung` uses it to keep a stored
+ * floor from ever falling, and computeEarn below uses it to combine that floor
+ * with the live window. Ties keep `a`, so a caller's existing rung is never
+ * swapped for an equivalent one.
+ *
+ * Multiplier, not threshold: the threshold is how a rung is REACHED, the
+ * multiplier is what it is WORTH, and only the second is a promise to a member.
+ */
+export function higherRung(a: TierRung, b: TierRung): TierRung {
+  return b.multiplier > a.multiplier ? b : a;
+}
+
 export function earnRulesFromConfig(): EarnRules {
   return {
     pointsPerJod: config.POINTS_PER_JOD,
@@ -60,8 +75,27 @@ export interface EarnContext {
   /** Invoice total in JOD, after discounts, INCLUDING TAX — i.e. exactly
    *  `computeTotals(...).total` (cart/totals.ts:52). See §1.1. */
   total: number;
-  /** Rolling-12-month qualifying spend in JOD → tier. Guests/web: omit (= 0). */
+  /** Qualifying spend in JOD over config.TIER_WINDOW_DAYS (90) → rung. Compute
+   *  it with qualifyingSpend() in loyalty/window.ts; guests/web omit it (= 0). */
   windowSpend?: number;
+  /**
+   * The rung the member HOLDS — a FLOOR, never an override. There is no
+   * demotion (config/index.ts:186-191), so a member whose 90-day window has
+   * rolled back below the threshold they once crossed keeps the rate they
+   * reached; `windowSpend` alone cannot express that.
+   *
+   * Resolved against `rules.tierRamp`, so an id that is not in the injected
+   * ramp is ignored rather than throwing — an old tier id on a stale record
+   * must not fail a checkout. Every existing call site omits this field, which
+   * is why the shipped/pinned matrices in bff/test/earn.test.ts are unaffected
+   * by its existence.
+   *
+   * It lives HERE rather than being folded into windowSpend by the caller
+   * (`windowSpend: max(spend, rung.threshold)`) because that would make the
+   * caller lie about a measured quantity in order to steer a rung — and the
+   * lie would then be persisted in the §5b EarnBreakdown on the order.
+   */
+  heldRungId?: string;
   paidFromBalance?: boolean;
   /** Drink+food pairs, from comboPairs(items) in @almond/shared/lib/combo. */
   comboPairs?: number;
@@ -128,7 +162,17 @@ export function computeEarn(
 
   // Additive bonuses, as fractions of the scaled base. The tier ramp IS the
   // earn rate: a base of 2 with a 3.0 rung is 6 pts/JOD, i.e. 6% back.
-  const tier = rungFromSpend(Math.max(0, ctx.windowSpend ?? 0), rules.tierRamp);
+  // The rung is the better of what the live 90-day window qualifies for and
+  // the floor the member already holds. A floor, not an override: a member who
+  // has crossed 20 JOD is paid the new rate on their NEXT invoice — not held at
+  // the old one until a quarterly boundary (the ladder's only mechanic is a
+  // promise about the next visit, at a 28-day median return gap) — and a member
+  // whose window has rolled off keeps the rate they reached. The invoice that
+  // does the crossing is itself paid at the old rung, because callers read the
+  // standing before recording the sale (bff/src/routes/checkout.ts).
+  const fromSpend = rungFromSpend(Math.max(0, ctx.windowSpend ?? 0), rules.tierRamp);
+  const held = rules.tierRamp.find((r) => r.id === ctx.heldRungId);
+  const tier = held ? higherRung(fromSpend, held) : fromSpend;
   const tierBonus = scaled * (tier.multiplier - 1);
   const rate = rules.weekdayBonus.find((w) => w.weekday === weekday)?.rate ?? 0;
   const weekdayBonus = scaled * rate;

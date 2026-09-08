@@ -1,0 +1,75 @@
+{
+  "_note": "GOLDEN VECTORS — checked in so that any change to the salt, the canonical input or the digest→bucket step goes RED instead of silently invalidating every HoldoutStamp already written. Regenerate ONLY together with a saltId bump. See packages/shared/src/loyalty/holdout.ts and bff/test/holdout.test.ts H3/H4.",
+  "_port": "This file is also the cross-language gate for the future Odoo/Python port (docs/LOYALTY-ODOO-MODULE.md §4.2). A port that length-prefixes by CODE POINTS instead of UTF-8 BYTES passes every ASCII row and fails the last two: عضو-١٢٣ is 7 code points and 13 bytes; m_😀 is 3 code points, 4 UTF-16 units and 6 bytes.",
+  "salt": "almond-holdout-v1",
+  "saltId": "v1",
+  "experiment": "second-visit-voucher",
+  "holdoutShareBp": 2000,
+  "bucketSpace": 4294967296,
+  "threshold": 858993459,
+  "vectors": [
+    {
+      "memberKey": "demo",
+      "canonical": "17:almond-holdout-v1|20:second-visit-voucher|4:demo",
+      "digest": "6b961683a023558bf2c67104723c32dc48b04f11baff590ec2eabd1f77522185",
+      "bucket": 1804998275,
+      "arm": "treatment"
+    },
+    {
+      "memberKey": "m_0",
+      "canonical": "17:almond-holdout-v1|20:second-visit-voucher|3:m_0",
+      "digest": "ac8e2ec8cc3d5b0755677da6fb7cf4ed80781d611a7f2fa7811442865f7dbc15",
+      "bucket": 2894999240,
+      "arm": "treatment"
+    },
+    {
+      "memberKey": "m_3",
+      "canonical": "17:almond-holdout-v1|20:second-visit-voucher|3:m_3",
+      "digest": "1164d5251e511d6dee2e31e9ea90ac75684372491d774f366e9f234e2f70d44d",
+      "bucket": 291820837,
+      "arm": "holdout"
+    },
+    {
+      "memberKey": "m_5",
+      "canonical": "17:almond-holdout-v1|20:second-visit-voucher|3:m_5",
+      "digest": "114aebff9d255d169d7d637bbf816e67db8754b01045c8a95ac32841da105195",
+      "bucket": 290122751,
+      "arm": "holdout"
+    },
+    {
+      "memberKey": "m_8",
+      "canonical": "17:almond-holdout-v1|20:second-visit-voucher|3:m_8",
+      "digest": "15b472aa27843010a90529823c28378558d4c39ac35cd41c8ce5e96ffeb3fa3b",
+      "bucket": 364147370,
+      "arm": "holdout"
+    },
+    {
+      "memberKey": "m_10",
+      "canonical": "17:almond-holdout-v1|20:second-visit-voucher|4:m_10",
+      "digest": "3648e95e3e26dae23c201bfd6a236af1476eb10e86df04ef27494df0e6775360",
+      "bucket": 910747998,
+      "arm": "treatment"
+    },
+    {
+      "memberKey": "m_00000000-0000-4000-8000-000000000001",
+      "canonical": "17:almond-holdout-v1|20:second-visit-voucher|38:m_00000000-0000-4000-8000-000000000001",
+      "digest": "70f855cb43ef1a49423a6c9e2841d21f6c35d03427d4be76df991914c5719c98",
+      "bucket": 1895323083,
+      "arm": "treatment"
+    },
+    {
+      "memberKey": "عضو-١٢٣",
+      "canonical": "17:almond-holdout-v1|20:second-visit-voucher|13:عضو-١٢٣",
+      "digest": "671cc884e46cc49d8d215047a63f81b5312992c086c07bc59098991486cde72f",
+      "bucket": 1729939588,
+      "arm": "treatment"
+    },
+    {
+      "memberKey": "m_😀",
+      "canonical": "17:almond-holdout-v1|20:second-visit-voucher|6:m_😀",
+      "digest": "f4f8f4d78bd7e09f357b829c2b9edff90c2e4262030ac27c2901de78cdbe0bee",
+      "bucket": 4109956311,
+      "arm": "treatment"
+    }
+  ]
+}

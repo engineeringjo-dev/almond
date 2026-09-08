@@ -3,6 +3,7 @@ import { Text } from '@/components/ui/Text';
 import { Icon } from '@/components/ui/Icon';
 import { colors, radius, spacing } from '@/constants/theme';
 import { tiers } from '@/services/seed';
+import { tierName } from '@almond/shared/loyalty';
 import { useI18n } from '@/hooks/useI18n';
 import type { TierId } from '@/types';
 
@@ -11,11 +12,13 @@ import type { TierId } from '@/types';
  * dark to feel special; the two upper rungs get a coffee-bean icon (the loyalty
  * currency — no stars per the Wallet/Loyalty spec §0).
  *
- * The label is the RATE — "٢٪" / "٤٪" / "٦٪" — not a metal. See
- * packages/shared/src/loyalty/constants.ts for why.
+ * The label is the RATE — "٢٪" / "٤٪" / "٦٪" — not a metal, and it is read off
+ * the tier itself. It used to be `t(`tiers.${tier}`)`, and that namespace still
+ * held bean/silver/gold/black, so this badge rendered the literal string
+ * "tiers.base" on screen. See packages/shared/src/loyalty/constants.ts.
  */
 export function TierBadge({ tier, small }: { tier: TierId; small?: boolean }) {
-  const { t } = useI18n();
+  const { lang } = useI18n();
   const def = tiers.find((x) => x.id === tier) ?? tiers[0];
 
   const isTop = tier === 'top';
@@ -35,7 +38,7 @@ export function TierBadge({ tier, small }: { tier: TierId; small?: boolean }) {
     >
       <Icon name={exclusive ? 'bean' : 'coffee'} size={small ? 11 : 13} color={iconColor} strokeWidth={2.4} />
       <Text variant="caption" color={fg} style={styles.label}>
-        {t(`tiers.${tier}`)}
+        {tierName(def, lang)}
       </Text>
     </View>
   );

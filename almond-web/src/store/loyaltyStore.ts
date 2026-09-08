@@ -23,7 +23,7 @@ interface SendGiftInput {
 
 interface LoyaltyState {
   points: number;
-  windowSpend: number; // rolling-12-month spend → tier
+  windowSpend: number; // spend inside the 90-day window (config.TIER_WINDOW_DAYS) → tier
   cup: CupState;
   walletBalance: number;
   vouchers: Voucher[];
@@ -44,10 +44,19 @@ const daysAhead = (d: number) => new Date(Date.now() + d * 86400000).toISOString
 export const useLoyaltyStore = create<LoyaltyState>()(
   persist(
     (set, get) => ({
-      // Seed so the site is demoable: Silver tier (windowSpend ≥ 100), a cup in
-      // progress, a stored-value balance, a voucher and some recent activity.
+      // Seed so the site is demoable: a cup in progress, a stored-value
+      // balance, a voucher and some recent activity.
+      //
+      // 🔴 windowSpend IS A DISPLAY SEED THAT NOTHING EVER WRITES (this literal
+      // is its only occurrence in almond-web/src), and RewardsView interpolates
+      // the rung's NAME into "{rate} back on every order". At the old seed of
+      // 120 that is >= 65 JOD, i.e. the TOP rung, so the site told every
+      // first-time visitor "6% back on every order" and «👑 وصلت للقمة» while
+      // the code pays them 2%. 12 JOD is inside the entry rung, so the site
+      // names the rate every member really gets and shows progress toward the
+      // 4% rung instead of claiming to have arrived.
       points: 240,
-      windowSpend: 120,
+      windowSpend: 12,
       cup: { current: 6, target: config.CUP_TARGET },
       walletBalance: 12.5,
       vouchers: [
@@ -165,6 +174,12 @@ export const useLoyaltyStore = create<LoyaltyState>()(
     }),
     {
       name: 'almond-loyalty',
+      // Bumped when the seed above changed meaning. Without it a returning
+      // visitor keeps the persisted windowSpend: 120 in localStorage and goes
+      // on being told "6% back on every order"; zustand drops a persisted
+      // state whose version does not match and no migrate is supplied, so the
+      // corrected seed actually reaches them.
+      version: 2,
       storage: createJSONStorage(() =>
         typeof window !== 'undefined' ? window.localStorage : (undefined as never),
       ),

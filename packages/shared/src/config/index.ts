@@ -190,13 +190,24 @@ export const config = {
   // demoting design, and a demotion engine was priced at 1.05 JOD saved per
   // demotion against 17-21 engineer-days.
   //
-  // ⚠ THE WINDOW IS NOT IMPLEMENTED HERE. `EarnContext.windowSpend` is supplied
-  // by the caller, and both current callers still hand it a rolling-12-month or
-  // an ever-accumulating figure (bff/src/backend/memory.ts `addSpend` never
-  // rolls anything off — the same defect measured in the live programme, where
-  // there were 3,906 promotions and zero demotions in 980 days). The bucket
-  // engine that makes this real is Odoo gate 4; these constants are what it must
-  // implement, and what the app should display in the meantime.
+  // THE WINDOW IS IMPLEMENTED, in packages/shared/src/loyalty/window.ts, and
+  // both callers go through it: the BFF stores a dated, pruned spend log and
+  // the app's mock reads the same functions. Until 2026-09-08 neither did —
+  // `EarnContext.windowSpend` was a rolling-12-month figure on the phone and an
+  // ever-accumulating one on the server, because bff/src/backend/memory.ts's
+  // `addSpend` was `m.windowSpend += jod` and never rolled anything off. That
+  // is the SAME defect measured in the live programme, which produced 3,906
+  // promotions and zero demotions in 980 days.
+  //
+  // The window is a range of AMMAN DAY KEYS, inclusive of today, not an epoch
+  // delta: TIER2_VISITS_ALTERNATIVE below is denominated in distinct days, and
+  // an epoch edge moves inside a single business day (see lib/ammanWeekday.ts).
+  //
+  // PROMOTION IS IMMEDIATE; the quarterly boundary is the requalification stamp
+  // (Evaluation.requalified), not a rate gate. Both measured numbers above
+  // argue about DEMOTIONS, and there is no demotion; nothing measured supports
+  // deferring a promotion, which would cost the ladder its only sentence
+  // ("... and your cashback DOUBLES") for ~0.20 JOD per promoted member.
   TIER_WINDOW_DAYS: 90,
   TIER_EVALUATION: 'quarterly' as 'quarterly' | 'monthly',
   /** Alternative door to tier 2: "4 visits" is sayable, "20 JOD in 90 days" is
@@ -238,6 +249,58 @@ export const config = {
     oncePerMember: true,
     labelAr: 'تانية علينا',
     labelEn: "The second one's on us",
+  },
+
+  // ---- The control arm (LOYALTY-ODOO-ARCHITECTURE §4.11) ----
+  //
+  // The objection recorded above is not answerable from the data Almond has;
+  // it is only answerable by withholding the mechanic from a slice of members
+  // and comparing. `packages/shared/src/loyalty/holdout.ts` is the assignment;
+  // this block is the only place its two dials live. They are HERE and not in
+  // an env var because almond-app compiles packages/shared into the Expo
+  // bundle: an env-var salt could never reach the phone, so the BFF, the app
+  // and the future Odoo evaluator would each hold a different one and the same
+  // member would be in different arms in different places. §4.11 also asks for
+  // the salt change to be AUDITABLE — a reviewed git diff plus a red
+  // golden-vector test is more auditable than an env var nobody sees. It is
+  // safe to publish: member ids are server-minted `m_${randomUUID()}`
+  // (bff/src/backend/memory.ts:49), so knowing the salt buys nobody a
+  // treatment-arm id.
+  //
+  // 🔴 ROTATING THE SALT DESTROYS THE EXPERIMENT. Measured on a v1→v2 rotation
+  // over 20,000 ids: 31.73% of members change arm, and EVERY HoldoutStamp
+  // already written to an order becomes unreproducible — the analyst can no
+  // longer tell which arm a past grant was made in. §4.11 requires the README
+  // to say so in those words. If a rotation is genuinely intended, bump
+  // `saltId` in the same commit and regenerate loyalty/holdout.vectors.json;
+  // the stamps carry saltId so the old epoch stays readable as its own epoch.
+  //
+  // 🔴 THE ARM IS KEYED ON THE MEMBER ID, so Odoo cutover (`m_<uuid>` →
+  // `res.partner.id`) re-randomises every arm. That is inherent to a scheme
+  // that stores nothing, and it is why the arm is STAMPED on the order: the
+  // stamps preserve the pre-cutover half of the analysis, and cutover is a new
+  // experiment epoch with a new saltId, not a continuation of this one.
+  HOLDOUT: {
+    salt: 'almond-holdout-v1',
+    /** Stamped on every assignment so a rotation is visible in the evidence
+     *  instead of silently re-labelling it. Bump it WITH the salt, never after. */
+    saltId: 'v1',
+    /** Basis points (10000 = 100%) of members withheld from each experiment.
+     *
+     *  2000 bp = 20%. Measured power on the 45.8% 1→2 hazard (two-proportion,
+     *  α=0.05, 80% power) at ~48.7 new members/day (47,720 members ÷ the
+     *  980-day window): a +5pp readout takes 179 days at a 10% holdout, 101
+     *  days at 20%, and 64 days at 50%. 10%→20% buys 78 days; 20%→50% buys
+     *  only 37 more while withholding the voucher from half of all new
+     *  members. The cost also runs BACKWARDS here — the voucher is paid in
+     *  kind at 921-1,600 JOD/yr, so a 20% control arm SAVES 184-320 JOD/yr and
+     *  the only thing it withholds is a benefit measured as unmeasured or
+     *  negative (n=1,238: visits −1.4%, spend −4.9% against a −2.3% control).
+     *
+     *  Not the 10% in docs/LOYALTY-ODOO-MODULE.md:776: that figure is for a
+     *  different experiment (suppressing earn entirely, denominated in 1,133
+     *  member ORDERS/day); this one is denominated in enrolments. */
+    holdoutShareBp: { secondVisitVoucher: 2000 } as Readonly<Record<string, number>>,
   },
 
   // Points needed for the first reward a member can actually take.

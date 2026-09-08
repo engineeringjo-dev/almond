@@ -2,6 +2,9 @@ import { describe, it, expect, afterEach } from 'vitest';
 import { ammanWeekday } from '@almond/shared/lib/ammanWeekday';
 import { expiryAt } from '@almond/shared/loyalty/expiry';
 import { computeEarn } from '@almond/shared/loyalty/earn';
+import {
+  qualifyingSpend, qualifyingVisitDays, spendEntry, windowRulesFromConfig,
+} from '@almond/shared/loyalty/window';
 import { comboPairs } from '@almond/shared/lib/combo';
 import type { CartItem } from '@almond/shared/types';
 import {
@@ -46,11 +49,17 @@ function cartLine(itemId: string, unitBasePrice: number, qty: number, isDrink: b
 
 /** A Bean member (no qualifying spend in the window) who last earned `ageDays`
  *  ago. Bean, not Silver: the seeded spend log would otherwise put them a tier
- *  up — the expiry RULE is tier-sensitive (Gold/Black are exempt, §8.3). */
+ *  up — the expiry RULE is tier-sensitive (Gold/Black are exempt, §8.3).
+ *
+ *  `heldTierId` is reset with the log. The rung is now max(FLOOR, live window)
+ *  and the floor never falls, so clearing the spend alone would leave the
+ *  seeded 'top' floor standing and the member exempt from expiry for the wrong
+ *  reason. Same spend, same days, same assertions — one more field. */
 function staleBeanUser(ageDays: number, points: number): { id: string; u: LoyaltyUser } {
   const id = newUserId();
   const u = __getMockUser(id);
   u.spendLog = [];
+  u.heldTierId = 'base';
   u.points = points;
   u.lastEarnAt = Date.now() - ageDays * DAY;
   return { id, u };
@@ -65,12 +74,17 @@ describe('D2 — one earn calculation: the app grants what computeEarn returns',
   const TUE = new Date('2026-09-08T10:00:00Z'); // Tuesday — BONUS_BEAN_DAY
   const FRI = new Date('2026-09-11T10:00:00Z'); // Friday — WEEKDAY_EARN_BONUS
 
-  /** A member whose rolling-12m spend is exactly `windowSpend`, with a fresh
-   *  `lastEarnAt` so expiry never fires and points start at zero. */
+  /** A member whose 90-day window spend is exactly `windowSpend`, with a fresh
+   *  `lastEarnAt` so expiry never fires and points start at zero. One entry
+   *  yesterday: the same spend on the same day as before, now expressed in the
+   *  shared {jod, day} entry. `heldTierId` is reset to the entry rung so the
+   *  fixture means what its name says — the RUNG is max(floor, window), so a
+   *  leftover 'top' floor would pay 6% on a 0 JOD window. */
   function memberWithSpend(windowSpend: number): string {
     const id = newUserId();
     const u = __getMockUser(id);
-    u.spendLog = windowSpend > 0 ? [{ amount: windowSpend, at: Date.now() - DAY }] : [];
+    u.spendLog = windowSpend > 0 ? [spendEntry(windowSpend, new Date(Date.now() - DAY))] : [];
+    u.heldTierId = 'base';
     u.points = 0;
     u.lastEarnAt = Date.now();
     return id;
@@ -157,6 +171,96 @@ describe('D2 — one earn calculation: the app grants what computeEarn returns',
         expect(shown, JSON.stringify({ windowSpend, paidFromBalance })).toBe(expected);
       }
     }
+  });
+});
+
+describe('W1 — the app and the BFF measure the SAME 90-day window', () => {
+  const RULES = windowRulesFromConfig();
+
+  /** A member with an explicit spend log and nothing else going on. */
+  function memberWithLog(log: { jod: number; daysAgo: number }[]): { id: string; u: LoyaltyUser } {
+    const id = newUserId();
+    const u = __getMockUser(id);
+    u.spendLog = log.map((e) => spendEntry(e.jod, new Date(Date.now() - e.daysAgo * DAY)));
+    u.heldTierId = 'base';
+    u.points = 0;
+    u.lastEarnAt = Date.now();
+    return { id, u };
+  }
+
+  it('balance.windowSpend IS qualifyingSpend over the shared window', async () => {
+    // The app used to compute this itself, over a rolling 365 days, while the
+    // BFF accumulated forever — so the same member could be two different tiers
+    // on the phone and on the server. This binds the displayed number to the
+    // shared function BY VALUE, which a name-based static walk cannot do.
+    const { id, u } = memberWithLog([
+      { jod: 30, daysAgo: 2 },
+      { jod: 25, daysAgo: 85 },
+      { jod: 400, daysAgo: 200 }, // outside the window — the whole point
+    ]);
+    const bal = await mockLoyaltyService.getBalance(id);
+    expect(bal.windowSpend).toBe(qualifyingSpend(u.spendLog, RULES));
+    expect(bal.visitDays).toBe(qualifyingVisitDays(u.spendLog, RULES));
+    // 400 JOD of 200-day-old spend counts for exactly nothing.
+    expect(bal.windowSpend).toBe(55);
+    expect(bal.tier).toBe('plus');
+  });
+
+  it('four visit days reach the 4% rung on 12 JOD, exactly as on the BFF', async () => {
+    // TIER2_VISITS_ALTERNATIVE: 4 visits is 12 JOD here, 40% of the 20 JOD
+    // door. The alternative door is what makes the copy sayable.
+    const { id } = memberWithLog([
+      { jod: 3, daysAgo: 1 }, { jod: 3, daysAgo: 4 },
+      { jod: 3, daysAgo: 9 }, { jod: 3, daysAgo: 20 },
+    ]);
+    const bal = await mockLoyaltyService.getBalance(id);
+    expect(bal.windowSpend).toBe(12);
+    expect(bal.visitDays).toBe(4);
+    expect(bal.tier).toBe('plus');
+    expect(bal.multiplier).toBe(2);
+  });
+
+  it('the rung never goes down when the window rolls off (there is no demotion)', async () => {
+    // Earn to the top rung, then let every entry age out of the window.
+    const { id, u } = memberWithLog([]);
+    await mockLoyaltyService.earn({ userId: id, invoiceAmount: 70, paidFromBalance: false });
+    expect((await mockLoyaltyService.getBalance(id)).tier).toBe('top');
+
+    // Age the whole log past the window. windowSpend collapses; the rate does not.
+    u.spendLog = u.spendLog.map((e) => spendEntry(e.jod, new Date(Date.now() - 200 * DAY)));
+    const after = await mockLoyaltyService.getBalance(id);
+    expect(after.windowSpend).toBe(0);
+    expect(after.visitDays).toBe(0);
+    expect(after.tier).toBe('top');
+    expect(after.multiplier).toBe(3);
+  });
+
+  it('a ratcheted member is GRANTED the rate their balance shows, and quoted it too', async () => {
+    // THE DIVERGENCE THIS TEST EXISTS FOR. buildBalance shows max(floor, live
+    // window); if the grant were computed from windowSpend alone, a member
+    // whose window has rolled off would be shown 6%, quoted 6% at checkout, and
+    // paid 2% — D2 reopened on the ratchet, visible to nobody.
+    const monday = new Date('2026-09-07T10:00:00Z');
+    const { id, u } = memberWithLog([]);
+    await mockLoyaltyService.earn({ userId: id, invoiceAmount: 70, paidFromBalance: false });
+    u.spendLog = u.spendLog.map((e) => spendEntry(e.jod, new Date(Date.now() - 200 * DAY)));
+
+    const bal = await mockLoyaltyService.getBalance(id);
+    expect(bal.windowSpend).toBe(0);
+    expect(bal.tier).toBe('top');
+
+    // 10 JOD at the 6% rung is 60 points — NOT the 20 that a 0 JOD window
+    // would earn on its own.
+    const res = await mockLoyaltyService.earn({
+      userId: id, invoiceAmount: 10, paidFromBalance: false, at: monday,
+    });
+    expect(res.pointsEarned).toBe(60);
+
+    // ... and the number the cart showed before they paid is the same number.
+    expect(estimateEarnedPoints({
+      total: 10, items: [], windowSpend: bal.windowSpend, heldRungId: bal.tier,
+      paidFromBalance: false,
+    })).toBe(res.pointsEarned);
   });
 });
 
@@ -250,7 +354,7 @@ describe('D10/D11 — expiry is explicit, and it still happens', () => {
     // Today's RULE, unchanged: the top tiers are exempt. Removing that
     // exemption is D5, held behind §8.3 — it must NOT ship with this unit.
     const { u: black } = staleBeanUser(400, 500);
-    black.spendLog = [{ amount: 5000, at: Date.now() - 10 * DAY }];
+    black.spendLog = [spendEntry(5000, new Date(Date.now() - 10 * DAY))];
     expect(expirePoints(black, Date.now())).toBe(0);
     expect(black.points).toBe(500);
   });

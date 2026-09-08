@@ -5,13 +5,19 @@ import { Text } from '@/components/ui/Text';
 import { Icon } from '@/components/ui/Icon';
 import { Gradient } from '@/components/ui/Gradient';
 import { colors, spacing, radius, shadow } from '@/constants/theme';
+import { config } from '@/constants/config';
 import { useI18n } from '@/hooks/useI18n';
 import { formatJOD } from '@/lib/format';
 import { useWallet } from '@/hooks/useLoyalty';
 
 /**
- * Wallet card on Home (Revision Pack §J): prominent balance + top-up CTA with
- * the pay-from-balance hint (1.5× cup fill).
+ * Wallet card on Home (Revision Pack §J): prominent balance + top-up CTA.
+ *
+ * The hint used to read "Pay from balance and earn +50% points (×1.5)" —
+ * config.WALLET_EARN_MULTIPLIER is 1.0 (retired, zero rows in 171,291 live
+ * transactions), so that paid nothing. The RELOAD bonus is real and unretired
+ * (config.WALLET_RELOAD_BONUS, granted in bff/src/routes/wallet.ts), so the
+ * card now says that instead, with its own threshold interpolated.
  */
 export function WalletCard() {
   const { t, lang } = useI18n();
@@ -34,7 +40,7 @@ export function WalletCard() {
       </View>
 
       <Text variant="caption" color={colors.white} style={styles.hint}>
-        {t('home.walletHint')}
+        {t('home.walletHint', { min: config.WALLET_RELOAD_BONUS[0].minJOD })}
       </Text>
 
       {/* Gold button → white background, black text (per design). */}

@@ -177,10 +177,46 @@ export interface CupState {
 export interface LoyaltyBalance {
   userId: string;
   points: number;
-  /** Qualifying spend within the rolling 12-month window (Revision Pack §A). */
+  /** Qualifying spend inside the rolling window — config.TIER_WINDOW_DAYS (90)
+   *  Amman days, INCLUSIVE of today. Computed by qualifyingSpend() in
+   *  loyalty/window.ts; it was a rolling-12-month figure until W1. */
   windowSpend: number;
+  /** Distinct Amman days in that window carrying spend > 0 — the other door to
+   *  the second rung (config.TIER2_VISITS_ALTERNATIVE = 4), and the number the
+   *  progress copy is written in. */
+  visitDays: number;
+  /** The rung the member is PAID at: max(the floor they hold, what the live
+   *  window qualifies for). It is not `tierFromSpend(windowSpend)` — there is
+   *  no demotion, so those two disagree for any member whose window rolled off. */
   tier: TierId;
   multiplier: number;
+  /**
+   * The rung ABOVE the one the member is paid at, straight off `standing().next`
+   * — `null` at the top of the ladder, `undefined` when the producer has no
+   * standing to offer (the website, a raw guest figure).
+   *
+   * It is here because the progress copy is written in VISITS, and only a real
+   * standing knows the visits number. `progressToNextTier(windowSpend)` alone
+   * would tell a member with 4 visit-days and 12 JOD that they are 2 visits
+   * from the 4% rung THEY ALREADY HOLD — the 4-visits door
+   * (config.TIER2_VISITS_ALTERNATIVE) and the no-demotion floor are both
+   * invisible to a spend-only projection. See almond-app/lib/tierCopy.ts.
+   */
+  nextTier?: {
+    id: TierId;
+    jodRemaining: number;
+    /** What the member is TOLD: "3 more visits", never "8.4 JOD". */
+    visitsRemaining: number;
+    /**
+     * Is that count a GUARANTEE (the visits door) or a projection at the
+     * measured basket? Only a guaranteed count may be stated declaratively —
+     * tierCopy.ts hedges the sentence when this is false, and an ABSENT field
+     * is read as false, so a producer that has not thought about it cannot
+     * accidentally promise a projection.
+     */
+    visitsGuaranteed?: boolean;
+    step: number;
+  } | null;
   cup: CupState;
   /** When the current beans expire (null = never, for Gold/Black). */
   beansExpireAt?: string | null;

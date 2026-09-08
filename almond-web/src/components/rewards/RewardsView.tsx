@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
 import { Check, Sparkles } from 'lucide-react';
 import { useLoyaltyStore } from '@/store/loyaltyStore';
+import { tierName } from '@almond/shared/loyalty';
 import { REWARDS, tierProgress } from '@/data/loyalty';
 import { Cup } from '@/components/ui/Cup';
 import { asLang, formatDate, formatJOD, formatNumber } from '@/lib/format';
@@ -54,15 +55,15 @@ export function RewardsView() {
                 className="rounded-pill px-3 py-1 font-bold text-white"
                 style={{ backgroundColor: tp.current.color }}
               >
-                {tr(tp.current.nameAr, tp.current.nameEn)}
+                {tierName(tp.current, lang)}
               </span>
               <span className="text-white/80">
                 {tp.next
                   ? t('toNextTier', {
-                      amount: formatJOD(tp.remaining, lang),
-                      tier: tr(tp.next.nameAr, tp.next.nameEn),
+                      visits: tp.visitsRemaining,
+                      tier: tierName(tp.next, lang),
                     })
-                  : t('topTier')}
+                  : t('topTier', { tier: tierName(tp.current, lang) })}
               </span>
             </div>
             <div className="mt-2 h-2 overflow-hidden rounded-pill bg-white/25">
@@ -83,7 +84,7 @@ export function RewardsView() {
 
       <p className="mt-3 flex items-center gap-2 text-sm text-text-secondary">
         <Sparkles className="h-4 w-4 text-primary" />
-        {t('earnRate')}
+        {t('earnRate', { rate: tierName(tp.current, lang) })}
       </p>
 
       {/* Redeem */}
