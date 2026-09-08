@@ -288,6 +288,47 @@ describe('C11 every i18n key the app asks for resolves in both languages', () =>
 });
 
 // ---------------------------------------------------------------------------
+// C14 — the promotion celebration points FORWARD, never at the invoice in hand.
+// ---------------------------------------------------------------------------
+describe('C14 the promotion copy does not claim the invoice that earned it', () => {
+  /**
+   * The crossing invoice is paid at the rung the member walked IN with —
+   * bff/src/routes/checkout.ts reads the standing before recordSpend, on
+   * purpose, and the owner confirmed that rule on 2026-09-08. So a promotion
+   * lands on a member who is holding a receipt at the OLD rate.
+   *
+   * The copy used to say «صرت على ٤٪» / "you are on 4%". That is TRUE — the
+   * member is on 4% from that moment — but it arrives beside a receipt showing
+   * 2%, and the two read as a contradiction to someone who does not know the
+   * standing was evaluated before the sale. The fix cost nothing and turned the
+   * moment into a reason to come back: the rate is stated as beginning with the
+   * NEXT visit.
+   *
+   * This test pins the decision, not the wording: both promotion strings, in
+   * both languages, must carry a forward reference. Changing the phrasing is
+   * fine; dropping the forward reference silently re-creates the contradiction.
+   */
+  const FORWARD = { ar: 'زيارتك الجاية', en: 'next visit' };
+
+  for (const lang of ['ar', 'en'] as const) {
+    it(`${lang}: promotedDoubled and promotedTop both point at the next visit`, () => {
+      const strings = load(APP_LOCALES[lang]);
+      for (const key of ['loyalty.promotedDoubled', 'loyalty.promotedTop']) {
+        const value = strings[key];
+        expect(value, `${key} is missing from ${lang}.json`).toBeDefined();
+        expect(
+          value,
+          `${key} (${lang}) must say the rate starts on the NEXT visit — the`
+          + ' invoice that triggered the promotion was paid at the old rung, so'
+          + ' a present-tense claim reads as a contradiction against the receipt'
+          + ` the member is holding. Got: ${value}`,
+        ).toContain(FORWARD[lang]);
+      }
+    });
+  }
+});
+
+// ---------------------------------------------------------------------------
 // C12 — one rewards board, two clients.
 // ---------------------------------------------------------------------------
 describe('C12 the website\'s rewards board is the app\'s board', () => {

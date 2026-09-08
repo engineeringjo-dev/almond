@@ -303,8 +303,8 @@
     "toTop": "تقريباً {{visits}} زيارات وخصمك بصير {{tier}} — أعلى شريحة عنا",
     "nearlyNext": "قربت — زيارة كمان وممكن توصل {{tier}}",
     "oneVisitLeft": "زيارة وحدة بس! 🔥 وخصمك بصير {{tier}}",
-    "promotedDoubled": "🎉 مبروك! خصمك تضاعف — صرت على {{tier}}",
-    "promotedTop": "🎉 مبروك! صرت على {{tier}} — أعلى نسبة عنا",
+    "promotedDoubled": "🎉 خصمك تضاعف — {{tier}} من زيارتك الجاية",
+    "promotedTop": "🎉 وصلت لأعلى شريحة — {{tier}} من زيارتك الجاية",
     "promotedNext": "تقريباً {{visits}} زيارات للـ{{tier}}"
   },
   "rewards": {
