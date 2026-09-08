@@ -14,6 +14,7 @@ import { LanguageSheet } from '@/components/profile/LanguageSheet';
 import { colors, spacing, radius, shadow } from '@/constants/theme';
 import { useI18n } from '@/hooks/useI18n';
 import { formatJOD } from '@/lib/format';
+import { config } from '@/constants/config';
 import { useAuthStore } from '@/stores/authStore';
 import { useLoyaltyBalance, useWallet } from '@/hooks/useLoyalty';
 
@@ -75,6 +76,18 @@ export default function ProfileScreen() {
 
         {/* Menu */}
         <Card padded={false} style={styles.menu}>
+          {/* First row on purpose: it is the only one that pays, and a member
+              who has not filled it in is the one we most want to reach. */}
+          <ListRow
+            icon="user"
+            label={t('profile.details')}
+            value={
+              user?.name?.trim()
+                ? undefined
+                : t('profile.detailsEarn', { points: config.PROFILE_COMPLETION_BONUS })
+            }
+            onPress={() => router.push('/profile/details')}
+          />
           <ListRow icon="history" label={t('profile.orders')} onPress={() => router.push('/profile/orders')} />
           <ListRow icon="ticket" label={t('profile.vouchers')} onPress={() => router.push('/profile/vouchers')} />
           <ListRow icon="gift" label={t('profile.giftCards')} onPress={() => router.push('/profile/gift-cards')} />

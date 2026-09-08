@@ -21,7 +21,8 @@
     "points": "نقطة",
     "free": "مجاناً",
     "add": "إضافة",
-    "confirm": "تأكيد"
+    "confirm": "تأكيد",
+    "error": "صار خطأ"
   },
   "onboarding": {
     "slide1Title": "أهلاً بك في ألموند",
@@ -384,7 +385,9 @@
     "addAddress": "أضف عنواناً",
     "reloadBonus": "+{{beans}} نقطة هدية",
     "reloadBonusNote": "اشحن أكثر واكسب نقاط هدية فوراً ☕",
-    "giftCards": "بطاقات الإهداء"
+    "giftCards": "بطاقات الإهداء",
+    "details": "بياناتك",
+    "detailsEarn": "+{{points}} نقطة"
   },
   "referral": {
     "title": "ادعُ أصحابك",
@@ -463,5 +466,20 @@
     "addRecipient": "أضف شخصاً",
     "sentCount": "تم إرسال {{count}} بطاقة 🎉",
     "payNote": "يُدفع من رصيد محفظتك (الرصيد {{jod}} د.أ)"
+  },
+  "details": {
+    "nameLabel": "اسمك",
+    "namePlaceholder": "مثلاً: حمزة",
+    "nameRequiredTitle": "بدنا اسمك",
+    "nameRequiredBody": "اكتب الاسم الذي تحب أن نناديك به.",
+    "birthdayLabel": "تاريخ ميلادك (اختياري)",
+    "birthdayHint": "حتى نرسل لك شيئًا في يومك. تقدر تتركه فارغًا.",
+    "phoneFixed": "مسجَّل الدخول بـ {{phone}}",
+    "bonusPitch": "عرّفنا على اسمك واكسب {{points}} نقطة — مرة واحدة.",
+    "saveAndEarn": "احفظ واكسب {{points}} نقطة",
+    "savedTitle": "تم الحفظ",
+    "savedBody": "بياناتك محدَّثة.",
+    "savedBonus": "أُضيفت {{points}} نقطة — شكرًا لك 🎉",
+    "saveFailed": "ما قدرنا نحفظ. جرّب مرة ثانية."
   }
 }

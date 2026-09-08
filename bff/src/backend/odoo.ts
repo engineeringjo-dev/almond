@@ -58,6 +58,7 @@ export function createOdooBackend(): Backend {
     //   jitter that would smear it, and the instruction not to ship it unasked.
     addPoints: () => todo('addPoints'),
     spendPoints: () => todo('spendPoints'),
+    setProfile: () => todo('setProfile'),
     // The rolling window on the Odoo side is a BUCKET ENGINE, not a scalar:
     // recordSpend → an almond_loyalty.spend row dated by the Amman business day
     // (pos.order.date_order, not the server's), pruned/aggregated to

@@ -5,6 +5,7 @@ import {
   consumeFifo, expiredBetween, grantLot, liveBalance, lotRulesFromConfig, migrateBalance,
   pruneLots,
 } from '@almond/shared/loyalty/lots';
+import { normalizeName, profileBonusFor } from '@almond/shared/loyalty/profile';
 import {
   decideSecondVisit, secondVisitStatus,
   type SecondVisitVoucher,
@@ -72,6 +73,11 @@ export function createMemoryBackend(): Backend {
   // second-visit voucher's 19,040 JOD guard armed for this fixture.
   const demo: Member = {
     id: 'demo', phone: '+962790000000', name: 'Almond Member',
+    birthday: null,
+    // The demo member already has a name, so the bonus is settled for them —
+    // otherwise the fixture would hand out 50 points the first time anyone
+    // opened the profile screen against it.
+    profileBonusAt: new Date().toISOString(),
     lots: grantLot(
       migrateBalance(200, shiftDayKey(todayKey(), -335), LOTS),
       40, 'migration', undefined, LOTS, todayKey(),
@@ -164,7 +170,14 @@ export function createMemoryBackend(): Backend {
       const existing = byPhone.get(phone);
       if (existing) return members.get(existing)!;
       const m: Member = {
-        id: `m_${randomUUID()}`, phone, name: name ?? 'Member',
+        // normalizeName, never `name ?? 'Member'`. That fallback invented a
+        // display name in ONE language, which is the defect the app side has
+        // just been cleared of: a name is a fact about a person, so it is
+        // either theirs or empty. Empty is what makes them eligible for the
+        // profile bonus, which is correct — they have told us nothing yet.
+        id: `m_${randomUUID()}`, phone, name: normalizeName(name),
+        birthday: null,
+        profileBonusAt: null,
         // A genuinely NEW member gets an empty ledger — never a migration lot.
         // Minting one would make every new member look migrated to
         // `unexplainedPoints` and cost them the second-visit voucher (T32u's
@@ -216,6 +229,26 @@ export function createMemoryBackend(): Backend {
       m.lots = res.lots;
       log(id, { deltaPoints: -points, reasonAr, reasonEn, createdAt: at.toISOString() });
       return liveBalance(m.lots, at);
+    },
+    async setProfile(id, profile) {
+      const m = must(id);
+      const name = normalizeName(profile.name);
+      // The stamp is read BEFORE anything is written, and it is the backend's
+      // own — a client cannot assert it. profileBonusFor returns 0 when it is
+      // set, so re-saving a name succeeds and pays nothing.
+      const bonus = profileBonusFor({ name, birthday: profile.birthday }, m.profileBonusAt !== null);
+      m.name = name;
+      m.birthday = profile.birthday;
+
+      let pointsBalance = liveBalance(m.lots, new Date());
+      if (bonus > 0) {
+        // Stamp FIRST. If the grant threw between the two, an unstamped member
+        // could be paid twice on retry; an over-stamped one is merely unpaid,
+        // and that is the failure a human can see and fix. Fail closed.
+        m.profileBonusAt = new Date().toISOString();
+        pointsBalance = await this.addPoints(id, bonus, 'إكمال الملف الشخصي', 'Profile completed');
+      }
+      return { profile: { name, birthday: m.birthday }, bonusGranted: bonus, pointsBalance };
     },
     async recordSpend(id, jod, occurredOn) {
       const m = must(id);

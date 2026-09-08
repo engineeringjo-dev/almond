@@ -52,6 +52,12 @@ export const useAuthStore = create<AuthState>((set) => ({
   },
 }));
 
+/** The signed-in user, or null. A selector rather than `useAuthStore(s => s.user)`
+ *  at each call site so the subscription shape is the same everywhere. */
+export function useUser(): User | null {
+  return useAuthStore((s) => s.user);
+}
+
 /** The effective user id for service calls (guest uses a stable demo id). */
 export function useUserId(): string {
   return useAuthStore((s) => s.user?.id ?? 'guest');

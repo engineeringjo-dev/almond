@@ -2,6 +2,7 @@ import type { OrderType, PaymentMethodId, TierId } from '@almond/shared/types';
 import type { EarnBreakdown } from '@almond/shared/loyalty/earn';
 import type { HoldoutStamp } from '@almond/shared/loyalty/holdout';
 import type { SecondVisitVoucher } from '@almond/shared/loyalty/secondVisit';
+import type { MemberProfile } from '@almond/shared/loyalty/profile';
 import type { PointLot } from '@almond/shared/loyalty/lots';
 import type { SpendEntry, TierStanding, Evaluation } from '@almond/shared/loyalty/window';
 
@@ -35,6 +36,26 @@ export interface Member {
    * mirror of `evaluatedThrough`, and idempotent for the same reason.
    */
   expirySettledThrough: string;
+  /**
+   * Amman day key of birth, or null. Fed by the profile form; the tier cards
+   * have promised a birthday benefit since before there was anywhere to put
+   * one. A DAY KEY, never an ISO instant — see MemberProfile.birthday.
+   */
+  birthday: string | null;
+  /**
+   * 🔴 WHEN THE PROFILE BONUS WAS PAID — the once-only stamp, and the ONLY
+   * thing that stops it being a mint.
+   *
+   * A TIMESTAMP, not a boolean, and NOT derived from "does this member have a
+   * name". Derivation would be wrong in both directions: a member who clears
+   * their name would become eligible again, and the Wafii migration — which
+   * carries a name for all 47,720 members — could not mark them as already
+   * settled without also paying them 0.500 JOD each for a fact we already hold.
+   * The migration sets this stamp; see config.PROFILE_COMPLETION_BONUS.
+   *
+   * `null` means never paid.
+   */
+  profileBonusAt: string | null;
   walletFils: number; // stored-value wallet, in fils
   /**
    * The dated spend log the rolling window is computed from, PRUNED to
@@ -144,6 +165,20 @@ export interface Backend {
   /** Atomic points spend, OLDEST LOT FIRST, measured against the LIVE balance;
    *  throws conflict('insufficient_points') without touching a single lot. */
   spendPoints(id: string, points: number, reasonAr: string, reasonEn: string): Promise<number>;
+  /**
+   * Write the member's own details, and pay the completion bonus AT MOST ONCE.
+   *
+   * 🔴 THE GRANT DECISION IS HERE, NOT ON THE CLIENT. The phone may compute the
+   * same answer with @almond/shared/loyalty/profile to render an accurate "+50"
+   * before saving, but what it sends is a NAME — never a points figure and
+   * never a claim of eligibility. `bonusGranted` in the reply is what actually
+   * happened, and re-saving an unchanged name pays nothing while still
+   * succeeding: editing your own profile twice is ordinary, not an error.
+   */
+  setProfile(
+    id: string,
+    profile: MemberProfile,
+  ): Promise<{ profile: MemberProfile; bonusGranted: number; pointsBalance: number }>;
   /**
    * Record one qualifying purchase against the rolling window.
    *
