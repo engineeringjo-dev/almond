@@ -91,8 +91,35 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   loading: { flex: 1, alignItems: 'center', justifyContent: 'center', minHeight: 100 },
-  left: { gap: spacing.sm },
+  /**
+   * 🔴 `flex: 1` — THE MISSING LINE, AND THE WHOLE BUG.
+   *
+   * This column holds the tier progress sentence. The longest of the four
+   * (`loyalty.toTop` — "About 5 more visits and your rate becomes 6% — our top
+   * tier") ran off the right edge and was cut mid-word by the card's
+   * `overflow: 'hidden'`. Reported from the live Pages build, 2026-09-08.
+   *
+   * The column had NO flex at all, so inside a `flexDirection: 'row'` card it
+   * sized to its widest child and overflowed instead of wrapping. Every other
+   * card on this screen already gets this right — GiftCardHome, PromotionBanner,
+   * UsualOrderCard, VisitRewardBanner, WelcomeOffer and the profile header all
+   * put `flex: 1` on their text column. This one card did not, which is why the
+   * defect was here and nowhere else.
+   *
+   * `minWidth: 0` is DEFENSIVE, not the fix — do not read it as the reason this
+   * works. `flex: 1` means `flex: 1 1 0%`, and against a basis of 0 the CSS
+   * default `min-width: auto` only bites when min-content is wider than the
+   * space available; for prose min-content is one word, so wrapping happens
+   * regardless. It is kept because this app also ships to the web through
+   * react-native-web (`expo export --platform web`), where that default is real
+   * and an unbreakable token — a long URL, a pasted code — would otherwise
+   * push the column wide again.
+   */
+  left: { flex: 1, minWidth: 0, gap: spacing.sm },
   points: { lineHeight: 42 },
-  right: { alignItems: 'center', gap: spacing.xs },
+  /** The cup is a fixed 96px drawing; it must not absorb the shrink that
+   *  `left` now yields. Without `flexShrink: 0` a long sentence squeezes the
+   *  cup instead of wrapping. */
+  right: { flexShrink: 0, alignItems: 'center', gap: spacing.xs },
   cupLabel: { marginTop: spacing.xs },
 });
