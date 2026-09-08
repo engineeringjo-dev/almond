@@ -435,9 +435,9 @@ describe('SMOKE: one member, one server, sign-in to the top rung', () => {
     // fractional count here would silently drop half the approved sentence.
     expect(Number.isInteger(view.nextTier!.visitsRemaining)).toBe(true);
     expect(view.nextTier!.visitsRemaining).toBeGreaterThan(0);
-    // The BFF keeps no cup state, and the type no longer pretends otherwise —
-    // this used to be a required field that threw on two screens.
-    expect(view.cup).toBeUndefined();
+    // 🪦 The cup was deleted 2026-09-08; this used to assert the BFF sent no
+    // `cup` field. There is no such field on LoyaltyBalance any more, so there
+    // is nothing left to assert — the type is the guarantee.
 
     // And the grant agrees with the rung the view will render.
     const next = await buy(token);
@@ -548,7 +548,13 @@ describe('SMOKE: one member, one server, sign-in to the top rung', () => {
     //    kept buying, and it does not save those points: this is the entire
     //    difference from the inactivity rule this replaced, over HTTP.
     const dying = member.lots[0];
-    const dead = { ...dying, grantedOn: shiftDayKey(dying.grantedOn, -400), expiresOn: shiftDayKey(dying.expiresOn, -400) };
+    // `as string`: this is a POINTS lot and points still expire. Money stopped
+    // expiring on 2026-09-08, which is why the field is nullable at all.
+    const dead = {
+      ...dying,
+      grantedOn: shiftDayKey(dying.grantedOn, -400),
+      expiresOn: shiftDayKey(dying.expiresOn as string, -400),
+    };
     member.lots[0] = dead;
     // The settle stamp moves with it. A member whose lot has died last wrote
     // BEFORE it died — stamping "settled through today" over a back-dated lot

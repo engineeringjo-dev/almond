@@ -243,20 +243,40 @@ describe('T34 the wallet ledger', () => {
     expect(fromWallet.points).toBe(Math.round(cash.points * config.WALLET_EARN_MULTIPLIER));
   });
 
-  it('T34d money older than the promise is gone, and only that money', async () => {
-    // Directly on the ledger: the routes cannot back-date a top-up, and 24
-    // months of wall-clock is not a thing a test can wait for.
-    const RULES = walletLotRulesFromConfig();
+  it('T34d money does not expire — and the mechanism still works if it ever does', async () => {
+    // 🔴 THIS TEST REVERSED THE SAME DAY IT WAS WRITTEN. It first asserted that
+    // wallet money older than two years was gone. Shown that expiring balance a
+    // customer PAID US is a regulated, complaint-generating mechanic, the owner
+    // decided: «اذا النقود بدون صلاحية».
+    //
+    // Both halves are pinned. The first is what ships. The second keeps the
+    // machinery honest and covered, so turning it back on is a dial and not a
+    // rebuild.
     const today = ammanDayKey(new Date());
-    const old = shiftDayKey(today, -(365 * 2 + 5));   // just past two years
-    const recent = shiftDayKey(today, -30);
+    const ancient = shiftDayKey(today, -(365 * 10));   // ten years ago
 
-    let lots = grantLot([], 20_000, 'topup', undefined, RULES, old).lots;
-    lots = grantLot(lots, 5_000, 'gift', undefined, RULES, recent).lots;
+    // 1) AS SHIPPED: WALLET_LIFE_MONTHS is null, so the lot carries NO expiry
+    //    day at all — not a distant one. A member's money is not given a
+    //    fictional date it might one day reach.
+    const shipped = walletLotRulesFromConfig();
+    expect(config.WALLET_LIFE_MONTHS).toBeNull();
+    const forever = grantLot([], 20_000, 'topup', undefined, shipped, ancient).lots;
+    expect(forever[0].expiresOn).toBeNull();
+    expect(liveBalance(forever)).toBe(20_000);
 
-    // The old lot is dead; the recent one is untouched. No sweep ran — a dead
-    // lot simply contributes 0 to every reader from the instant it dies.
+    // 2) WITH A LIFETIME SET: the same code expires the old lot and leaves the
+    //    recent one alone. No sweep runs — a dead lot contributes 0 to every
+    //    reader from the instant it dies.
+    const mortal = { ...shipped, lifeMonths: 24 };
+    let lots = grantLot([], 20_000, 'topup', undefined, mortal, ancient).lots;
+    lots = grantLot(lots, 5_000, 'gift', undefined, mortal, shiftDayKey(today, -30)).lots;
     expect(liveBalance(lots)).toBe(5_000);
+
+    // 3) AND THE EXEMPTION IS PER LOT, so re-enabling expiry cannot reach
+    //    backwards into money already granted without one. That is the whole
+    //    reason expiresOn is stored rather than derived.
+    const mixed = grantLot(forever, 5_000, 'topup', undefined, mortal, ancient).lots;
+    expect(liveBalance(mixed)).toBe(20_000);
   });
 
   it('T34e a spend takes the oldest money first', async () => {

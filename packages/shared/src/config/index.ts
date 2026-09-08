@@ -156,8 +156,17 @@ export const config = {
    * 🔴 HOW LONG THE MEMBER'S OWN MONEY LIVES. Owner: «صلاحية ٢ سنة first in
    * first out» for top-up and gift-card balance alike.
    *
-   * TWENTY-FOUR MONTHS, AND IT IS NOT THE SAME KIND OF RULE AS THE POINTS'
-   * TWELVE. Points are a discount this house grants and may time-limit. Wallet
+   * 🔴 `null` — MONEY DOES NOT EXPIRE. Owner, 2026-09-08, after being shown the
+   * risk: «اذا النقود بدون صلاحية». It was 24 months for a few hours; it is now
+   * never, and `null` rather than a large number precisely so no fictional date
+   * is ever stamped on a member's money or printed on a screen.
+   *
+   * THE MECHANISM IS KEPT, TESTED AND OFF. Setting a number here turns wallet
+   * expiry back on for money topped up AFTERWARDS only — every lot stores its
+   * own `expiresOn` (null included), so a member's existing balance can never
+   * be made mortal retroactively. T34d covers both states.
+   *
+   * WHY IT IS NOT THE SAME KIND OF RULE AS THE POINTS' TWELVE. Points are a discount this house grants and may time-limit. Wallet
    * balance is CASH A CUSTOMER PAID US. Expiring it converts their money into
    * our revenue, which is the single most complaint-generating mechanic a café
    * can run and is regulated in many jurisdictions — stored-value and
@@ -170,7 +179,7 @@ export const config = {
    * dial moves only balances topped up afterwards. Setting it to a very large
    * number is how you turn expiry off without touching a line of code.
    */
-  WALLET_LIFE_MONTHS: 24,
+  WALLET_LIFE_MONTHS: null as number | null,
   POINT_LOT_LIFE_MONTHS: 12,
   // How long a DEAD lot's row is kept, for support and the breakage report.
   // It affects no number a member sees: a dead lot contributes 0 to every sum

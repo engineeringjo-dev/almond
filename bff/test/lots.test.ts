@@ -2,6 +2,20 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
+/**
+ * The expiry day of a lot that MUST have one.
+ *
+ * `PointLot.expiresOn` became `string | null` on 2026-09-08, when money stopped
+ * expiring — `null` means "never". Every lot in THIS suite is a points lot and
+ * points still live 12 months, so a null here is a real defect, not a case to
+ * handle. Asserting it rather than casting means the suite fails loudly if the
+ * points ledger ever silently inherits the wallet's exemption.
+ */
+const expiryOf = (lot: { expiresOn: string | null }): string => {
+  expect(lot.expiresOn, 'a points lot must carry an expiry day').not.toBeNull();
+  return lot.expiresOn as string;
+};
+
 import { config } from '@almond/shared/config';
 import { ammanDayKey } from '@almond/shared/lib/ammanWeekday';
 import { formatDayKey } from '@almond/shared/lib/format';
@@ -69,7 +83,7 @@ beforeAll(() => { sources = collectSources(); });
 describe('L1 a lot dies on its own schedule, and a later purchase does not renew it', () => {
   it('100 on day 0 and 100 on day 200: the day after the first expires, the balance is 100', () => {
     const lots = ledger([{ points: 100, onDay: 0 }, { points: 100, onDay: 200 }]);
-    const firstDies = lots[0].expiresOn;
+    const firstDies = expiryOf(lots[0]);
 
     // Alive together, right up to the last day of the first lot.
     expect(liveBalance(lots, NOW)).toBe(200);
@@ -89,9 +103,9 @@ describe('L1 a lot dies on its own schedule, and a later purchase does not renew
     // it was granted, not with the first and not 200 days after it (200 days on
     // from firstDies is 2028-03-26, because 2028 is a leap year; the answer is
     // 2028-03-27, which is what "the same date next year" means).
-    expect(lots[1].expiresOn).toBe(addMonthsToDayKey(lots[1].grantedOn, 12));
-    expect(lots[1].expiresOn > firstDies).toBe(true);
-    expect(liveBalance(lots, new Date(`${addDaysToDayKey(lots[1].expiresOn, 1)}T09:00:00Z`))).toBe(0);
+    expect(expiryOf(lots[1])).toBe(addMonthsToDayKey(lots[1].grantedOn, 12));
+    expect(expiryOf(lots[1]) > firstDies).toBe(true);
+    expect(liveBalance(lots, new Date(`${addDaysToDayKey(expiryOf(lots[1]), 1)}T09:00:00Z`))).toBe(0);
   });
 
   it('the dead lot is still a ROW — it is worth 0, it was not erased', () => {
@@ -144,8 +158,8 @@ describe('L2/L3 FIFO consumes the oldest lot first and never re-dates the remain
     expect({ ...c, remaining: before[2].remaining }).toEqual(before[2]);
 
     // The surviving 20 die on the day the original 40 were always going to.
-    expect(liveBalance(res.lots, new Date(`${c.expiresOn}T09:00:00Z`))).toBe(20);
-    expect(liveBalance(res.lots, new Date(`${addDaysToDayKey(c.expiresOn, 1)}T09:00:00Z`))).toBe(0);
+    expect(liveBalance(res.lots, new Date(`${expiryOf(c)}T09:00:00Z`))).toBe(20);
+    expect(liveBalance(res.lots, new Date(`${addDaysToDayKey(expiryOf(c), 1)}T09:00:00Z`))).toBe(0);
   });
 
   it('the input array is never mutated — a write returns a new array of new objects', () => {
@@ -375,7 +389,7 @@ describe('L7 the 12-month boundary is identical on a UTC host and an Amman host'
 describe('L8 expiry is inclusive of its last day', () => {
   it('live all through expiresOn, dead the next morning', () => {
     const lots = ledger([{ points: 100, onDay: 0 }]);
-    const d = lots[0].expiresOn;
+    const d = expiryOf(lots[0]);
     expect(isLotLive(lots[0], new Date(`${addDaysToDayKey(d, -1)}T09:00:00Z`))).toBe(true);
     expect(isLotLive(lots[0], new Date(`${d}T09:00:00Z`))).toBe(true);
     expect(isLotLive(lots[0], new Date(`${addDaysToDayKey(d, 1)}T09:00:00Z`))).toBe(false);
@@ -445,7 +459,7 @@ describe('L9 twelve CALENDAR months, not 360 days and not 365 (carries D10 forwa
     const { lot } = grantLot([], 100, 'earn', NOW, { lifeMonths: 6, retentionDays: 90 });
     expect(lot!.expiresOn).toBe(addMonthsToDayKey(lot!.grantedOn, 6));
     // Read with the shipped 12-month rules: still dead after its own 6 months.
-    expect(liveBalance([lot!], new Date(`${addDaysToDayKey(lot!.expiresOn, 1)}T09:00:00Z`))).toBe(0);
+    expect(liveBalance([lot!], new Date(`${addDaysToDayKey(expiryOf(lot!), 1)}T09:00:00Z`))).toBe(0);
   });
 });
 
@@ -467,14 +481,14 @@ describe('L10 every read is pure — there is no expiry mutation to trigger', ()
     expect(lots).toEqual(snapshot);
     // The falling number, with no job having run in between.
     expect(liveBalance(lots, NOW)).toBe(150);
-    expect(liveBalance(lots, new Date(`${addDaysToDayKey(lots[0].expiresOn, 1)}T09:00:00Z`))).toBe(50);
+    expect(liveBalance(lots, new Date(`${addDaysToDayKey(expiryOf(lots[0]), 1)}T09:00:00Z`))).toBe(50);
     expect(liveBalance(lots, dead)).toBe(0);
   });
 
   it('expiredBetween books each death exactly once, and is idempotent per day', () => {
     const lots = ledger([{ points: 100, onDay: 0 }, { points: 50, onDay: 200 }]);
-    const afterFirst = addDaysToDayKey(lots[0].expiresOn, 1);
-    const afterBoth = addDaysToDayKey(lots[1].expiresOn, 1);
+    const afterFirst = addDaysToDayKey(expiryOf(lots[0]), 1);
+    const afterBoth = addDaysToDayKey(expiryOf(lots[1]), 1);
 
     expect(expiredBetween(lots, day(0), day(1))).toBe(0);          // nothing dead yet
     expect(expiredBetween(lots, day(0), afterFirst)).toBe(100);    // the first lot
@@ -488,7 +502,7 @@ describe('L10 every read is pure — there is no expiry mutation to trigger', ()
     const lots = ledger([{ points: 100, onDay: 0 }]);
     const dies = lots[0].expiresOn;
     expect(config.POINT_LOT_RETENTION_DAYS).toBe(90);
-    const lastKept = addDaysToDayKey(dies, config.POINT_LOT_RETENTION_DAYS);
+    const lastKept = addDaysToDayKey(dies as string, config.POINT_LOT_RETENTION_DAYS);
     expect(pruneLots(lots, new Date(`${lastKept}T09:00:00Z`), RULES)).toHaveLength(1);
     expect(pruneLots(lots, new Date(`${addDaysToDayKey(lastKept, 1)}T09:00:00Z`), RULES)).toHaveLength(0);
     // Lossless for every number a member sees: it was already worth 0.
