@@ -485,6 +485,33 @@ export const config = {
    */
   PROFILE_COMPLETION_BONUS: 50,
 
+  /**
+   * 🔴 THE REFERRAL REWARD — the second challenge on the home banner. Owner:
+   * «خلي صاحبك ينزل التطبيق وخذ ٥٠ نقطة … بس بقدر يعزم اكثر من حدا».
+   *
+   * ONCE PER ACCOUNT, and the once-ness is enforced where the grant is
+   * (hasReferralRewardEver), not by the banner. The member may keep sharing the
+   * link with as many people as they like — that is the whole point of the
+   * mechanic — but the account is paid one time.
+   *
+   * 🔴 IT IS NOT ADVERTISED AS ONCE, AND THAT IS A DELIBERATE ASYMMETRY WITH A
+   * RULE ATTACHED. The owner asked for the limit not to be stated in the pitch
+   * («دون ذكر ذلك»), so the banner copy does not carry it. The rule that keeps
+   * that honest is in loyalty/challenges.ts: the offer DISAPPEARS the moment it
+   * is spent. Never re-show a pitch this account can no longer be paid for —
+   * an unadvertised limit is one thing, a repeated promise that will not be
+   * honoured is another, and the second one is what a member complains about.
+   *
+   * COST: 50 points = 0.500 JOD, once per account, and unlike the profile bonus
+   * it is only paid when a genuinely NEW phone joins — so it is bought traffic,
+   * not a giveaway to the existing base. The referred friend gets nothing here;
+   * referrer-only is the shipped rule (§8.1.1).
+   *
+   * 0 retires the challenge: nextChallenge() skips a rung that pays nothing
+   * rather than showing an offer worth zero.
+   */
+  REFERRAL_REWARD_POINTS: 50,
+
   CUP_TARGET: 10,
   CUP_HEAD_START: 1,
   DEFAULT_PREP_MINUTES: 7, // section 7.3

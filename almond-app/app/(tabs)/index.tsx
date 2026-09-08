@@ -14,6 +14,7 @@ import { GiftCardHome } from '@/components/home/GiftCardHome';
 import { ActiveOrderBanner } from '@/components/home/ActiveOrderBanner';
 import { WelcomeOffer } from '@/components/home/WelcomeOffer';
 import { FeaturedRow } from '@/components/home/FeaturedRow';
+import { ChallengeBanner } from '@/components/home/ChallengeBanner';
 import { HomeNudge } from '@/components/home/HomeNudge';
 import { PromotionBanner } from '@/components/home/PromotionBanner';
 import { SubscriptionCard } from '@/components/home/SubscriptionCard';
@@ -82,6 +83,19 @@ export default function HomeScreen() {
             leave its own margin behind on every launch that has nothing to
             celebrate, which is almost all of them. */}
         <PromotionBanner />
+
+        {/* The onboarding ladder: fill in your details, then invite a friend.
+            One at a time, decided in @almond/shared/loyalty/challenges, and
+            nothing at all once both are done. Placed ABOVE HomeNudge because a
+            challenge is a first-week thing and the nudge is a forever thing —
+            a member with an abandoned cart AND an unfinished profile is newer
+            than they are hungry.
+
+            Unwrapped, like PromotionBanner and HomeNudge: a wrapper View with a
+            margin would leave a blank gap on Home for every member who has
+            finished the ladder, which is eventually everyone. The component
+            carries its own spacing and renders nothing at all when done. */}
+        <ChallengeBanner />
 
         {/* Lifecycle nudge: abandoned cart / points expiring (renders only when relevant) */}
         <HomeNudge />

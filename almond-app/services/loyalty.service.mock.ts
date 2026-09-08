@@ -699,9 +699,13 @@ export const mockLoyaltyService: LoyaltyService = {
     knownPhones.add(referredPhone);
     u.hasReferralRewardEver = true;
     settleExpiry(u);
-    u.lots = grantLot(u.lots, 50, 'bonus', new Date(), LOTS).lots;
+    // config.REFERRAL_REWARD_POINTS, never a literal 50. The banner renders the
+    // dial and the grant must pay the dial, or the pitch goes stale the first
+    // time anybody edits it — the same failure as "Earn 5 points per 1 JOD".
+    const reward = config.REFERRAL_REWARD_POINTS;
+    u.lots = grantLot(u.lots, reward, 'bonus', new Date(), LOTS).lots;
     u.history.unshift({
-      id: genId('log'), deltaPoints: 50,
+      id: genId('log'), deltaPoints: reward,
       reasonAr: 'مكافأة دعوة صديق', reasonEn: 'Referral reward', createdAt: new Date().toISOString(),
     });
     return delay({ rewarded: true });

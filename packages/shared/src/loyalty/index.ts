@@ -4,6 +4,7 @@ export * from './lots';
 export * from './holdout';
 export * from './window';
 export * from './balanceWire';
+export * from './challenges';
 export * from './profile';
 export * from './redeem';
 export * from './secondVisit';
