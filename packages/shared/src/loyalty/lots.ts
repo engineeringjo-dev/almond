@@ -133,8 +133,13 @@ export interface PointLot {
    * which is the only defensible behaviour for a liability. Same reasoning as
    * HoldoutStamp carrying its own threshold and SecondVisitVoucher.expiresAt
    * being a stored column.
+   *
+   * 🔴 `null` MEANS THIS LOT NEVER EXPIRES, and it is stored that way for the
+   * same reason: a wallet lot granted while money is exempt keeps its exemption
+   * even if a later edit gives money a lifetime. A member's money cannot be
+   * made mortal retroactively.
    */
-  expiresOn: string;
+  expiresOn: string | null;
   /** Integer points granted. IMMUTABLE — the audit number every breakage and
    *  vintage figure is built on. Once this moves, "how much did we issue" is
    *  unanswerable. */
@@ -147,7 +152,17 @@ export interface PointLot {
 /** Every dial the ledger reads, injectable exactly like EarnRules/WindowRules. */
 export interface LotRules {
   /** config.POINT_LOT_LIFE_MONTHS (12). CALENDAR months, not 30-day blocks. */
-  lifeMonths: number;
+  /**
+   * How many months a lot lives — or `null` for NEVER.
+   *
+   * `null` is not a large number pretending to be forever. The wallet holds
+   * cash a customer paid us and the owner decided it does not expire
+   * («اذا النقود بدون صلاحية»); a sentinel like 1200 months would put a
+   * fictional date on a member's money, print it wherever an expiry is shown,
+   * and quietly become real in the year 2126. A promise of "never" should be
+   * stored as the absence of a date.
+   */
+  lifeMonths: number | null;
   /** How long a dead lot's ROW is kept, for support and for the breakage
    *  report. Affects no number a member ever sees — a dead lot contributes 0
    *  to every sum in this file from the moment it dies. */
@@ -254,8 +269,11 @@ export function addMonthsToDayKey(day: string, months: number): string {
 }
 
 /** The day a lot granted on `grantedOn` is live THROUGH. */
-export function lotExpiresOn(grantedOn: string, rules: LotRules = lotRulesFromConfig()): string {
-  return addMonthsToDayKey(grantedOn, rules.lifeMonths);
+export function lotExpiresOn(
+  grantedOn: string,
+  rules: LotRules = lotRulesFromConfig(),
+): string | null {
+  return rules.lifeMonths === null ? null : addMonthsToDayKey(grantedOn, rules.lifeMonths);
 }
 
 /**
@@ -269,7 +287,12 @@ export function lotExpiresOn(grantedOn: string, rules: LotRules = lotRulesFromCo
  * window.ts.
  */
 export function isLotLive(lot: PointLot, at: Date = new Date()): boolean {
-  return lot.remaining > 0 && ammanDayKey(at) <= lot.expiresOn;
+  if (lot.remaining <= 0) return false;
+  // `null` is a lot that never dies — see LotRules.lifeMonths. Checked BEFORE
+  // the comparison, because `'2026-09-08' <= null` is false in JavaScript and
+  // would silently kill every never-expiring lot the moment it was granted.
+  if (lot.expiresOn === null) return true;
+  return ammanDayKey(at) <= lot.expiresOn;
 }
 
 /** Every spendable lot, IN FIFO ORDER — oldest grant first, `seq` breaking a
@@ -310,10 +333,16 @@ export function nextExpiry(
   lots: readonly PointLot[],
   at: Date = new Date(),
 ): { amount: number; on: string } | null {
-  const live = lots.filter((l) => isLotLive(l, at));
+  // 🔴 MORTAL LOTS ONLY. A never-expiring lot has no expiry to be "next", and
+  // TypeScript cannot catch its absence here: `null < '2027-01-01'` is TRUE in
+  // JavaScript (null coerces to 0), so an unfiltered comparison would elect the
+  // immortal lot as the soonest to die and hand the caller `on: null` through a
+  // signature that promises a string. The member would be told their money
+  // expires — on nothing.
+  const live = lots.filter((l) => isLotLive(l, at) && l.expiresOn !== null);
   if (live.length === 0) return null;
-  let on = live[0].expiresOn;
-  for (const l of live) if (l.expiresOn < on) on = l.expiresOn;
+  let on = live[0].expiresOn as string;
+  for (const l of live) if ((l.expiresOn as string) < on) on = l.expiresOn as string;
   let amount = 0;
   for (const l of live) if (l.expiresOn === on) amount += l.remaining;
   return { amount, on };
@@ -339,7 +368,13 @@ export function expiredBetween(
   assertDayKey(fromDay, 'expiredBetween');
   assertDayKey(toDay, 'expiredBetween');
   let sum = 0;
-  for (const l of lots) if (l.expiresOn >= fromDay && l.expiresOn < toDay) sum += l.remaining;
+  for (const l of lots) {
+    // A lot that never expires never expired in any window. Explicit, not
+    // incidental: `null >= '2026-09-08'` happens to be false, but relying on a
+    // coercion for a money figure is how the next reader gets it wrong.
+    if (l.expiresOn === null) continue;
+    if (l.expiresOn >= fromDay && l.expiresOn < toDay) sum += l.remaining;
+  }
   return sum;
 }
 
@@ -470,7 +505,14 @@ export function pruneLots(
   rules: LotRules = lotRulesFromConfig(),
 ): PointLot[] {
   const today = ammanDayKey(at);
-  return lots.filter((l) => today <= addDaysToDayKey(l.expiresOn, rules.retentionDays));
+  return lots.filter((l) => {
+    // Retention is measured from the expiry day, so a lot with no expiry day is
+    // never eligible for pruning. Without this, addDaysToDayKey would be handed
+    // a null and the wallet's whole history would be destroyed on the first
+    // settlement.
+    if (l.expiresOn === null) return true;
+    return today <= addDaysToDayKey(l.expiresOn, rules.retentionDays);
+  });
 }
 
 /**
