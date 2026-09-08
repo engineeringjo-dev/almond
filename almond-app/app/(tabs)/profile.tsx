@@ -52,7 +52,13 @@ export default function ProfileScreen() {
             )}
           </View>
           <View style={[styles.headerBody, { alignItems: startEdge }]}>
-            <Text variant="h2" color={colors.white}>{isGuest ? t('home.guest') : user?.name}</Text>
+            {/* The same blank-name fallback as the home greeting: `home.guest`
+                exists in both locale files, `user.name` exists in neither. A
+                bare `user?.name` rendered an empty heading the moment the
+                fabricated literal was removed. */}
+            <Text variant="h2" color={colors.white}>
+              {isGuest || !user?.name?.trim() ? t('home.guest') : user.name}
+            </Text>
             {!isGuest && user?.phone ? (
               <Text variant="caption" color={colors.white}>
                 {user.phone}

@@ -324,3 +324,83 @@ describe('C8h the demo seed renders the progress sentence', () => {
     expect(copy!.params.visits).toBeGreaterThan(0);
   });
 });
+
+// ---------------------------------------------------------------------------
+// C15 — no screen mixes the two languages.
+// ---------------------------------------------------------------------------
+/**
+ * Owner, 2026-09-08: «الغة اما عربي او انجليزي مش حلو الخلط» — the language is
+ * either Arabic or English; mixing is not acceptable.
+ *
+ * What he saw was "Good evening, ضيف ألموند": an English greeting with an
+ * Arabic name interpolated into it. The name was not the member's — the mock
+ * OTP handed every sign-in the literal 'ضيف ألموند' and set `isGuest: false`,
+ * so the guest branch that exists precisely to avoid this never ran.
+ *
+ * THE RULE THIS PINS. A display string that exists in one language only cannot
+ * live in the logic layers. It belongs in the locale files, where the other
+ * language is required to exist beside it (C1). Bilingual PAIRS are exempt and
+ * are the correct pattern — `nameAr`/`nameEn`, `titleAr`/`titleEn` — because
+ * both languages are present by construction. Comments are exempt: this
+ * codebase reasons in Arabic and English throughout, and none of it renders.
+ */
+describe('C15 no single-language display string outside the locale files', () => {
+  const ARABIC = /[؀-ۿ]/;
+  const ROOTS = ['services', 'stores', 'lib', 'constants'];
+
+  /** Code with comments stripped — a tombstone quoting the deleted literal
+   *  must not itself be the violation. Same stripper as bff C12. */
+  const code = (file: string): string =>
+    readFileSync(file, 'utf8')
+      .replace(/\/\*[\s\S]*?\*\//g, ' ')
+      .replace(/(^|[^:])\/\/[^\n]*/g, '$1');
+
+  const walk = (dir: string, out: string[] = []): string[] => {
+    for (const e of readdirSync(dir, { withFileTypes: true })) {
+      const full = join(dir, e.name);
+      if (e.isDirectory()) walk(full, out);
+      else if (/\.tsx?$/.test(e.name) && !/\.test\.tsx?$/.test(e.name)) out.push(full);
+    }
+    return out;
+  };
+
+  it('the auth layer never invents a display name', () => {
+    // The narrow, exact form of the reported bug. `User.name` is a fact about a
+    // person: it has no translation, so it is either the real one or empty —
+    // never a word the app chose in one language.
+    for (const rel of ['services/auth.service.ts', 'stores/authStore.ts']) {
+      const src = code(join(__dirname, '..', rel));
+      const assigns = [...src.matchAll(/\bname:\s*(['"`])(.*?)\1/g)].map((m) => m[2]);
+      for (const value of assigns) {
+        expect(
+          value,
+          `${rel}: name is assigned the literal ${JSON.stringify(value)}.`
+          + ' A display name must be the real one or empty — see the comment there.',
+        ).toBe('');
+      }
+    }
+  });
+
+  it('no lone Arabic literal sits in a logic layer', () => {
+    // The general form. A bilingual pair is fine; a lone one is a string one
+    // language's users will read in the other language's screen.
+    const BILINGUAL = /\b\w*(Ar|ar)\s*:\s*$/;
+    const offenders: string[] = [];
+    for (const root of ROOTS) {
+      for (const file of walk(join(__dirname, '..', root))) {
+        const src = code(file);
+        for (const m of src.matchAll(/(['"`])((?:(?!\1)[\s\S])*)\1/g)) {
+          if (!ARABIC.test(m[2])) continue;
+          const before = src.slice(Math.max(0, m.index! - 40), m.index!);
+          if (BILINGUAL.test(before)) continue; // nameAr: '…' beside nameEn
+          offenders.push(`${file.slice(file.indexOf('almond-app'))}: ${JSON.stringify(m[2])}`);
+        }
+      }
+    }
+    expect(
+      offenders,
+      'Arabic text outside the locale files, with no English beside it.'
+      + ` Move it to locales/{ar,en}.json: ${offenders.join(' | ')}`,
+    ).toEqual([]);
+  });
+});

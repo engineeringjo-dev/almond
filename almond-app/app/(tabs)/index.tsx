@@ -41,11 +41,22 @@ export default function HomeScreen() {
   );
 
   // Guests get a name-less greeting ("Good morning" — not "Good morning, Guest").
+  //
+  // 🔴 A BLANK NAME TAKES THE GUEST BRANCH TOO, and that is the fix for the
+  // mixed-language greeting: the mock auth used to sign a member in as NOT a
+  // guest while handing over the literal 'ضيف ألموند', so `isGuest` was false,
+  // this line took the named branch, and an English UI rendered
+  // "Good evening, ضيف ألموند". The literal is gone (auth.service.ts), and
+  // testing the NAME rather than only the flag means any producer that has no
+  // name to give — the mock today, Odoo tomorrow for a customer record with an
+  // empty field — gets a sentence that is whole in one language instead of a
+  // dangling comma.
+  const name = user?.name?.trim() ?? '';
   const isGuest = !user || user.isGuest;
   const base = new Date().getHours() < 12 ? 'Morning' : 'Evening';
-  const greetingText = isGuest
+  const greetingText = isGuest || name === ''
     ? t(`home.greeting${base}Guest`)
-    : t(`home.greeting${base}`, { name: user!.name });
+    : t(`home.greeting${base}`, { name });
 
   return (
     <View style={styles.root}>
