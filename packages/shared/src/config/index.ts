@@ -115,38 +115,39 @@ export const config = {
   // deleted so cart/totals.ts keeps its shape and `brunchDiscount` still
   // reports a line the UI can render if it ever comes back.
   BRUNCH_COMBO_DISCOUNT: 0,
-  // The points ARE the combo now, and the only combo reward — the app already
-  // advertises "مشروب + طعام" on the offers carousel and in the cart upsell.
+  // The points ARE the combo — the whole offer, and the only combo reward.
   //
-  // Both were live at once until 2026-09-04: totals.ts took 1.000 JOD off the
-  // price AND earn.ts added 50 points (0.500 JOD), so a pair cost 1.500 JOD.
-  // They also disagreed on what a pair IS — totals.ts counts the `isBrunch`
-  // flag, combo.ts counts the item's category — so one basket could be priced
-  // two ways. Only one side survives, and it is this one.
+  // THERE IS NO PRICE DISCOUNT AND THERE NEVER WAS ONE HERE. The member pays
+  // the full drink price AND the full food price; the 50 points are what they
+  // get for pairing them (owner, 2026-09-06, correcting the record). The old
+  // BRUNCH_COMBO_DISCOUNT below is 0 for exactly this reason.
   //
-  // 2026-09-06, owner: halved 50 → 25, "because the combo is already a discount".
+  // 🔴 THIS NUMBER WENT 50 → 25 → 50, AND THE ROUND TRIP IS THE POINT. It was
+  // halved on the stated ground that "the combo is already a discount". It is
+  // not, and the code already said so — BRUNCH_COMBO_DISCOUNT has been 0 since
+  // 2026-09-04. The premise was wrong, so the halving is withdrawn rather than
+  // re-argued. Do not re-halve it on that reasoning; if it is ever cut, it must
+  // be for a reason that survives reading the line below it.
   //
-  // 🔴 TWO THINGS TO KNOW BEFORE TOUCHING THIS NUMBER.
+  // WHAT IT COSTS, and the assumption the whole line stands on: at 50 points it
+  // models to ~12,823 JOD/yr of accrual and ~18,351 JOD/yr all-in, against
+  // ~18,999 for the programme it replaces. Every dinar of that rests on ONE
+  // figure nobody has ever measured — that 35% of identified invoices contain a
+  // drink+food pair. `pos_categ_ids` from an Odoo POS product export settles it
+  // in minutes and it is the highest-return unanswered question on the list.
   //
-  // (1) It is the single largest uncertain line in the whole programme. At 25
-  // points it models to ~6,411 JOD/yr of accrual — 29% of the total — and every
-  // dinar of that rests on ONE assumption nobody has ever measured: that 35% of
-  // identified invoices contain a drink+food pair. Nothing has ever observed it.
-  // `pos_categ_ids` from an Odoo POS product export settles it in minutes, and
-  // it is the highest-return unanswered question on the list. At 15% the line is
-  // a third of what is modelled; at 55% it is half again as large.
+  // ⚠ AND IT IS ABOUT TO MOVE. The offer is being surfaced on the offers page
+  // (owner, 2026-09-06) precisely to raise that pair rate — which is the same
+  // multiplier in the cost model. At 50% pairing the all-in figure is ~21,109
+  // JOD/yr and at 65% it is ~23,867, i.e. MORE than the programme this replaces.
+  // A per-invoice pair cap or a monthly readout of the real rate is the missing
+  // control; neither exists yet, and this comment is where that gets noticed.
   //
-  // (2) Combo points are added AFTER the ceiling (D4/§8.7 of
-  // docs/LOYALTY-EARN-PATCH.md), so they are the one grant MAX_EARN_MULTIPLIER
-  // does not bound. On a small pair — a 2.50 drink and a 1.90 cookie — 25 points
-  // is 5.7% of the bill on top of everything else.
-  //
-  // The mechanic-space panel recommended setting this to 0 outright, on the
-  // ground that an unmeasured 35% assumption should not carry a 3,970 JOD/yr
-  // cash line. That is an offer decision, not a code fix, so the owner's 25
-  // stands until he says otherwise — but the recommendation is recorded here so
-  // it is one edit away and nobody has to re-derive it.
-  COMBO_BONUS_POINTS: 25,
+  // Combo points are added AFTER the ceiling (D4/§8.7 of
+  // docs/LOYALTY-EARN-PATCH.md), so they are the one grant
+  // MAX_EARN_MULTIPLIER does not bound. On a small pair — a 2.50 drink and a
+  // 1.90 cookie — 50 points is 11.4% of the bill on top of everything else.
+  COMBO_BONUS_POINTS: 50,
   // "Almond Club" monthly subscription — CANCELLED before launch (owner,
   // 2026-09-03). It converts a member's own revenue into a smaller number:
   // a member buying 12 drinks/month brings 39.7 JOD against 5.2 JOD of material

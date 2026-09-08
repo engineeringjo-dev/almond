@@ -71,7 +71,8 @@ const RULES: EarnRules = {
  *      all three having had zero rows in 171,291 live transactions;
  *    - the ceiling is a safety valve at 3.5×, above the reachable 3.0×, not the
  *      binding 2.5× it briefly was;
- *    - the combo is 25 points (owner: it is already a discount).
+ *    - the combo is 50 points: the halving to 25 was withdrawn on 2026-09-06
+ *      once the owner confirmed the pair carries NO price discount at all.
  *
  *  Combo points are still added AFTER the ceiling, so they remain the single
  *  grant MAX_EARN_MULTIPLIER does not bound — which is why the T6 matrix below
@@ -85,7 +86,7 @@ const SHIPPED: EarnRules = {
   ],
   walletMultiplier: 1.0,
   maxEarnMultiplier: 3.5,
-  comboBonusPoints: 25,
+  comboBonusPoints: 50,
   weekdayBonus: [],
   bonusDay: { enabled: false, multiplier: 2, weekdays: [2] },
 };
@@ -160,16 +161,22 @@ describe('earn: the dials the tests are written against', () => {
     expect(config.SUBSCRIPTION.enabled).toBe(false);
   });
 
-  it('earn: the combo is 25 points, and the price discount is gone', () => {
+  it('earn: the combo is 50 points, and there is no price discount to go with it', () => {
     // Both were live at once until 2026-09-04 — totals.ts took 1.000 JOD off
     // the price AND earn.ts added 50 points on the same pair, so a pair cost
-    // 1.500 JOD. Only the points survive, and on 2026-09-06 the owner halved
-    // them to 25 "because the combo is already a discount". If
-    // BRUNCH_COMBO_DISCOUNT ever goes back above 0 without this dial going to 0,
-    // the double payment is back.
-    expect(earnRulesFromConfig().comboBonusPoints).toBe(25);
+    // 1.500 JOD. Only the points survive.
+    //
+    // The dial then went 50 → 25 → 50. The halving was argued from "the combo
+    // is already a discount"; it is not, and BRUNCH_COMBO_DISCOUNT below has
+    // been 0 since the discount was withdrawn, so the premise was already false
+    // in this file. The pair is full drink price + full food price + 50 points.
+    //
+    // These two assertions belong together: if BRUNCH_COMBO_DISCOUNT ever goes
+    // back above 0 while this dial stays at 50, the double payment is back and
+    // the "no discount" reasoning above silently stops being true.
+    expect(earnRulesFromConfig().comboBonusPoints).toBe(50);
     expect(config.BRUNCH_COMBO_DISCOUNT).toBe(0);
-    expect(computeEarn({ total: 10, comboPairs: 3, at: MON }, SHIPPED).comboBonus).toBe(75);
+    expect(computeEarn({ total: 10, comboPairs: 3, at: MON }, SHIPPED).comboBonus).toBe(150);
   });
 
   it('earn: the four zombie promotions are retired and stay retired', () => {
@@ -199,13 +206,12 @@ describe('earn: the dials the tests are written against', () => {
     // offer change. This test exists so the escape is visible and measured
     // rather than discovered later. A 2.50 drink + a 1.90 cookie is 4.40 JOD.
     //
-    // Halving the combo 50 → 25 halved the escape with it: it was 11.4% of this
-    // bill on top of everything else, and is now 5.7%. The escape is still real
-    // — it is simply half the size.
+    // The escape is back to its full size: 50 points on a 4.40 JOD pair is
+    // 11.4% of the bill on top of everything else, and nothing bounds it.
     const r = computeEarn({ total: 4.4, comboPairs: 1, at: MON }, SHIPPED);
     expect(r.points).toBeGreaterThan(Math.round(r.cap));
     expect(r.points - r.comboBonus).toBeLessThanOrEqual(Math.round(r.cap));
-    expect(r.comboBonus / (4.4 * 100)).toBeCloseTo(0.0568, 3); // 5.7% of the bill
+    expect(r.comboBonus / (4.4 * 100)).toBeCloseTo(0.1136, 3); // 11.4% of the bill
   });
 });
 
