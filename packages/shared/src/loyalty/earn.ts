@@ -118,6 +118,29 @@ export function jodFromPoints(
   return Math.max(0, Math.floor(points || 0)) / rules.pointsPerJodRedeem;
 }
 
+/**
+ * How many points buy N JOD off the bill. The inverse of jodFromPoints, and the
+ * ONLY JOD→points conversion in the repo.
+ *
+ * It exists because the redeem screen is denominated in DINARS — the member is
+ * taking money off a bill, not shopping a board — while every rail underneath
+ * (the balance, the lots, POST /v1/loyalty/redeem, EarnContext.pointsRedeemed)
+ * is denominated in points. Something has to convert, once.
+ *
+ * `ceil`, deliberately, and this is the only asymmetry with jodFromPoints: at a
+ * rate that is not a whole number of points per JOD, rounding DOWN would spend
+ * fewer points than the discount is worth and mint the difference on every
+ * redemption. The house rounds toward the house. At the shipped rate (100
+ * points = 1 JOD) every preset is exact and this never bites.
+ */
+export function pointsFromJod(
+  jod: number,
+  rules: EarnRules = earnRulesFromConfig(),
+): number {
+  assertRedeemRate(rules);
+  return Math.ceil(Math.max(0, jod || 0) * rules.pointsPerJodRedeem);
+}
+
 /** Shared by jodFromPoints and computeEarn — a rate of 0 makes every redemption
  *  worth Infinity JOD, which silently zeroes the earn instead of failing. */
 function assertRedeemRate(rules: EarnRules): void {

@@ -151,14 +151,17 @@
     "redeemTitle": "استبدل نقاطك",
     "redeem": "استبدال",
     "redeemed": "تم الاستبدال",
-    "notEnough": "نقاط غير كافية",
     "cost": "{cost} نقطة",
-    "maxValueHint": "القيمة كحد أقصى — تقدر تدفع الفرق إذا زاد سعر الصنف",
     "vouchersTitle": "قسائمك",
     "noVouchers": "لا توجد قسائم بعد",
     "expires": "ينتهي في {date}",
     "activityTitle": "النشاط الأخير",
-    "earnRate": "{rate} ترجع لك من كل طلب"
+    "earnRate": "{rate} ترجع لك من كل طلب",
+    "redeemHint": "نقاطك نقود تُخصم من فاتورتك — اخصم منها ما تشاء",
+    "worthNow": "رصيد نقاطك يساوي",
+    "noPointsYet": "اجمع نقاطًا من طلبك القادم واصرفها من هنا",
+    "wholeBalance": "كل نقاطك",
+    "redeemA11y": "اخصم {jod} من فاتورتك مقابل {points} نقطة"
   },
   "Wallet": {
     "title": "المحفظة",

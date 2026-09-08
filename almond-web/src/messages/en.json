@@ -151,14 +151,17 @@
     "redeemTitle": "Redeem your points",
     "redeem": "Redeem",
     "redeemed": "Redeemed",
-    "notEnough": "Not enough points",
     "cost": "{cost} points",
-    "maxValueHint": "Value is a max — pay the difference if the item costs more",
     "vouchersTitle": "Your vouchers",
     "noVouchers": "No vouchers yet",
     "expires": "Expires {date}",
     "activityTitle": "Recent activity",
-    "earnRate": "{rate} back on every order"
+    "earnRate": "{rate} back on every order",
+    "redeemHint": "Your points are money off your bill — take off as much as you like",
+    "worthNow": "Your points are worth",
+    "noPointsYet": "Earn points on your next order and spend them here",
+    "wholeBalance": "all your points",
+    "redeemA11y": "Take {jod} off your bill, using {points} points"
   },
   "Wallet": {
     "title": "Wallet",

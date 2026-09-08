@@ -412,24 +412,48 @@ export const config = {
   // window that normally closes in under a second.
   POS_TOKEN_TTL_SECONDS: 60,
 
-  // Points needed for the first reward a member can actually take.
+  // 🪦 FIRST_REWARD_POINTS: 138 — DELETED 2026-09-08. There is no first reward.
   //
-  // 138, not 40. The 40-point rung was reachable in 3 visits, which was the
-  // wrong axis to optimise: it is 0.40 JOD, it buys nothing on a menu whose
-  // cheapest item is 0.75, and it is 8.75× smaller than the 350-point median
-  // reward members have chosen 10,632 times in the live data.
+  // It was "the cheapest thing on the board a member may buy", derived from a
+  // Starbucks menu: the most-taken Starbucks reward is worth 23.7% of one
+  // ticket, and 23.7% of Almond's measured 5.85 JOD member basket is 1.38 JOD
+  // = 138 points. Every part of that argument presumes a CATALOGUE — a shelf of
+  // named things with prices, and therefore a cheapest one you have to save up
+  // for. There is no shelf any more.
   //
-  // The number comes from the only disclosed evidence on what members actually
-  // pick: at Starbucks the most-taken reward is the WORST value per point on the
-  // menu — chosen because it is fast and unrestricted — and it is worth 23.7% of
-  // one ticket. 23.7% of Almond's 5.85 JOD member basket is 1.38 JOD = 138
-  // points. A reward that arrives fast and underwhelms is worse than one that
-  // takes longer and lands.
+  // Owner, 2026-09-08: «رح اعامل النقاط كنقود يستطيع استخدامها او الخصم من
+  // فاتورته بعمل redeem لنقاطه. فهي تقلل الفاتورة او تعملها مجانية» — points are
+  // money; redeeming them reduces the bill or makes it free. And on the board
+  // itself: «مافي زبون حيشتري قهوة لوز» — nobody is going to buy almond milk.
   //
-  // At the 2% entry rate 138 points is ~11.8 visits, which is beyond the horizon
-  // where the one-and-done loss happens — that is precisely why the entry job
-  // belongs to SECOND_VISIT_VOUCHER above and not to a points rung.
-  FIRST_REWARD_POINTS: 138,
+  // POINTS_PER_JOD_REDEEM (100 — 1 point = 1 qirsh exactly, measured on 10,621
+  // live redemptions) is now the whole of the redemption rule. A balance is
+  // worth what it is worth at any size; 1 point buys 1 qirsh off the bill, and
+  // there is deliberately NO MINIMUM (the owner did not ask for one, and a floor
+  // is the threshold coming back under another name). Do not reintroduce a
+  // threshold constant here: the moment one exists, a screen will state it, and
+  // the member is back to saving up for a thing instead of paying less.
+
+  /**
+   * The one-tap amounts on the redeem screen, in JOD.
+   *
+   * NOT A LADDER, AND NOT A THRESHOLD. Read the tombstone above before adding
+   * to this list. A rung was a THING you had to save up for — it gated the
+   * redemption, it had a name, and below the first one your points bought
+   * nothing. These are the opposite: shortcuts past typing a number, on a
+   * screen that always also offers "all of it" and accepts any amount the
+   * balance covers. Deleting this array entirely would remove some taps and
+   * change nothing a member is entitled to.
+   *
+   * They are JOD, not points, because that is the unit the member is spending —
+   * the phone converts with pointsFromJod() and the value it shows comes back
+   * through jodFromPoints(), so the two can never disagree.
+   *
+   * 1 / 2 / 5 sit at the shape of the real basket: the measured member basket
+   * is 5.85 JOD (MEASURED_MEMBER_BASKET_JOD), so 1 is "a bit off this coffee",
+   * 5 is "most of this order", and 2 is the middle nobody has to think about.
+   */
+  REDEEM_PRESET_JOD: [1, 2, 5],
 
   CUP_TARGET: 10,
   CUP_HEAD_START: 1,

@@ -4,7 +4,8 @@ import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import type { CupState, GiftCard, GiftOccasion, PointsLogEntry, Voucher } from '@almond/shared/types';
 import { config } from '@/lib/config';
-import { reloadBonus, genGiftCode, type RewardOption } from '@/data/loyalty';
+import { reloadBonus, genGiftCode } from '@/data/loyalty';
+import type { RedeemOption } from '@almond/shared/loyalty/redeem';
 
 export interface WalletTxn {
   id: string;
@@ -31,7 +32,14 @@ interface LoyaltyState {
   walletHistory: WalletTxn[];
   giftsSent: GiftCard[];
 
-  redeemReward: (reward: RewardOption) => boolean;
+  /**
+   * Spend `option.points` and mint a credit voucher worth `option.jod`.
+   *
+   * Takes a RedeemOption from @almond/shared/loyalty/redeem — the same builder
+   * the app uses — rather than a website-local RewardOption off a board. The
+   * board is gone; see the tombstone in data/loyalty.ts.
+   */
+  redeemReward: (option: RedeemOption) => boolean;
   topUp: (amount: number) => void;
   sendGift: (input: SendGiftInput) => GiftCard;
   redeemGift: (code: string) => boolean;
@@ -79,17 +87,25 @@ export const useLoyaltyStore = create<LoyaltyState>()(
       ],
       giftsSent: [],
 
-      redeemReward: (reward) => {
-        if (get().points < reward.cost) return false;
+      redeemReward: (option) => {
+        if (get().points < option.points) return false;
+        // `option.jod`, not a division here: jodFromPoints is the one points→JOD
+        // conversion in the repo and redeemOptions already applied it, so the
+        // voucher is worth exactly what the member was shown before they
+        // clicked. The title carries the amount because a credit voucher has no
+        // other name — there is no reward to call it after.
+        const jod = option.jod;
         set((s) => ({
-          points: s.points - reward.cost,
+          points: s.points - option.points,
           vouchers: [
             {
               id: rid('v'),
-              titleAr: reward.titleAr,
-              titleEn: reward.titleEn,
-              type: reward.type === 'credit' ? 'credit' : 'free-item',
-              value: reward.value,
+              titleAr: `خصم ${jod.toFixed(3)} د.أ من فاتورتك`,
+              titleEn: `${jod.toFixed(3)} JOD off your bill`,
+              // A credit, always. Points are money now; they do not buy a named
+              // free item capped at a value.
+              type: 'credit',
+              value: jod,
               expiresAt: daysAhead(60),
               used: false,
             },
@@ -98,9 +114,9 @@ export const useLoyaltyStore = create<LoyaltyState>()(
           pointsHistory: [
             {
               id: rid('p'),
-              deltaPoints: -reward.cost,
-              reasonAr: `استبدال: ${reward.titleAr}`,
-              reasonEn: `Redeemed: ${reward.titleEn}`,
+              deltaPoints: -option.points,
+              reasonAr: `استبدال نقاط: ${jod.toFixed(3)} د.أ`,
+              reasonEn: `Points redeemed: ${jod.toFixed(3)} JOD`,
               createdAt: new Date().toISOString(),
             },
             ...s.pointsHistory,

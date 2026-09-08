@@ -69,13 +69,26 @@ export interface ScanStatus {
   result?: EarnResult;
 }
 
-/** Redeeming beans for a catalog Reward — issues a voucher (no cash value). */
+/**
+ * Redeeming points — issues a voucher the member shows at the till.
+ *
+ * 🔴 `'credit'` IS NOW THE ONLY TYPE THE APP MINTS, and that is the whole
+ * change. The union used to be `'free-item' | 'discount'` with the comment
+ * "no cash value", because a redemption used to be a named thing off a board
+ * capped at a value. Owner, 2026-09-08: «رح اعامل النقاط كنقود ... فهي تقلل
+ * الفاتورة او تعملها مجانية». Points are money; a redemption is money off the
+ * bill. `'free-item'` and `'discount'` stay in the union only because
+ * Voucher.type carries them for vouchers minted elsewhere (the second-visit
+ * free drink is a real free item), not because this call should produce one.
+ */
 export interface RedeemRewardInput {
   beans: number;
   titleAr: string;
   titleEn: string;
-  type: 'free-item' | 'discount';
-  /** Reference value in JOD (for discount vouchers / display). */
+  type: 'credit' | 'free-item' | 'discount';
+  /** What the voucher is worth in JOD. Under `'credit'` this is EXACT, not a
+   *  cap: jodFromPoints(beans), computed by the caller from the points it is
+   *  actually spending. */
   value?: number;
 }
 
@@ -83,8 +96,12 @@ export interface LoyaltyService {
   getBalance(userId: string): Promise<LoyaltyBalance>;
   getVouchers(userId: string): Promise<Voucher[]>;
   /**
-   * Redeem beans for a catalog Reward → issues a voucher. Beans have NO cash
-   * value and are never converted to wallet money (Starbucks model).
+   * Redeem points → issues a credit voucher worth jodFromPoints(beans), which
+   * the member shows at the till to reduce (or clear) their bill.
+   *
+   * It does NOT move money into the wallet. The wallet is prepaid cash the
+   * member topped up with; points are a discount the house grants. Crediting
+   * one from the other would make points refundable, which they are not.
    */
   redeemReward(userId: string, input: RedeemRewardInput): Promise<{ points: number; voucher: Voucher }>;
   earn(input: EarnInput): Promise<EarnResult>;

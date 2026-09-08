@@ -340,8 +340,9 @@ export const mockLoyaltyService: LoyaltyService = {
     return delay(active);
   },
 
-  // Redeem beans for a catalog Reward → issue a voucher. Beans have NO cash
-  // value and are never moved to the wallet (Starbucks model).
+  // Redeem points → issue a credit voucher worth jodFromPoints(points). Not a
+  // wallet top-up: the wallet is the member's own prepaid cash, points are the
+  // house's discount, and moving one into the other would make them refundable.
   redeemReward: (userId, input) => {
     const u = ensureUser(userId);
     settleExpiry(u);
@@ -363,8 +364,8 @@ export const mockLoyaltyService: LoyaltyService = {
     u.vouchers.unshift(voucher);
     u.history.unshift({
       id: genId('log'), deltaPoints: -input.beans,
-      reasonAr: `استبدال مكافأة: ${input.titleAr}`,
-      reasonEn: `Redeemed reward: ${input.titleEn}`,
+      reasonAr: `استبدال نقاط: ${input.titleAr}`,
+      reasonEn: `Points redeemed: ${input.titleEn}`,
       createdAt: new Date().toISOString(),
     });
     return delay({ points: liveBalance(u.lots), voucher });

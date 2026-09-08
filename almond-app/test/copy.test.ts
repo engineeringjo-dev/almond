@@ -1,10 +1,11 @@
 import { describe, it, expect } from 'vitest';
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 
 import { config } from '@/constants/config';
 import { menuItems, tiers } from '@/services/seed';
-import { rewardCatalogue } from '@/services/rewardCatalogue';
+import { redeemOptions } from '@almond/shared/loyalty/redeem';
+import { jodFromPoints, pointsFromJod } from '@almond/shared/loyalty/earn';
 import { tierProgressCopy } from '@/lib/tierCopy';
 import { tierName, MEASURED_MEMBER_BASKET_JOD } from '@almond/shared/loyalty';
 import { spendEntry } from '@almond/shared/loyalty/window';
@@ -50,58 +51,89 @@ describe('C6 tierName', () => {
 });
 
 // ---------------------------------------------------------------------------
-// C7 — every rung on the rewards board buys the thing it names.
+// C7 — the redemption offers a member money, and never more than they hold.
 // ---------------------------------------------------------------------------
-describe('C7 the redemption catalogue', () => {
-  it('starts at config.FIRST_REWARD_POINTS and rises', () => {
-    expect(rewardCatalogue[0].points).toBe(config.FIRST_REWARD_POINTS);
-    const pts = rewardCatalogue.map((r) => r.points);
-    expect(pts).toEqual([...pts].sort((a, b) => a - b));
-    expect(new Set(pts).size).toBe(pts.length);
+/**
+ * WHAT THIS USED TO TEST, AND WHY IT COULD NOT SURVIVE. Until 2026-09-08 C7
+ * checked a BOARD: four named rewards at four point costs, and its three cases
+ * asked whether each card "names something its own value can buy" — the 200-pt
+ * "Handcrafted drink" against a 3.950 JOD frappe, the first rung against the
+ * cheapest customization on the menu. Points are money now, redeemed straight
+ * off the bill, so there is no card, no name and nothing to price against the
+ * menu. Those cases are not weakened here; their subject was deleted.
+ *
+ * What is left is worth more than what went: the old board could be internally
+ * consistent and still charge a member one number while showing them another.
+ */
+describe('C7 the redemption', () => {
+  it('C7a never shows a value it does not charge for', () => {
+    // The defect this forbids: an option built from the PRESET (2 JOD) while
+    // the member is debited pointsFromJod(2). At a rate that is not a whole
+    // number of points per JOD those two differ, and the difference is minted
+    // on every single redemption. RedeemOption.jod is jodFromPoints(points) by
+    // construction — this is the test that says construction is the contract.
+    for (const balance of [1, 99, 100, 137, 200, 501, 5000, 283432]) {
+      for (const o of redeemOptions(balance)) {
+        expect(o.jod, `balance ${balance}, option ${o.id}`).toBe(jodFromPoints(o.points));
+      }
+    }
   });
 
-  it('no card names something its own value cannot buy', () => {
-    // The old board had a 60-point ("0.600 JOD") "Flat discount on ANY item"
-    // against a menu whose cheapest item is 0.750, a 200-point "Handcrafted
-    // drink" against a 3.950 frappe and a 300-point "Brunch plate" against a
-    // 3.900 sandwich. Each rung now carries the id of a real item it must cover.
+  it('C7b never offers more than the member holds', () => {
+    for (const balance of [1, 50, 99, 100, 101, 199, 200, 499, 500, 4999]) {
+      for (const o of redeemOptions(balance)) {
+        expect(o.points, `balance ${balance}, option ${o.id}`).toBeLessThanOrEqual(balance);
+      }
+    }
+    expect(redeemOptions(0)).toEqual([]);
+    expect(redeemOptions(-5)).toEqual([]);
+  });
+
+  it('C7c the whole balance is always spendable — the presets gate nothing', () => {
+    // 🔴 THE ONE THAT MATTERS. FIRST_REWARD_POINTS (138) was a floor: below it a
+    // member's points bought nothing at all, and the screen said so. The owner
+    // removed the board precisely so that a balance is worth what it is worth
+    // at any size. A member holding 1 point must be offered that point.
+    for (const balance of [1, 2, 37, 99, 100, 101, 250, 999]) {
+      const opts = redeemOptions(balance);
+      const full = opts.filter((o) => o.full);
+      expect(full.length, `balance ${balance}: exactly one full-balance option`).toBe(1);
+      expect(full[0].points, `balance ${balance}: the full option spends it all`).toBe(balance);
+    }
+  });
+
+  it('C7d rounding never runs in the member\'s favour', () => {
+    // pointsFromJod ceils. If it floored, asking for 1 JOD at an awkward rate
+    // would spend fewer points than 1 JOD is worth — the house paying for the
+    // rounding, on every redemption, forever.
+    for (const jod of [0.001, 0.01, 0.25, 1, 1.005, 2, 5, 7.77, 100]) {
+      const pts = pointsFromJod(jod);
+      expect(jodFromPoints(pts), `${jod} JOD`).toBeGreaterThanOrEqual(jod - 1e-9);
+    }
+  });
+
+  it('C7e no screen renders the deleted catalogue', () => {
+    // Structural, in the style of T23a: the board comes back the moment a
+    // screen reads `rewardItems.*` or imports the module again. Both were
+    // deleted 2026-09-08; nothing may reference them.
+    const banned = ['rewardItems.', 'rewardCatalogue', 'REWARD_RUNGS', 'FIRST_REWARD_POINTS'];
+    const roots = ['app', 'components', 'services', 'lib', 'hooks'];
     const offenders: string[] = [];
-    for (const r of rewardCatalogue) {
-      if (!r.benchmarkItemId) continue;
-      const jod = r.points / config.POINTS_PER_JOD_REDEEM;
-      const cost = price(r.benchmarkItemId);
-      if (jod < cost) offenders.push(`${r.labelKey} ${r.points}pts = ${jod} JOD < ${cost} (${r.benchmarkItemId})`);
-    }
-    expect(offenders, `Offending rungs: ${offenders.join(' | ')}`).toEqual([]);
-  });
-
-  it('the first rung covers the customization it is named after', () => {
-    // 237 priced items, 827 priced customization options: the modal option delta
-    // is 0.400 JOD (352 of 827) and NOTHING on the menu costs 0.600 or less, so
-    // the old 25-point rung (0.250) covered 4.7% of options and no item at all.
-    // 138 points = 1.380 JOD covers 715 of 827 = 86.5%.
-    const opts = menuItems
-      .flatMap((i) => i.customizations.flatMap((g) => g.options))
-      .filter((o) => o.priceDelta > 0);
-    const jod = rewardCatalogue[0].points / config.POINTS_PER_JOD_REDEEM;
-    const covered = opts.filter((o) => o.priceDelta <= jod).length;
-    expect(opts.length).toBeGreaterThan(500);
-    expect(covered / opts.length).toBeGreaterThan(0.8);
-  });
-
-  it('every card names a key the locale files actually carry', () => {
-    // A labelKey with no entry renders as "rewardItems.brunchPlate" on the card.
-    const read = (lang: 'ar' | 'en') =>
-      JSON.parse(
-        readFileSync(join(__dirname, '..', 'locales', `${lang}.json`), 'utf8'),
-      ) as Record<string, Record<string, string>>;
-    const en = read('en');
-    const ar = read('ar');
-    for (const r of rewardCatalogue) {
-      const [ns, key] = r.labelKey.split('.');
-      expect(en[ns]?.[key], `en ${r.labelKey}`).toBeTruthy();
-      expect(ar[ns]?.[key], `ar ${r.labelKey}`).toBeTruthy();
-    }
+    const walk = (dir: string): void => {
+      for (const e of readdirSync(dir, { withFileTypes: true })) {
+        const full = join(dir, e.name);
+        if (e.isDirectory()) { walk(full); continue; }
+        if (!/\.tsx?$/.test(e.name)) continue;
+        // Code only. A tombstone naming what was deleted must not itself be the
+        // violation — see the same stripper in bff/test/copy.test.ts C12.
+        const src = readFileSync(full, 'utf8')
+          .replace(/\/\*[\s\S]*?\*\//g, ' ')
+          .replace(/(^|[^:])\/\/[^\n]*/g, '$1');
+        for (const b of banned) if (src.includes(b)) offenders.push(`${full}: ${b}`);
+      }
+    };
+    for (const r of roots) walk(join(__dirname, '..', r));
+    expect(offenders, `The reward board is back: ${offenders.join(' | ')}`).toEqual([]);
   });
 });
 

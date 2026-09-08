@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeAll } from 'vitest';
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 
 import { config } from '@almond/shared/config';
@@ -329,50 +329,110 @@ describe('C14 the promotion copy does not claim the invoice that earned it', () 
 });
 
 // ---------------------------------------------------------------------------
-// C12 — one rewards board, two clients.
+// C12 — one redemption, two clients, and no board on either.
 // ---------------------------------------------------------------------------
-describe('C12 the website\'s rewards board is the app\'s board', () => {
-  const WEB_BOARD = 'almond-web/src/data/loyalty.ts';
+/**
+ * WHAT THIS USED TO TEST. Until 2026-09-08 C12 guarded a shared BOARD: it
+ * required almond-web to build its REWARDS from REWARD_RUNGS rather than retype
+ * costs, and required both sites to state the max-value caveat, because a rung
+ * was a CAP on a named item and the member could be asked for the difference at
+ * the till. The website had kept a second board (100/180/250/300, "Free drink"
+ * at 250 = 2.500 JOD against 4 of 69 priced drinks) while the app called the
+ * same rung "Coffee or bakery" — one account, two contradictory offers.
+ *
+ * The board is deleted. Points are money: «رح اعامل النقاط كنقود ... فهي تقلل
+ * الفاتورة او تعملها مجانية». So the caveat case is gone with its subject — a
+ * credit is exact money and there is no difference to pay — and the shared-list
+ * case becomes the stronger claim below: neither client may compute WHAT A
+ * MEMBER MAY REDEEM for itself, by any means.
+ */
+describe('C12 the redemption is computed once, for both clients', () => {
+  const CLIENTS = {
+    web: 'almond-web/src',
+    app: 'almond-app',
+  } as const;
+  const APP_ROOTS = ['app', 'components', 'services', 'lib', 'hooks', 'store'];
 
-  it('almond-web derives its rungs from @almond/shared, never retypes them', () => {
-    // The website kept a SECOND board — 100 / 180 / 250 / 300, offering "Free
-    // drink" at 250 points. 250 points is 2.500 JOD, which covers 4 of the 69
-    // priced drinks on the very menu this site serves (5.8%); almond-app calls
-    // that same rung "Coffee or bakery" for exactly that reason and puts a real
-    // handcrafted drink at 400 (97.1% coverage). The site's own copy says one
-    // account across web and app, so those were one member's two contradictory
-    // offers — and nothing could see it, because almond-web has no test suite
-    // and the app's C7 only ever read the app's own array.
-    //
+  const tsFiles = (dir: string): string[] => {
+    const out: string[] = [];
+    const walk = (d: string): void => {
+      let entries;
+      try { entries = readdirSync(d, { withFileTypes: true }); } catch { return; }
+      for (const e of entries) {
+        const full = join(d, e.name);
+        if (e.isDirectory()) { if (e.name !== 'node_modules') walk(full); continue; }
+        if (/\.tsx?$/.test(e.name) && !/\.test\.tsx?$/.test(e.name)) out.push(full);
+      }
+    };
+    walk(dir);
+    return out;
+  };
+
+  const clientSources = (): string[] => [
+    ...tsFiles(join(REPO, CLIENTS.web)),
+    ...APP_ROOTS.flatMap((r) => tsFiles(join(REPO, CLIENTS.app, r))),
+  ];
+
+  /**
+   * CODE ONLY — block comments, line comments and string-free prose stripped.
+   *
+   * Both cases below scan for names that must not be USED, and the files that
+   * deleted those names carry tombstones explaining what went and why. Reading
+   * comments would make the tombstone itself the violation, and the only way to
+   * pass would be to delete the explanation — which is the opposite of what a
+   * structural test is for. The old C12 already filtered comment lines for its
+   * `cost:` check; this does the same job properly.
+   */
+  const code = (file: string): string =>
+    readFileSync(file, 'utf8')
+      .replace(/\/\*[\s\S]*?\*\//g, ' ')   // block comments, JSDoc included
+      .replace(/(^|[^:])\/\/[^\n]*/g, '$1'); // line comments, but not '://' in a URL
+
+  it('the deleted board cannot come back under any of its old names', () => {
     // Structural, in the style of T23a: the defect returns the moment someone
-    // retypes a cost here, so the test bans the retyping rather than comparing
-    // two lists that would then both be wrong.
-    const src = readFileSync(join(REPO, WEB_BOARD), 'utf8');
-    expect(
-      src.includes("from '@almond/shared/loyalty/rewardRungs'"),
-      `${WEB_BOARD} must build REWARDS from REWARD_RUNGS — the ladder is shared`
-      + ' because the account is.',
-    ).toBe(true);
-
-    const code = src
-      .split('\n')
-      .filter((l) => !l.trimStart().startsWith('*') && !l.trimStart().startsWith('//'));
-    const retyped = code.filter((l) => /\bcost:\s*\d/.test(l));
-    expect(
-      retyped,
-      `${WEB_BOARD}: a hard-coded reward cost. Costs come from REWARD_RUNGS.`
-      + ` Offending lines: ${retyped.join(' | ')}`,
-    ).toEqual([]);
+    // reintroduces the module, the constant or the locale namespace. All three
+    // were deleted together and none of them may be referenced again.
+    const banned = ['rewardRungs', 'REWARD_RUNGS', 'rungValueJod', 'FIRST_REWARD_POINTS',
+                    'rewardCatalogue', 'rewardItems.'];
+    const offenders: string[] = [];
+    for (const f of clientSources()) {
+      const src = code(f);
+      for (const b of banned) {
+        if (src.includes(b)) offenders.push(`${f.slice(REPO.length + 1)}: ${b}`);
+      }
+    }
+    expect(offenders, `The reward board is back: ${offenders.join(' | ')}`).toEqual([]);
   });
 
-  it('the website states the max-value caveat, as the app does', () => {
-    // Every rung is a CAP (1 point = 1 qirsh), so a member can be asked for the
-    // difference at the till. The app has said so since W4; the website named
-    // items and never mentioned the cap.
-    for (const rel of Object.values(WEB_LOCALES)) {
-      const hint = load(rel)['Rewards.maxValueHint'];
-      expect(hint, `${rel}: Rewards.maxValueHint is missing`).toBeTruthy();
+  it('neither client decides for itself what a member may redeem', () => {
+    // 🔴 THE REAL INVARIANT, and it is stronger than the old one. The old test
+    // banned a retyped `cost:` literal, which a local array of {points: 250}
+    // would have walked straight past. What must be true is that any file
+    // OFFERING a redemption gets the offer from @almond/shared — so the phone
+    // and the website cannot present one balance with two different sets of
+    // choices, which is the defect the second board actually was.
+    const offenders: string[] = [];
+    for (const f of clientSources()) {
+      const src = code(f);
+      if (!src.includes('redeemOptions')) continue;
+      if (!/from '@almond\/shared\/loyalty\/redeem'/.test(src)) {
+        offenders.push(f.slice(REPO.length + 1));
+      }
     }
+    expect(
+      offenders,
+      'a client built its own redemption options instead of importing'
+      + ` redeemOptions from @almond/shared: ${offenders.join(' | ')}`,
+    ).toEqual([]);
+
+    // And it is actually reached — a banned-import test that nothing imports
+    // passes vacuously forever.
+    const importers = clientSources().filter((f) =>
+      /from '@almond\/shared\/loyalty\/redeem'/.test(code(f)));
+    expect(
+      importers.length,
+      'no client imports redeemOptions — the redemption screen is unwired',
+    ).toBeGreaterThanOrEqual(2);
   });
 });
 

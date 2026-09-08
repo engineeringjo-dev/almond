@@ -2,54 +2,28 @@ import type { GiftOccasion, Tier } from '@almond/shared/types';
 // The website never grants points; the earn multiplier is loyalty/earn.ts's.
 // earn-arith-exempt: tier ramp for the progress display only. §7 T7.
 import { tierFromSpend, nextTier, progressToNextTier } from '@almond/shared/loyalty';
-import { REWARD_RUNGS, rungValueJod } from '@almond/shared/loyalty/rewardRungs';
 import { config } from '@/lib/config';
 
-/** Catalog of beans-redeemable rewards. Costs are in beans. */
-export interface RewardOption {
-  id: string;
-  titleAr: string;
-  titleEn: string;
-  cost: number;
-  type: 'credit' | 'free-item';
-  /** The JOD the rung is worth. A MAXIMUM, not a price: the member pays the
-   *  difference if the item costs more. `Rewards.maxValueHint` says so. */
-  value?: number;
-}
-
-/** The approved name of each shared rung, in both languages. These are the same
- *  strings almond-app renders from `rewardItems.*` — the website stores the
- *  title on the voucher it mints, so it carries them literally rather than by
- *  key. If they diverge from the app's locale files, one account has two names
- *  for one reward. */
-const RUNG_TITLES: Record<string, { ar: string; en: string }> = {
-  customization: { ar: 'تخصيص مجاني (شوت/نكهة)', en: 'Free customization (shot/syrup)' },
-  brewedCoffee: { ar: 'قهوة أو معجنات', en: 'Coffee or bakery' },
-  handcraftedDrink: { ar: 'مشروب مميّز محضّر', en: 'Handcrafted drink' },
-  packagedCoffee: { ar: 'قهوة مغلّفة أو هدية', en: 'Packaged coffee or gift' },
-};
-
 /**
- * THE BOARD, BUILT FROM THE SHARED RUNGS — never retyped here.
+ * 🪦 THE REWARDS BOARD — DELETED 2026-09-08.
  *
- * It used to be a local array of 100 / 180 / 250 / 300 offering "Free pastry"
- * and "Free drink". Against the menu this very site serves, 250 points = 2.500
- * JOD covers 4 of 69 drinks (5.8%) and 180 points = 1.800 JOD covers 4 of 152
- * food items (2.6%) — so a member who redeemed 250 here expecting any drink met
- * a 2.500 JOD cap at the till, while the app called the same rung "Coffee or
- * bakery" and put a real handcrafted drink at 400. The site's own copy says one
- * account across web and app; the boards have to be the same board.
+ * `RewardOption`, `RUNG_TITLES` and `REWARDS` lived here: four named rewards
+ * ("Coffee or bakery", "Handcrafted drink") built from the shared REWARD_RUNGS,
+ * each rendered with a max-value caveat because a rung was a CAP and the member
+ * could be asked for the difference at the till.
+ *
+ * Owner, 2026-09-08: «رح اعامل النقاط كنقود يستطيع استخدامها او الخصم من فاتورته
+ * بعمل redeem لنقاطه. فهي تقلل الفاتورة او تعملها مجانية» — points are money;
+ * redeeming them reduces the bill or makes it free. There is no board, no name
+ * and no cap, so there is nothing for this file to hold. What the member may
+ * take off their bill is now `redeemOptions(balance)` from
+ * @almond/shared/loyalty/redeem — the same function the app calls, which is
+ * what C12 was always really asking for.
+ *
+ * DO NOT REINTRODUCE A LOCAL ARRAY HERE. The defect C12 exists to catch is a
+ * second board on the website, and it does not care whether the board is named
+ * REWARDS or something else.
  */
-export const REWARDS: RewardOption[] = REWARD_RUNGS.map((rung) => ({
-  id: rung.labelKey,
-  titleAr: RUNG_TITLES[rung.labelKey].ar,
-  titleEn: RUNG_TITLES[rung.labelKey].en,
-  cost: rung.points,
-  // Every rung is redeemed as an item, capped at its value; none of them is
-  // cash. Beans have no cash value and are never converted to wallet money.
-  type: 'free-item',
-  value: rungValueJod(rung),
-}));
 
 /** Wallet top-up presets (JOD). */
 export const TOPUP_AMOUNTS = [10, 20, 35, 50];

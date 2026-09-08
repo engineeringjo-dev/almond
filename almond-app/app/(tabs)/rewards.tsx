@@ -5,7 +5,6 @@ import {
   Pressable,
   ScrollView,
   Alert,
-  Image,
   useWindowDimensions,
   type NativeSyntheticEvent,
   type NativeScrollEvent,
@@ -24,12 +23,14 @@ import { BonusDayBanner } from '@/components/loyalty/BonusDayBanner';
 import { colors, spacing, radius, shadow } from '@/constants/theme';
 import { config } from '@/constants/config';
 import { useI18n } from '@/hooks/useI18n';
-import { formatNumber, formatDayKey } from '@/lib/format';
+import { formatNumber, formatDayKey, formatJOD } from '@/lib/format';
 import { useLoyaltyBalance, useRedeemReward } from '@/hooks/useLoyalty';
 // earn-arith-exempt: the tier ramp, for DISPLAY only — no invoice, no grant. §7 T7.
 import { tiers } from '@/services/seed';
 import { tierName } from '@almond/shared/loyalty';
-import { rewardCatalogue, type RewardRung } from '@/services/rewardCatalogue';
+// earn-arith-exempt: points→JOD for DISPLAY, via the one shared conversion. §7 T7.
+import { jodFromPoints } from '@almond/shared/loyalty/earn';
+import { redeemOptions, type RedeemOption } from '@almond/shared/loyalty/redeem';
 import { tierProgressCopy } from '@/lib/tierCopy';
 import i18n from '@/lib/i18n';
 import type { Lang, Tier, TierId } from '@/types';
@@ -134,23 +135,36 @@ export default function RewardsScreen() {
   const balance = balanceQ.data;
   const points = balance.points;
 
-  const onRedeem = (r: RewardRung) => {
-    if (points < r.points || redeemReward.isPending) return;
-    const item = t(r.labelKey);
-    Alert.alert(t('rewards.confirmTitle'), t('rewards.confirmBody', { item, beans: r.points }), [
+  // The options are built from the BALANCE, in @almond/shared, so this screen
+  // and the website offer one member one set of choices. There is no board to
+  // be priced against a menu any more — see loyalty/redeem.ts.
+  const options = redeemOptions(points);
+
+  const onRedeem = (o: RedeemOption) => {
+    if (o.points > points || redeemReward.isPending) return;
+    const jod = formatJOD(o.jod, lang);
+    // The voucher is a CREDIT worth exactly `o.jod`, not a named item capped at
+    // a value: 1 point = 1 qirsh, so there is no cap to disclose and no
+    // difference to pay at the till. That is why `rewards.maxValueHint` is gone
+    // rather than moved — it described a board that no longer exists.
+    const titleFor = (lng: Lang) => i18n.t('rewards.creditVoucher', {
+      lng,
+      jod: formatJOD(o.jod, lng),
+    });
+    Alert.alert(t('rewards.confirmTitle'), t('rewards.confirmBody', { jod, points: o.points }), [
       { text: t('common.cancel'), style: 'cancel' },
       {
         text: t('rewards.redeemCta'),
         onPress: () =>
           redeemReward.mutate(
             {
-              beans: r.points,
-              titleAr: i18n.t(r.labelKey, { lng: 'ar' }),
-              titleEn: i18n.t(r.labelKey, { lng: 'en' }),
-              type: r.type,
-              value: r.points / config.POINTS_PER_JOD_REDEEM,
+              beans: o.points,
+              titleAr: titleFor('ar'),
+              titleEn: titleFor('en'),
+              type: 'credit',
+              value: o.jod,
             },
-            { onSuccess: () => Alert.alert(t('rewards.redeemedTitle'), t('rewards.redeemedBody', { item })) },
+            { onSuccess: () => Alert.alert(t('rewards.redeemedTitle'), t('rewards.redeemedBody', { jod })) },
           ),
       },
     ]);
@@ -255,63 +269,59 @@ export default function RewardsScreen() {
         ))}
       </Card>
 
-      {/* §3.2 Rewards menu — tiered redemption ladder */}
+      {/* §3.2 Redeem — points are money off the bill, not a board of things.
+          The old grid rendered four named rewards at four point costs and told
+          the member each was "a max value, pay the difference". None of that is
+          true now: 1 point = 1 qirsh, and a redemption is a discount. */}
       <Text variant="title" style={styles.sectionTitle}>
-        {t('rewards.rewardsMenu')}
+        {t('rewards.redeemTitle')}
       </Text>
       <Text variant="caption" color={colors.warmGray} style={styles.sectionSub}>
-        {t('rewards.rewardsMenuHint')}
+        {t('rewards.redeemHint')}
       </Text>
-      <View style={styles.rewardGrid}>
-        {/* Each reward is a max value; pay the difference if the item costs more */}
-        {rewardCatalogue.map((r) => {
-          const unlocked = points >= r.points;
-          const jod = (r.points / config.POINTS_PER_JOD_REDEEM).toFixed(3);
-          return (
-            <Pressable
-              key={r.points}
-              style={styles.rewardCell}
-              onPress={() => onRedeem(r)}
-              disabled={!unlocked}
-              accessibilityRole="button"
-            >
-              <Card style={[styles.rewardCard, !unlocked && styles.rewardLocked]}>
-                <View style={[styles.rewardThumb, unlocked && styles.rewardThumbOn]}>
-                  {r.image ? (
-                    <Image
-                      source={{ uri: r.image }}
-                      style={[styles.rewardPhoto, !unlocked && styles.rewardPhotoLocked]}
-                      resizeMode="contain"
-                    />
-                  ) : (
-                    <Icon
-                      name={r.icon}
-                      size={30}
-                      color={unlocked ? colors.primary : colors.warmGray}
-                      strokeWidth={1.7}
-                    />
-                  )}
-                </View>
-                <Text variant="bodyBold" center numberOfLines={2} style={styles.rewardName}>
-                  {t(r.labelKey)}
+
+      <Card style={styles.redeemCard}>
+        <Text variant="caption" color={colors.warmGray}>
+          {t('rewards.worthNow')}
+        </Text>
+        {/* The balance IN MONEY, big — the one number the member is deciding
+            with. The points figure is already in the hero above; repeating it
+            here at display size would make them read the same fact twice. */}
+        <Text variant="display" color={colors.dark}>
+          {formatJOD(jodFromPoints(points), lang)}
+        </Text>
+
+        {options.length === 0 ? (
+          <Text variant="caption" color={colors.warmGray} center style={styles.redeemEmpty}>
+            {t('rewards.noPointsYet')}
+          </Text>
+        ) : (
+          <View style={styles.redeemRow}>
+            {options.map((o) => (
+              <Pressable
+                key={o.id}
+                style={styles.redeemChip}
+                onPress={() => onRedeem(o)}
+                disabled={redeemReward.isPending}
+                accessibilityRole="button"
+                accessibilityLabel={t('rewards.redeemA11y', {
+                  jod: formatJOD(o.jod, lang),
+                  points: o.points,
+                })}
+              >
+                <Text variant="bodyBold" color={colors.primary} center>
+                  {formatJOD(o.jod, lang)}
                 </Text>
-                <Text variant="price">{t('rewards.redeemAt', { points: r.points })}</Text>
-                <Text variant="caption" color={colors.warmGray}>
-                  {t('pay.worth', { jod })}
+                <Text variant="caption" color={colors.warmGray} center>
+                  {o.full
+                    ? t('rewards.wholeBalance')
+                    : t('rewards.costsPoints', { points: o.points })}
                 </Text>
-                <View style={[styles.rewardStatus, unlocked ? styles.rewardStatusOn : styles.rewardStatusOff]}>
-                  <Text variant="caption" color={unlocked ? colors.green : colors.warmGray}>
-                    {unlocked ? t('rewards.redeemCta') : t('rewards.away', { points: r.points - points })}
-                  </Text>
-                </View>
-              </Card>
-            </Pressable>
-          );
-        })}
-      </View>
-      <Text variant="caption" color={colors.warmGray} style={styles.maxHint}>
-        {t('rewards.maxValueHint')}
-      </Text>
+              </Pressable>
+            ))}
+          </View>
+        )}
+      </Card>
 
       {/* §3.3 Status — large, full-colour swipeable cards (Starbucks pattern) */}
       <Text variant="title" style={styles.sectionTitle}>
@@ -465,33 +475,26 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
 
+  // The loading skeleton still draws a grid of placeholder cells, so these two
+  // survive the board they used to lay out.
   rewardGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.md },
   rewardCell: { width: '47.5%', flexGrow: 1 },
-  rewardCard: { alignItems: 'center', gap: spacing.xs },
-  rewardLocked: { opacity: 0.7 },
-  rewardThumb: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
-    backgroundColor: colors.white,
-    alignItems: 'center',
+
+  redeemCard: { alignItems: 'center', gap: spacing.xs },
+  redeemEmpty: { marginTop: spacing.sm },
+  redeemRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, marginTop: spacing.md },
+  redeemChip: {
+    flexGrow: 1,
+    minWidth: 96,
+    // 48dp minimum touch target — the screen is used by every age group and a
+    // chip is the only tappable thing on this card.
+    minHeight: 56,
     justifyContent: 'center',
-    marginBottom: spacing.xs,
-    overflow: 'hidden',
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: radius.md,
+    backgroundColor: colors.neutralWarm,
   },
-  rewardThumbOn: { backgroundColor: colors.white },
-  rewardPhoto: { width: '100%', height: '100%' },
-  rewardPhotoLocked: { opacity: 0.5 },
-  rewardName: { minHeight: 38 },
-  rewardStatus: {
-    marginTop: spacing.xs,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 2,
-    borderRadius: radius.pill,
-  },
-  rewardStatusOn: { backgroundColor: 'rgba(108,92,180,0.12)' },
-  rewardStatusOff: { backgroundColor: colors.neutralWarm },
-  maxHint: { marginTop: spacing.sm },
 
   // Status carousel
   statusCard: {
