@@ -5,11 +5,13 @@ import { useLocale, useTranslations } from 'next-intl';
 import { Banknote, CreditCard, Lock, Smartphone, Sparkles, Truck, Wallet } from 'lucide-react';
 import { computeTotals } from '@almond/shared/cart';
 import { getCartCrossSell } from '@almond/shared/lib/recommendations';
-import { comboBonusPoints } from '@almond/shared/lib/combo';
+import { comboPairs } from '@almond/shared/lib/combo';
+import { earnedPoints } from '@almond/shared/loyalty/earn';
 import { getBranches } from '@/data/branches';
 import { MenuItemCard } from '@/components/menu/MenuItemCard';
-import { createMockOrder, estimatedBeans } from '@/data/order';
+import { createMockOrder, DISPLAY_EARN_RULES } from '@/data/order';
 import { useCartStore } from '@/store/cartStore';
+import { useLoyaltyStore } from '@/store/loyaltyStore';
 import { useOrderStore } from '@/store/orderStore';
 import { useRouter } from '@/i18n/navigation';
 import { DELIVERY_ETA, DELIVERY_FEE, dispatchDelivery } from '@/data/delivery';
@@ -45,13 +47,23 @@ export function CheckoutView() {
   const clear = useCartStore((s) => s.clear);
   const setLastOrder = useOrderStore((s) => s.setLastOrder);
 
+  const windowSpend = useLoyaltyStore((s) => s.windowSpend);
+
   const [mounted, setMounted] = useState(false);
   const [error, setError] = useState(false);
   useEffect(() => setMounted(true), []);
 
   const totals = useMemo(() => computeTotals(items, promoDiscount), [items, promoDiscount]);
   const crossSell = useMemo(() => getCartCrossSell(items, 2), [items]);
-  const beans = estimatedBeans(totals.total) + comboBonusPoints(items);
+  // The member's 90-day window is passed in, so the quoted figure follows the
+  // rung the rewards page names on the same site. Without it earn.ts resolves
+  // `rungFromSpend(0)` and the checkout always quotes the ENTRY rate — it
+  // under-states, which is the safe direction, but it means a 4% member is
+  // shown 8 points on a basket that pays 16.
+  const beans = earnedPoints(
+    { total: totals.total, windowSpend, comboPairs: comboPairs(items) },
+    DISPLAY_EARN_RULES,
+  );
   const isDelivery = orderType === 'delivery';
 
   if (!mounted) return <div className="container-content min-h-[50vh] py-xl" />;

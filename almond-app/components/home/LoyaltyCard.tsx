@@ -9,7 +9,7 @@ import { colors, spacing, radius, shadow } from '@/constants/theme';
 import { useI18n } from '@/hooks/useI18n';
 import { formatNumber } from '@/lib/format';
 import { useLoyaltyBalance } from '@/hooks/useLoyalty';
-import { nextTier } from '@/services/seed';
+import { tierProgressCopy } from '@/lib/tierCopy';
 
 /** Home loyalty card: points + cup progress + tier badge (section 4.4 #4). */
 export function LoyaltyCard() {
@@ -39,33 +39,39 @@ export function LoyaltyCard() {
               </Text>
               <TierBadge tier={data.tier} />
               {(() => {
-                // Progress sense (§O): how much left to the next tier.
-                const next = nextTier(data.windowSpend);
-                if (!next) return null;
-                const remaining = Math.max(0, next.threshold - data.windowSpend);
+                // Progress sense (§O), in VISITS and in one place — lib/tierCopy.ts.
+                // This card used to gate its "one step away" line on
+                // `remaining <= 30`, and the second rung's whole threshold is 20
+                // JOD, so the gate was unconditionally true: EVERY member was
+                // told "One step to tiers.plus ✨" from zero spend, with the
+                // unresolved key rendered as literal text.
+                const progress = tierProgressCopy(data, lang);
+                if (!progress) return null;
                 return (
                   <Text variant="caption" color={colors.brown}>
-                    {remaining <= 30
-                      ? t('loyalty.tierClose', { tier: t(`tiers.${next.id}`) })
-                      : t('home.toNextTier', {
-                          remaining: remaining.toFixed(0),
-                          tier: t(`tiers.${next.id}`),
-                        })}
+                    {t(progress.key, progress.params)}
                   </Text>
                 );
               })()}
             </View>
-            <View style={styles.right}>
-              <Cup current={data.cup.current} target={data.cup.target} size={96} />
-              <Text variant="caption" color={colors.brown} center style={styles.cupLabel}>
-                {data.cup.target - data.cup.current <= 3 && data.cup.current < data.cup.target
-                  ? t('loyalty.cupClose')
-                  : t('loyalty.cupProgress', {
-                      current: Math.floor(data.cup.current),
-                      target: data.cup.target,
-                    })}
-              </Text>
-            </View>
+            {/* The cup renders only where a producer actually keeps one. It was
+                `data.cup.current` unguarded, and the BFF — the only real
+                producer — never sends the field: fed the real wire body this
+                line THREW and took the entire card down with it, not just the
+                cup. `cup` is optional on LoyaltyBalance for that reason. */}
+            {data.cup ? (
+              <View style={styles.right}>
+                <Cup current={data.cup.current} target={data.cup.target} size={96} />
+                <Text variant="caption" color={colors.brown} center style={styles.cupLabel}>
+                  {data.cup.target - data.cup.current <= 3 && data.cup.current < data.cup.target
+                    ? t('loyalty.cupClose')
+                    : t('loyalty.cupProgress', {
+                        current: Math.floor(data.cup.current),
+                        target: data.cup.target,
+                      })}
+                </Text>
+              </View>
+            ) : null}
           </>
         )}
       </Gradient>

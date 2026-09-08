@@ -5,6 +5,7 @@ import { useLocale, useTranslations } from 'next-intl';
 import { Sparkles, Wallet } from 'lucide-react';
 import { useLoyaltyStore } from '@/store/loyaltyStore';
 import { TOPUP_AMOUNTS, reloadBonus } from '@/data/loyalty';
+import { config } from '@/lib/config';
 import { asLang, formatDate, formatJOD } from '@/lib/format';
 
 export function WalletView() {
@@ -32,7 +33,10 @@ export function WalletView() {
           <p className="mt-2 text-display font-bold leading-none">{formatJOD(balance, lang)}</p>
           <p className="mt-4 flex items-center gap-2 text-sm text-white/80">
             <Sparkles className="h-4 w-4" />
-            {t('earnNote')}
+            {/* Not "+50% points": config.WALLET_EARN_MULTIPLIER is 1.0 (retired,
+                zero rows in 171,291 live transactions). The RELOAD bonus is real,
+                so the card names it and its own threshold. */}
+            {t('earnNote', { min: config.WALLET_RELOAD_BONUS[0].minJOD })}
           </p>
         </div>
 

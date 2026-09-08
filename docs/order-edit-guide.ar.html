@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<style>
+  @font-face { font-family:'AlmondAR'; font-weight:400;
+    src:url('file:///home/user/almond/almond-app/assets/fonts/HelveticaNeueArabic-Roman.ttf') format('truetype'); }
+  @font-face { font-family:'AlmondAR'; font-weight:700;
+    src:url('file:///home/user/almond/almond-app/assets/fonts/HelveticaNeueArabic-Bold.ttf') format('truetype'); }
+  @page { size: A4; margin: 16mm 14mm; }
+  * { box-sizing: border-box; }
+  body {
+    font-family:'AlmondAR','DejaVu Sans',sans-serif;
+    color: #2E2552; margin: 0; line-height: 1.75; font-size: 11.5pt;
+  }
+  .head {
+    border-bottom: 3px solid #6C5CB4; padding-bottom: 10px; margin-bottom: 18px;
+    display: flex; justify-content: space-between; align-items: flex-end;
+  }
+  h1 { font-size: 19pt; margin: 0 0 4px; color: #2E2552; }
+  .sub { color: #6B6484; font-size: 10pt; }
+  .meta { color: #6B6484; font-size: 9pt; text-align: left; line-height: 1.5; }
+  h2 {
+    font-size: 13pt; margin: 20px 0 8px; color: #fff; background: #6C5CB4;
+    padding: 6px 12px; border-radius: 6px;
+  }
+  h3 { font-size: 11.5pt; margin: 14px 0 6px; color: #4E4490; }
+  ol, ul { margin: 6px 22px 6px 0; padding: 0; }
+  li { margin-bottom: 5px; }
+  table { width: 100%; border-collapse: collapse; margin: 10px 0; font-size: 10.5pt; }
+  th, td { border: 1px solid #D8D2E8; padding: 7px 10px; text-align: right; }
+  th { background: #ECE7F6; color: #2E2552; font-weight: bold; }
+  .box {
+    background: #F6F4FB; border-right: 4px solid #6C5CB4;
+    padding: 10px 14px; margin: 10px 0; border-radius: 5px;
+  }
+  .warn { background: #FDF3F2; border-right-color: #C0392B; }
+  .ok   { background: #F1F8F4; border-right-color: #3E9C7A; }
+  .tag {
+    display: inline-block; background: #6C5CB4; color: #fff; font-size: 9pt;
+    padding: 1px 9px; border-radius: 10px; margin-left: 6px;
+  }
+  .script {
+    background: #fff; border: 1.5px dashed #6C5CB4; border-radius: 8px;
+    padding: 12px 16px; margin-top: 8px;
+  }
+  code {
+    font-family: "DejaVu Sans Mono", monospace; background: #ECE7F6;
+    padding: 1px 5px; border-radius: 3px; font-size: 9.5pt; direction: ltr;
+    display: inline-block;
+  }
+  .foot {
+    margin-top: 22px; padding-top: 8px; border-top: 1px solid #D8D2E8;
+    color: #6B6484; font-size: 8.5pt; text-align: center;
+  }
+  .nobreak { page-break-inside: avoid; }
+</style>
+</head>
+<body>
+
+<div class="head">
+  <div>
+    <h1>تعديل الطلبيات — دليل التشغيل</h1>
+    <div class="sub">ألموند كوفي هاوس · لمدير العمليات ومدراء الفروع</div>
+  </div>
+  <div class="meta">
+    الإصدار ١٫٠<br>٨ آب ٢٠٢٦
+  </div>
+</div>
+
+<div class="box ok">
+  <strong>ما الذي تغير؟</strong><br>
+  سابقا، عند اكتشاف خطأ في الجرد كانت الكمية في ورقة الطلبية تبقى على القراءة القديمة،
+  فيصل الفرع كمية غير صحيحة. <strong>الآن يعاد الحساب تلقائيا</strong> بمجرد تصحيح الجرد،
+  ودون تجاوز الحد الأعلى للفرع.
+</div>
+
+<h2>الحالة ١ — خطأ في الجرد <span class="tag">الأكثر شيوعا</span></h2>
+<p><strong>لا حاجة لفتح الطلبية إطلاقا.</strong></p>
+<ol>
+  <li>افتح شاشة <strong>الجرد</strong> في التطبيق.</li>
+  <li>صحح كمية المادة الخاطئة.</li>
+  <li>احفظ.</li>
+</ol>
+<div class="box">
+  الطلبية المفتوحة تصحح <strong>تلقائيا خلال ثانية</strong>. لا داعي للاتصال بأحد،
+  ولا لتعديل الطلبية يدويا.
+</div>
+<p><strong>ينطبق على:</strong> الطلبيات التي <u>لم تصرف بعد</u> فقط.</p>
+
+<h2>الحالة ٢ — تعديل كمية داخل الطلبية</h2>
+<ol>
+  <li>افتح <strong>ورقة الطلبية</strong> (يجب أن تكون حالتها «جاهزة» ولم تصرف).</li>
+  <li>عدل الكمية على السطر المطلوب.</li>
+  <li>احفظ.</li>
+</ol>
+
+<h3>القيود التي يطبقها النظام تلقائيا</h3>
+<table>
+  <tr><th style="width:42%">الحالة</th><th>تصرف النظام</th></tr>
+  <tr><td>كمية أعلى من الحد الأعلى للفرع</td><td>تقص تلقائيا إلى الحد الأعلى</td></tr>
+  <tr><td>كمية سالبة</td><td>مرفوضة</td></tr>
+  <tr><td>الطلبية صرفت أو ألغيت</td><td>التعديل مرفوض مع رسالة توضيحية</td></tr>
+</table>
+
+<h2>الحالة ٣ — الطلبية صرفت والكمية خاطئة</h2>
+<p>التعديل <strong>مقفل عن قصد</strong>، لأن المخزون خرج فعليا. البدائل:</p>
+<ul>
+  <li><strong>طلبية طوارئ</strong> — لتغطية النقص.</li>
+  <li><strong>مرتجع</strong> — لإرجاع الفائض.</li>
+</ul>
+
+<h2 class="nobreak">للمشرف — كيف تتحقق</h2>
+<p>لعرض كل عمليات إعادة الحساب (المادة، الفرع، عدد السطور المعدلة):</p>
+<div class="script" style="direction:ltr; text-align:left">
+<code>select created_at, details from audit_log<br>
+where action = 'warehouse_order_lines.recalc_from_count'<br>
+order by created_at desc limit 20;</code>
+</div>
+
+<h2 class="nobreak">رسالة جاهزة لمجموعة الفروع</h2>
+<div class="script">
+  <strong>تحديث النظام — تعديل الطلبيات</strong>
+  <ol style="margin-top:6px">
+    <li><strong>صار خطأ في الجرد؟</strong> صحح الجرد فقط، والطلبية تصحح تلقائيا.
+        لا داعي للاتصال بأحد.</li>
+    <li><strong>تريد تغيير كمية في الطلبية؟</strong> عدلها من ورقة الطلبية قبل صرفها.
+        النظام لا يسمح بتجاوز الحد الأعلى.</li>
+    <li><strong>الطلبية صرفت؟</strong> لا تعدل — استخدم طلبية طوارئ أو مرتجع.</li>
+  </ol>
+</div>
+
+<div class="box warn nobreak">
+  <strong>ملاحظة لمدير العمليات:</strong> توجد مادتان بالاسم نفسه تقريبا
+  («شوكولاته تشوكلت شيب قطع مطبخ (حليب)») تختلفان بمسافة زائدة فقط.
+  هذا التكرار سبب متكرر لأخطاء الجرد — ينصح بدمجهما أو تعطيل إحداهما.
+</div>
+
+<div class="foot">
+  ألموند كوفي هاوس — دليل تشغيل داخلي · للتوزيع على مدراء الفروع
+</div>
+
+</body>
+</html>

@@ -2,7 +2,9 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 import { loyaltyService, type RedeemRewardInput, type SendGiftInput } from '@/services/loyalty.service';
 import { integration } from '@/constants/integration';
+import { posQrRefreshMs } from '@/lib/posQr';
 import { useUserId } from '@/stores/authStore';
+import type { PosMode } from '@almond/shared/pos/tokenWire';
 import type { PaymentMethodId } from '@/types';
 
 export function useLoyaltyBalance() {
@@ -121,6 +123,56 @@ export function useChargeWallet() {
   return useMutation({
     mutationFn: (amount: number) => loyaltyService.chargeWallet(userId, amount),
     onSuccess: invalidate,
+  });
+}
+
+/**
+ * The code the member shows at the till.
+ *
+ * THREE PROPERTIES, and each one is a line of this hook:
+ *
+ *  1. IT COMES FROM THE SERVER. `queryFn` is the only producer; there is no
+ *     initialData, no placeholderData and no catch-and-substitute. If the
+ *     request fails there is no code, and the screen says so — see
+ *     lib/posQr.ts. A locally-built barcode is the defect this replaces.
+ *
+ *  2. IT REFRESHES BEFORE IT DIES. `refetchInterval` is derived from the
+ *     `expiresIn` the SERVER sent (posQrRefreshMs = half of it), never from a
+ *     constant in the app, so raising the TTL by env var on the BFF does not
+ *     need an app release.
+ *
+ *  3. IT STOPS WHEN THE SCREEN IS NOT FOCUSED. `enabled` and the interval both
+ *     read `focused`, which the Pay screen drives from useFocusEffect — the
+ *     same pattern the brightness override already uses. A member who opens Pay
+ *     and walks away is not minting a token a minute, forever, in their pocket:
+ *     the tab is one of five and the screen is the app's most-visited, so an
+ *     unbounded timer here is a self-inflicted load generator (the same reason
+ *     useScanStatus below is bounded).
+ *
+ * `staleTime: 0` and `gcTime: 0` are deliberate too. A POS token is single-use
+ * and wall-clock-bound: serving one from cache on the next focus would show a
+ * code that a previous scan may already have burned.
+ */
+export function usePosToken(opts: { mode: PosMode; focused: boolean }) {
+  const userId = useUserId();
+  const { mode, focused } = opts;
+  return useQuery({
+    // The mode is part of the KEY, not just the request: the server signs it
+    // into the token, so a token minted for 'pay' is the wrong code to show
+    // under an 'earn' label. Switching the toggle asks for a new one.
+    queryKey: ['loyalty', 'posToken', userId, mode],
+    queryFn: () => loyaltyService.getPosToken(userId, mode),
+    enabled: focused,
+    staleTime: 0,
+    gcTime: 0,
+    refetchInterval: (query) => {
+      if (!focused) return false;
+      const data = query.state.data;
+      return data ? posQrRefreshMs(data.expiresIn) : false;
+    },
+    // The member is standing at a counter: fail fast and show them the panel
+    // that tells them what to do, rather than spinning through a retry ladder.
+    retry: 1,
   });
 }
 

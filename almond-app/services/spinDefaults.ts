@@ -21,7 +21,14 @@ export const defaultSpinPrizes: SpinPrize[] = [
 
 export const defaultSpinConfig: SpinConfig = {
   eligibility: {
-    enabled: true,
+    // OFF — the wheel is not running in the branches (owner, 2026-09-03), and the
+    // code now says so instead of contradicting the floor. It is also the single
+    // most expensive mechanism in the programme if switched back on: with no
+    // losing slot, every spin wins, and the prize table below is worth ~2.67 JOD
+    // per spin at menu prices — one spin per 5 visits is ~7.4% of an average
+    // 7.16 JOD invoice, on top of points. Re-enabling is a product decision
+    // (docs/LOYALTY-EARN-PATCH.md §8.4), not a flag flip.
+    enabled: false,
     visitsPerSpin: 5, // section 2.4
     topupAmount: 50,
     freeSpinDays: [], // e.g. [5] for a free spin every Friday (set in admin)

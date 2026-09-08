@@ -10,6 +10,8 @@
     "bff"
   ],
   "scripts": {
+    "test": "npm test --workspace @almond/bff && npm test --workspace almond-app",
+    "typecheck": "npm run shared:typecheck && npm run web:typecheck && npm run typecheck --workspace @almond/bff && npm run lint --workspace almond-app",
     "shared:typecheck": "npm run typecheck --workspace @almond/shared",
     "web:dev": "npm run dev --workspace almond-web",
     "web:build": "npm run build --workspace almond-web",

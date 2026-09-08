@@ -20,6 +20,7 @@ export function ComboBanner() {
   if (!upsell || !upsell.item.sizes.length) return null;
 
   const { item, missing } = upsell;
+  // earn-arith-exempt: upsell label only — no invoice, no grant. §3.5 / §7 T7.
   const points = config.COMBO_BONUS_POINTS;
   const name = lang === 'ar' ? item.nameAr : item.nameEn;
 

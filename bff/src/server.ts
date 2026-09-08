@@ -1,7 +1,7 @@
 import Fastify, { type FastifyInstance } from 'fastify';
 import jwt from '@fastify/jwt';
-import { config } from './config';
-import { createBackend } from './backend';
+import { config, insecureBootReasons } from './config';
+import { createBackend, type Backend } from './backend';
 import { HttpError } from './http-error';
 import { registerAuthRoutes } from './routes/auth';
 import { registerCheckoutRoutes } from './routes/checkout';
@@ -12,7 +12,23 @@ import { registerMeRoutes } from './routes/me';
 import { registerSubscriptionRoutes } from './routes/subscription';
 import { registerForecastRoutes } from './routes/forecast';
 
-export async function build(): Promise<FastifyInstance> {
+/**
+ * `backend` is injectable ONLY so a test can build a member the routes cannot
+ * mint: the ratchet — a member whose 90-day window has rolled below a threshold
+ * they already crossed — takes 90 days of wall-clock to occur, and there is no
+ * route that back-dates a sale. Production calls this with no argument.
+ */
+export async function build(backend: Backend = createBackend()): Promise<FastifyInstance> {
+  // §G gate 0. Every secret below has a working development fallback, which is
+  // what let `OTP_DEV_CODE = '123456'` sit in the codebase unnoticed: nothing
+  // ever complained. Production now refuses to start rather than start weak.
+  const insecure = insecureBootReasons();
+  if (insecure.length > 0) {
+    throw new Error(
+      `refusing to boot in production with insecure configuration:\n  - ${insecure.join('\n  - ')}`,
+    );
+  }
+
   const app = Fastify({ logger: { level: process.env.LOG_LEVEL ?? 'info' } });
   await app.register(jwt, { secret: config.JWT_SECRET });
 
@@ -38,7 +54,6 @@ export async function build(): Promise<FastifyInstance> {
     return reply.code(500).send({ error: 'internal', message: 'Internal error' });
   });
 
-  const backend = createBackend();
   app.get('/health', async () => ({ ok: true, dataSource: config.DATA_SOURCE }));
   registerAuthRoutes(app, backend);
   registerCheckoutRoutes(app, backend);

@@ -12,6 +12,7 @@ import { useAppStore } from '@/stores/appStore';
 import { useAuthStore } from '@/stores/authStore';
 import { useFavouritesStore } from '@/stores/favouritesStore';
 import { usePromoStore } from '@/stores/promoStore';
+import { usePromotionStore } from '@/stores/promotionStore';
 import { useAppFonts } from '@/constants/fonts';
 import { ErrorBoundary } from '@/components/ui/ErrorBoundary';
 import { CartToast } from '@/components/ui/CartToast';
@@ -42,6 +43,7 @@ export default function RootLayout() {
   const hydrateAuth = useAuthStore((s) => s.hydrate);
   const hydrateFavourites = useFavouritesStore((s) => s.hydrate);
   const hydratePromo = usePromoStore((s) => s.hydrate);
+  const hydratePromotion = usePromotionStore((s) => s.hydrate);
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
@@ -49,7 +51,10 @@ export default function RootLayout() {
     hydrateAuth();
     hydrateFavourites();
     hydratePromo();
-  }, [hydrate, hydrateAuth, hydrateFavourites, hydratePromo]);
+    // The celebration's high-water mark. Until this resolves the store
+    // refuses to fold in an observation at all — see promotionStore.observe().
+    hydratePromotion();
+  }, [hydrate, hydrateAuth, hydrateFavourites, hydratePromo, hydratePromotion]);
 
   useEffect(() => {
     if ((fontsLoaded || fontsLoaded === undefined) && hydrated) {

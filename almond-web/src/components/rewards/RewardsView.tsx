@@ -4,7 +4,11 @@ import { useEffect, useState } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
 import { Check, Sparkles } from 'lucide-react';
 import { useLoyaltyStore } from '@/store/loyaltyStore';
-import { REWARDS, tierProgress } from '@/data/loyalty';
+import { tierName } from '@almond/shared/loyalty';
+import { tierProgress } from '@/data/loyalty';
+import { redeemOptions } from '@almond/shared/loyalty/redeem';
+// earn-arith-exempt: points→JOD for DISPLAY, via the one shared conversion. §7 T7.
+import { jodFromPoints } from '@almond/shared/loyalty/earn';
 import { Cup } from '@/components/ui/Cup';
 import { asLang, formatDate, formatJOD, formatNumber } from '@/lib/format';
 import { cn } from '@/lib/cn';
@@ -29,9 +33,14 @@ export function RewardsView() {
   const tp = tierProgress(windowSpend);
   const tr = (ar: string, en: string) => (lang === 'ar' ? ar : en);
 
-  const onRedeem = (id: string, cost: number) => {
-    const reward = REWARDS.find((r) => r.id === id);
-    if (reward && redeemReward(reward)) {
+  // Built from the BALANCE, by the same function almond-app calls, so one
+  // member is never offered two different sets of choices. The board this
+  // replaces is documented in data/loyalty.ts.
+  const options = redeemOptions(points);
+
+  const onRedeem = (id: string) => {
+    const option = options.find((o) => o.id === id);
+    if (option && redeemReward(option)) {
       setFlash(id);
       window.setTimeout(() => setFlash(null), 1500);
     }
@@ -54,15 +63,23 @@ export function RewardsView() {
                 className="rounded-pill px-3 py-1 font-bold text-white"
                 style={{ backgroundColor: tp.current.color }}
               >
-                {tr(tp.current.nameAr, tp.current.nameEn)}
+                {tierName(tp.current, lang)}
               </span>
               <span className="text-white/80">
                 {tp.next
-                  ? t('toNextTier', {
-                      amount: formatJOD(tp.remaining, lang),
-                      tier: tr(tp.next.nameAr, tp.next.nameEn),
+                  ? // A DEFINITE sentence only where the count is a GUARANTEE.
+                    // `visitsGuaranteed` was produced in data/loyalty.ts and read
+                    // by nobody: this line stated a 5.85 JOD spend PROJECTION as
+                    // a promise, so a member 60 JOD into the 65 JOD rung was told
+                    // "1 more visits to reach 6%", came back for a 2.500 JOD
+                    // americano, landed at 62.5 and was still paid 4%. That is
+                    // the exact defect the app fixed in tierCopy.ts; the website
+                    // had the flag and no branch to spend it on.
+                    t(tp.visitsGuaranteed ? 'toNextTier' : 'toNextTierEstimate', {
+                      visits: tp.visitsRemaining,
+                      tier: tierName(tp.next, lang),
                     })
-                  : t('topTier')}
+                  : t('topTier', { tier: tierName(tp.current, lang) })}
               </span>
             </div>
             <div className="mt-2 h-2 overflow-hidden rounded-pill bg-white/25">
@@ -83,48 +100,57 @@ export function RewardsView() {
 
       <p className="mt-3 flex items-center gap-2 text-sm text-text-secondary">
         <Sparkles className="h-4 w-4 text-primary" />
-        {t('earnRate')}
+        {t('earnRate', { rate: tierName(tp.current, lang) })}
       </p>
 
-      {/* Redeem */}
+      {/* Redeem — an AMOUNT off the bill, not a board of named rewards.
+          Every card here used to carry `maxValueHint` ("value is a max, pay the
+          difference"), because a rung was a cap on a named item. A credit is
+          exact money, so the caveat is gone rather than restyled. */}
       <h2 className="mt-10 text-xl">{t('redeemTitle')}</h2>
-      <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        {REWARDS.map((r) => {
-          const affordable = points >= r.cost;
-          const done = flash === r.id;
-          return (
-            <div
-              key={r.id}
-              className="flex flex-col rounded-lg border border-neutral-warm bg-card p-4 shadow-card"
-            >
-              <h3 className="font-bold">{tr(r.titleAr, r.titleEn)}</h3>
-              <p className="mt-1 text-sm text-text-secondary">{t('cost', { cost: r.cost })}</p>
-              <button
-                type="button"
-                disabled={!affordable || done}
-                onClick={() => onRedeem(r.id, r.cost)}
-                className={cn(
-                  'mt-4 inline-flex h-10 items-center justify-center gap-1 rounded-pill px-4 text-sm font-bold transition-colors',
-                  done
-                    ? 'bg-success text-white'
-                    : affordable
-                      ? 'bg-primary text-white hover:bg-primary-dark'
-                      : 'cursor-not-allowed bg-neutral-warm text-text-secondary',
-                )}
-              >
-                {done ? (
-                  <>
-                    <Check className="h-4 w-4" /> {t('redeemed')}
-                  </>
-                ) : affordable ? (
-                  t('redeem')
-                ) : (
-                  t('notEnough')
-                )}
-              </button>
-            </div>
-          );
-        })}
+      <p className="mt-1 text-sm text-text-secondary">{t('redeemHint')}</p>
+
+      <div className="mt-4 rounded-xl border border-neutral-warm bg-card p-6 shadow-card">
+        <p className="text-sm text-text-secondary">{t('worthNow')}</p>
+        <p className="mt-1 text-display font-bold leading-none">
+          {formatJOD(jodFromPoints(points), lang)}
+        </p>
+
+        {options.length === 0 ? (
+          <p className="mt-4 text-sm text-text-secondary">{t('noPointsYet')}</p>
+        ) : (
+          <div className="mt-5 flex flex-wrap gap-3">
+            {options.map((o) => {
+              const done = flash === o.id;
+              return (
+                <button
+                  key={o.id}
+                  type="button"
+                  disabled={done}
+                  onClick={() => onRedeem(o.id)}
+                  aria-label={t('redeemA11y', { jod: formatJOD(o.jod, lang), points: o.points })}
+                  className={cn(
+                    'flex min-w-[7rem] flex-1 flex-col items-center gap-0.5 rounded-lg px-4 py-3',
+                    'text-sm transition-colors',
+                    done
+                      ? 'bg-success text-white'
+                      : 'bg-neutral-warm text-primary hover:bg-primary hover:text-white',
+                  )}
+                >
+                  <span className="inline-flex items-center gap-1 font-bold">
+                    {done && <Check className="h-4 w-4" />}
+                    {done ? t('redeemed') : formatJOD(o.jod, lang)}
+                  </span>
+                  {!done && (
+                    <span className="text-xs opacity-80">
+                      {o.full ? t('wholeBalance') : t('cost', { cost: o.points })}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       <div className="mt-10 grid gap-8 lg:grid-cols-2">

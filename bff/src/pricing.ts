@@ -1,6 +1,6 @@
 import { menuItems } from '@almond/shared/menu';
 import { computeTotals, buildLineId, type CartTotals } from '@almond/shared/cart';
-import { comboBonusPoints } from '@almond/shared/lib/combo';
+import { basketHasDrink, comboPairs } from '@almond/shared/lib/combo';
 import type { CartItem, CartCustomization } from '@almond/shared/types';
 import { badRequest } from './http-error';
 import type { CheckoutLine } from './backend/types';
@@ -10,7 +10,13 @@ import type { CheckoutLine } from './backend/types';
 export function reprice(lines: CheckoutLine[]): {
   items: CartItem[];
   totals: CartTotals;
-  comboBonus: number;
+  /** Drink+food pairs. Pricing counts pairs; loyalty/earn.ts prices them. */
+  comboPairs: number;
+  /** Does the basket contain a drink? The second-visit voucher's condition —
+   *  classified by itemKind, so a 250 g retail bag of beans is not a drink even
+   *  though it carries `isDrink: true` (lib/combo.ts). Computed here so the
+   *  route never touches the menu. */
+  hasDrink: boolean;
 } {
   if (!Array.isArray(lines) || lines.length === 0) throw badRequest('empty cart');
   const items: CartItem[] = lines.map((l) => {
@@ -34,5 +40,10 @@ export function reprice(lines: CheckoutLine[]): {
       isBrunch: item.isBrunch, isDrink: item.isDrink,
     };
   });
-  return { items, totals: computeTotals(items, 0), comboBonus: comboBonusPoints(items) };
+  return {
+    items,
+    totals: computeTotals(items, 0),
+    comboPairs: comboPairs(items),
+    hasDrink: basketHasDrink(items),
+  };
 }

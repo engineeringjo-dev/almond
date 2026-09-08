@@ -152,13 +152,19 @@ export interface Order {
 
 // ---------- Loyalty ----------
 
-export type TierId = 'bean' | 'silver' | 'gold' | 'black';
+/** The three rungs of the 2% → 4% → 6% ladder. The ids are semantic so code
+ *  stays readable; the member never sees them — `nameAr`/`nameEn` carry the
+ *  rate, which is the name. See loyalty/constants.ts. */
+export type TierId = 'base' | 'plus' | 'top';
 
 export interface Tier {
   id: TierId;
+  /** Display name = the rate itself ("٢٪" / "٤٪" / "٦٪"). */
   nameAr: string;
   nameEn: string;
-  threshold: number; // lifetime spend JOD
+  /** Qualifying spend in JOD over config.TIER_WINDOW_DAYS (90). */
+  threshold: number;
+  /** Ramp against config.POINTS_PER_JOD: 1.0 / 2.0 / 3.0 → 2 / 4 / 6 pts/JOD. */
   multiplier: number;
   color: string;
 }
@@ -171,13 +177,79 @@ export interface CupState {
 export interface LoyaltyBalance {
   userId: string;
   points: number;
-  /** Qualifying spend within the rolling 12-month window (Revision Pack §A). */
+  /** Qualifying spend inside the rolling window — config.TIER_WINDOW_DAYS (90)
+   *  Amman days, INCLUSIVE of today. Computed by qualifyingSpend() in
+   *  loyalty/window.ts; it was a rolling-12-month figure until W1. */
   windowSpend: number;
+  /** Distinct Amman days in that window carrying spend > 0 — the other door to
+   *  the second rung (config.TIER2_VISITS_ALTERNATIVE = 4), and the number the
+   *  progress copy is written in. */
+  visitDays: number;
+  /** The rung the member is PAID at: max(the floor they hold, what the live
+   *  window qualifies for). It is not `tierFromSpend(windowSpend)` — there is
+   *  no demotion, so those two disagree for any member whose window rolled off. */
   tier: TierId;
   multiplier: number;
-  cup: CupState;
-  /** When the current beans expire (null = never, for Gold/Black). */
-  beansExpireAt?: string | null;
+  /**
+   * The rung ABOVE the one the member is paid at, straight off `standing().next`
+   * — `null` at the top of the ladder, `undefined` when the producer has no
+   * standing to offer (the website, a raw guest figure).
+   *
+   * It is here because the progress copy is written in VISITS, and only a real
+   * standing knows the visits number. `progressToNextTier(windowSpend)` alone
+   * would tell a member with 4 visit-days and 12 JOD that they are 2 visits
+   * from the 4% rung THEY ALREADY HOLD — the 4-visits door
+   * (config.TIER2_VISITS_ALTERNATIVE) and the no-demotion floor are both
+   * invisible to a spend-only projection. See almond-app/lib/tierCopy.ts.
+   */
+  nextTier?: {
+    id: TierId;
+    jodRemaining: number;
+    /** What the member is TOLD: "3 more visits", never "8.4 JOD". */
+    visitsRemaining: number;
+    /**
+     * Is that count a GUARANTEE (the visits door) or a projection at the
+     * measured basket? Only a guaranteed count may be stated declaratively —
+     * tierCopy.ts hedges the sentence when this is false, and an ABSENT field
+     * is read as false, so a producer that has not thought about it cannot
+     * accidentally promise a projection.
+     */
+    visitsGuaranteed?: boolean;
+    step: number;
+  } | null;
+  /**
+   * The free-drink cup, when the producer keeps one.
+   *
+   * OPTIONAL, and it was required until a probe executed the real screens
+   * against the real `GET /v1/me/balance` body: the BFF holds no cup state at
+   * all and never sends this field, so `data.cup.current` at
+   * LoyaltyCard.tsx and app/loyalty.tsx did not render a blank — it THREW,
+   * taking out the whole home card and the whole loyalty screen. A required
+   * field the only real producer never sends is a promise the type cannot
+   * keep; both call sites are now guarded. The app's mock still sends it.
+   */
+  cup?: CupState;
+  /**
+   * The NEXT slice of points to die, and how many. `null` when the member holds
+   * no live points.
+   *
+   * NOT one date for the whole balance — there is no such date any more. Every
+   * grant carries its own 12-month clock (loyalty/lots.ts), so a member holding
+   * 240 points earned across a year has many expiry days and "your points
+   * expire on 15/11" is false for 200 of them. `amount` is the sum of EVERY
+   * live lot sharing the earliest expiry day, not the first lot's remainder.
+   *
+   * `on` is an AMMAN DAY KEY ('YYYY-MM-DD'), not an ISO instant, because the
+   * enforced day and the displayed day must be the same day. 🔴 Never pass it
+   * to `new Date(string)`: `new Date('2026-11-15')` parses as UTC midnight and
+   * renders as 14 November west of Greenwich — the app would print a date one
+   * day earlier than the server enforces. Use `formatDayKey`.
+   *
+   * `| null` rather than optional: unlike `cup` there is a real producer on
+   * both paths (the BFF route and the app's mock), so an absent field is a
+   * producer bug, not a missing feature.
+   */
+  nextExpiry: { amount: number; on: string } | null;
 }
 
 /** "Almond Club" monthly subscription state (shared by app, web, BFF). */

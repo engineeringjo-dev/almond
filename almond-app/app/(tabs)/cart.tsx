@@ -35,8 +35,7 @@ import { paymentService } from '@/services/payment.service';
 import { loyaltyService } from '@/services/loyalty.service';
 import { integration } from '@/constants/integration';
 import { usePromoStore } from '@/stores/promoStore';
-import { activeBonusDay } from '@/lib/bonusDay';
-import { comboBonusPoints } from '@/lib/combo';
+import { comboPairs } from '@/lib/combo';
 import { aggregatorService } from '@/services/aggregator.service';
 
 export default function CartScreen() {
@@ -87,7 +86,11 @@ export default function CartScreen() {
       estimateEarnedPoints({
         total: totals.total,
         items,
-        tierMultiplier: loyalty?.multiplier ?? 1,
+        windowSpend: loyalty?.windowSpend ?? 0,
+        // The rung the member is PAID at. Without it a ratcheted member — one
+        // whose 90-day window rolled below a threshold they already crossed —
+        // is quoted the lower rate at checkout and then granted the higher one.
+        heldRungId: loyalty?.tier,
         paidFromBalance: paymentMethod === 'wallet',
       }),
     [totals.total, items, loyalty, paymentMethod],
@@ -160,14 +163,14 @@ export default function CartScreen() {
       });
 
       // Award loyalty beans + cup (section 8.2). Server does this in prod.
-      const bonusDay = activeBonusDay();
-      const bonusActive = !!bonusDay && usePromoStore.getState().isActivatedToday();
+      // The bonus-day RULE (which weekday, which multiplier) lives in the shared
+      // earn function; the caller only reports whether the member activated it.
       await loyaltyService.earn({
         userId,
         invoiceAmount: totals.total,
         paidFromBalance: paymentMethod === 'wallet',
-        bonusMultiplier: bonusActive ? bonusDay!.multiplier : 1,
-        comboBonusPoints: comboBonusPoints(items),
+        bonusDayActivated: usePromoStore.getState().isActivatedToday(),
+        comboPairs: comboPairs(items),
       });
       invalidateLoyalty();
 
@@ -289,14 +292,16 @@ export default function CartScreen() {
                 {t('cart.earnAllMethods')}
               </Text>
 
-              {/* Pay-from-wallet upsell (Wallet spec §1.2): +50% beans. Shown as
-                  a one-tap nudge when not already paying from balance and the
-                  wallet covers the order; becomes a confirmation once selected. */}
+              {/* Pay-from-wallet nudge. It used to promise "+50% points": that
+                  is config.WALLET_EARN_MULTIPLIER, RETIRED to 1.0 on 2026-09-06
+                  after zero rows in 171,291 live transactions, so the claim had
+                  been false on screen ever since. The nudge stays — prepayment
+                  is still worth encouraging — and now says only what is true. */}
               {paymentMethod === 'wallet' ? (
                 <View style={styles.walletBonus}>
                   <Icon name="bean" size={16} color={colors.green} strokeWidth={2} />
                   <Text variant="caption" color={colors.green}>
-                    {t('cart.walletEarnBonus')}
+                    {t('cart.walletSelected')}
                   </Text>
                 </View>
               ) : (walletBalance ?? 0) >= totals.total ? (

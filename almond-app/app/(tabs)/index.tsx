@@ -15,6 +15,7 @@ import { ActiveOrderBanner } from '@/components/home/ActiveOrderBanner';
 import { WelcomeOffer } from '@/components/home/WelcomeOffer';
 import { FeaturedRow } from '@/components/home/FeaturedRow';
 import { HomeNudge } from '@/components/home/HomeNudge';
+import { PromotionBanner } from '@/components/home/PromotionBanner';
 import { SubscriptionCard } from '@/components/home/SubscriptionCard';
 import { PromoCarousel } from '@/components/home/PromoCarousel';
 import { BranchCard } from '@/components/branch/BranchCard';
@@ -61,6 +62,15 @@ export default function HomeScreen() {
         <Text variant="h1" style={styles.greeting}>
           {greetingText}
         </Text>
+
+        {/* 🎉 The promotion celebration. Above everything else on purpose: the
+            rate changed at a till, possibly days ago, and this is the only
+            place the member is ever told. Renders nothing unless a rise in the
+            rung they are PAID at is owed and undismissed — see
+            lib/promotion.ts. Unwrapped, like HomeNudge: a section wrapper would
+            leave its own margin behind on every launch that has nothing to
+            celebrate, which is almost all of them. */}
+        <PromotionBanner />
 
         {/* Lifecycle nudge: abandoned cart / points expiring (renders only when relevant) */}
         <HomeNudge />

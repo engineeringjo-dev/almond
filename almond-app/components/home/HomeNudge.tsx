@@ -5,10 +5,15 @@ import { Text } from '@/components/ui/Text';
 import { Icon, type IconName } from '@/components/ui/Icon';
 import { colors, spacing, radius } from '@/constants/theme';
 import { useI18n } from '@/hooks/useI18n';
-import { formatDate } from '@/lib/format';
+import { formatDayKey } from '@/lib/format';
+import { daysUntilDayKey } from '@almond/shared/loyalty/lots';
 import { useCartCount } from '@/stores/cartStore';
 import { useLoyaltyBalance } from '@/hooks/useLoyalty';
 
+/** How close a slice of points must be to dying before the nudge fires.
+ *  Under per-lot expiry this fires on a SLICE, several times a year and with
+ *  something actionable to do about it ("spend these 40"), instead of once a
+ *  year on a whole balance. */
 const EXPIRY_WINDOW_DAYS = 14;
 
 /**
@@ -33,14 +38,23 @@ export function HomeNudge() {
     );
   }
 
-  // 2) Points expiring within the window.
-  if (balance?.beansExpireAt) {
-    const days = Math.ceil((new Date(balance.beansExpireAt).getTime() - Date.now()) / 86400000);
+  // 2) The next slice of points to die, if it is close.
+  //
+  // 🔴 DAY-KEY ARITHMETIC, NOT MILLISECONDS. `nextExpiry.on` is an Amman
+  // calendar day, and `new Date('2026-11-15')` parses as UTC MIDNIGHT — so the
+  // millisecond form both flips a day early on a host west of Greenwich and
+  // renders the day BEFORE the one the server enforces. That is the exact class
+  // of defect the ledger exists to prevent; it must not be reintroduced here.
+  if (balance?.nextExpiry) {
+    const days = daysUntilDayKey(balance.nextExpiry.on);
     if (days >= 0 && days <= EXPIRY_WINDOW_DAYS) {
       return (
         <Nudge
           icon="bean"
-          text={t('home.nudgeExpiry', { date: formatDate(balance.beansExpireAt, lang) })}
+          text={t('home.nudgeExpiry', {
+            points: balance.nextExpiry.amount,
+            date: formatDayKey(balance.nextExpiry.on, lang),
+          })}
           onPress={() => router.push('/(tabs)/rewards')}
           isRTL={lang === 'ar'}
         />

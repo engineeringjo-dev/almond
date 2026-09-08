@@ -3,6 +3,7 @@ import type { FastifyInstance } from 'fastify';
 import { randomUUID } from 'node:crypto';
 import { menuItems } from '@almond/shared/menu';
 import { build } from '../src/server';
+import { signIn } from './lib/signIn';
 
 let app: FastifyInstance;
 let token: string;
@@ -18,9 +19,7 @@ async function post(url: string, body: any, headers: Record<string, string> = {}
 
 beforeAll(async () => {
   app = await build();
-  await app.inject({ method: 'POST', url: '/v1/auth/otp/request', payload: { phone: '0790000000' } });
-  const v = await app.inject({ method: 'POST', url: '/v1/auth/otp/verify', payload: { phone: '0790000000', code: '123456' } });
-  token = v.json().token;
+  token = await signIn(app, '0790000000');
 });
 
 describe('BFF checkout', () => {

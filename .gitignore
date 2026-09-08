@@ -18,3 +18,4 @@ almond-web/next-env.d.ts
 # TypeScript incremental build info
 *.tsbuildinfo
 .claude/settings.local.json
+__pycache__/

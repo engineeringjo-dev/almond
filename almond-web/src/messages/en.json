@@ -30,15 +30,15 @@
       "menuTitle": "The full menu",
       "menuText": "Over 260 real items with prices, customisations and photos.",
       "beansTitle": "Points on every dinar",
-      "beansText": "Earn 5 points per JOD and redeem them for the drinks you love.",
+      "beansText": "Cashback on every dinar, redeemable for the drinks you love.",
       "pickupTitle": "Pickup or delivery",
       "pickupText": "Order ahead and grab it fast from your nearest branch."
     },
     "loyalty": {
       "title": "Your rewards cup fills with every order",
-      "text": "Every 10 drinks earns a free one. Track your progress and redeem points for exclusive rewards — one account across web and app.",
+      "text": "Every 10 orders earns a free drink. Track your progress and redeem points for exclusive rewards — one account across web and app.",
       "cta": "Start earning points",
-      "cupLabel": "{current} of {target} drinks",
+      "cupLabel": "{current} of {target} orders",
       "beansLabel": "points"
     },
     "featured": {
@@ -95,7 +95,7 @@
     "promoApplied": "Code “{code}” applied",
     "promoInvalid": "Invalid code",
     "removePromo": "Remove code",
-    "freeDrink": "{n} drinks to your free drink",
+    "freeDrink": "{n} orders to your free drink",
     "freeDrinkReady": "🎉 Your free drink is ready!",
     "comboAddFood": "Add a food item to earn +{points} points 🍽️",
     "comboAddDrink": "Add a drink to earn +{points} points ☕",
@@ -144,19 +144,24 @@
     "beans": "points",
     "yourBeans": "Your points",
     "tier": "Your tier",
-    "toNextTier": "Spend {amount} to reach {tier}",
-    "topTier": "You're at the top tier — enjoy!",
-    "cupProgress": "{current} of {target} drinks to your free drink",
+    "toNextTier": "{visits} more visits to reach {tier}",
+    "toNextTierEstimate": "About {visits} more visits and your rate becomes {tier}",
+    "topTier": "👑 You made it — {tier} back",
+    "cupProgress": "{current} of {target} orders to your free drink",
     "redeemTitle": "Redeem your points",
     "redeem": "Redeem",
     "redeemed": "Redeemed",
-    "notEnough": "Not enough points",
     "cost": "{cost} points",
     "vouchersTitle": "Your vouchers",
     "noVouchers": "No vouchers yet",
     "expires": "Expires {date}",
     "activityTitle": "Recent activity",
-    "earnRate": "Earn 5 points for every JOD you spend"
+    "earnRate": "{rate} back on every order",
+    "redeemHint": "Your points are money off your bill — take off as much as you like",
+    "worthNow": "Your points are worth",
+    "noPointsYet": "Earn points on your next order and spend them here",
+    "wholeBalance": "all your points",
+    "redeemA11y": "Take {jod} off your bill, using {points} points"
   },
   "Wallet": {
     "title": "Wallet",
@@ -166,7 +171,7 @@
     "topUpCta": "Top up {amount}",
     "historyTitle": "Transaction history",
     "noHistory": "No transactions yet",
-    "earnNote": "Pay from your wallet and earn 50% more points"
+    "earnNote": "Top up {min} JOD or more and get bonus points"
   },
   "Gifts": {
     "title": "Gift cards",

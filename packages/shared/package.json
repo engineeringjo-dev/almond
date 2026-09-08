@@ -13,15 +13,25 @@
     "./config": "./src/config/index.ts",
     "./integration": "./src/integration/index.ts",
     "./loyalty": "./src/loyalty/index.ts",
+    "./loyalty/earn": "./src/loyalty/earn.ts",
+    "./loyalty/lots": "./src/loyalty/lots.ts",
+    "./loyalty/holdout": "./src/loyalty/holdout.ts",
+    "./loyalty/window": "./src/loyalty/window.ts",
+    "./loyalty/balanceWire": "./src/loyalty/balanceWire.ts",
+    "./loyalty/redeem": "./src/loyalty/redeem.ts",
+    "./loyalty/secondVisit": "./src/loyalty/secondVisit.ts",
+    "./pos/tokenWire": "./src/pos/tokenWire.ts",
     "./menu": "./src/menu/index.ts",
     "./menu/menu.generated": "./src/menu/menu.generated.ts",
     "./menu/seed": "./src/menu/seed.ts",
     "./lib/categoryKind": "./src/lib/categoryKind.ts",
     "./lib/combo": "./src/lib/combo.ts",
     "./lib/format": "./src/lib/format.ts",
+    "./lib/sha256": "./src/lib/sha256.ts",
     "./lib/recommendations": "./src/lib/recommendations.ts",
     "./cart": "./src/cart/index.ts",
-    "./lib/calendar": "./src/lib/calendar.ts"
+    "./lib/calendar": "./src/lib/calendar.ts",
+    "./lib/ammanWeekday": "./src/lib/ammanWeekday.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit"

@@ -8,7 +8,17 @@ import type { Backend } from '../backend';
 export function registerAuthRoutes(app: FastifyInstance, backend: Backend): void {
   app.post('/v1/auth/otp/request', async (req) => {
     const { phone } = parse(z.object({ phone: z.string() }), req.body);
-    return requestOtp(normalizePhone(phone));
+    const p = normalizePhone(phone);
+    const { code } = requestOtp(p);
+    // The generated code leaves this process ONLY here, only outside production,
+    // and only into the server log — never into the response body, in any
+    // environment. Until an SMS provider is wired this is how a developer signs
+    // in; it is the replacement for the fixed '123456' and, unlike it, it is a
+    // different number every time and useless to anyone without log access.
+    if (config.NODE_ENV !== 'production') {
+      req.log.warn({ phone: p, code }, 'DEV OTP issued — no SMS provider configured');
+    }
+    return { sent: true as const };
   });
 
   app.post('/v1/auth/otp/verify', async (req, reply) => {

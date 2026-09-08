@@ -7,6 +7,7 @@ import type {
 } from '@almond/shared/types';
 import type { CartTotals } from '@almond/shared/cart';
 import { toAmmanISO } from '@almond/shared/lib/format';
+import { earnRulesFromConfig, type EarnRules } from '@almond/shared/loyalty/earn';
 import { config } from '@/lib/config';
 
 /** Prep time = the slowest item, floored at the default (section 7.3). */
@@ -17,10 +18,22 @@ export function estimatePrepMinutes(items: CartItem[]): number {
   );
 }
 
-/** Beans earned at the base rate (POINTS_PER_JOD); tier multiplier applies later. */
-export function estimatedBeans(total: number): number {
-  return Math.round(total * config.POINTS_PER_JOD);
-}
+// `estimatedBeans` is deleted: the earn arithmetic lives only in
+// packages/shared/src/loyalty/earn.ts. Callers use `earnedPoints({ total,
+// comboPairs })` — see docs/LOYALTY-EARN-PATCH.md §3.5 row 6.
+
+/**
+ * Rules for the beans figure the site DISPLAYS at checkout. Identical to the
+ * compiled config except `weekdayBonus: []`, which keeps Friday out of the
+ * displayed number exactly as it is today. Showing it is the marketing decision
+ * held in docs/LOYALTY-EARN-PATCH.md §8.9; drop the override to ship it.
+ *
+ * The `: EarnRules` annotation is load-bearing, not decoration: without a
+ * contextual type there is no excess-property check, so a misspelled override
+ * key would compile clean, the spread would supply the real `weekdayBonus`, and
+ * §8.9's Friday bonus would silently start appearing in the displayed number.
+ */
+export const DISPLAY_EARN_RULES: EarnRules = { ...earnRulesFromConfig(), weekdayBonus: [] };
 
 export interface PlaceOrderInput {
   items: CartItem[];

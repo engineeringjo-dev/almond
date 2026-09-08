@@ -65,12 +65,15 @@ export default function WalletScreen() {
         <Text variant="caption" color={colors.green} center style={styles.bonusNote}>
           {t('profile.reloadBonusNote')}
         </Text>
-        <Text variant="caption" color={colors.warmGray} style={styles.note}>
-          {/* Pay-from-balance earns +50% beans (Wallet spec §1.2). */}
-          {lang === 'ar'
-            ? 'الدفع من رصيدك يكسبك +50% نقاط (×1.5).'
-            : 'Paying from your balance earns +50% points (×1.5).'}
-        </Text>
+        {/* 🔴 DELETED, not reworded: this line promised «+50% نقاط (×1.5)» /
+            "+50% points (×1.5)" for paying from the balance. That is
+            config.WALLET_EARN_MULTIPLIER, RETIRED to 1.0 on 2026-09-06 after
+            zero rows in 171,291 live transactions, so it paid nothing. The
+            same claim was removed from the cart nudge, the home wallet card
+            and the website in W4; it survived HERE because it was a hardcoded
+            bilingual literal and the copy sweep read only the locale files.
+            Nothing replaces it: `profile.reloadBonusNote` directly above
+            already states the bonus that is real. */}
       </Screen>
     </>
   );
@@ -108,5 +111,4 @@ const styles = StyleSheet.create({
     marginTop: spacing.xs,
   },
   bonusNote: { marginTop: spacing.lg },
-  note: { marginTop: spacing.xs, textAlign: 'center' },
 });

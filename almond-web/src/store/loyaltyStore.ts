@@ -4,7 +4,8 @@ import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import type { CupState, GiftCard, GiftOccasion, PointsLogEntry, Voucher } from '@almond/shared/types';
 import { config } from '@/lib/config';
-import { reloadBonus, genGiftCode, type RewardOption } from '@/data/loyalty';
+import { reloadBonus, genGiftCode } from '@/data/loyalty';
+import type { RedeemOption } from '@almond/shared/loyalty/redeem';
 
 export interface WalletTxn {
   id: string;
@@ -23,7 +24,7 @@ interface SendGiftInput {
 
 interface LoyaltyState {
   points: number;
-  windowSpend: number; // rolling-12-month spend → tier
+  windowSpend: number; // spend inside the 90-day window (config.TIER_WINDOW_DAYS) → tier
   cup: CupState;
   walletBalance: number;
   vouchers: Voucher[];
@@ -31,7 +32,14 @@ interface LoyaltyState {
   walletHistory: WalletTxn[];
   giftsSent: GiftCard[];
 
-  redeemReward: (reward: RewardOption) => boolean;
+  /**
+   * Spend `option.points` and mint a credit voucher worth `option.jod`.
+   *
+   * Takes a RedeemOption from @almond/shared/loyalty/redeem — the same builder
+   * the app uses — rather than a website-local RewardOption off a board. The
+   * board is gone; see the tombstone in data/loyalty.ts.
+   */
+  redeemReward: (option: RedeemOption) => boolean;
   topUp: (amount: number) => void;
   sendGift: (input: SendGiftInput) => GiftCard;
   redeemGift: (code: string) => boolean;
@@ -44,10 +52,19 @@ const daysAhead = (d: number) => new Date(Date.now() + d * 86400000).toISOString
 export const useLoyaltyStore = create<LoyaltyState>()(
   persist(
     (set, get) => ({
-      // Seed so the site is demoable: Silver tier (windowSpend ≥ 100), a cup in
-      // progress, a stored-value balance, a voucher and some recent activity.
+      // Seed so the site is demoable: a cup in progress, a stored-value
+      // balance, a voucher and some recent activity.
+      //
+      // 🔴 windowSpend IS A DISPLAY SEED THAT NOTHING EVER WRITES (this literal
+      // is its only occurrence in almond-web/src), and RewardsView interpolates
+      // the rung's NAME into "{rate} back on every order". At the old seed of
+      // 120 that is >= 65 JOD, i.e. the TOP rung, so the site told every
+      // first-time visitor "6% back on every order" and «👑 وصلت للقمة» while
+      // the code pays them 2%. 12 JOD is inside the entry rung, so the site
+      // names the rate every member really gets and shows progress toward the
+      // 4% rung instead of claiming to have arrived.
       points: 240,
-      windowSpend: 120,
+      windowSpend: 12,
       cup: { current: 6, target: config.CUP_TARGET },
       walletBalance: 12.5,
       vouchers: [
@@ -70,17 +87,25 @@ export const useLoyaltyStore = create<LoyaltyState>()(
       ],
       giftsSent: [],
 
-      redeemReward: (reward) => {
-        if (get().points < reward.cost) return false;
+      redeemReward: (option) => {
+        if (get().points < option.points) return false;
+        // `option.jod`, not a division here: jodFromPoints is the one points→JOD
+        // conversion in the repo and redeemOptions already applied it, so the
+        // voucher is worth exactly what the member was shown before they
+        // clicked. The title carries the amount because a credit voucher has no
+        // other name — there is no reward to call it after.
+        const jod = option.jod;
         set((s) => ({
-          points: s.points - reward.cost,
+          points: s.points - option.points,
           vouchers: [
             {
               id: rid('v'),
-              titleAr: reward.titleAr,
-              titleEn: reward.titleEn,
-              type: reward.type === 'credit' ? 'credit' : 'free-item',
-              value: reward.value,
+              titleAr: `خصم ${jod.toFixed(3)} د.أ من فاتورتك`,
+              titleEn: `${jod.toFixed(3)} JOD off your bill`,
+              // A credit, always. Points are money now; they do not buy a named
+              // free item capped at a value.
+              type: 'credit',
+              value: jod,
               expiresAt: daysAhead(60),
               used: false,
             },
@@ -89,9 +114,9 @@ export const useLoyaltyStore = create<LoyaltyState>()(
           pointsHistory: [
             {
               id: rid('p'),
-              deltaPoints: -reward.cost,
-              reasonAr: `استبدال: ${reward.titleAr}`,
-              reasonEn: `Redeemed: ${reward.titleEn}`,
+              deltaPoints: -option.points,
+              reasonAr: `استبدال نقاط: ${jod.toFixed(3)} د.أ`,
+              reasonEn: `Points redeemed: ${jod.toFixed(3)} JOD`,
               createdAt: new Date().toISOString(),
             },
             ...s.pointsHistory,
@@ -165,6 +190,12 @@ export const useLoyaltyStore = create<LoyaltyState>()(
     }),
     {
       name: 'almond-loyalty',
+      // Bumped when the seed above changed meaning. Without it a returning
+      // visitor keeps the persisted windowSpend: 120 in localStorage and goes
+      // on being told "6% back on every order"; zustand drops a persisted
+      // state whose version does not match and no migrate is supplied, so the
+      // corrected seed actually reaches them.
+      version: 2,
       storage: createJSONStorage(() =>
         typeof window !== 'undefined' ? window.localStorage : (undefined as never),
       ),

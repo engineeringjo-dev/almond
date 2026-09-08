@@ -4,6 +4,7 @@ import { View, StyleSheet, ScrollView, Pressable } from 'react-native';
 import { Text } from '@/components/ui/Text';
 import { Icon } from '@/components/ui/Icon';
 import { colors, spacing, radius, shadow } from '@/constants/theme';
+import { config } from '@/constants/config';
 import { useI18n } from '@/hooks/useI18n';
 import { formatJOD } from '@/lib/format';
 import { iconForCategory } from '@/lib/productIcon';
@@ -23,6 +24,8 @@ export function CrossSellRow({ items }: { items: CartItem[] }) {
   // Golden rule §2.2 #2: show only 1–3 suggestions — more reduces conversion.
   const suggestions = getCartCrossSell(items, 3);
   const upsell = getComboUpsell(items);
+  // earn-arith-exempt: upsell label only — no invoice, no grant. §3.5 / §7 T7.
+  const comboPoints = config.COMBO_BONUS_POINTS;
   if (suggestions.length === 0 && !upsell) return null;
 
   return (
@@ -31,7 +34,10 @@ export function CrossSellRow({ items }: { items: CartItem[] }) {
         {t('cart.crossSellTitle')}
       </Text>
 
-      {/* Combo upsell: add the missing half (drink↔food) to earn +50 points */}
+      {/* Combo upsell: add the missing half (drink↔food) for the combo bonus.
+          The label said "50 points" while COMBO_BONUS_POINTS has been 25 since
+          2026-09-06 — the owner halved it, "because the combo is already a
+          discount", and the copy kept the old number. It is interpolated now. */}
       {upsell ? (
         <Pressable
           style={styles.comboBanner}
@@ -43,7 +49,9 @@ export function CrossSellRow({ items }: { items: CartItem[] }) {
         >
           <Text style={styles.comboEmoji}>🍽️</Text>
           <Text variant="bodyBold" color={colors.dark} style={styles.comboText}>
-            {upsell.missing === 'food' ? t('cart.comboAddFood') : t('cart.comboAddDrink')}
+            {upsell.missing === 'food'
+              ? t('cart.comboAddFood', { points: comboPoints })
+              : t('cart.comboAddDrink', { points: comboPoints })}
           </Text>
           <View style={styles.comboCta}>
             <Text variant="caption" color={colors.dark} style={styles.addLabel}>
