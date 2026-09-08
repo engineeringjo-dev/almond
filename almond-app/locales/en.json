@@ -318,7 +318,7 @@
     "confirmBody": "Take {{jod}} off your bill for {{points}} points?",
     "redeemCta": "Redeem",
     "redeemedTitle": "Done 🎉",
-    "redeemedBody": "You now have a {{jod}} voucher — show your barcode at the counter",
+    "redeemedBody": "{{jod}} came off your points — it comes off your bill when you pay",
     "swipeTiers": "Swipe to explore every tier",
     "tierCounter": "{{n}} of {{total}}",
     "statusSubBase": "Where everyone starts",

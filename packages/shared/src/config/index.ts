@@ -56,10 +56,10 @@ export const config = {
    *
    *   entry rung  2% × 1.5 = 3.0%
    *   second rung 4% × 1.5 = 6.0%
-   *   top rung    6% × 1.5 = 9.0% NOMINAL — but MAX_EARN_MULTIPLIER (3.5)
-   *               binds first, so a top-rung member paying from the wallet is
-   *               actually paid 2 × 3.5 = 7.0%. The ceiling is doing real work
-   *               here, not sitting decorative: do not raise it casually.
+   *   top rung    6% × 1.5 = 9.0% — AND 9.0% IS WHAT IS PAID. The ceiling
+   *               was raised to 4.5 on 2026-09-08 for exactly this reason: it
+   *               was quietly paying 7.0% against a 9.0% promise, and the owner
+   *               ruled «لا نكذب على الناس» — pay the nine.
    *
    * The offsetting argument is that wallet money is money we already hold. A
    * member paying from a topped-up balance has pre-committed the spend, and the
@@ -75,16 +75,31 @@ export const config = {
   // the only thing left that stacks is the tier ramp itself, so the reachable
   // stack is exactly the top tier: 3.0 × base (= 6 pts/JOD on a 2 pts/JOD base).
   //
-  // 🔴 DO NOT LOWER THIS BELOW 3.0. At 3.0 or less the ceiling silently trims
-  // the 6% tier back toward the 4% tier and the ladder's whole promise breaks
-  // with no error anywhere — the member is simply told 6% and paid less. T6 in
-  // bff/test/earn.test.ts is what catches that. Raising it is harmless; it only
-  // ever binds on a stack that no longer exists.
+  // 🔴 RAISED 3.5 → 4.5 ON 2026-09-08, AND THAT IS AN OFFER CHANGE, NOT A FIX.
+  // Reinstating WALLET_EARN_MULTIPLIER put the reachable stack at 3.0 × 1.5 =
+  // 4.5, so a 3.5 ceiling trimmed the top rung's wallet rate from the 9% its two
+  // dials promise to 7% — silently, with the member told 9% and paid 7%. Asked
+  // to choose between paying the nine and saying the seven, the owner chose to
+  // pay: «لا نكذب على الناس».
+  //
+  // At 4.5 the ceiling exactly equals the reachable stack, so it no longer
+  // trims anything (`capApplied` is `cappable > cap`, strict) while still
+  // bounding any FUTURE dial someone stacks on top. It is back to being a
+  // safety valve — this time without a rate cut hidden inside it.
+  //
+  // 🔴 DO NOT LOWER THIS BELOW 4.5 — the floor moved with the stack. It used to
+  // read 3.0, which was the right floor while the wallet multiplier was retired
+  // and the tier ramp was all that stacked. With the wallet back, anything under
+  // 4.5 trims the top rung's wallet rate again and re-creates exactly the defect
+  // this raise was made to remove: the member is told a rate and paid a smaller
+  // one, with no error anywhere. T6 in bff/test/earn.test.ts is what catches it.
+  // Raising it further is harmless; it only ever binds on a stack that does not
+  // exist yet.
   //
   // NOTE: the ceiling does NOT cover COMBO_BONUS_POINTS — the combo is added
   // after it, as it always has been. Bringing the combo inside is D4, an offer
   // change gated on LOYALTY-EARN-PATCH §8.7, not a bug fix.
-  MAX_EARN_MULTIPLIER: 3.5,
+  MAX_EARN_MULTIPLIER: 4.5,
   // Digital reload bonus beans (pre-commitment lever, adapted from the SB ToU
   // "Digital Reload Bonus Stars"). Highest qualifying tier applies. Admin-set.
   WALLET_RELOAD_BONUS: [

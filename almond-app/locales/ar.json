@@ -318,7 +318,7 @@
     "confirmBody": "نخصم {{jod}} من فاتورتك مقابل {{points}} نقطة؟",
     "redeemCta": "استبدال",
     "redeemedTitle": "تمّ 🎉",
-    "redeemedBody": "أصبح لديك قسيمة بقيمة {{jod}} — أظهر الباركود عند الكاشير",
+    "redeemedBody": "خُصم {{jod}} من نقاطك — يُحسم من فاتورتك عند الدفع",
     "swipeTiers": "اسحب لاستكشاف كل الشرائح",
     "tierCounter": "{{n}} من {{total}}",
     "statusSubBase": "من هنا يبدأ الجميع",

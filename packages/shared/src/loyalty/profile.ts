@@ -100,3 +100,39 @@ export function profileBonusFor(
   if (!Number.isFinite(bonusPoints) || bonusPoints <= 0) return 0;
   return Math.floor(bonusPoints);
 }
+
+/**
+ * THE STAMP A MIGRATED MEMBER ARRIVES WITH. Owner, 2026-09-08, asked whether the
+ * Wafii import should pay the profile bonus to members whose names it already
+ * carries: «لا نقود لاسم نملكه سلفاً» — no money for a name we already own.
+ *
+ * 🔴 THIS IS 23,860 JOD. `Member.profileBonusAt` is the only thing standing
+ * between the import and a mint: PROFILE_COMPLETION_BONUS is 50 points,
+ * POINTS_PER_JOD_REDEEM is 100, so the bonus is 0.500 JOD, and the export
+ * carries a name for all 47,720 members. An import that leaves the stamp `null`
+ * pays every one of them for a fact we already hold, in one batch, silently —
+ * because `profileBonusFor` is working exactly as designed when it does.
+ *
+ * So the rule is a FUNCTION, not a sentence in a doc comment. A migration
+ * script gets the stamp by calling this; it cannot get it by remembering to.
+ *
+ * WHY A STAMP AND NOT A SKIPPED PAYMENT: `profileBonusAt` is also what stops
+ * the SECOND payment, when a migrated member later opens the app and saves
+ * their details. Marking them settled at the cutover closes both doors with one
+ * write; skipping the payment at import time but leaving `null` would only
+ * defer the 23,860 JOD to the first time each member edits their name.
+ *
+ * A record WITHOUT a usable name returns `null` — correctly. We do not own that
+ * fact, so the member is still owed the bonus if they choose to tell us. The
+ * predicate is `isProfileComplete`, the same one the save handler pays on, so
+ * the import and the app can never disagree about what counts as "we have it".
+ *
+ * @param profile the INCOMING record, as read from the export
+ * @param cutoverAt ISO instant of the migration — the same value for the batch
+ */
+export function migratedProfileBonusAt(
+  profile: Partial<MemberProfile> | null | undefined,
+  cutoverAt: string,
+): string | null {
+  return isProfileComplete(profile) ? cutoverAt : null;
+}

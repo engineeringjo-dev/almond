@@ -95,14 +95,31 @@ describe('D2 — one earn calculation: the app grants what computeEarn returns',
 
   /** A member whose 90-day window spend is exactly `windowSpend`, with a fresh
    *  ledger so points start at zero. One entry
-   *  yesterday: the same spend on the same day as before, now expressed in the
-   *  shared {jod, day} entry. `heldTierId` is reset to the entry rung so the
-   *  fixture means what its name says — the RUNG is max(floor, window), so a
-   *  leftover 'top' floor would pay 6% on a 0 JOD window. */
-  function memberWithSpend(windowSpend: number): string {
+   *  the day before `asOf`: the same spend on the same day as before, now
+   *  expressed in the shared {jod, day} entry. `heldTierId` is reset to the
+   *  entry rung so the fixture means what its name says — the RUNG is
+   *  max(floor, window), so a leftover 'top' floor would pay 6% on a 0 JOD
+   *  window.
+   *
+   *  🔴 `asOf` IS THE EVALUATION INSTANT, NOT `Date.now()`, AND THAT IS THE
+   *  WHOLE POINT. This dated the spend at `Date.now() - DAY` while every
+   *  assertion evaluates at a FIXED `at` (MON/TUE/FRI). Those two clocks agree
+   *  only until the wall clock passes the fixed hour: run this suite after
+   *  10:00 UTC and `Date.now() - DAY` lands AFTER `MON`, so the spend has not
+   *  happened yet at the instant being measured, the window reads 0, and the
+   *  member is paid the entry rung while the test expects the rung 150 JOD
+   *  buys. Two tests went red every afternoon and green every morning — a
+   *  fixture bug that reads exactly like an app-vs-shared divergence, which is
+   *  the one thing this suite exists to detect.
+   *
+   *  Anchoring to `asOf` makes the fixture mean "a day before we look",
+   *  whenever we look. */
+  function memberWithSpend(windowSpend: number, asOf: Date): string {
     const id = newUserId();
     const u = __getMockUser(id);
-    u.spendLog = windowSpend > 0 ? [spendEntry(windowSpend, new Date(Date.now() - DAY))] : [];
+    u.spendLog = windowSpend > 0
+      ? [spendEntry(windowSpend, new Date(asOf.getTime() - DAY))]
+      : [];
     u.heldTierId = 'base';
     u.lots = [];
     u.expirySettledThrough = ammanDayKey();
@@ -118,7 +135,7 @@ describe('D2 — one earn calculation: the app grants what computeEarn returns',
           for (const pairs of [0, 2]) {
             for (const bonusDayActivated of [false, true]) {
               for (const at of [MON, TUE, FRI]) {
-                const id = memberWithSpend(windowSpend);
+                const id = memberWithSpend(windowSpend, at);
                 const where = JSON.stringify({
                   total, windowSpend, paidFromBalance, pairs, bonusDayActivated,
                   at: at.toISOString(),
@@ -158,7 +175,7 @@ describe('D2 — one earn calculation: the app grants what computeEarn returns',
     // 10 JOD with 300 points (3.00 JOD) spent on it: 7 JOD of cash at the 2%
     // entry rung = 14 points, not the 20 the full invoice would have paid.
     const partial = await mockLoyaltyService.earn({
-      userId: memberWithSpend(0), invoiceAmount: 10, paidFromBalance: false,
+      userId: memberWithSpend(0, MON), invoiceAmount: 10, paidFromBalance: false,
       pointsRedeemed: 300, at: MON,
     });
     expect(partial.pointsEarned).toBe(14);
@@ -167,7 +184,7 @@ describe('D2 — one earn calculation: the app grants what computeEarn returns',
     );
 
     // ... and a bill made FREE with points earns nothing and banks no lot.
-    const id = memberWithSpend(65);            // the 6% rung: the ladder cannot
+    const id = memberWithSpend(65, MON);            // the 6% rung: the ladder cannot
     const free = await mockLoyaltyService.earn({ //  rescue a percentage of zero
       userId: id, invoiceAmount: 10, paidFromBalance: false,
       pointsRedeemed: 1000, at: MON,
@@ -189,7 +206,7 @@ describe('D2 — one earn calculation: the app grants what computeEarn returns',
     // 10 JOD at the 2% entry rung is 20 points; paying from the WALLET now pays
     // 1.5× — the gift-card promise «٥٠٪ رصيد نقاط اضافي عند صرفها», where
     // gift-card balance and top-up balance are one thing. 30 points.
-    const id = memberWithSpend(0);
+    const id = memberWithSpend(0, MON);
     const res = await mockLoyaltyService.earn({
       userId: id, invoiceAmount: 10, paidFromBalance: true, at: MON,
     });
@@ -198,15 +215,15 @@ describe('D2 — one earn calculation: the app grants what computeEarn returns',
     // The same invoice paid in CASH is still the plain 20 — the anchor for the
     // rate itself, unmixed with the wallet bonus.
     expect((await mockLoyaltyService.earn({
-      userId: memberWithSpend(0), invoiceAmount: 10, paidFromBalance: false, at: MON,
+      userId: memberWithSpend(0, MON), invoiceAmount: 10, paidFromBalance: false, at: MON,
     })).pointsEarned).toBe(20);
 
     // The two rungs above it, on the same invoice: 4% and 6%.
     expect((await mockLoyaltyService.earn({
-      userId: memberWithSpend(20), invoiceAmount: 10, paidFromBalance: false, at: MON,
+      userId: memberWithSpend(20, MON), invoiceAmount: 10, paidFromBalance: false, at: MON,
     })).pointsEarned).toBe(40);
     expect((await mockLoyaltyService.earn({
-      userId: memberWithSpend(65), invoiceAmount: 10, paidFromBalance: false, at: MON,
+      userId: memberWithSpend(65, MON), invoiceAmount: 10, paidFromBalance: false, at: MON,
     })).pointsEarned).toBe(60);
   });
 

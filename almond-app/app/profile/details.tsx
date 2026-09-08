@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { View, StyleSheet, TextInput, Alert } from 'react-native';
+import { createElement, useState } from 'react';
+import { View, StyleSheet, TextInput, Alert, Platform } from 'react-native';
 import { Stack, router } from 'expo-router';
 
 import { Screen } from '@/components/ui/Screen';
@@ -31,6 +31,80 @@ import { MAX_NAME_LENGTH, isProfileComplete, normalizeName } from '@almond/share
  * to store one, so there has to be a field, but making 50 points conditional on
  * handing over a birthdate is not what was asked for.
  */
+/**
+ * THE BIRTHDAY IS PICKED, NOT TYPED. Owner, 2026-09-08: «العميل يختار من رزنامة
+ * أسهل من تعبئة يدوية».
+ *
+ * This replaces a free-text `YYYY-MM-DD` field whose comment said a picker was
+ * impossible — "this screen ships to the web too, and a native picker there is
+ * a different component". That reasoning inverted once the shipping target was
+ * checked: there is no `eas.json` and the only pipeline is `deploy-web.yml`, so
+ * TODAY THIS SCREEN SHIPS TO THE WEB AND NOWHERE ELSE — and the web has a real
+ * calendar built into the platform. `<input type="date">` opens the browser's
+ * own date picker, is keyboard- and screen-reader-accessible for free, follows
+ * the reader's locale, and needs no dependency.
+ *
+ * Its value format is `YYYY-MM-DD` — byte for byte what the server already
+ * requires — so the contract does not move and neither does the parent's state.
+ *
+ * `max` is today: nobody was born tomorrow, and the browser enforces it before
+ * the value ever reaches us. `min` is 1900-01-01 rather than unbounded so the
+ * year spinner opens somewhere useful instead of at year 0.
+ *
+ * The native branch keeps the typed field. It is unreachable while there is no
+ * native build; it stays so that adding one is not a regression, and it is the
+ * one place a real native picker (a dependency, and a rebuild) would go.
+ */
+function BirthdayField({ value, onChange, label, align }: {
+  value: string;
+  onChange: (v: string) => void;
+  label: string;
+  align: 'left' | 'right';
+}) {
+  const today = new Date().toISOString().slice(0, 10);
+
+  if (Platform.OS === 'web') {
+    // A DOM node inside the RN tree: legal on react-native-web, and the only
+    // way to reach the platform's calendar without pulling in a picker package.
+    // Styled inline because a StyleSheet id means nothing to a raw <input>.
+    return createElement('input', {
+      type: 'date',
+      value,
+      max: today,
+      min: '1900-01-01',
+      'aria-label': label,
+      onChange: (e: { target: { value: string } }) => onChange(e.target.value),
+      style: {
+        minHeight: 48,
+        boxSizing: 'border-box',
+        width: '100%',
+        borderRadius: radius.md,
+        border: 'none',
+        outline: 'none',
+        backgroundColor: colors.neutralWarm,
+        paddingInline: spacing.md,
+        fontFamily: fontFamily.regular,
+        fontSize: 16,
+        color: colors.dark,
+        textAlign: align,
+      },
+    });
+  }
+
+  return (
+    <TextInput
+      value={value}
+      onChangeText={onChange}
+      placeholder="YYYY-MM-DD"
+      placeholderTextColor={colors.warmGray}
+      maxLength={10}
+      keyboardType="numbers-and-punctuation"
+      style={[styles.input, { textAlign: align }]}
+      accessibilityLabel={label}
+    />
+  );
+}
+
 export default function ProfileDetailsScreen() {
   const { t, lang } = useI18n();
   const user = useUser();
@@ -106,18 +180,11 @@ export default function ProfileDetailsScreen() {
           <Text variant="caption" color={colors.warmGray} style={styles.label}>
             {t('details.birthdayLabel')}
           </Text>
-          <TextInput
+          <BirthdayField
             value={birthday}
-            onChangeText={setBirthday}
-            // A day key, typed. Not a date picker: this screen ships to the web
-            // too, and a native picker there is a different component. The
-            // server refuses anything that is not YYYY-MM-DD.
-            placeholder="YYYY-MM-DD"
-            placeholderTextColor={colors.warmGray}
-            maxLength={10}
-            keyboardType="numbers-and-punctuation"
-            style={[styles.input, { textAlign: lang === 'ar' ? 'right' : 'left' }]}
-            accessibilityLabel={t('details.birthdayLabel')}
+            onChange={setBirthday}
+            label={t('details.birthdayLabel')}
+            align={lang === 'ar' ? 'right' : 'left'}
           />
           <Text variant="caption" color={colors.warmGray}>{t('details.birthdayHint')}</Text>
 

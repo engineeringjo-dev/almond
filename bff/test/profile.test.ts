@@ -2,7 +2,7 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import type { FastifyInstance } from 'fastify';
 import { config } from '@almond/shared/config';
 import {
-  MAX_NAME_LENGTH, isProfileComplete, normalizeName, profileBonusFor,
+  MAX_NAME_LENGTH, isProfileComplete, migratedProfileBonusAt, normalizeName, profileBonusFor,
 } from '@almond/shared/loyalty/profile';
 import { randomUUID } from 'node:crypto';
 import { ammanDayKey } from '@almond/shared/lib/ammanWeekday';
@@ -322,5 +322,75 @@ describe('T34 the wallet ledger', () => {
     expect(res.statusCode).toBe(409);
     expect(res.json().error).toBe('insufficient_wallet');
     expect(await wallet(token)).toBe(before);
+  });
+});
+
+describe('T33m the Wafii migration must not pay for names it already carries', () => {
+  // Owner, 2026-09-08: «لا نقود لاسم نملكه سلفاً».
+  //
+  // 🔴 THIS SUITE IS 23,860 JOD. The export carries a name for all 47,720
+  // members; the bonus is 50 points at 100 points/JOD = 0.500 JOD each. An
+  // import that leaves `profileBonusAt` null pays every one of them for a fact
+  // we already hold — and nothing errors, because profileBonusFor is behaving
+  // exactly as specified when it does. These tests are the only thing that
+  // fails.
+  const CUTOVER = '2026-10-01T00:00:00.000Z';
+  const MEMBERS = 47_720;
+
+  it('a migrated member who arrives with a name is settled at the cutover', () => {
+    const stamp = migratedProfileBonusAt({ name: 'حمزة', birthday: null }, CUTOVER);
+    expect(stamp).toBe(CUTOVER);
+    // The stamp is only worth anything if it actually closes the payment, so
+    // this asserts the OUTCOME through the same function the save handler uses,
+    // not merely that a string came back.
+    expect(profileBonusFor({ name: 'حمزة', birthday: null }, stamp !== null)).toBe(0);
+  });
+
+  it('the whole import costs nothing — the sum, not one row', () => {
+    // One member proves the branch; the batch is what the money is. If a future
+    // edit makes the stamp conditional on something the export lacks (a
+    // birthday, a verified phone), this is where the bill reappears.
+    const paid = Array.from({ length: 1000 }, (_, i) => {
+      const profile = { name: `عضو ${i}`, birthday: null };
+      return profileBonusFor(profile, migratedProfileBonusAt(profile, CUTOVER) !== null);
+    }).reduce((a, b) => a + b, 0);
+    expect(paid).toBe(0);
+
+    // What it would have cost with the stamp left null, stated in dinars so the
+    // number in the comment above is checked rather than asserted by prose.
+    const perMember = config.PROFILE_COMPLETION_BONUS / config.POINTS_PER_JOD_REDEEM;
+    expect(perMember).toBe(0.5);
+    expect(perMember * MEMBERS).toBe(23_860);
+  });
+
+  it('a record WITHOUT a name is not settled — that bonus is still owed', () => {
+    // The rule is "no money for a name we already own", not "no money". A row
+    // the export could not give us a name for leaves the member eligible, so
+    // they are paid the day they tell us themselves.
+    for (const nameless of [{ name: '' }, { name: '   ' }, {}, null, undefined]) {
+      expect(migratedProfileBonusAt(nameless, CUTOVER)).toBeNull();
+    }
+    const stamp = migratedProfileBonusAt({ name: '' }, CUTOVER);
+    expect(profileBonusFor({ name: 'حمزة' }, stamp !== null))
+      .toBe(config.PROFILE_COMPLETION_BONUS);
+  });
+
+  it('settled means settled — the app cannot pay a migrated member a second time', () => {
+    // The second door. A migrated member opening the app and saving their
+    // details re-enters the same handler; the stamp is what makes that save
+    // free. Skipping payment at import WITHOUT stamping would only defer the
+    // 23,860 JOD to the first time each member edits their name.
+    const profile = { name: 'حمزة', birthday: '1990-04-20' };
+    const stamp = migratedProfileBonusAt(profile, CUTOVER);
+    expect(profileBonusFor({ ...profile, name: 'حمزة العموش' }, stamp !== null)).toBe(0);
+  });
+
+  it('the migration and the app agree on what "we have a name" means', () => {
+    // One predicate, two callers. If the import used a looser test than the
+    // save handler, a member could be stamped as settled while the app still
+    // considers their profile incomplete — settled AND nagged, paid never.
+    for (const p of [{ name: 'حمزة' }, { name: '  حمزة  ' }, { name: '' }, {}]) {
+      expect(migratedProfileBonusAt(p, CUTOVER) !== null).toBe(isProfileComplete(p));
+    }
   });
 });

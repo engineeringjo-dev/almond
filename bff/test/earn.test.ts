@@ -102,7 +102,7 @@ const SHIPPED: EarnRules = {
   // 1.5 since 2026-09-08 — the gift-card promise «٥٠٪ رصيد نقاط اضافي عند
   // صرفها». It was 1.0 while the promotion was retired.
   walletMultiplier: 1.5,
-  maxEarnMultiplier: 3.5,
+  maxEarnMultiplier: 4.5,
   comboBonusPoints: 50,
   comboMaxPairsPerInvoice: 1,
   comboBonusOnPointsPaidInvoice: false,
@@ -145,35 +145,39 @@ describe('earn: the dials the tests are written against', () => {
     expect(computeEarn({ total: 10, windowSpend: 64.99, at }, SHIPPED).tierId).toBe('plus');
   });
 
-  it('earn: the ceiling BINDS again — it is the top-rung wallet rate now', () => {
-    // 🔴 THIS TEST REVERSED ON 2026-09-08 AND THE REVERSAL IS A FINDING.
+  it('earn: the ceiling no longer trims — the top-rung wallet payer is paid the nine', () => {
+    // 🔴 THIS TEST REVERSED TWICE, AND BOTH REVERSALS ARE THE FINDING.
     //
-    // It used to assert the ceiling was a safety valve that "must never bind on
-    // a real input", which was true while the wallet multiplier, the bonus day
-    // and the Friday bonus were all retired: nothing stacked, and the reachable
-    // maximum was the top rung itself.
+    // It first asserted the ceiling was a safety valve that "must never bind on
+    // a real input" — true while the wallet multiplier, the bonus day and the
+    // Friday bonus were all retired: nothing stacked.
     //
-    // Reinstating the wallet multiplier put a stack back. 6% × 1.5 is 9%
-    // NOMINAL, MAX_EARN_MULTIPLIER (3.5) is 7%, and the cap wins — so a
-    // top-rung member paying from the wallet is quietly paid TWO PERCENTAGE
-    // POINTS LESS than the two dials together promise. Nothing warns anyone;
-    // this test is the warning.
+    // Reinstating the wallet multiplier put a stack back, and on 2026-09-08 this
+    // test was rewritten to assert the opposite: 6% × 1.5 = 9% nominal against a
+    // 3.5 ceiling = 7%, so a top-rung member paying from the wallet was quietly
+    // paid TWO PERCENTAGE POINTS LESS than the two dials promised. The test said
+    // in its own comment that this "is a decision" waiting to be made.
     //
-    // That is not necessarily wrong — 7% may be exactly the intended ceiling on
-    // a coffee bill — but it is a decision, and it is now being made by a dial
-    // whose comment still calls it a margin guard.
+    // It was made the same day. Owner, on the gap: «لا نكذب على الناس» — pay the
+    // nine. MAX_EARN_MULTIPLIER went 3.5 → 4.5, which is exactly the reachable
+    // stack, so the ceiling now equals it and trims nothing.
+    //
+    // What this test guards NOW is that the nine actually arrives. If anyone
+    // lowers the ceiling back under 4.5, the silent rate cut returns and this
+    // fails.
     const topRung = Math.max(...SHIPPED.tierRamp.map((r) => r.multiplier));
     const nominal = topRung * SHIPPED.walletMultiplier;
-    expect(nominal).toBeGreaterThan(SHIPPED.maxEarnMultiplier);
+    expect(nominal).toBe(SHIPPED.maxEarnMultiplier);   // the ceiling IS the stack
 
     const heaviest = {
       total: 10, windowSpend: 10_000, paidFromBalance: true, bonusDayActivated: true, at: FRI,
     };
     const r = computeEarn(heaviest, SHIPPED);
-    expect(r.capApplied).toBe(true);
+    // `capApplied` is `cappable > cap`, strict — equal is not trimmed.
+    expect(r.capApplied).toBe(false);
     expect(r.effectiveMultiplier).toBe(SHIPPED.maxEarnMultiplier);
-    expect(r.points).toBe(70);                       // 7%, not the 9% the dials imply
-    expect(r.points).toBeLessThan(10 * SHIPPED.pointsPerJod * nominal);
+    expect(r.points).toBe(90);                       // 9%, the rate both dials promise
+    expect(r.points).toBe(10 * SHIPPED.pointsPerJod * nominal);
 
     // Cash on the same rung is still the plain 6% — the cap only bites where
     // something actually stacks.
@@ -289,19 +293,19 @@ describe('earn: the dials the tests are written against', () => {
     expect(walletOnly.walletBonus).toBeGreaterThan(0);
   });
 
-  it('earn: MAX_EARN_MULTIPLIER is what a top-rung wallet payer actually gets', () => {
-    // 🔴 THE CEILING IS NOW LOAD-BEARING, NOT DECORATIVE. 6% × 1.5 is 9%
-    // nominal, but MAX_EARN_MULTIPLIER (3.5) binds first and the member is paid
-    // 2 × 3.5 = 7%. Before the wallet multiplier came back, nothing in the
-    // shipped dials could reach this cap at all. Anyone raising the cap is
-    // raising the top-rung wallet rate, and this test is where they find out.
+  it('earn: the top-rung wallet payer gets the full 6% × 1.5, ceiling and all', () => {
+    // 🔴 THE CEILING WAS LOAD-BEARING AND IS NOT ANY MORE — deliberately. It
+    // used to sit at 3.5 under a 4.5 stack and pay 7% against a 9% promise;
+    // raised to 4.5 on 2026-09-08 so the promise and the payment are one number.
+    // Anyone lowering the cap is cutting the top-rung wallet rate, and this test
+    // is where they find out.
     const r = computeEarn({ total: 100, windowSpend: 65, paidFromBalance: true, at: MON }, SHIPPED);
     const topRung = SHIPPED.tierRamp[SHIPPED.tierRamp.length - 1].multiplier;
     const nominal = 100 * SHIPPED.pointsPerJod * topRung * SHIPPED.walletMultiplier; // 6% × 1.5
     const capped = 100 * SHIPPED.pointsPerJod * SHIPPED.maxEarnMultiplier;     // the ceiling
-    expect(capped).toBeLessThan(nominal);
-    expect(r.points).toBe(Math.round(capped));
-    expect(r.capApplied).toBe(true);
+    expect(capped).toBe(nominal);          // the ceiling no longer sits under it
+    expect(r.points).toBe(Math.round(nominal));
+    expect(r.capApplied).toBe(false);
   });
 
   it('earn: combo points escape the ceiling — the one grant it does not bound', () => {
