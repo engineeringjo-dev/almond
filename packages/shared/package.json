@@ -17,6 +17,8 @@
     "./loyalty/expiry": "./src/loyalty/expiry.ts",
     "./loyalty/holdout": "./src/loyalty/holdout.ts",
     "./loyalty/window": "./src/loyalty/window.ts",
+    "./loyalty/balanceWire": "./src/loyalty/balanceWire.ts",
+    "./loyalty/rewardRungs": "./src/loyalty/rewardRungs.ts",
     "./loyalty/secondVisit": "./src/loyalty/secondVisit.ts",
     "./menu": "./src/menu/index.ts",
     "./menu/menu.generated": "./src/menu/menu.generated.ts",

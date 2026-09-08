@@ -54,17 +54,24 @@ export function LoyaltyCard() {
                 );
               })()}
             </View>
-            <View style={styles.right}>
-              <Cup current={data.cup.current} target={data.cup.target} size={96} />
-              <Text variant="caption" color={colors.brown} center style={styles.cupLabel}>
-                {data.cup.target - data.cup.current <= 3 && data.cup.current < data.cup.target
-                  ? t('loyalty.cupClose')
-                  : t('loyalty.cupProgress', {
-                      current: Math.floor(data.cup.current),
-                      target: data.cup.target,
-                    })}
-              </Text>
-            </View>
+            {/* The cup renders only where a producer actually keeps one. It was
+                `data.cup.current` unguarded, and the BFF — the only real
+                producer — never sends the field: fed the real wire body this
+                line THREW and took the entire card down with it, not just the
+                cup. `cup` is optional on LoyaltyBalance for that reason. */}
+            {data.cup ? (
+              <View style={styles.right}>
+                <Cup current={data.cup.current} target={data.cup.target} size={96} />
+                <Text variant="caption" color={colors.brown} center style={styles.cupLabel}>
+                  {data.cup.target - data.cup.current <= 3 && data.cup.current < data.cup.target
+                    ? t('loyalty.cupClose')
+                    : t('loyalty.cupProgress', {
+                        current: Math.floor(data.cup.current),
+                        target: data.cup.target,
+                      })}
+                </Text>
+              </View>
+            ) : null}
           </>
         )}
       </Gradient>

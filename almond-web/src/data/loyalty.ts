@@ -2,24 +2,54 @@ import type { GiftOccasion, Tier } from '@almond/shared/types';
 // The website never grants points; the earn multiplier is loyalty/earn.ts's.
 // earn-arith-exempt: tier ramp for the progress display only. §7 T7.
 import { tierFromSpend, nextTier, progressToNextTier } from '@almond/shared/loyalty';
+import { REWARD_RUNGS, rungValueJod } from '@almond/shared/loyalty/rewardRungs';
 import { config } from '@/lib/config';
 
-/** Catalog of beans-redeemable rewards (mock). Costs are in beans. */
+/** Catalog of beans-redeemable rewards. Costs are in beans. */
 export interface RewardOption {
   id: string;
   titleAr: string;
   titleEn: string;
   cost: number;
   type: 'credit' | 'free-item';
-  value?: number; // JOD for credit rewards
+  /** The JOD the rung is worth. A MAXIMUM, not a price: the member pays the
+   *  difference if the item costs more. `Rewards.maxValueHint` says so. */
+  value?: number;
 }
 
-export const REWARDS: RewardOption[] = [
-  { id: 'credit1', titleAr: 'خصم 1 دينار', titleEn: '1 JOD off', cost: config.POINTS_PER_JOD_REDEEM, type: 'credit', value: 1 },
-  { id: 'freepastry', titleAr: 'معجنات مجانية', titleEn: 'Free pastry', cost: 180, type: 'free-item' },
-  { id: 'freedrink', titleAr: 'مشروب مجاني', titleEn: 'Free drink', cost: 250, type: 'free-item' },
-  { id: 'credit3', titleAr: 'خصم 3 دنانير', titleEn: '3 JOD off', cost: 3 * config.POINTS_PER_JOD_REDEEM, type: 'credit', value: 3 },
-];
+/** The approved name of each shared rung, in both languages. These are the same
+ *  strings almond-app renders from `rewardItems.*` — the website stores the
+ *  title on the voucher it mints, so it carries them literally rather than by
+ *  key. If they diverge from the app's locale files, one account has two names
+ *  for one reward. */
+const RUNG_TITLES: Record<string, { ar: string; en: string }> = {
+  customization: { ar: 'تخصيص مجاني (شوت/نكهة)', en: 'Free customization (shot/syrup)' },
+  brewedCoffee: { ar: 'قهوة أو معجنات', en: 'Coffee or bakery' },
+  handcraftedDrink: { ar: 'مشروب مميّز محضّر', en: 'Handcrafted drink' },
+  packagedCoffee: { ar: 'قهوة مغلّفة أو هدية', en: 'Packaged coffee or gift' },
+};
+
+/**
+ * THE BOARD, BUILT FROM THE SHARED RUNGS — never retyped here.
+ *
+ * It used to be a local array of 100 / 180 / 250 / 300 offering "Free pastry"
+ * and "Free drink". Against the menu this very site serves, 250 points = 2.500
+ * JOD covers 4 of 69 drinks (5.8%) and 180 points = 1.800 JOD covers 4 of 152
+ * food items (2.6%) — so a member who redeemed 250 here expecting any drink met
+ * a 2.500 JOD cap at the till, while the app called the same rung "Coffee or
+ * bakery" and put a real handcrafted drink at 400. The site's own copy says one
+ * account across web and app; the boards have to be the same board.
+ */
+export const REWARDS: RewardOption[] = REWARD_RUNGS.map((rung) => ({
+  id: rung.labelKey,
+  titleAr: RUNG_TITLES[rung.labelKey].ar,
+  titleEn: RUNG_TITLES[rung.labelKey].en,
+  cost: rung.points,
+  // Every rung is redeemed as an item, capped at its value; none of them is
+  // cash. Beans have no cash value and are never converted to wallet money.
+  type: 'free-item',
+  value: rungValueJod(rung),
+}));
 
 /** Wallet top-up presets (JOD). */
 export const TOPUP_AMOUNTS = [10, 20, 35, 50];

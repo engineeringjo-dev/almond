@@ -59,7 +59,15 @@ export function RewardsView() {
               </span>
               <span className="text-white/80">
                 {tp.next
-                  ? t('toNextTier', {
+                  ? // A DEFINITE sentence only where the count is a GUARANTEE.
+                    // `visitsGuaranteed` was produced in data/loyalty.ts and read
+                    // by nobody: this line stated a 5.85 JOD spend PROJECTION as
+                    // a promise, so a member 60 JOD into the 65 JOD rung was told
+                    // "1 more visits to reach 6%", came back for a 2.500 JOD
+                    // americano, landed at 62.5 and was still paid 4%. That is
+                    // the exact defect the app fixed in tierCopy.ts; the website
+                    // had the flag and no branch to spend it on.
+                    t(tp.visitsGuaranteed ? 'toNextTier' : 'toNextTierEstimate', {
                       visits: tp.visitsRemaining,
                       tier: tierName(tp.next, lang),
                     })
@@ -100,6 +108,11 @@ export function RewardsView() {
             >
               <h3 className="font-bold">{tr(r.titleAr, r.titleEn)}</h3>
               <p className="mt-1 text-sm text-text-secondary">{t('cost', { cost: r.cost })}</p>
+              {/* Every rung is a MAXIMUM value, not a price. Without this line
+                  the board reads as an unconditional promise and the member
+                  meets the cap at the till instead. The app has carried the
+                  same sentence since W4 (rewards.maxValueHint). */}
+              <p className="mt-1 text-xs text-text-secondary">{t('maxValueHint')}</p>
               <button
                 type="button"
                 disabled={!affordable || done}

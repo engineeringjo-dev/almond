@@ -1,5 +1,5 @@
 import type { IconName } from '@/components/ui/Icon';
-import { config } from '@/constants/config';
+import { REWARD_RUNGS, type RewardRungSpec } from '@almond/shared/loyalty/rewardRungs';
 import { menuItems } from '@/services/seed';
 
 /**
@@ -29,17 +29,19 @@ import { menuItems } from '@/services/seed';
  * the cheapest real menu item the rung is supposed to cover. C7 in
  * almond-app/test/copy.test.ts looks the price up and fails if a card ever names
  * something its own value cannot buy again.
+ *
+ * THE RUNGS THEMSELVES NOW LIVE IN `@almond/shared/loyalty/rewardRungs`. They
+ * were app-only, and almond-web kept a second board (100/180/250/300, "Free
+ * drink" at the rung this one calls "Coffee or bakery") that the same member
+ * sees on the same account. One ladder, two presentations; only the icons, the
+ * photos and the locale keys are chosen here.
  */
-export interface RewardRung {
-  points: number;
+export interface RewardRung extends RewardRungSpec {
+  /** The locale key this card renders — `rewardItems.<labelKey>` of the shared
+   *  rung, resolved here because the key namespace is the client's. */
   labelKey: string;
   icon: IconName;
-  type: 'free-item' | 'discount';
   image?: string;
-  /** A real menu item this rung must cover, by id. Absent on the customization
-   *  rung, which buys an OPTION rather than an item — C7 checks that one
-   *  against the priced customization options instead. */
-  benchmarkItemId?: string;
 }
 
 /** A representative real product photo for each reward (temporary where the
@@ -48,36 +50,26 @@ const rewardImg = (re: RegExp): string | undefined =>
   (menuItems.find((i) => i.imageUrl && re.test(i.nameEn)) ??
     menuItems.find((i) => i.imageUrl))?.imageUrl;
 
-export const rewardCatalogue: RewardRung[] = [
-  {
-    points: config.FIRST_REWARD_POINTS,
-    labelKey: 'rewardItems.customization',
-    icon: 'plus',
-    type: 'discount',
-    image: rewardImg(/syrup|caramel|vanilla|shot|latte/i),
-  },
-  {
-    points: 250,
-    labelKey: 'rewardItems.brewedCoffee',
-    icon: 'coffee',
-    type: 'free-item',
-    image: rewardImg(/americano|brew|drip|filter|coffee/i),
-    benchmarkItemId: 'hot-americano', // 2.500
-  },
-  {
-    points: 400,
-    labelKey: 'rewardItems.handcraftedDrink',
-    icon: 'cold',
-    type: 'free-item',
-    image: rewardImg(/latte|frappe|iced|spanish/i),
-    benchmarkItemId: 'almond-frappe', // 3.950
-  },
-  {
-    points: 600,
-    labelKey: 'rewardItems.packagedCoffee',
-    icon: 'cake',
-    type: 'free-item',
-    image: rewardImg(/beans|whole bean|packaged/i),
-    benchmarkItemId: 'turkish-coffee-blend-with-cardamom-250-g', // 6.000
-  },
-];
+/** Icon per shared rung. The RUNGS (points, type, benchmark) are
+ *  @almond/shared/loyalty/rewardRungs — one ladder for the app and the website,
+ *  because they are one account. Only presentation is chosen here. */
+const ICONS: Record<string, IconName> = {
+  customization: 'plus',
+  brewedCoffee: 'coffee',
+  handcraftedDrink: 'cold',
+  packagedCoffee: 'cake',
+};
+
+const IMAGE_HINT: Record<string, RegExp> = {
+  customization: /syrup|caramel|vanilla|shot|latte/i,
+  brewedCoffee: /americano|brew|drip|filter|coffee/i,
+  handcraftedDrink: /latte|frappe|iced|spanish/i,
+  packagedCoffee: /beans|whole bean|packaged/i,
+};
+
+export const rewardCatalogue: RewardRung[] = REWARD_RUNGS.map((rung) => ({
+  ...rung,
+  labelKey: `rewardItems.${rung.labelKey}`,
+  icon: ICONS[rung.labelKey] ?? 'coffee',
+  image: rewardImg(IMAGE_HINT[rung.labelKey] ?? /coffee/i),
+}));

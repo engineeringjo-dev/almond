@@ -1,11 +1,32 @@
 import type { FastifyInstance } from 'fastify';
 import { tiers } from '@almond/shared/loyalty';
+import type { TierId } from '@almond/shared/types';
+import type { MeBalanceWire } from '@almond/shared/loyalty/balanceWire';
 import { requireMember, memberId } from '../plugins/auth';
 import { toJod } from '../money';
 import type { Backend } from '../backend';
 
+/** The ramp's rung ids are plain strings inside loyalty/window.ts; the wire
+ *  promises a `TierId`. Resolving through the shipped tier table rather than
+ *  casting means a rung the client cannot name is a LOUD failure here instead
+ *  of an unmatchable id the client silently falls back to the entry rung on —
+ *  which is precisely how "6% member, 2% badge" happened. */
+function wireTierId(rungId: string): TierId {
+  const t = tiers.find((x) => x.id === rungId);
+  if (!t) throw new Error(`unknown rung id "${rungId}": the tier ramp and the shipped tier table have drifted`);
+  return t.id;
+}
+
 export function registerMeRoutes(app: FastifyInstance, backend: Backend): void {
-  app.get('/v1/me/balance', { preHandler: [requireMember] }, async (req) => {
+  // The return type is the SHARED wire contract, not an inferred anonymous
+  // object. This route and almond-app's LoyaltyBalance were two hand-written
+  // shapes that had already drifted (tier as an object here, a TierId string
+  // there) with nothing in either workspace able to notice — the client cast
+  // the body with `apiGet<LoyaltyBalance>` instead of checking it, so a 6%
+  // member was rendered "2%" everywhere and no error was raised. Naming the
+  // wire makes a producer-side drift a typecheck failure; parseMeBalance on the
+  // client makes a consumer-side drift a named throw.
+  app.get('/v1/me/balance', { preHandler: [requireMember] }, async (req): Promise<MeBalanceWire> => {
     const id = memberId(req);
     const m = await backend.getMember(id);
     // The rung comes from the member's STANDING, not from tierFromSpend on a
@@ -24,7 +45,7 @@ export function registerMeRoutes(app: FastifyInstance, backend: Backend): void {
       tier: { id: tier.id, nameAr: tier.nameAr, nameEn: tier.nameEn, multiplier: tier.multiplier },
       nextTier: standing.next
         ? {
-            id: standing.next.rung.id,
+            id: wireTierId(standing.next.rung.id),
             threshold: standing.next.rung.threshold,
             jodRemaining: standing.next.jodRemaining,
             visitsRemaining: standing.next.visitsRemaining,

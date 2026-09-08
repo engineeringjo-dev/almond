@@ -77,7 +77,16 @@ export interface NewOrder {
    *  Recorded here and acted on NOWHERE in this file.
    *
    *  Plural, so a second experiment needs no migration. Optional, so orders
-   *  written before this field existed stay valid. */
+   *  written before this field existed stay valid.
+   *
+   *  ⚠ WRITE-ONLY IN THIS REPO. No Backend method returns an OrderRecord after
+   *  createOrder, no route exposes one, and GET /v1/analytics/order-lines
+   *  carries no arm field — so the stamps are readable only by querying the
+   *  adapter's order table directly, which is true of Odoo and NOT of the
+   *  in-memory adapter (`orders` there is module-private). That is deliberate:
+   *  a member-authenticated route that hands back an arm tells the control
+   *  group it is the control group. Analysis reads the order table, not the
+   *  API. */
   experimentArms?: readonly HoldoutStamp[];
 }
 

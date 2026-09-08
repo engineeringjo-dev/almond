@@ -217,7 +217,18 @@ export interface LoyaltyBalance {
     visitsGuaranteed?: boolean;
     step: number;
   } | null;
-  cup: CupState;
+  /**
+   * The free-drink cup, when the producer keeps one.
+   *
+   * OPTIONAL, and it was required until a probe executed the real screens
+   * against the real `GET /v1/me/balance` body: the BFF holds no cup state at
+   * all and never sends this field, so `data.cup.current` at
+   * LoyaltyCard.tsx and app/loyalty.tsx did not render a blank — it THREW,
+   * taking out the whole home card and the whole loyalty screen. A required
+   * field the only real producer never sends is a promise the type cannot
+   * keep; both call sites are now guarded. The app's mock still sends it.
+   */
+  cup?: CupState;
   /** When the current beans expire (null = never, for Gold/Black). */
   beansExpireAt?: string | null;
 }

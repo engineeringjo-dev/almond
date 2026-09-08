@@ -280,3 +280,51 @@ describe('C11 every i18n key the app asks for resolves in both languages', () =>
     ).toEqual([]);
   });
 });
+
+// ---------------------------------------------------------------------------
+// C12 — one rewards board, two clients.
+// ---------------------------------------------------------------------------
+describe('C12 the website\'s rewards board is the app\'s board', () => {
+  const WEB_BOARD = 'almond-web/src/data/loyalty.ts';
+
+  it('almond-web derives its rungs from @almond/shared, never retypes them', () => {
+    // The website kept a SECOND board — 100 / 180 / 250 / 300, offering "Free
+    // drink" at 250 points. 250 points is 2.500 JOD, which covers 4 of the 69
+    // priced drinks on the very menu this site serves (5.8%); almond-app calls
+    // that same rung "Coffee or bakery" for exactly that reason and puts a real
+    // handcrafted drink at 400 (97.1% coverage). The site's own copy says one
+    // account across web and app, so those were one member's two contradictory
+    // offers — and nothing could see it, because almond-web has no test suite
+    // and the app's C7 only ever read the app's own array.
+    //
+    // Structural, in the style of T23a: the defect returns the moment someone
+    // retypes a cost here, so the test bans the retyping rather than comparing
+    // two lists that would then both be wrong.
+    const src = readFileSync(join(REPO, WEB_BOARD), 'utf8');
+    expect(
+      src.includes("from '@almond/shared/loyalty/rewardRungs'"),
+      `${WEB_BOARD} must build REWARDS from REWARD_RUNGS — the ladder is shared`
+      + ' because the account is.',
+    ).toBe(true);
+
+    const code = src
+      .split('\n')
+      .filter((l) => !l.trimStart().startsWith('*') && !l.trimStart().startsWith('//'));
+    const retyped = code.filter((l) => /\bcost:\s*\d/.test(l));
+    expect(
+      retyped,
+      `${WEB_BOARD}: a hard-coded reward cost. Costs come from REWARD_RUNGS.`
+      + ` Offending lines: ${retyped.join(' | ')}`,
+    ).toEqual([]);
+  });
+
+  it('the website states the max-value caveat, as the app does', () => {
+    // Every rung is a CAP (1 point = 1 qirsh), so a member can be asked for the
+    // difference at the till. The app has said so since W4; the website named
+    // items and never mentioned the cap.
+    for (const rel of Object.values(WEB_LOCALES)) {
+      const hint = load(rel)['Rewards.maxValueHint'];
+      expect(hint, `${rel}: Rewards.maxValueHint is missing`).toBeTruthy();
+    }
+  });
+});

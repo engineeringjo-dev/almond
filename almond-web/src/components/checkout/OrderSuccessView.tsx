@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
 import { CheckCircle2, Sparkles } from 'lucide-react';
 import { useOrderStore } from '@/store/orderStore';
+import { useLoyaltyStore } from '@/store/loyaltyStore';
 import { comboPairs } from '@almond/shared/lib/combo';
 import { earnedPoints } from '@almond/shared/loyalty/earn';
 import { DISPLAY_EARN_RULES } from '@/data/order';
@@ -24,6 +25,7 @@ export function OrderSuccessView() {
   const tc = useTranslations('Cart');
   const lang = asLang(useLocale());
   const order = useOrderStore((s) => s.lastOrder);
+  const windowSpend = useLoyaltyStore((s) => s.windowSpend);
 
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
@@ -41,8 +43,11 @@ export function OrderSuccessView() {
   }
 
   const branch = lang === 'ar' ? order.branchNameAr : order.branchNameEn;
+  // Same rung the checkout quoted (see CheckoutView) — a confirmation screen
+  // that names a different number from the one the member just agreed to is
+  // worse than either number alone.
   const beans = earnedPoints(
-    { total: order.total, comboPairs: comboPairs(order.items) },
+    { total: order.total, windowSpend, comboPairs: comboPairs(order.items) },
     DISPLAY_EARN_RULES,
   );
 

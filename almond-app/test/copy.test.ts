@@ -261,3 +261,34 @@ describe('C8g the sentence a real member is shown', () => {
     expect(tierProgressCopy(bal, 'en')).toBeNull();
   });
 });
+
+// ---------------------------------------------------------------------------
+// C8h — the DEFAULT member sees the sentence at all.
+// ---------------------------------------------------------------------------
+describe('C8h the demo seed renders the progress sentence', () => {
+  it('a brand-new user of the shipped mock is shown a real, guaranteed sentence', async () => {
+    // THE WIRING TEST, not another copy test. Everything above builds its own
+    // balance, so none of it can see the state the app actually starts in.
+    //
+    // The mock's demo seed used to put every unseen userId on 72 JOD across
+    // three in-window days with a 'top' floor — the LAST rung, where
+    // `standing().next` is null, tierProgressCopy returns null, and all three
+    // render sites drop the line. config.DATA_SOURCE is 'mock', the mock's
+    // `store` is a fresh Map on every launch and earn() only ever ADDS spend,
+    // so that was every user on every launch: the centrepiece of W4 rendered
+    // for nobody while 222 unit tests stayed green.
+    const bal = await mockLoyaltyService.getBalance(`copy-demo-seed-${Date.now()}`);
+
+    expect(bal.tier).not.toBe(tiers[tiers.length - 1].id);
+    expect(bal.nextTier, 'the seeded member must have a rung above them').not.toBeNull();
+
+    const copy = tierProgressCopy(bal, 'en');
+    expect(copy, 'the demo member must be shown a progress sentence').not.toBeNull();
+    // ... and it must be a DEFINITE one, which is only allowed on a guaranteed
+    // count: the seed sits below the visits door, so the number it states is
+    // the door and the ladder honours it at any basket size.
+    expect(bal.nextTier!.visitsGuaranteed).toBe(true);
+    expect(copy!.key).toBe('loyalty.toPlus');
+    expect(copy!.params.visits).toBeGreaterThan(0);
+  });
+});

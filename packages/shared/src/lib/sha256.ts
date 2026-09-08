@@ -165,9 +165,17 @@ export function sha256Hex(text: string): string {
 
 /**
  * The first 4 digest bytes, big-endian, as an unsigned 32-bit integer —
- * i.e. a uniform draw from [0, 2**32). This is the holdout bucket; see
- * loyalty/holdout.ts for why the comparison is against a threshold and not a
- * `% 100` (2**32 % 100 === 96, so the modulo is not uniform).
+ * i.e. a uniform draw from [0, 2**32). See loyalty/holdout.ts for why the
+ * comparison is against a threshold and not a `% 100` (2**32 % 100 === 96, so
+ * the modulo is not uniform).
+ *
+ * ⚠ This is the same draw `assignHoldout` computes, NOT the code path it runs:
+ * holdout.ts:183 open-codes the identical arithmetic inline. Nothing in
+ * production calls this function — it is the vector / cross-language-port
+ * interface, kept so a Python or Odoo implementation has something to check
+ * itself against. The duplication is guarded rather than tolerated:
+ * bff/test/holdout.test.ts asserts BOTH copies against the nine checked-in
+ * golden vectors, so a drift in either one goes red.
  *
  * Plain multiplication, not `<<`: `d[0] << 24` is SIGNED in JavaScript and goes
  * negative for any digest whose first byte is >= 0x80 — half of them.

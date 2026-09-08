@@ -54,25 +54,29 @@ export default function LoyaltyScreen() {
           </View>
         </Gradient>
 
-        {/* Cup */}
-        <Card style={styles.cupCard}>
-          <Cup current={balance.cup.current} target={balance.cup.target} size={120} />
-          <View style={styles.cupInfo}>
-            <Text variant="title">{t('loyalty.cupTitle')}</Text>
-            <Text variant="h2" color={colors.gold}>
-              {balance.cup.target - balance.cup.current <= 3 &&
-              balance.cup.current < balance.cup.target
-                ? t('loyalty.cupClose')
-                : t('loyalty.cupProgress', {
-                    current: Math.floor(balance.cup.current),
-                    target: balance.cup.target,
-                  })}
-            </Text>
-            <Text variant="caption" color={colors.warmGray}>
-              {t('loyalty.cupHint')}
-            </Text>
-          </View>
-        </Card>
+        {/* Cup — only where the producer keeps one. Unguarded, this threw on
+            the BFF's balance body (which carries no cup) and took the whole
+            screen with it. See LoyaltyBalance.cup. */}
+        {balance.cup ? (
+          <Card style={styles.cupCard}>
+            <Cup current={balance.cup.current} target={balance.cup.target} size={120} />
+            <View style={styles.cupInfo}>
+              <Text variant="title">{t('loyalty.cupTitle')}</Text>
+              <Text variant="h2" color={colors.gold}>
+                {balance.cup.target - balance.cup.current <= 3 &&
+                balance.cup.current < balance.cup.target
+                  ? t('loyalty.cupClose')
+                  : t('loyalty.cupProgress', {
+                      current: Math.floor(balance.cup.current),
+                      target: balance.cup.target,
+                    })}
+              </Text>
+              <Text variant="caption" color={colors.warmGray}>
+                {t('loyalty.cupHint')}
+              </Text>
+            </View>
+          </Card>
+        ) : null}
 
         {/* Tier progress */}
         <Card style={styles.section}>

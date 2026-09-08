@@ -121,21 +121,35 @@ let spinConfig: SpinConfig = JSON.parse(JSON.stringify(defaultSpinConfig));
 function ensureUser(userId: string): LoyaltyUser {
   let u = store.get(userId);
   if (!u) {
-    // Demo-friendly starting state: the 6% rung, head-start cup, one spin.
+    // Demo-friendly starting state: the ENTRY rung, two visit days banked,
+    // head-start cup, one spin.
     u = {
       points: 1240,
-      // 72 JOD over three days INSIDE the 90-day window → the 6% rung (>= 65).
-      // The 30/120/300-day amounts this replaced were sized for a rolling
-      // 365-day window that no longer exists (two of them were outside 90 days
-      // and would have quietly demoted the demo user to 2%). The 400-day entry
-      // is kept exactly as it was: it is the roll-off demonstration.
+      // 🔴 THE SEED DECIDES WHETHER W4'S CENTREPIECE RENDERS AT ALL.
+      //
+      // It was 72 JOD over three in-window days with `heldTierId: 'top'`, i.e.
+      // >= 65 JOD — the LAST rung. `standing().next` is null there, so
+      // tierProgressCopy() returns null and all three render sites drop the
+      // line: LoyaltyCard (`if (!progress) return null`), rewards.tsx
+      // (`isCurrent && progress ? … : null`) and TierProgress (which falls back
+      // to loyalty.tierMax). config.DATA_SOURCE is 'mock', this mock is the
+      // app's ONLY data source, and `store` is a fresh Map on every launch — so
+      // every user, every launch, was on the top rung and the progress sentence
+      // the whole tier mechanic rests on was rendered for nobody. 222 unit
+      // tests could not see it: each one builds its own balance.
+      //
+      // 12 JOD over two in-window days is inside the entry rung and two visit
+      // days short of the 4-visit door, so the demo shows the real sentence
+      // ("2 more visits and your cashback DOUBLES ×2") on a GUARANTEED count.
+      // It matches almond-web's seed, which was moved to 12 for the same
+      // reason. The 400-day entry is kept exactly as it was: it is the roll-off
+      // demonstration.
       spendLog: [
-        spendEntry(32, new Date(Date.now() - 86400000 * 5)),
-        spendEntry(24, new Date(Date.now() - 86400000 * 30)),
-        spendEntry(16, new Date(Date.now() - 86400000 * 70)),
+        spendEntry(7.5, new Date(Date.now() - 86400000 * 5)),
+        spendEntry(4.5, new Date(Date.now() - 86400000 * 30)),
         spendEntry(200, new Date(Date.now() - 86400000 * 400)),
       ],
-      heldTierId: 'top',
+      heldTierId: 'base',
       evaluatedThrough: evaluationPeriod(ammanDayKey(), WINDOW.evaluation),
       cup: { current: config.CUP_HEAD_START, target: config.CUP_TARGET },
       walletBalance: 12.5,
