@@ -148,6 +148,37 @@ export const config = {
   // MAX_EARN_MULTIPLIER does not bound. On a small pair — a 2.50 drink and a
   // 1.90 cookie — 50 points is 11.4% of the bill on top of everything else.
   COMBO_BONUS_POINTS: 50,
+  /**
+   * The combo pays ONCE PER INVOICE, however many pairs the basket holds.
+   *
+   * Owner, 2026-09-08: «ما بدي طلب مكتب ولا اجتماع» — the offer is for a person
+   * buying themselves a drink and something to eat, not for an office run.
+   *
+   * `comboPairs()` counts `min(drinks, foods)` and is uncapped by design; this
+   * is where that count is bounded, so the counter stays a pure counter and the
+   * offer decision stays one visible number. Before this, one basket of 15
+   * drinks and 15 foods minted 15 x 50 = 750 points (7.50 JOD) on a single
+   * invoice — and the person best placed to ring that up is an employee.
+   */
+  COMBO_MAX_PAIRS_PER_INVOICE: 1,
+  /**
+   * 🔴 THE INVOICE CEILING. Points are earned on `min(invoice, this)`.
+   *
+   * This is not an offer dial and it is not there to trim a generous basket —
+   * 100 JOD is roughly 12x the average paid invoice of 8.31, so no real
+   * customer will ever meet it. It exists because the live programme had NO
+   * such bound, and on 2025-06-23 at City Mall a single mis-keyed amount of
+   * 7,085,718.64 JOD granted 28,342,875 points. That one row is 86.2% of every
+   * point outstanding in the entire member table, and nobody noticed for over a
+   * year: `amount_flag` fired on it, and 47 flagged rows over 2.9 years were
+   * never reviewed by anyone.
+   *
+   * A fat finger at the till must cost a bounded amount. Owner, 2026-09-08.
+   *
+   * At the top rung this caps a single invoice at 100 x 6 = 600 points (6.00
+   * JOD), plus the combo, which sits outside every ceiling.
+   */
+  MAX_EARNING_INVOICE_JOD: 100,
   // "Almond Club" monthly subscription — CANCELLED before launch (owner,
   // 2026-09-03). It converts a member's own revenue into a smaller number:
   // a member buying 12 drinks/month brings 39.7 JOD against 5.2 JOD of material

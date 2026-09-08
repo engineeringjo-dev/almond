@@ -24,6 +24,12 @@ export interface EarnRules {
   walletMultiplier: number;
   maxEarnMultiplier: number;
   comboBonusPoints: number;
+  /** Pairs paid per invoice, however many the basket holds. Owner: the combo is
+   *  for one person, not an office run. */
+  comboMaxPairsPerInvoice: number;
+  /** 🔴 Points are earned on `min(invoice, this)`. A safety valve against a
+   *  mis-key at the till, not an offer dial — see the config comment. */
+  maxEarningInvoiceJod: number;
   /** Additive fraction of the scaled base, by weekday (0=Sun..6=Sat). */
   weekdayBonus: readonly { weekday: number; rate: number }[];
   bonusDay: { enabled: boolean; multiplier: number; weekdays: readonly number[] };
@@ -60,6 +66,8 @@ export function earnRulesFromConfig(): EarnRules {
     walletMultiplier: config.WALLET_EARN_MULTIPLIER,
     maxEarnMultiplier: config.MAX_EARN_MULTIPLIER,
     comboBonusPoints: config.COMBO_BONUS_POINTS,
+    comboMaxPairsPerInvoice: config.COMBO_MAX_PAIRS_PER_INVOICE,
+    maxEarningInvoiceJod: config.MAX_EARNING_INVOICE_JOD,
     weekdayBonus: config.WEEKDAY_EARN_BONUS,
     // Cast mirrors almond-app/lib/bonusDay.ts:12 — `as const` on the config object
     // narrows `weekdays` to a literal tuple, which `.includes(number)` rejects.
@@ -111,6 +119,15 @@ export interface EarnBreakdown {
   /** The invoice this breakdown was computed on — carried so the record can be
    *  persisted and the grant re-derived after the fact (§5b). */
   total: number;
+  /** The part of `total` points were actually earned on: `min(total,
+   *  maxEarningInvoiceJod)`. Equal to `total` on every real invoice. */
+  earningTotal: number;
+  /** True when the invoice ceiling bound — i.e. someone rang up more than
+   *  `maxEarningInvoiceJod`. On a 8.31 JOD average invoice this should be
+   *  vanishingly rare, so a rising count is a signal worth an alert, not noise. */
+  invoiceCapApplied: boolean;
+  /** Pairs actually PAID, after `comboMaxPairsPerInvoice`. */
+  comboPairsPaid: number;
   base: number;            // total × pointsPerJod
   walletBonus: number;
   bonusDayBonus: number;
@@ -139,11 +156,44 @@ export function computeEarn(
   rules: EarnRules = earnRulesFromConfig(),
 ): EarnBreakdown {
   const total = Math.max(0, ctx.total || 0);
+
+  // 🔴 THE INVOICE CEILING, applied before anything else reads the invoice.
+  //
+  // The live programme had none, and one mis-keyed amount of 7,085,718.64 JOD
+  // granted 28,342,875 points — 86.2% of every point outstanding in the member
+  // table, from a single row nobody reviewed for over a year. A fat finger at
+  // the till must cost a bounded amount. At 100 JOD against an 8.31 JOD average
+  // invoice this never binds on a real sale.
+  //
+  // It THROWS on a missing or nonsensical dial rather than defaulting. Both
+  // defaults are wrong: falling open (no cap) restores the defect this exists
+  // to prevent — the same "unset means disabled" shape that left /v1/pos/scan
+  // world-callable — and falling closed pays nobody. And a silent
+  // `Math.min(total, undefined)` is NaN, which propagates all the way to the
+  // grant and is caught by nothing. Every real caller goes through
+  // earnRulesFromConfig(), and EarnRules is a required field, so this can only
+  // fire on a hand-built ruleset — where failing at the first grant with a
+  // named reason is exactly what should happen.
+  if (!Number.isFinite(rules.maxEarningInvoiceJod) || rules.maxEarningInvoiceJod <= 0) {
+    throw new Error(
+      'EarnRules.maxEarningInvoiceJod must be a positive finite number of JOD; '
+      + `got ${String(rules.maxEarningInvoiceJod)}. It is the invoice ceiling — `
+      + 'see packages/shared/src/config/index.ts.',
+    );
+  }
+  if (!Number.isFinite(rules.comboMaxPairsPerInvoice) || rules.comboMaxPairsPerInvoice < 0) {
+    throw new Error(
+      'EarnRules.comboMaxPairsPerInvoice must be a non-negative finite number; '
+      + `got ${String(rules.comboMaxPairsPerInvoice)}.`,
+    );
+  }
+  const earningTotal = Math.min(total, rules.maxEarningInvoiceJod);
+  const invoiceCapApplied = total > rules.maxEarningInvoiceJod;
   // NOT Date#getDay(): that is host-local, and the BFF, the phone and the till
   // are not on the same clock. One business day, defined once — see §3.6.
   const weekday = ammanWeekday(ctx.at ?? new Date());
 
-  const base = total * rules.pointsPerJod;
+  const base = earningTotal * rules.pointsPerJod;
 
   // Stack factors — multiplicative on the base, exactly as bff/src/earn.ts:15-16
   // and loyalty.service.mock.ts:222-224 did before this patch. Changing this to
@@ -176,8 +226,14 @@ export function computeEarn(
   const tierBonus = scaled * (tier.multiplier - 1);
   const rate = rules.weekdayBonus.find((w) => w.weekday === weekday)?.rate ?? 0;
   const weekdayBonus = scaled * rate;
-  const comboBonus =
-    Math.max(0, Math.floor(ctx.comboPairs ?? 0)) * rules.comboBonusPoints;
+  // The combo pays once per invoice: `comboPairs()` counts min(drinks, foods)
+  // and is uncapped on purpose, and this is where that count is bounded. A
+  // basket of 15 drinks and 15 foods used to mint 750 points on one invoice.
+  const comboPairsPaid = Math.min(
+    Math.max(0, Math.floor(ctx.comboPairs ?? 0)),
+    Math.max(0, Math.floor(rules.comboMaxPairsPerInvoice)),
+  );
+  const comboBonus = comboPairsPaid * rules.comboBonusPoints;
 
   // THE CEILING (D1). Since 2026-09-06 it is a SAFETY VALVE, not an offer dial.
   // The wallet multiplier, the bonus day and the weekday bonus are all retired,
@@ -205,6 +261,7 @@ export function computeEarn(
 
   return {
     total,
+    earningTotal, invoiceCapApplied, comboPairsPaid,
     base, walletBonus, bonusDayBonus, tierBonus, weekdayBonus, comboBonus,
     subtotal: cappable + comboBonus, cap, capApplied, points,
     effectiveMultiplier: base > 0 ? points / base : 0,

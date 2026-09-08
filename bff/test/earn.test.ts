@@ -58,6 +58,12 @@ const RULES: EarnRules = {
   // Deliberately NOT the shipped value — see SHIPPED below.
   maxEarnMultiplier: 5,
   comboBonusPoints: 50,
+  // Deliberately NOT the shipped values: these arithmetic tests predate both
+  // caps and must keep proving the calculation without them. 999 pairs and a
+  // 1e9 JOD ceiling are "effectively unbounded" without being Infinity, which
+  // the guards in computeEarn reject.
+  comboMaxPairsPerInvoice: 999,
+  maxEarningInvoiceJod: 1e9,
   weekdayBonus: [{ weekday: 5, rate: 0.5 }],
   bonusDay: { enabled: true, multiplier: 2, weekdays: [2] },
 };
@@ -87,6 +93,8 @@ const SHIPPED: EarnRules = {
   walletMultiplier: 1.0,
   maxEarnMultiplier: 3.5,
   comboBonusPoints: 50,
+  comboMaxPairsPerInvoice: 1,
+  maxEarningInvoiceJod: 100,
   weekdayBonus: [],
   bonusDay: { enabled: false, multiplier: 2, weekdays: [2] },
 };
@@ -176,7 +184,41 @@ describe('earn: the dials the tests are written against', () => {
     // the "no discount" reasoning above silently stops being true.
     expect(earnRulesFromConfig().comboBonusPoints).toBe(50);
     expect(config.BRUNCH_COMBO_DISCOUNT).toBe(0);
-    expect(computeEarn({ total: 10, comboPairs: 3, at: MON }, SHIPPED).comboBonus).toBe(150);
+
+    // ONCE PER INVOICE. Three pairs in one basket still pay one bonus — owner,
+    // 2026-09-08, «ما بدي طلب مكتب ولا اجتماع». Uncapped, this basket paid 150
+    // and a fifteen-pair order paid 750 (7.50 JOD) on a single invoice.
+    expect(config.COMBO_MAX_PAIRS_PER_INVOICE).toBe(1);
+    const three = computeEarn({ total: 10, comboPairs: 3, at: MON }, SHIPPED);
+    expect(three.comboBonus).toBe(50);
+    expect(three.comboPairsPaid).toBe(1);
+    // The counter is untouched — the cap lives in earn.ts, not in comboPairs().
+    expect(computeEarn({ total: 10, comboPairs: 0, at: MON }, SHIPPED).comboBonus).toBe(0);
+  });
+
+  it('earn: the invoice ceiling bounds a mis-key at the till', () => {
+    // 🔴 The live programme had no such bound. On 2025-06-23 at City Mall one
+    // mis-keyed amount of 7,085,718.64 JOD granted 28,342,875 points — 86.2% of
+    // every point outstanding in the member table, from a single row that
+    // `amount_flag` did flag and nobody ever reviewed.
+    expect(config.MAX_EARNING_INVOICE_JOD).toBe(100);
+
+    const misKey = computeEarn({ total: 7_085_718.64, windowSpend: 10_000, at: MON }, SHIPPED);
+    expect(misKey.invoiceCapApplied).toBe(true);
+    expect(misKey.earningTotal).toBe(100);
+    expect(misKey.points).toBe(600);            // 100 JOD at the 6% rung, and no more
+    // What it would have been without the ceiling, for the record: 425,143,118.
+    expect(misKey.points).toBeLessThan(1_000);
+
+    // It does not bind on any real invoice — the average paid invoice is 8.31.
+    const real = computeEarn({ total: 8.31, at: MON }, SHIPPED);
+    expect(real.invoiceCapApplied).toBe(false);
+    expect(real.earningTotal).toBe(8.31);
+
+    // And it fails LOUDLY rather than defaulting: an unset ceiling used to make
+    // `Math.min(total, undefined)` NaN, which propagated into the grant.
+    expect(() => computeEarn({ total: 10, at: MON }, { ...SHIPPED, maxEarningInvoiceJod: undefined as unknown as number }))
+      .toThrow(/maxEarningInvoiceJod/);
   });
 
   it('earn: the four zombie promotions are retired and stay retired', () => {

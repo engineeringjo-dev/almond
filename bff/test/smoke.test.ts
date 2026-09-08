@@ -576,14 +576,22 @@ describe('SMOKE: one member, one server, sign-in to the top rung', () => {
       + config.COMBO_BONUS_POINTS,
     );
 
-    // 🔴 THE COST NOTE, pinned rather than written down somewhere. There is no
-    // per-invoice pair cap: `comboPairs` is min(drinks, foods), so a basket of
-    // four drinks and four foods grants four times the bonus. The whole cost
-    // model rests on 35% of invoices containing a pair — the figure this card
-    // exists to raise (at 50% the programme is ~21,109 JOD/yr and at 65%
-    // ~23,867, against ~18,999 for the programme it replaces). A cap is an
-    // OFFER change and is the owner's; this assertion is here so that adding
-    // one is a deliberate act with a test to update, not a silent one.
+    // 🔴 THE PAIR CAP, asserted end to end through the real route.
+    //
+    // `comboPairs` is min(drinks, foods) and is uncapped BY DESIGN — it is a
+    // counter. The bound is config.COMBO_MAX_PAIRS_PER_INVOICE, applied in
+    // loyalty/earn.ts, and it is 1: the combo pays once per invoice however
+    // many pairs the basket holds. Owner, 2026-09-08 — «ما بدي طلب مكتب ولا
+    // اجتماع»: the offer is for one person buying a drink and something to eat.
+    //
+    // Before the cap this basket of four drinks and four foods granted four
+    // bonuses, and a fifteen-and-fifteen order granted 750 points — 7.50 JOD on
+    // a single invoice, most easily rung up by an employee.
+    //
+    // The cost model still rests on how many invoices contain a pair at all
+    // (assumed 35%, never measured, and the offers card exists to raise it), so
+    // the monthly readout is still owed. The cap bounds the tail; it does not
+    // measure the middle.
     const bulk = await enrol();
     const bulkRes = await app.inject({
       method: 'POST',
@@ -595,11 +603,16 @@ describe('SMOKE: one member, one server, sign-in to the top rung', () => {
       headers: authOf(bulk.token, { 'idempotency-key': randomUUID() }),
     });
     // Asserted before the body is read: a 400 here would otherwise surface as
-    // "expected undefined to be 250" and read like an arithmetic failure.
+    // "expected undefined to be N" and read like an arithmetic failure.
     expect(bulkRes.statusCode, bulkRes.body).toBe(201);
     const bulkBody = bulkRes.json();
+    expect(config.COMBO_MAX_PAIRS_PER_INVOICE).toBe(1);
     expect(bulkBody.pointsEarned).toBe(
-      expectedPoints(bulkBody.total, 'base') + 4 * config.COMBO_BONUS_POINTS,
+      expectedPoints(bulkBody.total, 'base') + config.COMBO_MAX_PAIRS_PER_INVOICE * config.COMBO_BONUS_POINTS,
     );
+    // ...and the four-pair basket pays exactly what the one-pair basket paid,
+    // on the combo component. Only the rate component grew with the basket.
+    expect(bulkBody.pointsEarned - expectedPoints(bulkBody.total, 'base'))
+      .toBe(body.pointsEarned - expectedPoints(body.total, 'base'));
   });
 });
