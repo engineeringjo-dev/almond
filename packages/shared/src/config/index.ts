@@ -98,17 +98,42 @@ export const config = {
   // dial stays so the mechanism is one edit away if a real promotion wants it.
   WEEKDAY_EARN_BONUS: [
   ] as readonly { readonly weekday: number; readonly rate: number }[],
-  // Gentle bean expiry (SB "Star expiration"): points stay active for this many
-  // months after the last activity for the 2% and 4% rungs; the 6% rung never
-  // expires (owner: "الأسود ما بينتهي"). Kept generous on purpose (§5 — never
-  // punish the regular member).
+  // HOW LONG ONE GRANT OF POINTS LIVES, in CALENDAR months from the day it was
+  // granted. Owner, verbatim: «كل نقطة تعيش ١٢ شهر ولا تتجدد بشراء جديد وصرف
+  // النقاط FIFO» — every point lives 12 months, a new purchase does NOT renew
+  // it, and points are spent oldest-first. Asked whether the 6% rung keeps its
+  // old exemption: «لا إعفاء — القاعدة للجميع».
   //
-  // The liability lane recommends turning expiry OFF entirely: on Almond's own
-  // vintage triangle a 12-month inactivity rule harvests ~557 JOD, because the
-  // dormant balances sit with members who redeem 0.63% of what they earn. Not
-  // worth the one angry customer. Left as-is because switching it off is an
-  // offer decision; the number is recorded so it needs no re-derivation.
-  BEAN_EXPIRY_MONTHS: 12,
+  // 🔴 THIS IS PER-LOT, NOT PER-ACCOUNT, and it REPLACED `BEAN_EXPIRY_MONTHS`.
+  // The old dial drove an inactivity rule that zeroed the WHOLE balance after
+  // 12 silent months, let any purchase reset the clock on everything, and
+  // exempted the top rung. All of that is deleted (packages/shared/src/loyalty/
+  // lots.ts is the replacement). The NAME changed deliberately: a surviving
+  // BEAN_EXPIRY_MONTHS would tell the next reader the inactivity rule still
+  // exists, and "bean" is vocabulary W4 already removed from every screen.
+  //
+  // THE PRICE LIST, measured over 160,935 live earn rows and 10,621 redemptions
+  // with real FIFO lots, so nobody has to re-derive it:
+  //
+  //   lot life  | expires (of everything issued) | harvest/yr
+  //   12 months |                          17.6% | 4,385 JOD
+  //   18 months |                           9.3% | 2,319 JOD
+  //   24 months |                           4.2% | 1,035 JOD
+  //
+  // against ~557 JOD/yr for the inactivity rule it replaces — 7.9× more — and
+  // ~2,300 JOD/yr once scaled to the shipped 2/4/6 ladder (blended 3.63 against
+  // the historical 6.884). 17.6% breakage also puts the programme inside the
+  // published retail band (20-30%) instead of at zero, which is what IFRS 15
+  // vintage accounting wants. Changing this number is an OFFER decision; it
+  // applies only to grants made after the change, because every lot stores the
+  // expiry day it was promised.
+  POINT_LOT_LIFE_MONTHS: 12,
+  // How long a DEAD lot's row is kept, for support and the breakage report.
+  // It affects no number a member sees: a dead lot contributes 0 to every sum
+  // the ledger computes from the moment it dies. At 90 days a member's array
+  // holds at most 15 months of grants — ~5 rows at the measured median member
+  // (1 visit / 90 days), ~55 at the p95.
+  POINT_LOT_RETENTION_DAYS: 90,
   TAX_RATE: 0.16, // 16% (section 4.6)
   // The combo price discount is WITHDRAWN — the business stopped running it
   // (owner, 2026-09-04: "الكومبو راح من كل مكان"). Kept at 0 rather than

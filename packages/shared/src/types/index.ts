@@ -229,8 +229,27 @@ export interface LoyaltyBalance {
    * keep; both call sites are now guarded. The app's mock still sends it.
    */
   cup?: CupState;
-  /** When the current beans expire (null = never, for Gold/Black). */
-  beansExpireAt?: string | null;
+  /**
+   * The NEXT slice of points to die, and how many. `null` when the member holds
+   * no live points.
+   *
+   * NOT one date for the whole balance — there is no such date any more. Every
+   * grant carries its own 12-month clock (loyalty/lots.ts), so a member holding
+   * 240 points earned across a year has many expiry days and "your points
+   * expire on 15/11" is false for 200 of them. `amount` is the sum of EVERY
+   * live lot sharing the earliest expiry day, not the first lot's remainder.
+   *
+   * `on` is an AMMAN DAY KEY ('YYYY-MM-DD'), not an ISO instant, because the
+   * enforced day and the displayed day must be the same day. 🔴 Never pass it
+   * to `new Date(string)`: `new Date('2026-11-15')` parses as UTC midnight and
+   * renders as 14 November west of Greenwich — the app would print a date one
+   * day earlier than the server enforces. Use `formatDayKey`.
+   *
+   * `| null` rather than optional: unlike `cup` there is a real producer on
+   * both paths (the BFF route and the app's mock), so an absent field is a
+   * producer bug, not a missing feature.
+   */
+  nextExpiry: { amount: number; on: string } | null;
 }
 
 /** "Almond Club" monthly subscription state (shared by app, web, BFF). */

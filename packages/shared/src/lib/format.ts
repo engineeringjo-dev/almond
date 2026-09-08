@@ -84,3 +84,23 @@ export function formatDate(date: string | Date, lang: Lang): string {
     month: 'short',
   }).format(d);
 }
+
+/**
+ * Format an AMMAN DAY KEY ('YYYY-MM-DD') for display.
+ *
+ * 🔴 SEPARATE FROM formatDate ON PURPOSE. `formatDate` takes an INSTANT, and
+ * handing it a bare day key goes through `new Date('2026-11-15')`, which the
+ * spec parses as UTC MIDNIGHT — so on any host west of Greenwich it renders as
+ * 14 November. The point-expiry ledger (loyalty/lots.ts) enforces the day the
+ * key names, so printing the day before it is telling the member their points
+ * die a day earlier than they do. A day key is a calendar fact, not a moment;
+ * it is formatted from its own parts, in UTC, and never converted.
+ */
+export function formatDayKey(day: string, lang: Lang): string {
+  const [y, m, d] = day.split('-').map(Number);
+  return new Intl.DateTimeFormat(lang === 'ar' ? 'ar-JO' : 'en-US', {
+    timeZone: 'UTC',
+    day: 'numeric',
+    month: 'short',
+  }).format(new Date(Date.UTC(y, m - 1, d)));
+}

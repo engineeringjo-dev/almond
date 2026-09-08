@@ -1,7 +1,10 @@
 import { describe, it, expect, afterEach } from 'vitest';
-import { ammanWeekday } from '@almond/shared/lib/ammanWeekday';
-import { expiryAt } from '@almond/shared/loyalty/expiry';
+import { ammanDayKey, ammanWeekday } from '@almond/shared/lib/ammanWeekday';
 import { computeEarn } from '@almond/shared/loyalty/earn';
+import {
+  addMonthsToDayKey, consumeFifo, grantLot, liveBalance, lotExpiresOn,
+  lotRulesFromConfig, migrateBalance, nextExpiry, type PointLot,
+} from '@almond/shared/loyalty/lots';
 import {
   qualifyingSpend, qualifyingVisitDays, spendEntry, windowRulesFromConfig,
 } from '@almond/shared/loyalty/window';
@@ -9,7 +12,7 @@ import { comboPairs } from '@almond/shared/lib/combo';
 import type { CartItem } from '@almond/shared/types';
 import {
   mockLoyaltyService,
-  expirePoints,
+  settleExpiry,
   __setMockSpinConfig,
   __getMockUser,
   type LoyaltyUser,
@@ -47,21 +50,37 @@ function cartLine(itemId: string, unitBasePrice: number, qty: number, isDrink: b
   };
 }
 
-/** A Bean member (no qualifying spend in the window) who last earned `ageDays`
- *  ago. Bean, not Silver: the seeded spend log would otherwise put them a tier
- *  up — the expiry RULE is tier-sensitive (Gold/Black are exempt, §8.3).
+const LOT_RULES = lotRulesFromConfig();
+
+/**
+ * A member holding `points` granted `ageDays` ago, and nothing else.
  *
- *  `heldTierId` is reset with the log. The rung is now max(FLOOR, live window)
- *  and the floor never falls, so clearing the spend alone would leave the
- *  seeded 'top' floor standing and the member exempt from expiry for the wrong
- *  reason. Same spend, same days, same assertions — one more field. */
-function staleBeanUser(ageDays: number, points: number): { id: string; u: LoyaltyUser } {
+ * The successor to `staleBeanUser`. That one had to reset `heldTierId` too,
+ * because the expiry rule read the member's RUNG (the 6% rung was exempt). It
+ * does not any more — «لا إعفاء — القاعدة للجميع» — so the rung is left alone
+ * here on purpose, and the L4 tests set it deliberately to prove it is ignored.
+ */
+function memberWithLots(
+  grants: { points: number; ageDays: number }[],
+  rung: LoyaltyUser['heldTierId'] = 'base',
+): { id: string; u: LoyaltyUser } {
   const id = newUserId();
   const u = __getMockUser(id);
   u.spendLog = [];
-  u.heldTierId = 'base';
-  u.points = points;
-  u.lastEarnAt = Date.now() - ageDays * DAY;
+  u.heldTierId = rung;
+  u.lots = [];
+  u.history = [];
+  for (const g of grants) {
+    u.lots = grantLot(u.lots, g.points, 'earn', new Date(Date.now() - g.ageDays * DAY), LOT_RULES).lots;
+  }
+  // Stamped at the OLDEST grant day, which is what a real member looks like:
+  // the stamp is written at member creation and every lot granted after it
+  // expires later than it does, so nothing is ever born already-settled. A
+  // fixture that stamped `today` over back-dated lots would claim their expiry
+  // had already been booked and would quietly measure nothing.
+  u.expirySettledThrough = u.lots.length
+    ? u.lots.map((l) => l.grantedOn).sort()[0]
+    : ammanDayKey();
   return { id, u };
 }
 
@@ -75,7 +94,7 @@ describe('D2 — one earn calculation: the app grants what computeEarn returns',
   const FRI = new Date('2026-09-11T10:00:00Z'); // Friday — WEEKDAY_EARN_BONUS
 
   /** A member whose 90-day window spend is exactly `windowSpend`, with a fresh
-   *  `lastEarnAt` so expiry never fires and points start at zero. One entry
+   *  ledger so points start at zero. One entry
    *  yesterday: the same spend on the same day as before, now expressed in the
    *  shared {jod, day} entry. `heldTierId` is reset to the entry rung so the
    *  fixture means what its name says — the RUNG is max(floor, window), so a
@@ -85,8 +104,8 @@ describe('D2 — one earn calculation: the app grants what computeEarn returns',
     const u = __getMockUser(id);
     u.spendLog = windowSpend > 0 ? [spendEntry(windowSpend, new Date(Date.now() - DAY))] : [];
     u.heldTierId = 'base';
-    u.points = 0;
-    u.lastEarnAt = Date.now();
+    u.lots = [];
+    u.expirySettledThrough = ammanDayKey();
     return id;
   }
 
@@ -120,7 +139,7 @@ describe('D2 — one earn calculation: the app grants what computeEarn returns',
                 // ... and the balance moves by exactly that, never by that plus
                 // a separately-added combo bonus (the pre-patch app did add it
                 // twice-over, outside the ceiling — §4 D4).
-                expect(__getMockUser(id).points, where).toBe(expected);
+                expect(liveBalance(__getMockUser(id).lots), where).toBe(expected);
               }
             }
           }
@@ -183,8 +202,8 @@ describe('W1 — the app and the BFF measure the SAME 90-day window', () => {
     const u = __getMockUser(id);
     u.spendLog = log.map((e) => spendEntry(e.jod, new Date(Date.now() - e.daysAgo * DAY)));
     u.heldTierId = 'base';
-    u.points = 0;
-    u.lastEarnAt = Date.now();
+    u.lots = [];
+    u.expirySettledThrough = ammanDayKey();
     return { id, u };
   }
 
@@ -337,74 +356,166 @@ describe('D9 — free-spin day', () => {
   });
 });
 
-describe('D10/D11 — expiry is explicit, and it still happens', () => {
-  it('expiry: a stale balance actually reaches zero', () => {
-    const { u } = staleBeanUser(400, 500);
-    // THIS is the assertion that detects expiry having silently stopped
-    // running when the buildBalance side effect was removed (§4 D10/D11).
-    expect(expirePoints(u, Date.now())).toBe(500);
-    expect(u.points).toBe(0);
+/**
+ * L1-L4 / T13 — THE PER-LOT RULE, THROUGH THE PATH A SCREEN ACTUALLY TAKES.
+ *
+ * The pure arithmetic is asserted in bff/test/lots.test.ts (L1-L14); this half
+ * is the enforcement, mirroring the D10/D11 split the deleted file documented.
+ * The block this replaces asserted the OPPOSITE rule — a whole balance dying
+ * after 12 silent months, with the 6% rung exempt — and every one of its tests
+ * is deleted because its subject is, not to make anything pass.
+ */
+describe('L — per-lot expiry, through the mock the app really runs on', () => {
+  it('L1 a lot dies on schedule even though the member kept buying', () => {
+    // 🔴 THE TEST. 100 points a year and a day old, 100 points fresh.
+    //
+    // Under the INACTIVITY rule this replaced, the recent grant renewed
+    // everything and the answer was 200. Under a per-account rule with no
+    // renewal it would be 0. Only a per-LOT rule gives 100, and that is the
+    // owner's rule: «كل نقطة تعيش ١٢ شهر ولا تتجدد بشراء جديد».
+    const { u } = memberWithLots([{ points: 100, ageDays: 400 }, { points: 100, ageDays: 5 }]);
+    expect(liveBalance(u.lots)).toBe(100);
+    expect(u.lots).toHaveLength(2); // the dead row is still there; it is worth 0
   });
 
-  it('expiry: a fresh balance is untouched, and Gold/Black stay exempt', () => {
-    const { u: fresh } = staleBeanUser(30, 500);
-    expect(expirePoints(fresh, Date.now())).toBe(0);
-    expect(fresh.points).toBe(500);
+  it('L2/L3 earn then redeem: oldest first, and the remainder keeps its own clock', async () => {
+    // Three 40-point grants three months apart, spend 100 through the same
+    // method the rewards screen calls.
+    const { id, u } = memberWithLots([
+      { points: 40, ageDays: 180 }, { points: 40, ageDays: 90 }, { points: 40, ageDays: 1 },
+    ]);
+    const newest = u.lots[2];
+    const before = { ...newest };
 
-    // Today's RULE, unchanged: the top tiers are exempt. Removing that
-    // exemption is D5, held behind §8.3 — it must NOT ship with this unit.
-    const { u: black } = staleBeanUser(400, 500);
-    black.spendLog = [spendEntry(5000, new Date(Date.now() - 10 * DAY))];
-    expect(expirePoints(black, Date.now())).toBe(0);
-    expect(black.points).toBe(500);
+    const res = await mockLoyaltyService.redeemReward(id, {
+      beans: 100, titleAr: 'مكافأة', titleEn: 'Reward', type: 'free-item',
+    });
+    expect(res.points).toBe(20);
+    expect(u.lots.map((l) => l.remaining)).toEqual([0, 0, 20]);
+
+    // 🔴 THE PARTIALLY CONSUMED LOT WAS NOT RE-DATED. Re-dating it (or closing
+    // it and re-granting the remainder) silently extends those 20 points by up
+    // to 12 months, and does it again on every partial spend — the inactivity
+    // rule sneaking back in through the redemption path.
+    expect(u.lots[2].grantedOn).toBe(before.grantedOn);
+    expect(u.lots[2].expiresOn).toBe(before.expiresOn);
+    expect(u.lots[2].amount).toBe(before.amount); // the audit number never moves
+    expect(u.lots[2].seq).toBe(before.seq);
   });
 
-  it('expiry: 360 days is not yet expired (D10)', () => {
-    const { u } = staleBeanUser(360, 500);
-    expect(expirePoints(u, Date.now())).toBe(0);
-    expect(u.points).toBe(500);
+  it('L6 a redemption bigger than the LIVE balance is refused, and moves nothing', async () => {
+    const { id, u } = memberWithLots([{ points: 100, ageDays: 400 }, { points: 40, ageDays: 1 }]);
+    const snapshot = JSON.parse(JSON.stringify(u.lots));
+    await expect(mockLoyaltyService.redeemReward(id, {
+      beans: 60, titleAr: 'مكافأة', titleEn: 'Reward', type: 'free-item',
+    })).rejects.toThrow('Not enough beans');
+    // 100 of the 140 points are dead, so 60 is short — and the refusal is
+    // ATOMIC: a loop that debits the live lot first and only then discovers it
+    // is short leaves the member charged for a reward they never received.
+    expect(u.lots).toEqual(snapshot);
+    expect(u.vouchers.some((v) => v.titleEn === 'Reward')).toBe(false);
   });
 
-  it('expiry: a GET never mutates — two reads agree (D11)', async () => {
-    const { id } = staleBeanUser(400, 500);
+  it('T13/L4 every rung expires on the same clock — the 6% rung is NOT exempt', async () => {
+    // 🔴 THE DISCHARGE OF `it.todo('T13 expiry: every tier expires on the same
+    // clock')`, which was pre-registered for exactly this change. The todo's own
+    // wording described a SMALLER change than the one that shipped — it expected
+    // `beansExpireAt` to lose its tierId argument. There is no beansExpireAt any
+    // more, and no per-account expiry at all: the whole rule was replaced, and
+    // the tier cannot be consulted because @almond/shared/loyalty/lots.ts does
+    // not import the tier table. Owner: «لا إعفاء — القاعدة للجميع».
+    const grants = [{ points: 500, ageDays: 400 }, { points: 60, ageDays: 3 }];
+    const base = memberWithLots(grants, 'base');
+    const top = memberWithLots(grants, 'top');
+    // Same rung on the wire as the fixture asked for, so the assertion below is
+    // about expiry and not about a fixture that silently reset itself.
+    expect((await mockLoyaltyService.getBalance(top.id)).tier).toBe('top');
+    expect((await mockLoyaltyService.getBalance(base.id)).tier).toBe('base');
+
+    const b = await mockLoyaltyService.getBalance(base.id);
+    const t = await mockLoyaltyService.getBalance(top.id);
+    expect(t.points).toBe(b.points);
+    expect(t.points).toBe(60);
+    expect(t.nextExpiry).toEqual(b.nextExpiry);
+  });
+
+  it('L10 a read never mutates — two GETs agree across a boundary (D11)', async () => {
+    const { id, u } = memberWithLots([{ points: 500, ageDays: 400 }]);
+    const snapshot = JSON.parse(JSON.stringify(u.lots));
     const a = await mockLoyaltyService.getBalance(id);
     const b = await mockLoyaltyService.getBalance(id);
-    expect(a.points).toBe(0); // expiry ran explicitly, before the response
+    // The number is right on the FIRST read, with no sweep and no side effect:
+    // a dead lot is worth 0 to liveBalance from the instant it dies. D11 used
+    // to need policing (`expirePoints` was a mutation a read had to trigger);
+    // now it holds by construction and this proves it.
+    expect(a.points).toBe(0);
     expect(b.points).toBe(a.points);
+    expect(a.nextExpiry).toBeNull();
+    expect(u.lots).toEqual(snapshot);
+    expect(u.history).toEqual([]); // and no history row was written by a GET
   });
 
-  it('expiry: runs on the write path too — earn() expires before it grants', async () => {
-    const { id, u } = staleBeanUser(400, 500);
-    const res = await mockLoyaltyService.earn({
-      userId: id,
-      invoiceAmount: 10,
-      paidFromBalance: false,
-    });
-    // The 500 stale points are gone; only the fresh grant survives.
-    expect(u.points).toBe(res.pointsEarned);
+  it('L11 the balance says WHICH points die next, summed over the whole day', async () => {
+    const { id, u } = memberWithLots([
+      { points: 40, ageDays: 300 }, { points: 40, ageDays: 300 }, { points: 25, ageDays: 10 },
+    ]);
+    const bal = await mockLoyaltyService.getBalance(id);
+    // TWO grants on one day report 80, not 40. "40 points expire on 15/11" is
+    // the sentence, and a payload that can only name one lot cannot say it.
+    expect(bal.nextExpiry).toEqual({ amount: 80, on: u.lots[0].expiresOn });
+    expect(bal.nextExpiry!.on).toBe(lotExpiresOn(u.lots[0].grantedOn, LOT_RULES));
+    // ... and it is an Amman DAY KEY, not an ISO instant. Anything that reaches
+    // `new Date(string)` renders the day BEFORE west of Greenwich.
+    expect(bal.nextExpiry!.on).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+  });
+
+  it('L12 the ledger line: expiry is written to history on the next write, once', async () => {
+    const { id, u } = memberWithLots([{ points: 500, ageDays: 400 }]);
+    // A member who never comes back is never formally settled, and it costs
+    // nothing: their balance already reads 0 to everyone. The row is written on
+    // the next write path — here, an order.
+    expect(liveBalance(u.lots)).toBe(0);
+    expect(u.history).toEqual([]);
+
+    const res = await mockLoyaltyService.earn({ userId: id, invoiceAmount: 10, paidFromBalance: false });
+    const expiredRows = u.history.filter((h) => h.deltaPoints === -500);
+    expect(expiredRows).toHaveLength(1);
+    expect(expiredRows[0].reasonEn).toBe('Points expired');
+    // The grant survives; the dead 500 do not, and the grant did not revive them.
+    expect(liveBalance(u.lots)).toBe(res.pointsEarned);
     expect(res.pointsEarned).toBeGreaterThan(0);
+
+    // IDEMPOTENT. A second write does not book the same loss twice.
+    await mockLoyaltyService.earn({ userId: id, invoiceAmount: 10, paidFromBalance: false });
+    expect(u.history.filter((h) => h.deltaPoints === -500)).toHaveLength(1);
+    expect(settleExpiry(u)).toBe(0);
   });
 
-  it('expiry: the date the UI shows is 12 calendar months from the last activity', () => {
-    const { id, u } = staleBeanUser(30, 500);
-    return mockLoyaltyService.getBalance(id).then((bal) => {
-      expect(bal.beansExpireAt).toBe(new Date(expiryAt(u.lastEarnAt)).toISOString());
-    });
+  it('L1b a top-up grants its own lot and renews nothing', async () => {
+    // `u.lastEarnAt = Date.now(); // a reload counts as activity (extends
+    // beans)` used to sit in topUp. That ONE LINE was the inactivity rule: a
+    // 20 JOD reload resurrected a year of dormant points. It is gone.
+    const { id, u } = memberWithLots([{ points: 500, ageDays: 400 }]);
+    await mockLoyaltyService.topUp(id, 20);
+    const bonus = u.lots.filter((l) => l.source === 'bonus');
+    expect(bonus).toHaveLength(1);
+    expect(liveBalance(u.lots)).toBe(bonus[0].amount); // the 500 stayed dead
   });
-});
 
-describe('held behind §8', () => {
-  // D5 inverts the expiry rule so the LARGEST balances stop being a permanent
-  // liability. That takes points away from Gold and Black members, which is
-  // precisely the change §8.3 says must ship with a notice period, an in-app
-  // countdown and the liability numbers. The safe set keeps today's rule, and
-  // 'a fresh balance is untouched, and Gold/Black stay exempt' above asserts
-  // the exemption is still THERE — so this todo and that test are deliberately
-  // contradictory, and whoever ships §8.3 must flip both together.
-  it.todo(
-    'T13 expiry: every tier expires on the same clock (D5, §8.3)'
-    + ' — beansExpireAt loses its tierId argument, so for a Bean user AND a'
-    + ' Black user beansExpireAt(u) === new Date(expiryAt(u.lastEarnAt)).toISOString();'
-    + ' and expirePoints drops its `tier.id === gold || black` early return.',
-  );
+  it('L5 the seeded demo member is a ledger, not a scalar', async () => {
+    // The shipped mock is the app's ONLY data source (config.DATA_SOURCE is
+    // 'mock'), so its seed is what every screen renders on first launch. It
+    // holds two grants made months apart, which is what makes `nextExpiry`
+    // non-null and the home nudge's expiring-soon window reachable at all.
+    const id = newUserId();
+    const u = __getMockUser(id);
+    expect(u.lots.length).toBeGreaterThan(1);
+    const bal = await mockLoyaltyService.getBalance(id);
+    expect(bal.points).toBe(liveBalance(u.lots));
+    expect(bal.points).toBe(u.lots.reduce((s, l) => s + l.remaining, 0));
+    expect(bal.nextExpiry).not.toBeNull();
+    // FIFO: the oldest grant is the one closest to death.
+    const oldest = [...u.lots].sort((a, b) => a.grantedOn.localeCompare(b.grantedOn))[0];
+    expect(bal.nextExpiry!.on).toBe(oldest.expiresOn);
+  });
 });

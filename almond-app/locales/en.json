@@ -116,7 +116,7 @@
     "greetingMorningGuest": "Good morning ☕",
     "greetingEveningGuest": "Good evening ☕",
     "nudgeCart": "You have {{count}} items in your cart — finish your order",
-    "nudgeExpiry": "Your points expire on {{date}} — redeem them before they're gone"
+    "nudgeExpiry": "{{points}} of your points expire on {{date}} — spend them first"
   },
   "offers": {
     "comboTitle": "Any drink + any food = {{points}} points 🍽️",
@@ -289,7 +289,7 @@
     "cupClose": "Almost there — your free drink awaits! ☕",
     "cupHint": "Collect 10 orders and get a free drink",
     "tier": "Your tier",
-    "tierMax": "👑 You made it — {{tier}} back on every order, and your points never expire",
+    "tierMax": "👑 You made it — {{tier}} back on every order",
     "windowNote": "Based on your last 3 months",
     "spin": "Lucky Wheel",
     "spinCta": "Try your luck!",
@@ -331,8 +331,7 @@
     "routineTitle": "Get rewarded for your routine",
     "routineSub": "As your status grows, so do your benefits",
     "maxValueHint": "Value is a max — pay the difference if the item costs more",
-    "beansNeverExpire": "Your points never expire ✓",
-    "beansExpire": "Your points are active until {{date}}",
+    "pointsExpireNext": "{{points}} points expire on {{date}}",
     "confirmTitle": "Confirm redemption",
     "confirmBody": "Redeem “{{item}}” for {{beans}} points?",
     "redeemCta": "Redeem",
@@ -360,7 +359,6 @@
   },
   "tierBenefits": {
     "birthday": "A free drink on your birthday",
-    "noExpire": "Your points never expire",
     "freeMod": "Free drink customization once a month, on us",
     "offers": "Personalized offers made for you",
     "experiences": "Access to exclusive coffee experiences",

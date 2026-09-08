@@ -2,13 +2,39 @@ import type { OrderType, PaymentMethodId, TierId } from '@almond/shared/types';
 import type { EarnBreakdown } from '@almond/shared/loyalty/earn';
 import type { HoldoutStamp } from '@almond/shared/loyalty/holdout';
 import type { SecondVisitVoucher } from '@almond/shared/loyalty/secondVisit';
+import type { PointLot } from '@almond/shared/loyalty/lots';
 import type { SpendEntry, TierStanding, Evaluation } from '@almond/shared/loyalty/window';
 
 export interface Member {
   id: string;
   phone: string;
   name: string;
-  points: number;
+  /**
+   * 🔴 THE POINT LEDGER. This replaced `points: number`.
+   *
+   * A scalar cannot say WHEN a point was earned, so it cannot say when that
+   * point dies and a redemption cannot know which part of it was spent — and
+   * the owner's rule is per-GRANT: «كل نقطة تعيش ١٢ شهر ولا تتجدد بشراء جديد
+   * وصرف النقاط FIFO». The balance is therefore `liveBalance(m.lots)`, a
+   * DERIVED sum, and there is deliberately no stored number beside it that
+   * could disagree. Deleting the scalar rather than shadowing it is the same
+   * technique that retired `windowSpend`: every reader becomes a typecheck
+   * failure instead of a silent second opinion.
+   *
+   * All arithmetic on this array lives in @almond/shared/loyalty/lots.ts.
+   * Nothing here or anywhere else may write `remaining` by hand.
+   */
+  lots: PointLot[];
+  /**
+   * The Amman day key through which expiry has been BOOKED into `history`.
+   *
+   * The balance itself needs no sweep — a dead lot contributes 0 to
+   * `liveBalance` from the instant it dies, for every reader. This stamp exists
+   * only so the member's history carries a line for the loss, and so
+   * `unexplainedPoints` (liveBalance − Σ history deltas) stays exact. The
+   * mirror of `evaluatedThrough`, and idempotent for the same reason.
+   */
+  expirySettledThrough: string;
   walletFils: number; // stored-value wallet, in fils
   /**
    * The dated spend log the rolling window is computed from, PRUNED to
@@ -30,7 +56,6 @@ export interface Member {
   heldTierId: TierId;
   /** Latest evaluation period already closed, e.g. '2026-Q3'. */
   evaluatedThrough: string;
-  lastEarnAt: number;
   subRenewsAt: number; // "Almond Club" renewal epoch (ms); 0 = not subscribed
   subDay: string; // 'YYYY-MM-DD' of the last free-drink redemption
   subDayCount: number; // free drinks redeemed on subDay
@@ -106,8 +131,18 @@ export interface Backend {
   /** Atomic debit; throws conflict('insufficient_wallet') if balance < fils. */
   debitWallet(id: string, fils: number): Promise<number>;
   creditWallet(id: string, fils: number): Promise<number>;
+  /**
+   * Grant points as ONE LOT with its own 12-month clock, and log the reason.
+   * Returns the member's live balance afterwards.
+   *
+   * A grant NEVER renews an older lot — «ولا تتجدد بشراء جديد». A delta of 0
+   * writes no lot (computeEarn returns 0 on a small invoice) but still logs, so
+   * the history stays a complete ledger. A NEGATIVE delta throws: this method
+   * had no sign guard, and one negative lot would poison every sum silently.
+   */
   addPoints(id: string, delta: number, reasonAr: string, reasonEn: string): Promise<number>;
-  /** Atomic points spend; throws conflict('insufficient_points'). */
+  /** Atomic points spend, OLDEST LOT FIRST, measured against the LIVE balance;
+   *  throws conflict('insufficient_points') without touching a single lot. */
   spendPoints(id: string, points: number, reasonAr: string, reasonEn: string): Promise<number>;
   /**
    * Record one qualifying purchase against the rolling window.

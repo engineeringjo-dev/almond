@@ -116,7 +116,7 @@
     "greetingMorningGuest": "صباح الكيف ☕",
     "greetingEveningGuest": "مساء الكيف ☕",
     "nudgeCart": "لديك {{count}} صنف بسلتك — أكمل طلبك",
-    "nudgeExpiry": "نقاطك تنتهي في {{date}} — اصرفها قبل فوات الأوان"
+    "nudgeExpiry": "{{points}} من نقاطك تنتهي في {{date}} — اصرفها قبل فوات الأوان"
   },
   "offers": {
     "comboTitle": "أي مشروب + أي طعام = {{points}} نقطة 🍽️",
@@ -289,7 +289,7 @@
     "cupClose": "اقتربت من قهوتك المجانية! ☕",
     "cupHint": "اجمع 10 طلبات واحصل على مشروب مجاني",
     "tier": "فئتك",
-    "tierMax": "👑 وصلت للقمة — {{tier}} ترجع لك من كل طلب، ونقاطك لا تنتهي",
+    "tierMax": "👑 وصلت للقمة — {{tier}} ترجع لك من كل طلب",
     "windowNote": "حسب آخر 3 شهور",
     "spin": "عجلة الحظ",
     "spinCta": "جرّب حظك!",
@@ -331,8 +331,7 @@
     "routineTitle": "كافئ نفسك على عادتك اليومية",
     "routineSub": "كل ما ارتقت فئتك، زادت مزاياك",
     "maxValueHint": "القيمة كحد أقصى — تقدر تدفع الفرق إذا زاد سعر الصنف",
-    "beansNeverExpire": "نقاطك لا تنتهي ✓",
-    "beansExpire": "نقاطك فعّالة حتى {{date}}",
+    "pointsExpireNext": "{{points}} نقطة تنتهي في {{date}}",
     "confirmTitle": "تأكيد الاستبدال",
     "confirmBody": "تستبدل «{{item}}» مقابل {{beans}} نقطة؟",
     "redeemCta": "استبدل",
@@ -360,7 +359,6 @@
   },
   "tierBenefits": {
     "birthday": "مشروب مجاني في عيد ميلادك",
-    "noExpire": "نقاطك لا تنتهي",
     "freeMod": "تخصيص مجاني لمشروبك مرة كل شهر",
     "offers": "عروض شخصية تناسب ذوقك",
     "experiences": "تجارب قهوة حصرية",

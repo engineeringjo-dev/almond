@@ -13,21 +13,38 @@ import type { GiftCard, Subscription, PaymentMethodId, TierId } from '@/types';
 import type { LoyaltyService, EarnInput } from './loyalty.service';
 import { config } from '@/constants/config';
 import { computeEarn } from '@almond/shared/loyalty/earn';
-import { expiryAt, isExpired } from '@almond/shared/loyalty/expiry';
+import {
+  consumeFifo, expiredBetween, grantLot, liveBalance, lotRulesFromConfig, migrateBalance,
+  nextExpiry, pruneLots, type PointLot,
+} from '@almond/shared/loyalty/lots';
 import {
   evaluationPeriod, holdRung, qualifiedRung, spendEntry, standing, windowRulesFromConfig,
   type SpendEntry,
 } from '@almond/shared/loyalty/window';
 import { ammanDayKey, ammanWeekday } from '@almond/shared/lib/ammanWeekday';
 // The earn multiplier is computeEarn's business only; this is the tier itself.
-// earn-arith-exempt: tier lookup for the expiry rule and the balance. §7 T7.
+// earn-arith-exempt: tier lookup for the balance payload. §7 T7.
 import { tiers } from './seed';
 import { delay, genId } from './util';
 import { defaultSpinConfig, pickWeightedPrize } from './spinDefaults';
 import { reloadBonusBeans } from '@/lib/walletBonus';
 
 export interface LoyaltyUser {
-  points: number;
+  /**
+   * 🔴 THE POINT LEDGER — one row per grant, each with its own 12-month clock.
+   * This replaced `points: number`, and the balance is now `liveBalance(u.lots)`
+   * on every read. Owner: «كل نقطة تعيش ١٢ شهر ولا تتجدد بشراء جديد وصرف النقاط
+   * FIFO». The rows and every function that touches them are the SHARED ones
+   * (@almond/shared/loyalty/lots), never a second local definition — the same
+   * argument that made `spendLog` shared, with money in it: if the phone
+   * computes 240 and the server computes 200, the member is refused a
+   * redemption they can see on their screen.
+   */
+  lots: PointLot[];
+  /** The Amman day key through which expiry has been written into `history`.
+   *  The BALANCE never needs this — a dead lot contributes 0 to every sum from
+   *  the instant it dies. Only the ledger LINE does. */
+  expirySettledThrough: string;
   /**
    * Every qualifying purchase, dated by the AMMAN day it happened on. The type
    * and the window that reads it are the SHARED ones
@@ -52,8 +69,6 @@ export interface LoyaltyUser {
   vouchers: Voucher[];
   history: PointsLogEntry[];
   visits: number;
-  /** Epoch ms of the last bean-earning activity (drives gentle expiry). */
-  lastEarnAt: number;
   spinsAvailable: number;
   /** Amman day-key of the last free-spin-day / campaign grant claim, and how
    *  many of that day's grants were already banked (D9). */
@@ -71,6 +86,9 @@ export interface LoyaltyUser {
 
 /** The 90-day window, read once from config — the same object the BFF reads. */
 const WINDOW = windowRulesFromConfig();
+/** The lot life, read once from config — the mirror of WINDOW, and the same
+ *  object bff/src/backend/memory.ts reads. */
+const LOTS = lotRulesFromConfig();
 
 /** One business day for the whole system (§3.6) — Amman, not UTC; the mirror of
  *  bff/src/backend/memory.ts's todayKey. It moves the daily free-drink
@@ -124,7 +142,22 @@ function ensureUser(userId: string): LoyaltyUser {
     // Demo-friendly starting state: the ENTRY rung, two visit days banked,
     // head-start cup, one spin.
     u = {
-      points: 1240,
+      // 🔴 1,240 POINTS AS TWO LOTS, NOT ONE SCALAR — the seed is the only
+      // place the per-lot rule can be SEEN without a test fixture. 1,000 points
+      // granted 355 days ago are ten days from dying (so `nextExpiry` is
+      // non-null and HomeNudge's expiring-soon window really fires), and 240
+      // granted ten days ago are not. A redemption takes the older thousand
+      // first, which is the FIFO rule on screen.
+      //
+      // `source: 'migration'` because a seeded opening balance is exactly that:
+      // points this system did not grant. THE BACK-DATING IS A DEMO OF A MATURE
+      // MEMBER — the real migration dates every lot at the cutover day (see
+      // migrationLot: a rule may not take money retroactively).
+      lots: grantLot(
+        migrateBalance(1000, ammanDayKey(new Date(Date.now() - 86400000 * 355)), LOTS),
+        240, 'migration', new Date(Date.now() - 86400000 * 10), LOTS,
+      ).lots,
+      expirySettledThrough: ammanDayKey(),
       // 🔴 THE SEED DECIDES WHETHER W4'S CENTREPIECE RENDERS AT ALL.
       //
       // It was 72 JOD over three in-window days with `heldTierId: 'top'`, i.e.
@@ -167,7 +200,6 @@ function ensureUser(userId: string): LoyaltyUser {
         { id: genId('log'), deltaPoints: 15, reasonAr: 'طلب لاتيه', reasonEn: 'Latte order', createdAt: new Date(Date.now() - 86400000 * 7).toISOString() },
       ],
       visits: 4,
-      lastEarnAt: Date.now() - 86400000 * 7, // last earned a week ago
       spinsAvailable: 1,
       grantDay: '', grantDayCount: 0,
       hasRatedBranchEver: false,
@@ -181,32 +213,39 @@ function ensureUser(userId: string): LoyaltyUser {
   return u;
 }
 
-/** Expiry is an EXPLICIT operation, never a side effect of a read (D11).
- *  Returns the points destroyed, so a caller/test can assert it happened.
- *  The RULE is unchanged here — the top rung is still exempt; removing that
- *  exemption is the offer change in §8.3. */
-export function expirePoints(u: LoyaltyUser, now = Date.now()): number {
-  // The rung the member is actually PAID at — max(floor, live 90-day window) —
-  // not tierFromSpend on a spend figure. The RULE is unchanged; what changed is
-  // that "which rung is this member on" now has one answer instead of two.
-  // earn-arith-exempt: the EXPIRY rule is tier-sensitive (§8.3), not the grant. §7 T7.
-  const tier = standingOf(u, new Date(now)).held;
-  // TODAY'S RULE, unchanged in substance: the top rung is exempt (owner:
-  // "الأسود ما بينتهي"). Under the 2/4/6 ladder that is the 6% rung; it used to
-  // be Gold+Black on the four-tier ramp. Removing the exemption altogether is
-  // the offer change held behind LOYALTY-EARN-PATCH §8.3 — and the liability
-  // lane now prices expiry at ~557 JOD/yr harvested, i.e. barely worth having.
-  if (tier.id === 'top') return 0;
-  if (!isExpired(u.lastEarnAt, now)) return 0;
-  const lost = u.points;
-  u.points = 0;
+/**
+ * Write the ledger LINE for points that have died since this member was last
+ * settled, then drop the rows nothing needs any more. Returns the points booked
+ * as expired, so a caller or a test can assert it happened.
+ *
+ * 🔴 THIS IS NOT WHAT MAKES THE BALANCE FALL, and that is the whole difference
+ * from the `expirePoints` it replaced. That function was a MUTATION A READ HAD
+ * TO TRIGGER — hence `expirePoints(u, Date.now())` sprinkled through getBalance
+ * and earn, a comment insisting "a GET must not mutate", and a test whose job
+ * was to police the contradiction. Under a ledger `liveBalance(u.lots)` is
+ * already 0 for a dead lot, for every caller, from the instant it dies, so D11
+ * holds by construction and there is nothing for a read to trigger. What is
+ * left is the history row, which is only worth writing on a write path.
+ *
+ * There is also NO TIER EXEMPTION any more, and there cannot be one: the rule
+ * lives in @almond/shared/loyalty/lots.ts, which does not import the tier table
+ * at all. «لا إعفاء — القاعدة للجميع».
+ */
+export function settleExpiry(u: LoyaltyUser, at: Date = new Date()): number {
+  const today = ammanDayKey(at);
+  const lost = expiredBetween(u.lots, u.expirySettledThrough, today);
+  if (lost > 0) {
+    u.history.unshift({
+      id: genId('log'), deltaPoints: -lost,
+      reasonAr: 'انتهاء صلاحية نقاط', reasonEn: 'Points expired',
+      createdAt: at.toISOString(),
+    });
+  }
+  u.expirySettledThrough = today;
+  // After the loss is booked, never before — pruning first would take the rows
+  // the history line is derived from with it.
+  u.lots = pruneLots(u.lots, at, LOTS);
   return lost;
-}
-
-/** The 6% rung never expires; the rungs below it expire after inactivity. */
-export function beansExpireAt(u: LoyaltyUser, tierId: string): string | null {
-  if (tierId === 'top') return null;
-  return new Date(expiryAt(u.lastEarnAt)).toISOString();
 }
 
 function buildBalance(userId: string, u: LoyaltyUser): LoyaltyBalance {
@@ -215,11 +254,13 @@ function buildBalance(userId: string, u: LoyaltyUser): LoyaltyBalance {
   const st = standingOf(u);
   // earn-arith-exempt: tier shown on the balance payload; no invoice, no grant. §7 T7.
   const tier = tiers.find((x) => x.id === st.held.id) ?? tiers[0];
-  // NOTE: expiry is an explicit job (expirePoints), never a side effect of a
-  // read. buildBalance is called from getBalance — a GET must not mutate.
+  // A PURE READ. The balance is derived from the lots on every call, so it
+  // cannot be stale and there is no expiry job for this path to have missed
+  // (D11 is satisfied by construction — see settleExpiry).
+  const at = new Date();
   return {
     userId,
-    points: u.points,
+    points: liveBalance(u.lots, at),
     windowSpend: st.windowSpend,
     visitDays: st.visitDays,
     tier: tier.id,
@@ -240,7 +281,10 @@ function buildBalance(userId: string, u: LoyaltyUser): LoyaltyBalance {
         }
       : null,
     cup: u.cup,
-    beansExpireAt: beansExpireAt(u, tier.id),
+    // WHICH points die next, and HOW MANY. Not one date for the whole balance:
+    // this member holds grants made months apart and each one dies on its own
+    // day. The tier is not consulted — «لا إعفاء».
+    nextExpiry: nextExpiry(u.lots, at),
   };
 }
 
@@ -285,7 +329,8 @@ function computeEligibility(u: LoyaltyUser): SpinEligibility {
 export const mockLoyaltyService: LoyaltyService = {
   getBalance: (userId) => {
     const u = ensureUser(userId);
-    expirePoints(u, Date.now()); // explicit, before the response is built
+    // Nothing to run first. A dead lot is already worth 0 to buildBalance, so
+    // this GET reads the right number while mutating nothing at all (D11).
     return delay(buildBalance(userId, u));
   },
 
@@ -299,8 +344,14 @@ export const mockLoyaltyService: LoyaltyService = {
   // value and are never moved to the wallet (Starbucks model).
   redeemReward: (userId, input) => {
     const u = ensureUser(userId);
-    if (input.beans > u.points) return Promise.reject(new Error('Not enough beans'));
-    u.points -= input.beans;
+    settleExpiry(u);
+    // 🔴 OLDEST LOT FIRST, AND THE SHORTFALL IS FOUND BEFORE ANY DEBIT.
+    // consumeFifo checks the live total first and returns a refusal that has
+    // written nothing; a lot consumed only in part keeps its own grant date and
+    // its own expiry day, so the remainder dies when it was always going to.
+    const spend = consumeFifo(u.lots, input.beans, new Date());
+    if (!spend.ok) return Promise.reject(new Error('Not enough beans'));
+    u.lots = spend.lots;
     const voucher: Voucher = {
       id: genId('vch'),
       titleAr: input.titleAr,
@@ -316,15 +367,16 @@ export const mockLoyaltyService: LoyaltyService = {
       reasonEn: `Redeemed reward: ${input.titleEn}`,
       createdAt: new Date().toISOString(),
     });
-    return delay({ points: u.points, voucher });
+    return delay({ points: liveBalance(u.lots), voucher });
   },
 
   // Mirror of section 8.2 earn calculation.
   earn: ({ userId, invoiceAmount, paidFromBalance, at, bonusDayActivated, comboPairs }: EarnInput) => {
     const u = ensureUser(userId);
-    // Expiry runs BEFORE the grant, explicitly — never as a side effect of a
-    // read (D11). See expirePoints above.
-    expirePoints(u, Date.now());
+    // Book any expiry that has come due into the history BEFORE the grant, so
+    // the ledger reads in order. It does not change what is granted, and it
+    // does not renew anything: «ولا تتجدد بشراء جديد».
+    settleExpiry(u, at ?? new Date());
     // The standing BEFORE this transaction — the same read the BFF's checkout
     // route does, so the phone and the server grant on the same window.
     const st = standingOf(u, at ?? new Date());
@@ -340,9 +392,10 @@ export const mockLoyaltyService: LoyaltyService = {
       at,
     });
     const pointsEarned = earn.points;
-    u.lastEarnAt = Date.now();
 
-    u.points += pointsEarned;
+    // ONE GRANT, ONE LOT, ONE CLOCK. It is appended; no existing lot is touched,
+    // re-dated or extended. A zero grant (a small invoice) appends nothing.
+    u.lots = grantLot(u.lots, pointsEarned, 'earn', at ?? new Date(), LOTS).lots;
     // Dated by the AMMAN day, by the same helper the BFF uses. Not pruned here:
     // the seeded 400-day entry is the mock's roll-off demonstration.
     u.spendLog.push(spendEntry(invoiceAmount, at ?? new Date()));
@@ -457,8 +510,13 @@ export const mockLoyaltyService: LoyaltyService = {
     // Digital reload bonus beans (pre-commitment lever): grant the highest
     // qualifying tier's bonus and log it.
     const bonus = reloadBonusBeans(amount);
+    settleExpiry(u);
     if (bonus > 0) {
-      u.points += bonus;
+      // A lot of its own, with its own 12 months. This line used to be followed
+      // by `u.lastEarnAt = Date.now(); // a reload counts as activity (extends
+      // beans)` — which WAS the inactivity rule in one line. A top-up grants
+      // points; it renews nothing.
+      u.lots = grantLot(u.lots, bonus, 'bonus', new Date(), LOTS).lots;
       u.history.unshift({
         id: genId('log'), deltaPoints: bonus,
         reasonAr: `مكافأة شحن المحفظة (+${bonus} نقطة)`,
@@ -466,7 +524,6 @@ export const mockLoyaltyService: LoyaltyService = {
         createdAt: new Date().toISOString(),
       });
     }
-    u.lastEarnAt = Date.now(); // a reload counts as activity (extends beans)
     // Top-up of the configured amount grants a spin (section 2.4).
     if (amount >= spinConfig.eligibility.topupAmount) u.spinsAvailable += 1;
     return delay(u.walletBalance);
@@ -589,7 +646,8 @@ export const mockLoyaltyService: LoyaltyService = {
     // Assume OTP-verified at claim time in mock; mark phone as known.
     knownPhones.add(referredPhone);
     u.hasReferralRewardEver = true;
-    u.points += 50;
+    settleExpiry(u);
+    u.lots = grantLot(u.lots, 50, 'bonus', new Date(), LOTS).lots;
     u.history.unshift({
       id: genId('log'), deltaPoints: 50,
       reasonAr: 'مكافأة دعوة صديق', reasonEn: 'Referral reward', createdAt: new Date().toISOString(),
@@ -602,7 +660,8 @@ export const mockLoyaltyService: LoyaltyService = {
     const u = ensureUser(userId);
     if (u.hasRatedBranchEver) return delay({ rewarded: false });
     u.hasRatedBranchEver = true;
-    u.points += 50;
+    settleExpiry(u);
+    u.lots = grantLot(u.lots, 50, 'bonus', new Date(), LOTS).lots;
     u.history.unshift({
       id: genId('log'), deltaPoints: 50,
       reasonAr: 'مكافأة تقييم الفرع', reasonEn: 'Branch rating reward', createdAt: new Date().toISOString(),
@@ -616,8 +675,9 @@ export function __setMockSpinConfig(cfg: SpinConfig) {
   spinConfig = cfg;
 }
 
-/** Test hook: the stored user record, so a test can age `lastEarnAt` past the
- *  expiry window. There is no public way to build a stale member (§7 T15). */
+/** Test hook: the stored user record, so a test can build a ledger of its own —
+ *  back-dated lots, a spend log, a held rung. There is no public way to build a
+ *  member holding points that are about to die (§7 T15). */
 export function __getMockUser(userId: string): LoyaltyUser {
   return ensureUser(userId);
 }

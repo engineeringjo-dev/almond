@@ -2,6 +2,7 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { randomUUID } from 'node:crypto';
 import type { FastifyInstance } from 'fastify';
 import { config } from '@almond/shared/config';
+import { liveBalance } from '@almond/shared/loyalty/lots';
 import { menuItems } from '@almond/shared/menu';
 import { basketHasDrink } from '@almond/shared/lib/combo';
 import { itemKind } from '@almond/shared/lib/categoryKind';
@@ -229,7 +230,13 @@ describe('T32d the migration guard — the 19,040 JOD line', () => {
     // 921-1,600 JOD/yr.
     const token = await signIn(app, '0790000000');
     const before = await backend.getMember('demo');
-    expect(before.points, 'the fixture must carry a pre-existing balance').toBeGreaterThan(0);
+    expect(
+      liveBalance(before.lots),
+      'the fixture must carry a pre-existing balance',
+    ).toBeGreaterThan(0);
+    // ... and it must be a MIGRATED balance — lots the BFF's own ledger cannot
+    // explain. That is what makes this fixture the 47,720 live members.
+    expect(before.lots.every((l) => l.source === 'migration')).toBe(true);
 
     const r = await checkout(token, DRINK.id);
     expect(r.statusCode).toBe(201);
@@ -711,7 +718,7 @@ describe('T32u a wallet top-up does not disqualify a brand-new member', () => {
     });
     expect(top.statusCode).toBe(201);
     expect(top.json().bonusPoints).toBeGreaterThan(0);
-    expect((await backend.getMember(m.id)).points).toBeGreaterThan(0);
+    expect(liveBalance((await backend.getMember(m.id)).lots)).toBeGreaterThan(0);
 
     const r = await checkout(m.token, DRINK.id);
     expect(r.statusCode).toBe(201);
@@ -735,13 +742,13 @@ describe('T32u a wallet top-up does not disqualify a brand-new member', () => {
   it('the backend subtracts its own ledger, and only its own', async () => {
     // The subtraction is `balance − Σ(history deltas)`, and history is the
     // complete record of every points movement this process made (addPoints and
-    // spendPoints are the only writers of Member.points, and both log). A
+    // spendPoints are the only writers of Member.lots that log). A
     // member the BFF granted 50 and then spent 30 of has 20 points and NOTHING
     // unexplained.
     const m = await enrolTreatment();
     await backend.addPoints(m.id, 50, 'ledger', 'ledger');
     await backend.spendPoints(m.id, 30, 'ledger', 'ledger');
-    expect((await backend.getMember(m.id)).points).toBe(20);
+    expect(liveBalance((await backend.getMember(m.id)).lots)).toBe(20);
 
     const r = await checkout(m.token, DRINK.id);
     expect(r.statusCode).toBe(201);

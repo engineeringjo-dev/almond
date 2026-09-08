@@ -24,7 +24,7 @@ import { BonusDayBanner } from '@/components/loyalty/BonusDayBanner';
 import { colors, spacing, radius, shadow } from '@/constants/theme';
 import { config } from '@/constants/config';
 import { useI18n } from '@/hooks/useI18n';
-import { formatNumber, formatDate } from '@/lib/format';
+import { formatNumber, formatDayKey } from '@/lib/format';
 import { useLoyaltyBalance, useRedeemReward } from '@/hooks/useLoyalty';
 // earn-arith-exempt: the tier ramp, for DISPLAY only — no invoice, no grant. §7 T7.
 import { tiers } from '@/services/seed';
@@ -69,7 +69,6 @@ const B = {
   birthday: { icon: 'gift', key: 'tierBenefits.birthday' } as Benefit,
   freeMod: { icon: 'sparkles', key: 'tierBenefits.freeMod' } as Benefit,
   offers: { icon: 'ticket', key: 'tierBenefits.offers' } as Benefit,
-  noExpire: { icon: 'history', key: 'tierBenefits.noExpire' } as Benefit,
 };
 const SHARED: Benefit[] = [B.birthday, B.freeMod, B.offers];
 // The rate row, and the only place a rung's rate is stated on this screen.
@@ -84,8 +83,13 @@ const CASHBACK: Benefit = {
 const TIER_BENEFITS: Record<TierId, Benefit[]> = {
   base: [CASHBACK, ...SHARED],
   plus: [CASHBACK, ...SHARED],
+  // 🔴 `tierBenefits.noExpire` ("Your points never expire") used to sit here on
+  // the top rung, because the old inactivity rule really did exempt it. Under
+  // «لا إعفاء — القاعدة للجميع» every point on every rung lives 12 months from
+  // the day it was granted, so the row is gone and so is the string. A benefit
+  // the code does not honour is the W4 defect this project has already paid for.
   top: [
-    CASHBACK, B.noExpire, ...SHARED,
+    CASHBACK, ...SHARED,
     { icon: 'globe', key: 'tierBenefits.experiences' },
     { icon: 'card', key: 'tierBenefits.memberCard' },
   ],
@@ -207,9 +211,16 @@ export default function RewardsScreen() {
           {formatNumber(points, lang)} ☕
         </Text>
         <Text variant="caption" color={colors.brown}>
-          {balance.beansExpireAt
-            ? t('rewards.beansExpire', { date: formatDate(balance.beansExpireAt, lang) })
-            : t('rewards.beansNeverExpire')}
+          {/* WHICH points, and WHEN — never "your points expire on X" for a
+              balance made of grants months apart, and never "your points never
+              expire" beside a rule that says every point does. Nothing is
+              rendered at all when the member holds no live points. */}
+          {balance.nextExpiry
+            ? t('rewards.pointsExpireNext', {
+                points: formatNumber(balance.nextExpiry.amount, lang),
+                date: formatDayKey(balance.nextExpiry.on, lang),
+              })
+            : ''}
         </Text>
         <View style={styles.tierRow}>
           <TierBadge tier={balance.tier} />

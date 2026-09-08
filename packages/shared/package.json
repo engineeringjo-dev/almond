@@ -14,7 +14,7 @@
     "./integration": "./src/integration/index.ts",
     "./loyalty": "./src/loyalty/index.ts",
     "./loyalty/earn": "./src/loyalty/earn.ts",
-    "./loyalty/expiry": "./src/loyalty/expiry.ts",
+    "./loyalty/lots": "./src/loyalty/lots.ts",
     "./loyalty/holdout": "./src/loyalty/holdout.ts",
     "./loyalty/window": "./src/loyalty/window.ts",
     "./loyalty/balanceWire": "./src/loyalty/balanceWire.ts",

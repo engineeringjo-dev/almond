@@ -2,6 +2,10 @@ import { randomUUID } from 'node:crypto';
 import { config as loyalty } from '@almond/shared/config';
 import { ammanDayKey } from '@almond/shared/lib/ammanWeekday';
 import {
+  consumeFifo, expiredBetween, grantLot, liveBalance, lotRulesFromConfig, migrateBalance,
+  pruneLots,
+} from '@almond/shared/loyalty/lots';
+import {
   decideSecondVisit, secondVisitStatus,
   type SecondVisitVoucher,
 } from '@almond/shared/loyalty/secondVisit';
@@ -24,6 +28,10 @@ const todayKey = (): string => ammanDayKey();
 
 /** One window definition for the whole process, read once. */
 const WINDOW = windowRulesFromConfig();
+/** One lot-life definition for the whole process, read once — the mirror of
+ *  WINDOW. Every grant stores the expiry day these rules gave it, so editing
+ *  the config later cannot reach back and move a promise already made. */
+const LOTS = lotRulesFromConfig();
 
 /** In-memory, runnable adapter. State lives in process memory (fine for dev /
  *  demo / tests); swap for the Odoo adapter in production. */
@@ -49,9 +57,27 @@ export function createMemoryBackend(): Backend {
   // The 95 JOD entry 200 days back is the point of the whole package: it is
   // OUTSIDE the window and does not count. It survives until the demo member's
   // first write, which prunes it — pruning is lossless for the rate.
+  //
+  // 🔴 THE 240 POINTS ARE TWO MIGRATION LOTS, NOT ONE SCALAR. The total is kept
+  // at exactly 240 (bff/test/secondVisit.test.ts T32d and bff/test/copy.test.ts
+  // both rest on it) but it is split across two dates so the demo member shows
+  // real FIFO order and a non-null `nextExpiry` with no test fixture at all:
+  // 200 points a month from death, 40 fresh today. THE BACK-DATING IS A DEMO OF
+  // A MATURE MEMBER — the real migration dates EVERY lot at the cutover day
+  // (see migrationLot's docstring: a rule may not take money retroactively).
+  // Nobody should copy the -335 into a migration script.
+  //
+  // `source: 'migration'` and NO history rows, exactly like a real migrated
+  // member: that is what keeps `unexplainedPoints` equal to 240 and the
+  // second-visit voucher's 19,040 JOD guard armed for this fixture.
   const demo: Member = {
     id: 'demo', phone: '+962790000000', name: 'Almond Member',
-    points: 240, walletFils: toFils(20),
+    lots: grantLot(
+      migrateBalance(200, shiftDayKey(todayKey(), -335), LOTS),
+      40, 'migration', undefined, LOTS, todayKey(),
+    ).lots,
+    expirySettledThrough: todayKey(),
+    walletFils: toFils(20),
     spend: [
       { jod: 95.0, day: shiftDayKey(todayKey(), -200) },
       { jod: 22.5, day: shiftDayKey(todayKey(), -61) },
@@ -61,7 +87,6 @@ export function createMemoryBackend(): Backend {
     ],
     heldTierId: 'top',
     evaluatedThrough: evaluationPeriod(todayKey(), WINDOW.evaluation),
-    lastEarnAt: Date.now(),
     subRenewsAt: 0, subDay: '', subDayCount: 0,
   };
   members.set(demo.id, demo);
@@ -77,6 +102,47 @@ export function createMemoryBackend(): Backend {
     const h = history.get(id) ?? [];
     h.unshift(e);
     history.set(id, h);
+  };
+
+  /**
+   * Book any points that have DIED since this member was last settled, then
+   * drop the rows nothing needs any more.
+   *
+   * 🔴 THIS IS NOT WHAT MAKES THE BALANCE FALL. `liveBalance` already reads 0
+   * for a dead lot, for every caller, from the instant it dies — there is no
+   * "in the meantime" and no scheduler is needed. What this writes is the LEDGER
+   * LINE: points vanishing with no row in the member's history is exactly the
+   * support ticket per-lot expiry would otherwise create, and it is also the
+   * breakage record an IFRS 15 vintage schedule reads.
+   *
+   * It also keeps `unexplainedPoints` exact. That guard is
+   * `liveBalance − Σ(history deltas)`; without the expiry row it would drift
+   * NEGATIVE for any member whose lots died. Harmless to the guard itself
+   * (which tests `> 0`) but wrong, and wrong in the one number the 19,040 JOD
+   * over-issue guard is computed from.
+   *
+   * Idempotent by the stamp, and a dead lot's `remaining` never moves again, so
+   * nothing can be booked twice. Runs FIRST on every write path — including
+   * evaluateSecondVisitVoucher, which the checkout saga calls at step 4 BEFORE
+   * addPoints/recordSpend, so that reader never sees an unsettled member. It is
+   * still strictly pre-transaction, so checkout.ts's ordering invariant and
+   * T32a are preserved.
+   */
+  const settleExpiry = (m: Member, at: Date): void => {
+    const today = ammanDayKey(at);
+    const lost = expiredBetween(m.lots, m.expirySettledThrough, today);
+    if (lost > 0) {
+      log(m.id, {
+        deltaPoints: -lost,
+        reasonAr: 'انتهاء صلاحية نقاط',
+        reasonEn: 'Points expired',
+        createdAt: at.toISOString(),
+      });
+    }
+    m.expirySettledThrough = today;
+    // Only AFTER the loss is booked: pruning first would take the rows the
+    // history row is derived from with it.
+    m.lots = pruneLots(m.lots, at, LOTS);
   };
 
   /** Close any evaluation period that has come due, and stamp how far we got.
@@ -99,12 +165,16 @@ export function createMemoryBackend(): Backend {
       if (existing) return members.get(existing)!;
       const m: Member = {
         id: `m_${randomUUID()}`, phone, name: name ?? 'Member',
-        points: 0, walletFils: 0,
+        // A genuinely NEW member gets an empty ledger — never a migration lot.
+        // Minting one would make every new member look migrated to
+        // `unexplainedPoints` and cost them the second-visit voucher (T32u's
+        // defect, in the other direction).
+        lots: [], expirySettledThrough: todayKey(),
+        walletFils: 0,
         // No history, so: 0 JOD, 0 visit days, the entry rung, and the current
         // period already closed (nothing happened in it to requalify for).
         spend: [], heldTierId: 'base',
         evaluatedThrough: evaluationPeriod(todayKey(), WINDOW.evaluation),
-        lastEarnAt: Date.now(),
         subRenewsAt: 0, subDay: '', subDayCount: 0,
       };
       members.set(m.id, m);
@@ -121,20 +191,36 @@ export function createMemoryBackend(): Backend {
     },
     async creditWallet(id, fils) { const m = must(id); m.walletFils += fils; return m.walletFils; },
     async addPoints(id, delta, reasonAr, reasonEn) {
-      const m = must(id); m.points += delta;
-      log(id, { deltaPoints: delta, reasonAr, reasonEn, createdAt: new Date().toISOString() });
-      return m.points;
+      const m = must(id);
+      const at = new Date();
+      settleExpiry(m, at);
+      // ONE LOT, ONE CLOCK. The grant does not touch any existing lot, which is
+      // «ولا تتجدد بشراء جديد» — a new purchase renews nothing. `delta === 0`
+      // (a small invoice) writes no lot but still logs, so `history` stays the
+      // complete ledger `unexplainedPoints` subtracts.
+      m.lots = grantLot(m.lots, delta, 'earn', at, LOTS).lots;
+      log(id, { deltaPoints: delta, reasonAr, reasonEn, createdAt: at.toISOString() });
+      return liveBalance(m.lots, at);
     },
     async spendPoints(id, points, reasonAr, reasonEn) {
       const m = must(id);
-      if (m.points < points) throw conflict('insufficient_points', 'Not enough points');
-      m.points -= points;
-      log(id, { deltaPoints: -points, reasonAr, reasonEn, createdAt: new Date().toISOString() });
-      return m.points;
+      const at = new Date();
+      settleExpiry(m, at);
+      // 🔴 OLDEST LOT FIRST, AND THE SHORTFALL IS FOUND BEFORE ANY DEBIT.
+      // consumeFifo checks the live total first and returns a refusal that has
+      // written nothing — the alternative (debit, then discover it is short)
+      // charges the member for a reward they did not get. The error code and
+      // message are unchanged; only what they are measured against is.
+      const res = consumeFifo(m.lots, points, at);
+      if (!res.ok) throw conflict('insufficient_points', 'Not enough points');
+      m.lots = res.lots;
+      log(id, { deltaPoints: -points, reasonAr, reasonEn, createdAt: at.toISOString() });
+      return liveBalance(m.lots, at);
     },
     async recordSpend(id, jod, occurredOn) {
       const m = must(id);
       const at = new Date();
+      settleExpiry(m, at);
       // Close any due period FIRST, so this quarter's requalification is judged
       // on the window as it stood before this transaction.
       runDueEvaluation(m, at);
@@ -154,7 +240,6 @@ export function createMemoryBackend(): Backend {
         qualifiedRung(qualifyingSpend(m.spend, WINDOW, at), qualifyingVisitDays(m.spend, WINDOW, at), WINDOW),
         WINDOW,
       ).id as TierId;
-      m.lastEarnAt = Date.now();
     },
     async getStanding(id) { const m = must(id); return standing(m.spend, m.heldTierId, WINDOW); },
     async evaluateTier(id, at) { return runDueEvaluation(must(id), at ?? new Date()); },
@@ -176,6 +261,11 @@ export function createMemoryBackend(): Backend {
 
     async evaluateSecondVisitVoucher(input) {
       const m = must(input.memberId);
+      // Settle first, so `unexplainedPoints` below is computed on a member whose
+      // expiry history is caught up. Still strictly PRE-transaction — no grant
+      // and no spend row has been written — so T32a's ordering invariant and
+      // checkout.ts's saga hold unchanged.
+      settleExpiry(m, input.at);
       const decision = decideSecondVisit({
         memberId: input.memberId,
         orderId: input.orderId,
@@ -204,13 +294,20 @@ export function createMemoryBackend(): Backend {
         //
         // 🔴 MINUS WHAT THE BFF ITSELF GRANTED. `history` is the complete
         // ledger of every points movement this process made (addPoints and
-        // spendPoints are the only writers of m.points and both log), so the
+        // spendPoints are the only writers of m.lots that log, so the
         // remainder is exactly the balance that arrived from somewhere else.
         // Without the subtraction, POST /v1/wallet/topup — which grants 50
         // points at 20 JOD with no order behind it — made a brand-new member
         // look migrated and cost them the voucher permanently (T32u).
+        //
+        // 🔴 THE LIVE BALANCE, NOT A STORED SCALAR. A migration lot carries no
+        // history row on purpose (loyalty/lots.ts migrationLot), so for all
+        // 47,720 migrated members this remainder is still their whole balance
+        // and this guard still refuses. Logging the migration grant would make
+        // every one of them "explained" and re-open the over-issue silently.
         unexplainedPoints:
-          m.points - (history.get(input.memberId) ?? []).reduce((s, h) => s + h.deltaPoints, 0),
+          liveBalance(m.lots, input.at)
+          - (history.get(input.memberId) ?? []).reduce((s, h) => s + h.deltaPoints, 0),
         priorWindowSpend: qualifyingSpend(m.spend, WINDOW, input.at),
         at: input.at,
       });

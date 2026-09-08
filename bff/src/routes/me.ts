@@ -1,5 +1,6 @@
 import type { FastifyInstance } from 'fastify';
 import { tiers } from '@almond/shared/loyalty';
+import { liveBalance, nextExpiry } from '@almond/shared/loyalty/lots';
 import type { TierId } from '@almond/shared/types';
 import type { MeBalanceWire } from '@almond/shared/loyalty/balanceWire';
 import { requireMember, memberId } from '../plugins/auth';
@@ -36,8 +37,13 @@ export function registerMeRoutes(app: FastifyInstance, backend: Backend): void {
     // Re-deriving it here from windowSpend would show a 6% member "2%".
     const standing = await backend.getStanding(id);
     const tier = tiers.find((t) => t.id === standing.held.id) ?? tiers[0];
+    // THE BALANCE IS DERIVED, HERE, ON EVERY READ. There is no stored scalar to
+    // fall out of date and no expiry job to have missed: a lot past its Amman
+    // expiry day contributes 0 to this sum from the instant it dies. That is
+    // also why this GET mutates nothing (D11) — there is nothing to mutate.
+    const at = new Date();
     return {
-      points: m.points,
+      points: liveBalance(m.lots, at),
       windowSpend: standing.windowSpend,
       // Distinct qualifying days in the window — the other door to the second
       // rung, and the unit the progress copy is written in ("3 more visits").
@@ -56,6 +62,11 @@ export function registerMeRoutes(app: FastifyInstance, backend: Backend): void {
             step: standing.next.step,
           }
         : null,
+      // WHICH points die next, and HOW MANY — not one date for the whole
+      // balance, because there is no such date under a per-lot rule. `on` is an
+      // Amman day key; the app must format it with formatDayKey and never with
+      // `new Date(string)`, which would print the day before.
+      nextExpiry: nextExpiry(m.lots, at),
     };
   });
 

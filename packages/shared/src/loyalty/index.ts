@@ -1,6 +1,6 @@
 export * from './constants';
 export * from './earn';
-export * from './expiry';
+export * from './lots';
 export * from './holdout';
 export * from './window';
 export * from './balanceWire';

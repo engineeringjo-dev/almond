@@ -56,6 +56,25 @@ export interface MeBalanceWire {
     visitsGuaranteed: boolean;
     step: number;
   } | null;
+  /**
+   * The NEXT slice of points to die, and how many. `null` when the member holds
+   * no live points.
+   *
+   * NOT one date for the whole balance — there is no such date any more. Every
+   * grant carries its own 12-month clock (loyalty/lots.ts), so a member holding
+   * 240 points earned across a year has many expiry days, and "your points
+   * expire on 15/11" is false for 200 of them. `amount` is the sum of EVERY
+   * live lot sharing the earliest expiry day, not the first lot's remainder —
+   * two grants on one day must report 80, not 40.
+   *
+   * `on` is an AMMAN DAY KEY ('YYYY-MM-DD'), not an ISO instant, because the
+   * enforced day and the displayed day must be the same day (loyalty/lots.ts).
+   *
+   * REQUIRED (`| null`, never absent) and validated below, for the same reason
+   * `visitsGuaranteed` is: this producer HAS thought about it, and letting the
+   * field go missing would silently downgrade a real warning to no warning.
+   */
+  nextExpiry: { amount: number; on: string } | null;
 }
 
 /** Thrown by `parseMeBalance` when the body is not the contract above. Named,
@@ -89,6 +108,17 @@ function str(o: Record<string, unknown>, key: string, path: string): string {
   return v;
 }
 
+/** An Amman day key, 'YYYY-MM-DD'. Checked in SHAPE, not merely as a string:
+ *  an ISO instant here would be rendered through the day-key formatter and come
+ *  out as a different day than the server enforces. */
+function dayKey(o: Record<string, unknown>, key: string, path: string): string {
+  const v = str(o, key, path);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(v)) {
+    throw new BalanceWireError(`${path}${key}`, `expected an Amman day key YYYY-MM-DD, got ${JSON.stringify(v)}`);
+  }
+  return v;
+}
+
 function tierId(o: Record<string, unknown>, key: string, path: string): TierId {
   const v = str(o, key, path);
   if (!TIER_IDS.includes(v)) {
@@ -114,6 +144,14 @@ export function parseMeBalance(raw: unknown): MeBalanceWire {
   const next = raw.nextTier;
   if (next !== null && !isRecord(next)) {
     throw new BalanceWireError('nextTier', `expected an object or null, got ${JSON.stringify(next)}`);
+  }
+  const expiry = raw.nextExpiry;
+  if (expiry !== null && !isRecord(expiry)) {
+    // ABSENT IS NOT NULL. `undefined` here means the producer never thought
+    // about expiry at all, and rendering "no expiry" for a member whose points
+    // die next week is the W4 defect (a promise the code does not honour) in
+    // the one place it costs the member money.
+    throw new BalanceWireError('nextExpiry', `expected an object {amount,on} or null, got ${JSON.stringify(expiry)}`);
   }
   const visitsGuaranteed = next ? next.visitsGuaranteed : undefined;
   if (next && typeof visitsGuaranteed !== 'boolean') {
@@ -143,6 +181,9 @@ export function parseMeBalance(raw: unknown): MeBalanceWire {
           visitsGuaranteed: visitsGuaranteed as boolean,
           step: num(next, 'step', 'nextTier.'),
         }
+      : null,
+    nextExpiry: expiry
+      ? { amount: num(expiry, 'amount', 'nextExpiry.'), on: dayKey(expiry, 'on', 'nextExpiry.') }
       : null,
   };
 }
@@ -176,5 +217,8 @@ export function toLoyaltyBalance(wire: MeBalanceWire, userId: string): LoyaltyBa
           step: wire.nextTier.step,
         }
       : null,
+    // Carried through verbatim. The day key stays a day key all the way to the
+    // screen — see LoyaltyBalance.nextExpiry and lib/format.ts formatDayKey.
+    nextExpiry: wire.nextExpiry,
   };
 }

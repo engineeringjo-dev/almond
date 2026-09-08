@@ -1,6 +1,7 @@
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { config as loyalty } from '@almond/shared/config';
+import { liveBalance } from '@almond/shared/loyalty/lots';
 import { parse } from '../validate';
 import { requireMember, memberId } from '../plugins/auth';
 import { idempotencyPreHandler, idempotencyOnSend } from '../plugins/idempotency';
@@ -23,6 +24,15 @@ export function registerWalletRoutes(app: FastifyInstance, backend: Backend): vo
     const bonus = reloadBonus(amount);
     if (bonus > 0) await backend.addPoints(id, bonus, 'مكافأة شحن المحفظة', 'Wallet reload bonus');
     const after = await backend.getMember(id);
-    return reply.code(201).send({ walletBalance: toJod(after.walletFils), bonusPoints: bonus, pointsBalance: after.points });
+    // The reload bonus is a lot of its own, with its own 12-month clock: a
+    // top-up grants points, it does not renew the ones already held. (The app's
+    // mock used to carry `u.lastEarnAt = Date.now(); // a reload counts as
+    // activity (extends beans)` — that line WAS the inactivity rule, and it is
+    // gone along with the rule.)
+    return reply.code(201).send({
+      walletBalance: toJod(after.walletFils),
+      bonusPoints: bonus,
+      pointsBalance: liveBalance(after.lots),
+    });
   });
 }
