@@ -1,17 +1,34 @@
 import type { Lang, LoyaltyBalance, Tier, TierId } from '@/types';
 import { progressToNextTier, tierName, tiers } from '@almond/shared/loyalty';
+import { formatJOD } from '@almond/shared/lib/format';
 
 /**
  * THE ONE PLACE THAT DECIDES WHICH PROGRESS SENTENCE A MEMBER SEES.
  *
- * The whole tier mechanic rests on one line of copy, and the brief is explicit
- * about its unit: «باقي لك 3 زيارات ويتضاعف خصمك ×2» — "3 more visits and your
- * cashback DOUBLES". "20 JOD in 90 days" is not a sayable sentence; "3 more
- * visits" is. Three screens rendered three different versions of it (the home
- * card, the /loyalty ladder and the rewards carousel), all three in dinars, and
- * all three gated on `remaining <= 30` — a threshold 1.5× LARGER than the whole
- * 20 JOD it was meant to be near, so every member was told "One step away" from
- * zero spend. One function, three call sites, one sentence.
+ * 🔴 THE UNIT IS SPEND, AND THAT REVERSES AN EARLIER DECISION ON PURPOSE.
+ *
+ * Owner, 2026-09-08: «مش عالزيارات بدي spend more هلقد قبل هلقظ وبتنتقل لشريحة
+ * ٤% كاشباك» — not visits; say how much more to SPEND to reach 4%.
+ *
+ * It was visits, from the brief's «باقي لك 3 زيارات ويتضاعف خصمك ×2», on the
+ * argument that "20 JOD in 90 days" is not a sayable sentence. What that
+ * argument missed is that the visits number was never true: above the second
+ * rung there is no visits door at all, so the count was a PROJECTION at the
+ * measured 5.85 JOD basket, and a member on 60 JOD told "1 more visit" who
+ * returned for a 2.50 JOD americano landed at 62.5 and was still paid 4%. The
+ * hedging that existed to cover that (`visitsGuaranteed`, "about", "could") was
+ * a way of half-saying a number we could not stand behind.
+ *
+ * `jodRemaining` has no such problem. It is `threshold − windowSpend`: exact at
+ * every rung, on both code paths, with nothing projected. So the sentence gets
+ * SHORTER and the hedging is gone rather than reworded.
+ *
+ * ONE THING IT UNDERSTATES, deliberately. The second rung has a second door —
+ * TIER2_VISITS_ALTERNATIVE qualifying days — so a member can arrive there
+ * without spending the remaining dinars. Naming the spend is therefore
+ * conservative: it never promises a rung the member will not get, it only omits
+ * a shortcut they may stumble into. The reverse error (naming the shortcut and
+ * missing the spend) is the one that produces a complaint.
  *
  * ── WHY IT PREFERS THE BALANCE'S OWN `nextTier` ─────────────────────────────
  *
@@ -22,17 +39,6 @@ import { progressToNextTier, tierName, tiers } from '@almond/shared/loyalty';
  * ALREADY BEING PAID AT. `balance.nextTier` comes from `standing()` in
  * loyalty/window.ts, which knows both. The projection stays as the fallback for
  * the producers that genuinely have nothing else (a guest figure, the website).
- *
- * ── WHY SOME SENTENCES PROMISE AND OTHERS HEDGE ─────────────────────────────
- *
- * Only the second rung has a visits DOOR (config.TIER2_VISITS_ALTERNATIVE): N
- * more qualifying days promotes the member at any basket size. Above it the
- * only route is 65 JOD of spend, so a visit count there is a projection at the
- * measured 5.85 JOD basket and nothing honours it — a member on 60 JOD who is
- * told "just one more visit" and returns for a 2.50 JOD americano is still paid
- * 4%. The producer says which it handed us (`visitsGuaranteed`), and an ABSENT
- * flag is read as NOT guaranteed, so the hedged sentence is the default and a
- * promise has to be earned.
  *
  * ── WHY THE ×2 IS ON ONE KEY AND THE ×1.5 IS ON NONE ────────────────────────
  *
@@ -45,11 +51,13 @@ import { progressToNextTier, tierName, tiers } from '@almond/shared/loyalty';
  */
 
 export interface TierProgressCopy {
-  /** An i18n key that exists in BOTH locale files — C11 asserts that.
-   *  `toPlus` / `oneVisitLeft` state a count the door guarantees; `toTop` /
-   *  `nearlyNext` hedge one that only a projection supports. */
-  key: 'loyalty.toPlus' | 'loyalty.toTop' | 'loyalty.oneVisitLeft' | 'loyalty.nearlyNext';
-  params: { visits: number; tier: string };
+  /** An i18n key that exists in BOTH locale files — C11 asserts that. Two keys
+   *  now, not four: with an exact figure there is nothing to hedge, so the
+   *  `oneVisitLeft` / `nearlyNext` pair that softened a projection is gone. */
+  key: 'loyalty.toPlus' | 'loyalty.toTop';
+  /** `jod` is ALREADY FORMATTED for `lang` — the caller interpolates it into a
+   *  sentence and must not re-decide the decimals or the numerals. */
+  params: { jod: string; tier: string };
   /** The rung being moved toward, for the caller's own styling. */
   next: Tier;
 }
@@ -71,15 +79,13 @@ export function tierProgressCopy(
   lang: Lang,
 ): TierProgressCopy | null {
   let next: Tier;
-  let visits: number;
-  let guaranteed: boolean;
+  let jodRemaining: number;
 
   if (balance.nextTier !== undefined) {
     // A real standing. `null` here MEANS the top rung — not "unknown".
     if (balance.nextTier === null) return null;
     next = rungById(balance.nextTier.id);
-    visits = balance.nextTier.visitsRemaining;
-    guaranteed = balance.nextTier.visitsGuaranteed === true;
+    jodRemaining = balance.nextTier.jodRemaining;
   } else {
     // No standing available. The held rung still settles the top of the
     // ladder, because a ratcheted member's spend cannot — and it must be
@@ -91,21 +97,13 @@ export function tierProgressCopy(
     if (!projected) return null;
     if (curIdx >= 0 && tiers.findIndex((t) => t.id === projected.next.id) <= curIdx) return null;
     next = projected.next;
-    visits = projected.visitsRemaining;
-    guaranteed = projected.visitsGuaranteed;
+    jodRemaining = projected.jodRemaining;
   }
 
-  const params = { visits, tier: tierName(next, lang) };
-  if (guaranteed) {
-    // One visit left is its own sentence in both languages: "1 more visits" and
-    // «باقي لك 1 زيارات» are both wrong, and this is the moment worth a nudge.
-    if (visits <= 1) return { key: 'loyalty.oneVisitLeft', params, next };
-    // ×2 lives here and nowhere else — see the header.
-    if (next.id === tiers[1].id) return { key: 'loyalty.toPlus', params, next };
-  }
-  // Not guaranteed: the count is a projection, and both of these keys say so
-  // in words ("about", "could"). Never `oneVisitLeft` and never `toPlus` — a
-  // hedged ×2 is still a ×2 the member will hold us to.
-  if (visits <= 1) return { key: 'loyalty.nearlyNext', params, next };
+  const params = { jod: formatJOD(jodRemaining, lang), tier: tierName(next, lang) };
+  // ×2 lives on this key and nowhere else — see the header. Selecting on
+  // `next.id` keeps that structural rather than editorial, and the second
+  // step's real value (×1.5) is never spoken at all.
+  if (next.id === tiers[1].id) return { key: 'loyalty.toPlus', params, next };
   return { key: 'loyalty.toTop', params, next };
 }

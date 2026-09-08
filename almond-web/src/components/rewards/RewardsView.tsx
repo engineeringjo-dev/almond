@@ -67,16 +67,16 @@ export function RewardsView() {
               </span>
               <span className="text-white/80">
                 {tp.next
-                  ? // A DEFINITE sentence only where the count is a GUARANTEE.
-                    // `visitsGuaranteed` was produced in data/loyalty.ts and read
-                    // by nobody: this line stated a 5.85 JOD spend PROJECTION as
-                    // a promise, so a member 60 JOD into the 65 JOD rung was told
-                    // "1 more visits to reach 6%", came back for a 2.500 JOD
-                    // americano, landed at 62.5 and was still paid 4%. That is
-                    // the exact defect the app fixed in tierCopy.ts; the website
-                    // had the flag and no branch to spend it on.
-                    t(tp.visitsGuaranteed ? 'toNextTier' : 'toNextTierEstimate', {
-                      visits: tp.visitsRemaining,
+                  ? // SPEND, not visits — owner, 2026-09-08: «مش عالزيارات بدي
+                    // spend more». `tp.remaining` is threshold − windowSpend and
+                    // is exact, so the branch that used to hedge a projection
+                    // («about {visits} visits») has no subject any more and both
+                    // strings said the same true thing — so there is ONE now.
+                    // `toNextTierEstimate` and the `visitsGuaranteed` branch
+                    // that chose it are both gone: a hedge with nothing to hedge
+                    // is a second sentence waiting to drift from the first.
+                    t('toNextTier', {
+                      jod: formatJOD(tp.remaining, lang),
                       tier: tierName(tp.next, lang),
                     })
                   : t('topTier', { tier: tierName(tp.current, lang) })}

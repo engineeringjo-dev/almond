@@ -300,10 +300,8 @@
     "history": "Points history",
     "redeem": "Redeem points",
     "expiresOn": "Expires {{date}}",
-    "toPlus": "{{visits}} more visits and your cashback DOUBLES ×2 ⚡",
-    "toTop": "About {{visits}} more visits and your rate becomes {{tier}} — our top tier",
-    "nearlyNext": "You're close — one more visit could take you to {{tier}}",
-    "oneVisitLeft": "Just one more visit! 🔥 Your rate becomes {{tier}}",
+    "toPlus": "Spend {{jod}} more and your cashback DOUBLES ×2 ⚡",
+    "toTop": "Spend {{jod}} more and your cashback becomes {{tier}} — our top tier",
     "promotedDoubled": "🎉 Your cashback DOUBLED — {{tier}} from your next visit",
     "promotedTop": "🎉 You reached our top tier — {{tier}} from your next visit",
     "promotedNext": "About {{visits}} more visits to reach {{tier}}"
@@ -481,5 +479,11 @@
     "savedBody": "Your details are up to date.",
     "savedBonus": "{{points}} points added — thank you 🎉",
     "saveFailed": "We couldn't save that. Please try again."
+  },
+  "challenge": {
+    "profile": "Tell us your name — {{points}} points",
+    "profileSub": "Ten seconds, and we greet you by name from then on",
+    "referral": "Bring a friend — {{points}} points",
+    "referralSub": "Share the app with whoever you like"
   }
 }

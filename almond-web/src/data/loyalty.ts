@@ -41,15 +41,13 @@ export interface TierProgress {
   current: Tier;
   next: Tier | null;
   ratio: number;
-  remaining: number; // JOD spend to the next tier — for the BAR, never the copy
-  /** What the copy says. "Spend 8.000 JOD to reach 4%" is not a sentence a
-   *  member can act on; "2 more visits to reach 4%" is. Projected at the
-   *  measured member basket (MEASURED_MEMBER_BASKET_JOD = 5.85). */
-  visitsRemaining: number;
-  /** True only where a visits door exists (the second rung). The site's
-   *  `toNextTier` string is only reachable at that rung today; if a caller ever
-   *  renders it above one, this is the flag that says the count is an estimate. */
-  visitsGuaranteed: boolean;
+  /** JOD to the next rung. It drives the BAR **and now the copy too**: owner,
+   *  2026-09-08, «مش عالزيارات بدي spend more». */
+  remaining: number;
+  /** 🪦 `visitsRemaining` / `visitsGuaranteed` lived here until 2026-09-08.
+   *  They are not merely unused now: a projected visit count beside an exact
+   *  amount is a second, softer answer to the same question, and this site has
+   *  no visit log that could make the count true. */
   /** The multiplier step being moved toward. Carried, never rendered at the top
    *  rung: the approved copy says "×2" once and never says "×1.5". */
   step: number;
@@ -73,15 +71,6 @@ export function tierProgress(windowSpend: number): TierProgress {
     next,
     ratio: Math.max(0, Math.min(1, ratio)),
     remaining: next ? Math.max(0, next.threshold - windowSpend) : 0,
-    // At the second rung this is now the DOOR, not the spend projection:
-    // progressToNextTier reports TIER2_VISITS_ALTERNATIVE minus the days any
-    // non-zero spend must already have banked, which is true at every spend
-    // rather than only at zero (the projection said 1 at 15 JOD while the door
-    // still needed 3). Above the second rung there is no door at all and this
-    // stays an estimate — the site holds no visit count of its own, and
-    // `visitsGuaranteed` is what says so out loud.
-    visitsRemaining: projected?.visitsRemaining ?? 0,
-    visitsGuaranteed: projected?.visitsGuaranteed ?? false,
     step: projected?.step ?? 1,
   };
 }
