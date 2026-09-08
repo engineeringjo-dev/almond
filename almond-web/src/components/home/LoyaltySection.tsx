@@ -1,12 +1,8 @@
 import { useTranslations } from 'next-intl';
-import { Cup } from '@/components/ui/Cup';
 import { Button } from '@/components/ui/Button';
-import { config } from '@/lib/config';
 
 export function LoyaltySection() {
   const t = useTranslations('Home.loyalty');
-  const current = 6;
-  const target = config.CUP_TARGET;
 
   return (
     <section className="container-content py-xl">
@@ -20,14 +16,6 @@ export function LoyaltySection() {
                 {t('cta')}
               </Button>
             </div>
-          </div>
-          <div className="flex flex-col items-center gap-3">
-            <div className="w-36 text-white">
-              <Cup current={current} target={target} />
-            </div>
-            <span className="rounded-pill bg-white/15 px-4 py-1.5 text-sm font-bold">
-              {t('cupLabel', { current, target })}
-            </span>
           </div>
         </div>
       </div>

@@ -4,6 +4,14 @@ import { config } from '@almond/shared/config';
 import {
   MAX_NAME_LENGTH, isProfileComplete, normalizeName, profileBonusFor,
 } from '@almond/shared/loyalty/profile';
+import { randomUUID } from 'node:crypto';
+import { ammanDayKey } from '@almond/shared/lib/ammanWeekday';
+import { shiftDayKey } from '@almond/shared/loyalty/window';
+import {
+  consumeFifo, grantLot, liveBalance, walletLotRulesFromConfig,
+} from '@almond/shared/loyalty/lots';
+import { computeEarn, earnRulesFromConfig } from '@almond/shared/loyalty/earn';
+import { menuItems } from '@almond/shared/menu';
 import { build } from '../src/server';
 import { signIn } from './lib/signIn';
 
@@ -168,5 +176,131 @@ describe('T33 the shared predicate', () => {
     expect(profileBonusFor(p, false, Number.NaN)).toBe(0);
     expect(profileBonusFor(p, false, 50)).toBe(50);
     expect(profileBonusFor(p, true, 50)).toBe(0);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// T34 — the wallet is a ledger: two-year money, spent oldest first.
+// ---------------------------------------------------------------------------
+/**
+ * Owner, 2026-09-08: the wallet holds top-up balance and gift-card balance —
+ * «نفس رصيد الشحن … صلاحية ٢ سنة first in first out» — and paying from it
+ * earns «٥٠٪ رصيد نقاط اضافي».
+ *
+ * `walletFils: number` could not express any of that. These test the OUTCOME
+ * through the real routes: what a member's balance is, what it earns, and what
+ * happens to money older than the promise.
+ */
+describe('T34 the wallet ledger', () => {
+  let app: FastifyInstance;
+  beforeAll(async () => { app = await build(); await app.ready(); });
+  afterAll(async () => { await app.close(); });
+
+  const topUp = (token: string, amount: number) =>
+    app.inject({
+      method: 'POST',
+      url: '/v1/wallet/topup',
+      headers: { authorization: `Bearer ${token}`, 'idempotency-key': randomUUID() },
+      payload: { amount },
+    });
+
+  const wallet = async (token: string): Promise<number> => {
+    const res = await app.inject({
+      method: 'GET', url: '/v1/me/wallet', headers: { authorization: `Bearer ${token}` },
+    });
+    expect(res.statusCode).toBe(200);
+    return res.json().balance as number;
+  };
+
+  it('T34a a top-up is money, and the balance is derived from the lots', async () => {
+    const token = await signIn(app, newPhone());
+    expect(await wallet(token)).toBe(0);
+    const res = await topUp(token, 20);
+    expect(res.statusCode).toBe(201);
+    expect(res.json().walletBalance).toBe(20);
+    expect(await wallet(token)).toBe(20);
+  });
+
+  it('T34b two top-ups are two lots, not one renewed balance', async () => {
+    // 🔴 THE WHOLE REASON THE SCALAR HAD TO GO. If a second top-up renewed the
+    // first, "first in first out" would be meaningless and the older money
+    // would never die. The balance adds up; the lots stay separate.
+    const token = await signIn(app, newPhone());
+    await topUp(token, 10);
+    await topUp(token, 15);
+    expect(await wallet(token)).toBe(25);
+  });
+
+  it('T34c paying from the wallet earns 1.5× — the gift-card promise', async () => {
+    // The owner sells gift cards on «٥٠٪ رصيد نقاط اضافي عند صرفها», and
+    // gift-card balance and top-up balance are one thing, so the multiplier is
+    // on the wallet as a whole. Asserted as an OUTCOME: the same basket, paid
+    // two ways, must pay different points.
+    const rules = { ...earnRulesFromConfig() };
+    const cash = computeEarn({ total: 10, at: new Date() }, rules);
+    const fromWallet = computeEarn({ total: 10, paidFromBalance: true, at: new Date() }, rules);
+    expect(fromWallet.points).toBeGreaterThan(cash.points);
+    expect(fromWallet.points).toBe(Math.round(cash.points * config.WALLET_EARN_MULTIPLIER));
+  });
+
+  it('T34d money older than the promise is gone, and only that money', async () => {
+    // Directly on the ledger: the routes cannot back-date a top-up, and 24
+    // months of wall-clock is not a thing a test can wait for.
+    const RULES = walletLotRulesFromConfig();
+    const today = ammanDayKey(new Date());
+    const old = shiftDayKey(today, -(365 * 2 + 5));   // just past two years
+    const recent = shiftDayKey(today, -30);
+
+    let lots = grantLot([], 20_000, 'topup', undefined, RULES, old).lots;
+    lots = grantLot(lots, 5_000, 'gift', undefined, RULES, recent).lots;
+
+    // The old lot is dead; the recent one is untouched. No sweep ran — a dead
+    // lot simply contributes 0 to every reader from the instant it dies.
+    expect(liveBalance(lots)).toBe(5_000);
+  });
+
+  it('T34e a spend takes the oldest money first', async () => {
+    const RULES = walletLotRulesFromConfig();
+    const today = ammanDayKey(new Date());
+    let lots = grantLot([], 10_000, 'topup', undefined, RULES, shiftDayKey(today, -400)).lots;
+    lots = grantLot(lots, 10_000, 'gift', undefined, RULES, today).lots;
+
+    const res = consumeFifo(lots, 12_000, new Date());
+    expect(res.ok).toBe(true);
+    if (!res.ok) return;
+    // The 400-day-old lot is exhausted; the shortfall comes out of today's.
+    const live = res.lots.filter((l) => l.remaining > 0);
+    expect(live.length).toBe(1);
+    expect(live[0].grantedOn).toBe(today);
+    expect(live[0].remaining).toBe(8_000);
+  });
+
+  it('T34f a spend larger than the balance is refused, and writes nothing', async () => {
+    // 🔴 THIS TEST WAS VACUOUS ON ITS FIRST WRITING. It posted `items: []` where
+    // the route expects `lines`, so it was refused by the schema and never
+    // reached the wallet at all — it asserted a 4xx that any malformed body
+    // would produce. A real line, priced above the balance, is what exercises
+    // the FIFO shortfall check.
+    const token = await signIn(app, newPhone());
+    await topUp(token, 1);                       // 1 JOD, less than any basket
+    const before = await wallet(token);
+    const item = menuItems.find((m) => m.sizes[0].price > 1)!;
+
+    const res = await app.inject({
+      method: 'POST',
+      url: '/v1/checkout',
+      headers: { authorization: `Bearer ${token}`, 'idempotency-key': randomUUID() },
+      payload: {
+        branchId: 'b1', orderType: 'pickup', paymentMethod: 'wallet',
+        lines: [{ itemId: item.id, sizeId: item.sizes[0].id, optionIds: [], qty: 1 }],
+      },
+    });
+
+    // The named refusal, not merely "some 4xx" — consumeFifo checks the live
+    // total BEFORE it debits anything, so the member is told no rather than
+    // charged and then told no.
+    expect(res.statusCode).toBe(409);
+    expect(res.json().error).toBe('insufficient_wallet');
+    expect(await wallet(token)).toBe(before);
   });
 });

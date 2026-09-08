@@ -41,7 +41,32 @@ export const config = {
   // multiplier both muddies that and pays twice on a dinar the customer already
   // handed over. Kept at 1.0 rather than deleted so earn.ts keeps its shape and
   // the decision stays attached to the number.
-  WALLET_EARN_MULTIPLIER: 1.0,
+  /**
+   * 🔴 EARN MULTIPLIER ON ANYTHING PAID FROM THE WALLET. Reinstated 2026-09-08
+   * at the owner's instruction: gift cards «تعطي ٥٠٪ رصيد نقاط اضافي عند
+   * صرفها», and asked which balance it applies to he answered «على رصيد الـgift
+   * card والتي هي نفسها بطاقة الشحن» — the two are one kind of money, so the
+   * bonus is on the whole wallet and no lot needs to remember its origin to be
+   * paid correctly.
+   *
+   * IT WAS 1.5, THEN RETIRED TO 1.0, AND THIS PUTS IT BACK. It was retired
+   * because the stacked accrual breached the margin ceiling; that trade is now
+   * being made deliberately in exchange for prepaid float, so here is what it
+   * actually costs:
+   *
+   *   entry rung  2% × 1.5 = 3.0%
+   *   second rung 4% × 1.5 = 6.0%
+   *   top rung    6% × 1.5 = 9.0% NOMINAL — but MAX_EARN_MULTIPLIER (3.5)
+   *               binds first, so a top-rung member paying from the wallet is
+   *               actually paid 2 × 3.5 = 7.0%. The ceiling is doing real work
+   *               here, not sitting decorative: do not raise it casually.
+   *
+   * The offsetting argument is that wallet money is money we already hold. A
+   * member paying from a topped-up balance has pre-committed the spend, and the
+   * float is interest-free. That is why this is worth paying for and a flat
+   * across-the-board rate rise is not.
+   */
+  WALLET_EARN_MULTIPLIER: 1.5,
   // Hard ceiling on the stacked earn multiplier — applied in loyalty/earn.ts,
   // which is the only place. `cap = total × POINTS_PER_JOD × MAX_EARN_MULTIPLIER`.
   //
@@ -127,6 +152,25 @@ export const config = {
   // vintage accounting wants. Changing this number is an OFFER decision; it
   // applies only to grants made after the change, because every lot stores the
   // expiry day it was promised.
+  /**
+   * 🔴 HOW LONG THE MEMBER'S OWN MONEY LIVES. Owner: «صلاحية ٢ سنة first in
+   * first out» for top-up and gift-card balance alike.
+   *
+   * TWENTY-FOUR MONTHS, AND IT IS NOT THE SAME KIND OF RULE AS THE POINTS'
+   * TWELVE. Points are a discount this house grants and may time-limit. Wallet
+   * balance is CASH A CUSTOMER PAID US. Expiring it converts their money into
+   * our revenue, which is the single most complaint-generating mechanic a café
+   * can run and is regulated in many jurisdictions — stored-value and
+   * gift-card expiry rules exist in most consumer-protection regimes, and
+   * Jordan should be checked before this ships to real money.
+   *
+   * The mechanism is built to the owner's instruction and the number is his.
+   * What the code guarantees is that it can never act retroactively: every lot
+   * stores its own `expiresOn` at grant time (see WalletLot), so editing this
+   * dial moves only balances topped up afterwards. Setting it to a very large
+   * number is how you turn expiry off without touching a line of code.
+   */
+  WALLET_LIFE_MONTHS: 24,
   POINT_LOT_LIFE_MONTHS: 12,
   // How long a DEAD lot's row is kept, for support and the breakage report.
   // It affects no number a member sees: a dead lot contributes 0 to every sum
@@ -512,8 +556,10 @@ export const config = {
    */
   REFERRAL_REWARD_POINTS: 50,
 
-  CUP_TARGET: 10,
-  CUP_HEAD_START: 1,
+  // 🪦 CUP_TARGET / CUP_HEAD_START — DELETED 2026-09-08, with the cup itself.
+  // Owner: «الغي الكوب، لان الصرف قد يكون كوب او غيره». A counter of ORDERS
+  // paid a 40 JOD brunch and a 0.75 JOD espresso identically; points already
+  // say the same thing in money. See the tombstone on CupState.
   DEFAULT_PREP_MINUTES: 7, // section 7.3
   AVG_SPEED_KMH: 30, // simple travel-time estimate
   GEOFENCE_RADIUS_M: 1000, // section 14.2 (editable from admin)

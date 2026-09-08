@@ -38,7 +38,6 @@
       "title": "كوب المكافآت يمتلئ مع كل طلب",
       "text": "كل 10 طلبات تساوي مشروبًا مجانيًا. تابع تقدّمك واستبدل نقاطك بمكافآت حصرية — حساب واحد على الموقع والتطبيق.",
       "cta": "ابدأ بجمع النقاط",
-      "cupLabel": "{current} من {target} طلبات",
       "beansLabel": "نقطة"
     },
     "featured": {
@@ -95,8 +94,6 @@
     "promoApplied": "تم تطبيق الرمز «{code}»",
     "promoInvalid": "رمز غير صالح",
     "removePromo": "إزالة الرمز",
-    "freeDrink": "يتبقّى {n} طلب حتى مشروبك المجاني",
-    "freeDrinkReady": "🎉 مشروبك المجاني جاهز!",
     "comboAddFood": "أضف صنف طعام لتكسب +{points} نقطة 🍽️",
     "comboAddDrink": "أضف مشروبًا لتكسب +{points} نقطة ☕",
     "comboAdd": "إضافة",
@@ -146,7 +143,6 @@
     "tier": "فئتك",
     "toNextTier": "يفصلك {jod} عن الوصول إلى {tier}",
     "topTier": "👑 وصلت للقمة — {tier} ترجع لك",
-    "cupProgress": "{current} من {target} طلبات حتى مشروبك المجاني",
     "redeemTitle": "استبدل نقاطك",
     "redeem": "استبدال",
     "redeemed": "تم الاستبدال",

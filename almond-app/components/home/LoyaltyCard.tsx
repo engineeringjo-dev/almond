@@ -3,7 +3,6 @@ import { router } from 'expo-router';
 
 import { Text } from '@/components/ui/Text';
 import { Gradient } from '@/components/ui/Gradient';
-import { Cup } from '@/components/loyalty/Cup';
 import { TierBadge } from '@/components/loyalty/TierBadge';
 import { colors, spacing, radius, shadow } from '@/constants/theme';
 import { useI18n } from '@/hooks/useI18n';
@@ -54,24 +53,6 @@ export function LoyaltyCard() {
                 );
               })()}
             </View>
-            {/* The cup renders only where a producer actually keeps one. It was
-                `data.cup.current` unguarded, and the BFF — the only real
-                producer — never sends the field: fed the real wire body this
-                line THREW and took the entire card down with it, not just the
-                cup. `cup` is optional on LoyaltyBalance for that reason. */}
-            {data.cup ? (
-              <View style={styles.right}>
-                <Cup current={data.cup.current} target={data.cup.target} size={96} />
-                <Text variant="caption" color={colors.brown} center style={styles.cupLabel}>
-                  {data.cup.target - data.cup.current <= 3 && data.cup.current < data.cup.target
-                    ? t('loyalty.cupClose')
-                    : t('loyalty.cupProgress', {
-                        current: Math.floor(data.cup.current),
-                        target: data.cup.target,
-                      })}
-                </Text>
-              </View>
-            ) : null}
           </>
         )}
       </Gradient>
@@ -117,9 +98,4 @@ const styles = StyleSheet.create({
    */
   left: { flex: 1, minWidth: 0, gap: spacing.sm },
   points: { lineHeight: 42 },
-  /** The cup is a fixed 96px drawing; it must not absorb the shrink that
-   *  `left` now yields. Without `flexShrink: 0` a long sentence squeezes the
-   *  cup instead of wrapping. */
-  right: { flexShrink: 0, alignItems: 'center', gap: spacing.xs },
-  cupLabel: { marginTop: spacing.xs },
 });

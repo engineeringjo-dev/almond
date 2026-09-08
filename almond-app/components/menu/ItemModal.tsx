@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/Button';
 import { Stepper } from '@/components/ui/Stepper';
 import { Icon } from '@/components/ui/Icon';
 import { colors, spacing, radius } from '@/constants/theme';
+import { config } from '@/constants/config';
 import { useI18n } from '@/hooks/useI18n';
 import { formatJOD } from '@/lib/format';
 import { iconForCategory } from '@/lib/productIcon';
@@ -93,6 +94,9 @@ export function ItemModal({ item, visible, onClose }: Props) {
     onClose();
   };
 
+  // earn-arith-exempt: an offer LABEL — no invoice, no grant. §3.5 / §7 T7.
+  const comboPoints = config.COMBO_BONUS_POINTS;
+
   return (
     <BottomSheet
       visible={visible}
@@ -153,11 +157,20 @@ export function ItemModal({ item, visible, onClose }: Props) {
         })()}
       </View>
 
+      {/* The banner promised «save 1.000 JOD» for months after
+          BRUNCH_COMBO_DISCOUNT went to 0 and the offer became points — a
+          discount the till no longer gave, printed beside the price. It states
+          the points now, and reads them from the dial so it cannot go stale
+          again. */}
       {item.isBrunch ? (
         <View style={styles.brunchBanner}>
           <Icon name="brunch" size={15} color={colors.dark} strokeWidth={1.9} />
           <Text variant="caption" color={colors.dark} style={styles.flex}>
-            {t('menu.brunchOffer')}
+            {/* The points, from the dial — never a number typed into the
+                string. This banner promised «save 1.000 JOD» for months after
+                BRUNCH_COMBO_DISCOUNT went to 0 and the offer became points:
+                a discount the till no longer gave, printed beside the price. */}
+            {t('menu.brunchOffer', { points: comboPoints })}
           </Text>
         </View>
       ) : null}

@@ -99,7 +99,9 @@ const SHIPPED: EarnRules = {
     { id: 'plus', threshold: 20, multiplier: 2.0 },
     { id: 'top', threshold: 65, multiplier: 3.0 },
   ],
-  walletMultiplier: 1.0,
+  // 1.5 since 2026-09-08 — the gift-card promise «٥٠٪ رصيد نقاط اضافي عند
+  // صرفها». It was 1.0 while the promotion was retired.
+  walletMultiplier: 1.5,
   maxEarnMultiplier: 3.5,
   comboBonusPoints: 50,
   comboMaxPairsPerInvoice: 1,
@@ -143,33 +145,53 @@ describe('earn: the dials the tests are written against', () => {
     expect(computeEarn({ total: 10, windowSpend: 64.99, at }, SHIPPED).tierId).toBe('plus');
   });
 
-  it('earn: the ceiling is a SAFETY VALVE now — it must never bind on a real input', () => {
-    // Until 2026-09-06 the ceiling was an offer dial: at 2.5x it deliberately
-    // trimmed the heaviest stackers. That stack no longer exists — the wallet
-    // multiplier, the bonus day and the Friday bonus are all retired — so the
-    // only thing left that stacks is the ramp itself and the reachable maximum
-    // is exactly the top rung.
-    const reachable = Math.max(...SHIPPED.tierRamp.map((r) => r.multiplier));
-    expect(reachable).toBe(3);
-    expect(SHIPPED.maxEarnMultiplier).toBeGreaterThan(reachable);
+  it('earn: the ceiling BINDS again — it is the top-rung wallet rate now', () => {
+    // 🔴 THIS TEST REVERSED ON 2026-09-08 AND THE REVERSAL IS A FINDING.
+    //
+    // It used to assert the ceiling was a safety valve that "must never bind on
+    // a real input", which was true while the wallet multiplier, the bonus day
+    // and the Friday bonus were all retired: nothing stacked, and the reachable
+    // maximum was the top rung itself.
+    //
+    // Reinstating the wallet multiplier put a stack back. 6% × 1.5 is 9%
+    // NOMINAL, MAX_EARN_MULTIPLIER (3.5) is 7%, and the cap wins — so a
+    // top-rung member paying from the wallet is quietly paid TWO PERCENTAGE
+    // POINTS LESS than the two dials together promise. Nothing warns anyone;
+    // this test is the warning.
+    //
+    // That is not necessarily wrong — 7% may be exactly the intended ceiling on
+    // a coffee bill — but it is a decision, and it is now being made by a dial
+    // whose comment still calls it a margin guard.
+    const topRung = Math.max(...SHIPPED.tierRamp.map((r) => r.multiplier));
+    const nominal = topRung * SHIPPED.walletMultiplier;
+    expect(nominal).toBeGreaterThan(SHIPPED.maxEarnMultiplier);
 
-    // The heaviest input that exists: top rung, paying from the wallet, Friday,
-    // activated bonus day. Every one of those levers is off, so it is just 6%.
     const heaviest = {
       total: 10, windowSpend: 10_000, paidFromBalance: true, bonusDayActivated: true, at: FRI,
     };
     const r = computeEarn(heaviest, SHIPPED);
-    expect(r.capApplied).toBe(false);
-    expect(r.points).toBe(60);
-    expect(r.effectiveMultiplier).toBe(3);
+    expect(r.capApplied).toBe(true);
+    expect(r.effectiveMultiplier).toBe(SHIPPED.maxEarnMultiplier);
+    expect(r.points).toBe(70);                       // 7%, not the 9% the dials imply
+    expect(r.points).toBeLessThan(10 * SHIPPED.pointsPerJod * nominal);
 
-    // 🔴 THE REGRESSION THIS TEST EXISTS FOR. Lowering the ceiling below the top
-    // rung does not raise an error anywhere — it silently pays the 6% member
-    // less than 6% while the app goes on calling them the 6% tier.
-    const throttled = computeEarn(heaviest, { ...SHIPPED, maxEarnMultiplier: 2.5 });
+    // Cash on the same rung is still the plain 6% — the cap only bites where
+    // something actually stacks.
+    const cash = computeEarn({ ...heaviest, paidFromBalance: false }, SHIPPED);
+    expect(cash.capApplied).toBe(false);
+    expect(cash.points).toBe(60);
+
+    // 🔴 THE REGRESSION THIS TEST HAS ALWAYS EXISTED FOR. Lowering the ceiling
+    // below the top rung does not raise an error anywhere — it silently pays
+    // the 6% member less than 6% while the app goes on calling them the 6%
+    // tier. Asserted on the CASH path, which the wallet stack no longer masks.
+    const throttled = computeEarn(
+      { ...heaviest, paidFromBalance: false },
+      { ...SHIPPED, maxEarnMultiplier: 2.5 },
+    );
     expect(throttled.capApplied).toBe(true);
     expect(throttled.points).toBe(50);          // 5%, not the 6% promised
-    expect(throttled.points).toBeLessThan(r.points);
+    expect(throttled.points).toBeLessThan(cash.points);
   });
 
   it('earn: the subscription is off — it lost money on every existing member', () => {
@@ -231,26 +253,55 @@ describe('earn: the dials the tests are written against', () => {
       .toThrow(/maxEarningInvoiceJod/);
   });
 
-  it('earn: the four zombie promotions are retired and stay retired', () => {
-    // Wallet x1.5, Tuesday x2, Friday +50%: ZERO rows in 171,291 live
-    // transactions between them. They were never used by anyone, and each one
-    // undercuts the ladder's single promised multiplier (the x2 at promotion).
-    // Turning any of them back on is an offer change, not a config tweak.
-    expect(config.WALLET_EARN_MULTIPLIER).toBe(1);
+  it('earn: the wallet multiplier is BACK, and the other two stay retired', () => {
+    // 🔴 THIS TEST REVERSED ON 2026-09-08, AND THE REVERSAL IS THE POINT.
+    //
+    // It used to assert all three promotions were retired, on the evidence that
+    // between them they fired in ZERO of 171,291 live transactions. That
+    // evidence still stands for the bonus day and the weekday bonus, and they
+    // are still off.
+    //
+    // The wallet multiplier is different now because the OFFER changed. The
+    // owner is selling gift cards that «تعطي ٥٠٪ رصيد نقاط اضافي عند صرفها»,
+    // and gift-card balance and top-up balance are one thing («نفس رصيد
+    // الشحن»). The multiplier is the mechanism for that promise, so it is on
+    // deliberately — and the reason it fired zero times before is that nothing
+    // was ever sold on it.
+    expect(config.WALLET_EARN_MULTIPLIER).toBe(1.5);
     expect(config.BONUS_BEAN_DAY.enabled).toBe(false);
     expect(config.WEEKDAY_EARN_BONUS).toEqual([]);
 
-    // ...and prove they are inert rather than merely unset: the heaviest input
-    // that could trigger all three earns exactly the plain rate.
-    const plain = computeEarn({ total: 10, windowSpend: 65, at: MON }, SHIPPED);
+    // The two that ARE retired must be inert, not merely unset: the heaviest
+    // input that could trigger them earns exactly the wallet-only rate.
+    const walletOnly = computeEarn({ total: 10, windowSpend: 65, paidFromBalance: true, at: MON }, SHIPPED);
     const stacked = computeEarn(
       { total: 10, windowSpend: 65, paidFromBalance: true, bonusDayActivated: true, at: FRI },
       SHIPPED,
     );
-    expect(stacked.points).toBe(plain.points);
-    expect(stacked.walletBonus).toBe(0);
+    expect(stacked.points).toBe(walletOnly.points);
     expect(stacked.bonusDayBonus).toBe(0);
     expect(stacked.weekdayBonus).toBe(0);
+
+    // ...and the wallet bonus is real money, so it is asserted as an OUTCOME,
+    // not as a flag: paying from the wallet must actually pay more.
+    const cash = computeEarn({ total: 10, windowSpend: 65, at: MON }, SHIPPED);
+    expect(walletOnly.points).toBeGreaterThan(cash.points);
+    expect(walletOnly.walletBonus).toBeGreaterThan(0);
+  });
+
+  it('earn: MAX_EARN_MULTIPLIER is what a top-rung wallet payer actually gets', () => {
+    // 🔴 THE CEILING IS NOW LOAD-BEARING, NOT DECORATIVE. 6% × 1.5 is 9%
+    // nominal, but MAX_EARN_MULTIPLIER (3.5) binds first and the member is paid
+    // 2 × 3.5 = 7%. Before the wallet multiplier came back, nothing in the
+    // shipped dials could reach this cap at all. Anyone raising the cap is
+    // raising the top-rung wallet rate, and this test is where they find out.
+    const r = computeEarn({ total: 100, windowSpend: 65, paidFromBalance: true, at: MON }, SHIPPED);
+    const topRung = SHIPPED.tierRamp[SHIPPED.tierRamp.length - 1].multiplier;
+    const nominal = 100 * SHIPPED.pointsPerJod * topRung * SHIPPED.walletMultiplier; // 6% × 1.5
+    const capped = 100 * SHIPPED.pointsPerJod * SHIPPED.maxEarnMultiplier;     // the ceiling
+    expect(capped).toBeLessThan(nominal);
+    expect(r.points).toBe(Math.round(capped));
+    expect(r.capApplied).toBe(true);
   });
 
   it('earn: combo points escape the ceiling — the one grant it does not bound', () => {
@@ -858,7 +909,12 @@ describe('T27 the static walk covers what it claims, and does not eat the code',
     // T7, T8 and T24 would keep passing over the wreckage.
     for (const p of [
       'almond-app/components/ui/Button.tsx',
-      'almond-app/components/loyalty/Cup.tsx',
+      // Was components/loyalty/Cup.tsx until the cup was deleted 2026-09-08.
+      // The canary needs a file that REALLY CONTAINS hex literals — the first
+      // replacement was constants/theme.ts, which turned out to be a re-export
+      // shim with none, and the test said so immediately. Verified by grep:
+      // this one carries them inline.
+      'almond-app/components/gift/GiftCardTile.tsx',
     ]) {
       const f = sources.find((s) => s.path === p);
       expect(f, `${p} must be in the walk`).toBeDefined();
