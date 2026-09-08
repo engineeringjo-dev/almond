@@ -7,7 +7,6 @@ import type {
   SpinEligibility,
   SpinResult,
   ReferralInfo,
-  CupState,
 } from '@/types';
 import type { GiftCard, Subscription, PaymentMethodId, TierId } from '@/types';
 import type { LoyaltyService, EarnInput } from './loyalty.service';
@@ -74,7 +73,6 @@ export interface LoyaltyUser {
    *  has the same shape as the BFF's Member; the APP never closes a period —
    *  the requalification stamp belongs to the server (Odoo gate 4's cron). */
   evaluatedThrough: string;
-  cup: CupState;
   walletBalance: number;
   vouchers: Voucher[];
   history: PointsLogEntry[];
@@ -150,7 +148,7 @@ function ensureUser(userId: string): LoyaltyUser {
   let u = store.get(userId);
   if (!u) {
     // Demo-friendly starting state: the ENTRY rung, two visit days banked,
-    // head-start cup, one spin.
+    // one spin.
     u = {
       // 🔴 1,240 POINTS AS TWO LOTS, NOT ONE SCALAR — the seed is the only
       // place the per-lot rule can be SEEN without a test fixture. 1,000 points
@@ -197,7 +195,6 @@ function ensureUser(userId: string): LoyaltyUser {
       ],
       heldTierId: 'base',
       evaluatedThrough: evaluationPeriod(ammanDayKey(), WINDOW.evaluation),
-      cup: { current: config.CUP_HEAD_START, target: config.CUP_TARGET },
       walletBalance: 12.5,
       vouchers: [
         {
@@ -293,7 +290,6 @@ function buildBalance(userId: string, u: LoyaltyUser): LoyaltyBalance {
           step: st.next.step,
         }
       : null,
-    cup: u.cup,
     // WHICH points die next, and HOW MANY. Not one date for the whole balance:
     // this member holds grants made months apart and each one dies on its own
     // day. The tier is not consulted — «لا إعفاء».
@@ -457,19 +453,10 @@ export const mockLoyaltyService: LoyaltyService = {
     u.heldTierId = holdRung(u.heldTierId, qualifiedRung(after.windowSpend, after.visitDays, WINDOW), WINDOW).id as TierId;
     u.visits += 1;
 
-    // Cup fill uses the same pay-from-balance multiplier for consistency.
-    // earn-arith-exempt: cup stamps, not points — no invoice, no grant. §7 T7.
-    const cupBeans = paidFromBalance ? config.WALLET_EARN_MULTIPLIER : 1;
-    u.cup.current = Math.min(u.cup.target, u.cup.current + cupBeans);
-    let freeDrinkIssued = false;
-    if (u.cup.current >= u.cup.target) {
-      freeDrinkIssued = true;
-      u.vouchers.unshift({
-        id: genId('vch'), titleAr: 'مشروب مجاني 🎉', titleEn: 'Free drink 🎉',
-        type: 'free-item', expiresAt: new Date(Date.now() + 86400000 * 30).toISOString(),
-      });
-      u.cup.current = config.CUP_HEAD_START; // reset to head-start
-    }
+    // 🪦 THE CUP FILLED HERE. It counted orders, paid a free drink at 10, and
+    // reset to a head-start of 1 — so it actually paid on the NINTH order while
+    // every screen advertised the tenth. Deleted 2026-09-08 with the mechanic:
+    // «الغي الكوب، لان الصرف قد يكون كوب او غيره».
 
     // Grant a spin every N visits (section 2.4).
     if (u.visits % spinConfig.eligibility.visitsPerSpin === 0) {
@@ -497,7 +484,7 @@ export const mockLoyaltyService: LoyaltyService = {
       });
     }
 
-    return delay({ pointsEarned, cup: { ...u.cup }, freeDrinkIssued });
+    return delay({ pointsEarned });
   },
 
   getHistory: (userId) => delay(ensureUser(userId).history),

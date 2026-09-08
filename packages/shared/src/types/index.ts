@@ -169,10 +169,19 @@ export interface Tier {
   color: string;
 }
 
-export interface CupState {
-  current: number;
-  target: number;
-}
+/**
+ * 🪦 CupState — DELETED 2026-09-08. Owner: «الغي الكوب … لان الصرف قد يكون كوب
+ * او غيره».
+ *
+ * The free-drink cup counted ORDERS and paid a drink. That made it a second
+ * loyalty currency running beside the points, with its own accrual (~30,670
+ * JOD/yr, more than the entire 2/4/6 ladder), its own expiry rules and its own
+ * copy — and it measured the wrong thing: a member's spend may be a cup of
+ * coffee or a 40 JOD brunch for four, and the cup paid both the same.
+ *
+ * Points already say what the cup was trying to say, in money, proportionally.
+ * Do not reintroduce a per-order counter.
+ */
 
 export interface LoyaltyBalance {
   userId: string;
@@ -217,18 +226,6 @@ export interface LoyaltyBalance {
     visitsGuaranteed?: boolean;
     step: number;
   } | null;
-  /**
-   * The free-drink cup, when the producer keeps one.
-   *
-   * OPTIONAL, and it was required until a probe executed the real screens
-   * against the real `GET /v1/me/balance` body: the BFF holds no cup state at
-   * all and never sends this field, so `data.cup.current` at
-   * LoyaltyCard.tsx and app/loyalty.tsx did not render a blank — it THREW,
-   * taking out the whole home card and the whole loyalty screen. A required
-   * field the only real producer never sends is a promise the type cannot
-   * keep; both call sites are now guarded. The app's mock still sends it.
-   */
-  cup?: CupState;
   /**
    * The NEXT slice of points to die, and how many. `null` when the member holds
    * no live points.
@@ -283,8 +280,6 @@ export interface PointsLogEntry {
 
 export interface EarnResult {
   pointsEarned: number;
-  cup: CupState;
-  freeDrinkIssued: boolean;
 }
 
 // ---------- Spin Wheel (admin-configurable, section 13) ----------

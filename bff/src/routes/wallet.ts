@@ -20,7 +20,7 @@ export function registerWalletRoutes(app: FastifyInstance, backend: Backend): vo
   }, async (req, reply) => {
     const id = memberId(req);
     const { amount } = parse(z.object({ amount: z.number().positive() }), req.body);
-    await backend.creditWallet(id, toFils(amount));
+    await backend.creditWallet(id, toFils(amount), 'topup');
     const bonus = reloadBonus(amount);
     if (bonus > 0) await backend.addPoints(id, bonus, 'مكافأة شحن المحفظة', 'Wallet reload bonus');
     const after = await backend.getMember(id);
@@ -30,7 +30,7 @@ export function registerWalletRoutes(app: FastifyInstance, backend: Backend): vo
     // activity (extends beans)` — that line WAS the inactivity rule, and it is
     // gone along with the rule.)
     return reply.code(201).send({
-      walletBalance: toJod(after.walletFils),
+      walletBalance: toJod(liveBalance(after.walletLots)),
       bonusPoints: bonus,
       pointsBalance: liveBalance(after.lots),
     });

@@ -3,7 +3,7 @@ import { config as loyalty } from '@almond/shared/config';
 import { ammanDayKey } from '@almond/shared/lib/ammanWeekday';
 import {
   consumeFifo, expiredBetween, grantLot, liveBalance, lotRulesFromConfig, migrateBalance,
-  pruneLots,
+  pruneLots, walletLotRulesFromConfig,
 } from '@almond/shared/loyalty/lots';
 import { normalizeName, profileBonusFor } from '@almond/shared/loyalty/profile';
 import {
@@ -33,6 +33,8 @@ const WINDOW = windowRulesFromConfig();
  *  WINDOW. Every grant stores the expiry day these rules gave it, so editing
  *  the config later cannot reach back and move a promise already made. */
 const LOTS = lotRulesFromConfig();
+/** The money ledger's dials — 24 months, not the points' 12. */
+const WALLET_LOTS = walletLotRulesFromConfig();
 
 /** In-memory, runnable adapter. State lives in process memory (fine for dev /
  *  demo / tests); swap for the Odoo adapter in production. */
@@ -83,7 +85,9 @@ export function createMemoryBackend(): Backend {
       40, 'migration', undefined, LOTS, todayKey(),
     ).lots,
     expirySettledThrough: todayKey(),
-    walletFils: toFils(20),
+    // 20 JOD topped up today: one lot, its own two-year clock.
+    walletLots: grantLot([], toFils(20), 'topup', undefined, WALLET_LOTS, todayKey()).lots,
+    walletExpirySettledThrough: todayKey(),
     spend: [
       { jod: 95.0, day: shiftDayKey(todayKey(), -200) },
       { jod: 22.5, day: shiftDayKey(todayKey(), -61) },
@@ -151,6 +155,33 @@ export function createMemoryBackend(): Backend {
     m.lots = pruneLots(m.lots, at, LOTS);
   };
 
+  /**
+   * Book any MONEY that died since the last settlement, then prune.
+   *
+   * Deliberately separate from settleExpiry rather than folded into it: the two
+   * ledgers have different lifetimes and different history wording, and a
+   * member losing prepaid cash deserves its own line — «انتهاء صلاحية رصيد»,
+   * not "points expired". The history's `deltaPoints` is a points column, so
+   * the loss is recorded at 0 and named in the reason: the wallet's own
+   * arithmetic lives in its lots, and writing fils into a points ledger would
+   * corrupt `unexplainedPoints`.
+   */
+  const settleWalletExpiry = (m: Member, at: Date): void => {
+    const today = ammanDayKey(at);
+    const lostFils = expiredBetween(m.walletLots, m.walletExpirySettledThrough, today);
+    if (lostFils > 0) {
+      const lostJod = (lostFils / 1000).toFixed(3);
+      log(m.id, {
+        deltaPoints: 0,
+        reasonAr: `انتهاء صلاحية رصيد (${lostJod} د.أ)`,
+        reasonEn: `Wallet balance expired (${lostJod} JOD)`,
+        createdAt: at.toISOString(),
+      });
+    }
+    m.walletExpirySettledThrough = today;
+    m.walletLots = pruneLots(m.walletLots, at, WALLET_LOTS);
+  };
+
   /** Close any evaluation period that has come due, and stamp how far we got.
    *  There is no cron in the BFF, so the write path is the only trigger; that
    *  is provably nil for the RATE (the floor only ever rises, and the rate is
@@ -183,7 +214,8 @@ export function createMemoryBackend(): Backend {
         // `unexplainedPoints` and cost them the second-visit voucher (T32u's
         // defect, in the other direction).
         lots: [], expirySettledThrough: todayKey(),
-        walletFils: 0,
+        walletLots: [],
+        walletExpirySettledThrough: todayKey(),
         // No history, so: 0 JOD, 0 visit days, the entry rung, and the current
         // period already closed (nothing happened in it to requalify for).
         spend: [], heldTierId: 'base',
@@ -198,11 +230,26 @@ export function createMemoryBackend(): Backend {
     async getMember(id) { return must(id); },
     async debitWallet(id, fils) {
       const m = must(id);
-      if (m.walletFils < fils) throw conflict('insufficient_wallet', 'Wallet balance is not enough');
-      m.walletFils -= fils;
-      return m.walletFils;
+      const at = new Date();
+      settleWalletExpiry(m, at);
+      // OLDEST LOT FIRST, and the shortfall is found BEFORE any debit —
+      // consumeFifo checks the live total first and returns a refusal that has
+      // written nothing. A lot consumed in part keeps its own expiry day, so
+      // the remainder still dies when it was always going to.
+      const res = consumeFifo(m.walletLots, fils, at);
+      if (!res.ok) throw conflict('insufficient_wallet', 'Wallet balance is not enough');
+      m.walletLots = res.lots;
+      return liveBalance(m.walletLots, at);
     },
-    async creditWallet(id, fils) { const m = must(id); m.walletFils += fils; return m.walletFils; },
+    async creditWallet(id, fils, source) {
+      const m = must(id);
+      const at = new Date();
+      settleWalletExpiry(m, at);
+      // ONE LOT, ONE CLOCK. A top-up never renews money already held — the same
+      // rule as points, and it is what makes "first in, first out" meaningful.
+      m.walletLots = grantLot(m.walletLots, fils, source, at, WALLET_LOTS).lots;
+      return liveBalance(m.walletLots, at);
+    },
     async addPoints(id, delta, reasonAr, reasonEn) {
       const m = must(id);
       const at = new Date();

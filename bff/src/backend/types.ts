@@ -3,7 +3,7 @@ import type { EarnBreakdown } from '@almond/shared/loyalty/earn';
 import type { HoldoutStamp } from '@almond/shared/loyalty/holdout';
 import type { SecondVisitVoucher } from '@almond/shared/loyalty/secondVisit';
 import type { MemberProfile } from '@almond/shared/loyalty/profile';
-import type { PointLot } from '@almond/shared/loyalty/lots';
+import type { PointLot, WalletLot } from '@almond/shared/loyalty/lots';
 import type { SpendEntry, TierStanding, Evaluation } from '@almond/shared/loyalty/window';
 
 export interface Member {
@@ -56,7 +56,28 @@ export interface Member {
    * `null` means never paid.
    */
   profileBonusAt: string | null;
-  walletFils: number; // stored-value wallet, in fils
+  /**
+   * 🔴 THE MONEY LEDGER. This replaced `walletFils: number`, for the same
+   * reason `points: number` became `lots`.
+   *
+   * Owner, 2026-09-08: top-up balance and gift-card balance are one kind of
+   * money with two origins — «نفس رصيد الشحن، لكن اذا شخص اشتراه لنفسه اسمه
+   * شحن، اذا حدا اهداه لشخص يصبح gift card» — living «٢ سنة first in first
+   * out». A scalar cannot say WHEN a dinar was topped up, so it cannot say when
+   * that dinar dies, and a spend cannot know which part of it was consumed.
+   *
+   * The balance is `liveBalance(m.walletLots)`, DERIVED on every read, with no
+   * stored number beside it that could disagree. Deleting the scalar rather
+   * than shadowing it makes every reader a typecheck failure instead of a
+   * silent second opinion.
+   *
+   * IN FILS. `remaining` must stay an integer — see WalletLot.
+   */
+  walletLots: WalletLot[];
+  /** The Amman day key through which WALLET expiry has been booked into
+   *  `history`. Mirrors `expirySettledThrough` for points; the balance itself
+   *  needs no sweep, only the ledger line does. */
+  walletExpirySettledThrough: string;
   /**
    * The dated spend log the rolling window is computed from, PRUNED to
    * config.TIER_WINDOW_DAYS on every write.
@@ -150,8 +171,18 @@ export interface Backend {
   findOrCreateByPhone(phone: string, name?: string): Promise<Member>;
   getMember(id: string): Promise<Member>;
   /** Atomic debit; throws conflict('insufficient_wallet') if balance < fils. */
+  /** Spend from the wallet, OLDEST LOT FIRST, measured against the LIVE
+   *  balance; throws conflict('insufficient_wallet') without touching a lot. */
   debitWallet(id: string, fils: number): Promise<number>;
-  creditWallet(id: string, fils: number): Promise<number>;
+  /**
+   * Add money to the wallet as ONE NEW LOT with its own 24-month clock.
+   *
+   * `source` is why it arrived — 'topup' when the member paid for it, 'gift'
+   * when someone else did, 'refund' when a saga compensated. It does NOT change
+   * what the money is worth or what it earns (the owner: gift-card balance and
+   * top-up balance are the same thing), only what the member's history says.
+   */
+  creditWallet(id: string, fils: number, source: 'topup' | 'gift' | 'refund'): Promise<number>;
   /**
    * Grant points as ONE LOT with its own 12-month clock, and log the reason.
    * Returns the member's live balance afterwards.

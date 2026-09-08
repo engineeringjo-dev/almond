@@ -1,7 +1,6 @@
 import { useTranslations } from 'next-intl';
 import { Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
-import { Cup } from '@/components/ui/Cup';
 
 /** Signature rainbow loyalty banner + order CTA (handoff sitemap: Home hero). */
 export function Hero() {
@@ -27,9 +26,6 @@ export function Hero() {
               {t('ctaSecondary')}
             </Button>
           </div>
-        </div>
-        <div className="mx-auto w-40 text-primary-dark drop-shadow-sm md:w-56">
-          <Cup current={6} />
         </div>
       </div>
     </section>

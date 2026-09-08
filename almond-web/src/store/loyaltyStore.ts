@@ -2,7 +2,7 @@
 
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
-import type { CupState, GiftCard, GiftOccasion, PointsLogEntry, Voucher } from '@almond/shared/types';
+import type { GiftCard, GiftOccasion, PointsLogEntry, Voucher } from '@almond/shared/types';
 import { config } from '@/lib/config';
 import { reloadBonus, genGiftCode } from '@/data/loyalty';
 import type { RedeemOption } from '@almond/shared/loyalty/redeem';
@@ -25,7 +25,6 @@ interface SendGiftInput {
 interface LoyaltyState {
   points: number;
   windowSpend: number; // spend inside the 90-day window (config.TIER_WINDOW_DAYS) → tier
-  cup: CupState;
   walletBalance: number;
   vouchers: Voucher[];
   pointsHistory: PointsLogEntry[];
@@ -52,7 +51,7 @@ const daysAhead = (d: number) => new Date(Date.now() + d * 86400000).toISOString
 export const useLoyaltyStore = create<LoyaltyState>()(
   persist(
     (set, get) => ({
-      // Seed so the site is demoable: a cup in progress, a stored-value
+      // Seed so the site is demoable: a stored-value
       // balance, a voucher and some recent activity.
       //
       // 🔴 windowSpend IS A DISPLAY SEED THAT NOTHING EVER WRITES (this literal
@@ -65,7 +64,6 @@ export const useLoyaltyStore = create<LoyaltyState>()(
       // 4% rung instead of claiming to have arrived.
       points: 240,
       windowSpend: 12,
-      cup: { current: 6, target: config.CUP_TARGET },
       walletBalance: 12.5,
       vouchers: [
         {

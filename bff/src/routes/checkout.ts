@@ -7,6 +7,7 @@ import { reprice } from '../pricing';
 import { computeEarn } from '../earn';
 import { assignHoldout, holdoutSpecFromConfig, stampAllExperiments } from '@almond/shared/loyalty/holdout';
 import { toSecondVisitView, type SecondVisitVoucherView } from '@almond/shared/loyalty/secondVisit';
+import { liveBalance } from '@almond/shared/loyalty/lots';
 import { toFils, toJod } from '../money';
 import { recordOrderLines } from '../analytics/orderLines';
 import type { Backend } from '../backend';
@@ -59,8 +60,21 @@ export function registerCheckoutRoutes(app: FastifyInstance, backend: Backend): 
     let walletDebited = 0;
     try {
       if (paidFromBalance) {
-        walletDebited = toFils(totals.total);
-        await backend.debitWallet(id, walletDebited); // throws → nothing else runs
+        // 🔴 THE ASSIGNMENT COMES AFTER THE AWAIT, AND THAT IS THE WHOLE POINT.
+        //
+        // It used to be `walletDebited = toFils(total)` on the line BEFORE the
+        // debit. When debitWallet threw — an insufficient balance, the most
+        // ordinary failure this route has — the catch below saw a non-zero
+        // `walletDebited` and "compensated" by CREDITING money that had never
+        // left the wallet. A member with 1 JOD who tried to buy a 5 JOD coffee
+        // ended up with more money than they started with, every time they
+        // tried. Found by T34f on 2026-09-08.
+        //
+        // A compensation variable must record what actually happened, never
+        // what was about to be attempted.
+        const fils = toFils(totals.total);
+        await backend.debitWallet(id, fils); // throws → nothing below runs
+        walletDebited = fils;
       }
       // NOTE: card/cliq payments would capture via a PSP here (out of scope).
       const order = await backend.createOrder({
@@ -163,7 +177,7 @@ export function registerCheckoutRoutes(app: FastifyInstance, backend: Backend): 
         orderId: order.id,
         subtotal: totals.subtotal, tax: totals.tax, total: totals.total,
         itemCount: items.reduce((s, l) => s + l.qty, 0),
-        pointsEarned, pointsBalance, walletBalance: toJod(after.walletFils),
+        pointsEarned, pointsBalance, walletBalance: toJod(liveBalance(after.walletLots)),
         // null for a member who was suppressed, declined, ineligible or already
         // evaluated — the SAME bytes in every case, so the body cannot be read
         // to work out which arm the member is in.
@@ -171,7 +185,10 @@ export function registerCheckoutRoutes(app: FastifyInstance, backend: Backend): 
       });
     } catch (err) {
       if (walletDebited > 0) {
-        try { await backend.creditWallet(id, walletDebited); } catch { /* compensation best-effort */ }
+        // 'refund', not 'topup': the member did not buy this money back, we are
+        // returning it. The lot gets a fresh 24-month clock, which is the
+        // generous side of an ambiguity nobody should have to lose sleep over.
+        try { await backend.creditWallet(id, walletDebited, 'refund'); } catch { /* compensation best-effort */ }
       }
       throw err;
     }

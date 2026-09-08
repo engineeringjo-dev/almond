@@ -9,7 +9,6 @@ import { tierProgress } from '@/data/loyalty';
 import { redeemOptions } from '@almond/shared/loyalty/redeem';
 // earn-arith-exempt: points→JOD for DISPLAY, via the one shared conversion. §7 T7.
 import { jodFromPoints } from '@almond/shared/loyalty/earn';
-import { Cup } from '@/components/ui/Cup';
 import { asLang, formatDate, formatJOD, formatNumber } from '@/lib/format';
 import { cn } from '@/lib/cn';
 
@@ -19,7 +18,6 @@ export function RewardsView() {
 
   const points = useLoyaltyStore((s) => s.points);
   const windowSpend = useLoyaltyStore((s) => s.windowSpend);
-  const cup = useLoyaltyStore((s) => s.cup);
   const vouchers = useLoyaltyStore((s) => s.vouchers);
   const history = useLoyaltyStore((s) => s.pointsHistory);
   const redeemReward = useLoyaltyStore((s) => s.redeemReward);
@@ -50,8 +48,8 @@ export function RewardsView() {
     <div className="container-content py-xl">
       <h1 className="text-xxl">{t('title')}</h1>
 
-      {/* Balance + tier + cup */}
-      <div className="mt-6 grid gap-4 md:grid-cols-[1.4fr_1fr]">
+      {/* Balance + tier */}
+      <div className="mt-6">
         <div className="rounded-xl bg-gradient-purple p-6 text-white">
           <p className="text-sm text-white/80">{t('yourBeans')}</p>
           <p className="mt-1 text-display font-bold leading-none">{formatNumber(points, lang)}</p>
@@ -86,15 +84,6 @@ export function RewardsView() {
               <div className="h-full rounded-pill bg-white" style={{ width: `${tp.ratio * 100}%` }} />
             </div>
           </div>
-        </div>
-
-        <div className="flex items-center gap-4 rounded-xl border border-neutral-warm bg-card p-6 shadow-card">
-          <div className="w-20 shrink-0 text-primary">
-            <Cup current={cup.current} target={cup.target} />
-          </div>
-          <p className="text-sm text-text-secondary">
-            {t('cupProgress', { current: cup.current, target: cup.target })}
-          </p>
         </div>
       </div>
 

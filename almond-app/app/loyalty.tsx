@@ -5,7 +5,6 @@ import { Screen } from '@/components/ui/Screen';
 import { Text } from '@/components/ui/Text';
 import { Card } from '@/components/ui/Card';
 import { Gradient } from '@/components/ui/Gradient';
-import { Cup } from '@/components/loyalty/Cup';
 import { TierBadge } from '@/components/loyalty/TierBadge';
 import { TierProgress } from '@/components/loyalty/TierProgress';
 import { VoucherCard } from '@/components/loyalty/VoucherCard';
@@ -54,29 +53,6 @@ export default function LoyaltyScreen() {
           </View>
         </Gradient>
 
-        {/* Cup — only where the producer keeps one. Unguarded, this threw on
-            the BFF's balance body (which carries no cup) and took the whole
-            screen with it. See LoyaltyBalance.cup. */}
-        {balance.cup ? (
-          <Card style={styles.cupCard}>
-            <Cup current={balance.cup.current} target={balance.cup.target} size={120} />
-            <View style={styles.cupInfo}>
-              <Text variant="title">{t('loyalty.cupTitle')}</Text>
-              <Text variant="h2" color={colors.gold}>
-                {balance.cup.target - balance.cup.current <= 3 &&
-                balance.cup.current < balance.cup.target
-                  ? t('loyalty.cupClose')
-                  : t('loyalty.cupProgress', {
-                      current: Math.floor(balance.cup.current),
-                      target: balance.cup.target,
-                    })}
-              </Text>
-              <Text variant="caption" color={colors.warmGray}>
-                {t('loyalty.cupHint')}
-              </Text>
-            </View>
-          </Card>
-        ) : null}
 
         {/* Tier progress */}
         <Card style={styles.section}>
@@ -157,13 +133,6 @@ const styles = StyleSheet.create({
     ...shadow.card,
   },
   tierRow: { marginTop: spacing.sm },
-  cupCard: {
-    marginTop: spacing.lg,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.lg,
-  },
-  cupInfo: { flex: 1, gap: spacing.xs },
   section: { marginTop: spacing.lg },
   sectionTitle: { marginBottom: spacing.md },
   list: { gap: spacing.md },

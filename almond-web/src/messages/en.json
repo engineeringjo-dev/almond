@@ -38,7 +38,6 @@
       "title": "Your rewards cup fills with every order",
       "text": "Every 10 orders earns a free drink. Track your progress and redeem points for exclusive rewards — one account across web and app.",
       "cta": "Start earning points",
-      "cupLabel": "{current} of {target} orders",
       "beansLabel": "points"
     },
     "featured": {
@@ -95,8 +94,6 @@
     "promoApplied": "Code “{code}” applied",
     "promoInvalid": "Invalid code",
     "removePromo": "Remove code",
-    "freeDrink": "Orders to your free drink: {n}",
-    "freeDrinkReady": "🎉 Your free drink is ready!",
     "comboAddFood": "Add a food item to earn +{points} points 🍽️",
     "comboAddDrink": "Add a drink to earn +{points} points ☕",
     "comboAdd": "Add",
@@ -146,7 +143,6 @@
     "tier": "Your tier",
     "toNextTier": "Spend {jod} JOD more to reach {tier}",
     "topTier": "👑 You made it — {tier} back",
-    "cupProgress": "{current} of {target} orders to your free drink",
     "redeemTitle": "Redeem your points",
     "redeem": "Redeem",
     "redeemed": "Redeemed",

@@ -4,6 +4,7 @@ import { config as loyalty } from '@almond/shared/config';
 import { parse } from '../validate';
 import { requireMember, memberId } from '../plugins/auth';
 import { idempotencyPreHandler, idempotencyOnSend } from '../plugins/idempotency';
+import { liveBalance } from '@almond/shared/loyalty/lots';
 import { toFils, toJod } from '../money';
 import type { Backend } from '../backend';
 
@@ -26,9 +27,9 @@ export function registerSubscriptionRoutes(app: FastifyInstance, backend: Backen
       // else: card/CliQ capture via a PSP would go here.
       const subscription = await backend.activateSubscription(id);
       const after = await backend.getMember(id);
-      return reply.code(201).send({ subscription, walletBalance: toJod(after.walletFils), priceJod: loyalty.SUBSCRIPTION.priceJod });
+      return reply.code(201).send({ subscription, walletBalance: toJod(liveBalance(after.walletLots)), priceJod: loyalty.SUBSCRIPTION.priceJod });
     } catch (err) {
-      if (debited > 0) { try { await backend.creditWallet(id, debited); } catch { /* compensate */ } }
+      if (debited > 0) { try { await backend.creditWallet(id, debited, 'refund'); } catch { /* compensate */ } }
       throw err;
     }
   });

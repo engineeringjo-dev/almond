@@ -102,7 +102,17 @@ import { ammanDayKey } from '../lib/ammanWeekday';
  * lot can be recognised as the one grant that is deliberately absent from the
  * history ledger (see `migrationLot`).
  */
-export type LotSource = 'earn' | 'bonus' | 'migration' | 'adjustment';
+/**
+ * Where a lot came from.
+ *
+ * 'earn' | 'bonus' | 'migration' | 'adjustment' are POINTS. 'topup' | 'gift' |
+ * 'refund' are MONEY — see WalletLot below. The union is shared because the
+ * ledger is, and a source that cannot name itself would make the member's
+ * history unreadable.
+ */
+export type LotSource =
+  | 'earn' | 'bonus' | 'migration' | 'adjustment'
+  | 'topup' | 'gift' | 'refund';
 
 /** One grant of points, with its own clock. */
 export interface PointLot {
@@ -168,6 +178,45 @@ function assertDayKey(day: string, where: string): void {
  * describes. It is calendar arithmetic, not a business rule, and L9b asserts
  * the two agree over a four-year sweep so the duplication cannot drift.
  */
+/**
+ * A slice of the member's MONEY, in fils.
+ *
+ * 🔴 THE SAME TYPE AND THE SAME FUNCTIONS AS THE POINT LEDGER, DELIBERATELY.
+ *
+ * Owner, 2026-09-08: the wallet holds top-up balance and gift-card balance —
+ * «نفس رصيد الشحن، لكن اذا شخص اشتراه لنفسه اسمه شحن، اذا حدا اهداه لشخص يصبح
+ * gift card» — one kind of money with two origins, living two years, spent
+ * first-in-first-out. That is the point ledger's problem statement with two
+ * numbers changed.
+ *
+ * Writing a second ledger would mean two FIFO walks, two expiry-day
+ * calculations and two off-by-one bugs to find separately. Every function here
+ * takes its rules as an argument precisely so this could happen: pass
+ * `walletLotRulesFromConfig()` and the same code keeps money instead of points.
+ *
+ * THE UNIT IS FILS, NOT DINARS. `remaining` must stay an integer — the FIFO
+ * walk subtracts it repeatedly, and 0.1 + 0.2 in dinars would leave a member
+ * holding 0.30000000000000004 JOD that never quite reaches zero.
+ */
+export type WalletLot = PointLot;
+
+/**
+ * The wallet's dials. Distinct from lotRulesFromConfig() because the two
+ * ledgers hold different promises: points live 12 months, money lives 24.
+ *
+ * 🔴 THIS IS THE CUSTOMER'S OWN MONEY. A points lot expiring is a loyalty rule;
+ * a wallet lot expiring is prepaid cash the member handed over. `expiresOn` is
+ * stored at grant time for the same reason it is on a point lot, and it matters
+ * more here: shortening WALLET_LIFE_MONTHS must never reach backwards into
+ * balances a member has already been promised.
+ */
+export function walletLotRulesFromConfig(): LotRules {
+  return {
+    lifeMonths: config.WALLET_LIFE_MONTHS,
+    retentionDays: config.POINT_LOT_RETENTION_DAYS,
+  };
+}
+
 export function addDaysToDayKey(day: string, deltaDays: number): string {
   assertDayKey(day, 'addDaysToDayKey');
   const [y, m, d] = day.split('-').map(Number);

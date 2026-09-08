@@ -180,14 +180,26 @@ describe('D2 — one earn calculation: the app grants what computeEarn returns',
     // The matrix above binds the app to computeEarn, so it stays green if BOTH
     // sides drift together. This one literal is the anchor that does not.
     //
-    // 10 JOD at the 2% entry rung = 20 points. Monday, no pairs, and paying
-    // from the wallet adds NOTHING since 2026-09-06 — the wallet multiplier is
-    // retired, which is exactly the kind of change this test exists to surface.
+    // 🔴 THIS NUMBER MOVED ON 2026-09-08, AND THAT IS THE TEST WORKING.
+    //
+    // It was 20, with a comment saying "paying from the wallet adds NOTHING
+    // since 2026-09-06 — the wallet multiplier is retired, which is exactly the
+    // kind of change this test exists to surface." It surfaced it.
+    //
+    // 10 JOD at the 2% entry rung is 20 points; paying from the WALLET now pays
+    // 1.5× — the gift-card promise «٥٠٪ رصيد نقاط اضافي عند صرفها», where
+    // gift-card balance and top-up balance are one thing. 30 points.
     const id = memberWithSpend(0);
     const res = await mockLoyaltyService.earn({
       userId: id, invoiceAmount: 10, paidFromBalance: true, at: MON,
     });
-    expect(res.pointsEarned).toBe(20);
+    expect(res.pointsEarned).toBe(30);
+
+    // The same invoice paid in CASH is still the plain 20 — the anchor for the
+    // rate itself, unmixed with the wallet bonus.
+    expect((await mockLoyaltyService.earn({
+      userId: memberWithSpend(0), invoiceAmount: 10, paidFromBalance: false, at: MON,
+    })).pointsEarned).toBe(20);
 
     // The two rungs above it, on the same invoice: 4% and 6%.
     expect((await mockLoyaltyService.earn({

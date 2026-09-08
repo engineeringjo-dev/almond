@@ -113,7 +113,7 @@ export function registerMeRoutes(app: FastifyInstance, backend: Backend): void {
 
   app.get('/v1/me/wallet', { preHandler: [requireMember] }, async (req) => {
     const m = await backend.getMember(memberId(req));
-    return { balance: toJod(m.walletFils) };
+    return { balance: toJod(liveBalance(m.walletLots)) };
   });
 
   app.get('/v1/me/history', { preHandler: [requireMember] }, async (req) => {
