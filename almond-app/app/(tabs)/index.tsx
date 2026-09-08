@@ -12,7 +12,6 @@ import { OrderNowButton } from '@/components/home/OrderNowButton';
 import { WalletCard } from '@/components/home/WalletCard';
 import { GiftCardHome } from '@/components/home/GiftCardHome';
 import { ActiveOrderBanner } from '@/components/home/ActiveOrderBanner';
-import { WelcomeOffer } from '@/components/home/WelcomeOffer';
 import { FeaturedRow } from '@/components/home/FeaturedRow';
 import { ChallengeBanner } from '@/components/home/ChallengeBanner';
 import { HomeNudge } from '@/components/home/HomeNudge';
@@ -107,9 +106,11 @@ export default function HomeScreen() {
 
         {/* Starbucks layout (Master Pack §2): rewards hero → order CTA → wallet
             → usual → horizontal sections → branches, with generous spacing. */}
-        <View style={styles.section}>
-          <WelcomeOffer />
-        </View>
+        {/* 🪦 WelcomeOffer sat here — «هدية الترحيب: مشروب مجاني على أول طلب».
+            Deleted 2026-09-08 («الغي الكاس المجاني»): no code anywhere granted a
+            drink on a first order, so the card was a promise with nothing
+            behind it. The real acquisition offer is the second-visit voucher
+            («تانية علينا»), which is tested end to end. */}
 
         <View style={styles.section}>
           <VisitRewardBanner />
