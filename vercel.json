@@ -2,5 +2,6 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": "nextjs",
   "installCommand": "npm install",
-  "buildCommand": "npm run build --workspace almond-web"
+  "buildCommand": "npm run build --workspace almond-web",
+  "outputDirectory": "almond-web/.next"
 }
