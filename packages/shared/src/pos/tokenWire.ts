@@ -34,13 +34,13 @@
  */
 
 /** What the member is asking the till to do. See `PosTokenWire.mode`. */
-export type PosMode = 'pay' | 'earn' | 'corporate';
+export type PosMode = 'pay' | 'earn' | 'corporate' | 'redeem';
 
 /** The two modes, as a frozen tuple so the BFF's request schema (`z.enum`) can
  *  be BUILT from this list instead of retyping it. One list, three readers: the
  *  route that accepts the mode, the token that signs it, and the parser that
  *  validates it coming back. */
-export const POS_MODES = ['pay', 'earn', 'corporate'] as const satisfies readonly PosMode[];
+export const POS_MODES = ['pay', 'earn', 'corporate', 'redeem'] as const satisfies readonly PosMode[];
 
 export interface PosTokenWire {
   /**

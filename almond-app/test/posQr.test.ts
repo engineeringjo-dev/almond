@@ -12,7 +12,7 @@ import {
 } from '@/lib/posQr';
 import { mockLoyaltyService } from '@/services/loyalty.service.mock';
 import { loyaltyService } from '@/services/loyalty.service';
-import { parsePosToken, PosTokenWireError } from '@almond/shared/pos/tokenWire';
+import { parsePosToken, PosTokenWireError , POS_MODES} from '@almond/shared/pos/tokenWire';
 
 /**
  * P1-P5 — the code the member shows at the till.
@@ -202,8 +202,18 @@ describe('P4 the seam refuses the retired format even from the server', () => {
     // A TTL of zero would make the screen refresh in a tight loop against the
     // server that sent it.
     expect(() => parsePosToken({ token: 'a.b', expiresIn: 0, mode: 'pay' })).toThrow(PosTokenWireError);
-    // A mode nothing can render.
-    expect(() => parsePosToken({ token: 'a.b', expiresIn: 60, mode: 'redeem' })).toThrow(PosTokenWireError);
+    // A mode nothing can render. This example was 'redeem' until 2026-09-09,
+    // when redeem became a REAL mode — the QR a member holds up after spending
+    // points. The assertion is about an UNKNOWN mode, so it now uses one, and
+    // the list it is checked against is POS_MODES rather than a literal here,
+    // so the next mode added cannot quietly make this pass for the wrong reason.
+    expect(POS_MODES).not.toContain('teleport');
+    expect(() => parsePosToken({ token: 'a.b', expiresIn: 60, mode: 'teleport' })).toThrow(PosTokenWireError);
+    // ...and the modes that DO exist are accepted, so this test cannot pass by
+    // rejecting everything.
+    for (const mode of POS_MODES) {
+      expect(() => parsePosToken({ token: 'a.b', expiresIn: 60, mode }), mode).not.toThrow();
+    }
     // A 404/HTML body, which is what the live client receives from the loyalty
     // base URL today.
     expect(() => parsePosToken('<html>404</html>')).toThrow(PosTokenWireError);

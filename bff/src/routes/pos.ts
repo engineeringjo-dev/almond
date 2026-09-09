@@ -6,7 +6,8 @@ import { config } from '../config';
 import { parse } from '../validate';
 import { requireMember, memberId } from '../plugins/auth';
 import { issuePosToken, verifyPosToken } from '../pos/token';
-import { unauthorized } from '../http-error';
+import { toRedemptionView } from '@almond/shared/loyalty/redemption';
+import { badRequest, notFound, unauthorized } from '../http-error';
 import type { Backend } from '../backend';
 
 /** Constant-time shared-key comparison — `!==` on a secret leaks its prefix. */
@@ -75,9 +76,14 @@ export function registerPosRoutes(app: FastifyInstance, backend: Backend): void 
      * `earnsPoints` is stated so the till does not have to know the rule.
      */
     const entitlement = await backend.entitlementFor(id);
+    // A `redeem` scan carries the member's live code, so the till learns what
+    // to take off the bill from the same scan that identified them.
+    await backend.sweepRedemptions(id, new Date());
+    const redemption = mode === 'redeem' ? await backend.activeRedemption(id) : null;
     return reply.send({
       memberId: id,
       mode,
+      redemption: redemption && toRedemptionView(redemption, new Date()),
       corporate: entitlement && {
         companyId: entitlement.company.id,
         nameAr: entitlement.company.nameAr,
@@ -85,6 +91,57 @@ export function registerPosRoutes(app: FastifyInstance, backend: Backend): void 
         percentOff: entitlement.percentOff,
       },
       earnsPoints: !entitlement,
+    });
+  });
+
+  /**
+   * SETTLE a redemption — the till has given the member their discount, so the
+   * code is now spent.
+   *
+   * 🔴 SEPARATE FROM /v1/pos/scan, AND THAT IS THE POINT. Scanning is a READ:
+   * it tells the cashier what the member holds. Settling is the write that
+   * consumes it. Folding them together would burn a code the moment it was
+   * looked at — so a scan that a cashier then cancelled, or a scanner that
+   * fired twice, would cost the member their points with nothing to show.
+   *
+   * Accepts EITHER a scanned POS token (the QR) or the code read aloud, because
+   * a scanner that will not read a cracked screen is an ordinary Tuesday and
+   * the member should not lose their redemption to it.
+   */
+  app.post('/v1/pos/redemption/settle', async (req, reply) => {
+    const presented = req.headers['x-pos-key'];
+    if (!config.POS_SCAN_KEY || typeof presented !== 'string' || !keyMatches(presented, config.POS_SCAN_KEY)) {
+      throw unauthorized('invalid pos key');
+    }
+    const body = parse(z.object({
+      token: z.string().optional(),
+      code: z.string().optional(),
+    }), req.body);
+    if (!body.token && !body.code) throw badRequest('token or code is required');
+
+    const at = new Date();
+    let row = null;
+    if (body.token) {
+      const { memberId: id } = verifyPosToken(body.token);
+      await backend.sweepRedemptions(id, at);
+      row = await backend.activeRedemption(id);
+    } else {
+      row = await backend.findRedemptionByCode(body.code!);
+      // Sweep the OWNER of the code, so an expired one is refunded and refused
+      // here rather than settled a fortnight late.
+      if (row) await backend.sweepRedemptions(row.memberId, at);
+    }
+    // One answer for "no such code" and "not this member's" — a till must not
+    // be able to probe which codes exist.
+    if (!row) throw notFound('redemption not found');
+
+    const settled = await backend.settleRedemption(row.id, 'pos', at);
+    return reply.code(201).send({
+      settled: true,
+      memberId: settled.memberId,
+      valueJod: settled.valueJod,
+      points: settled.points,
+      redemption: toRedemptionView(settled, at),
     });
   });
 }

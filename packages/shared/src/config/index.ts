@@ -551,6 +551,23 @@ export const config = {
    * 0 switches it off entirely — the profile screen keeps working and simply
    * pays nothing.
    */
+  /**
+   * How long a redemption code lives, in seconds. 15 minutes.
+   *
+   * 🔴 NOT 60. The owner asked for a QR «صلاحيته دقيقة منذ انشاءه», and that is
+   * exactly what the QR is — it is minted from this redemption with the
+   * existing 60-second POS token, so the code held up to a scanner is never
+   * more than a minute old. THIS dial is the life of the redemption behind it,
+   * which has to survive a website checkout: a member who redeems, picks a
+   * branch, and reaches the payment step needs longer than a minute, and a
+   * redemption that died under them would have taken their points with it
+   * until the sweep returned them.
+   *
+   * Shorter is not safer here. The code is single-use and bound to a member;
+   * the risk it manages is a shoulder-surfed screen, which the 60-second QR
+   * already handles. Making this 60 too would just strand people mid-checkout.
+   */
+  REDEMPTION_TTL_SECONDS: 15 * 60,
   PROFILE_COMPLETION_BONUS: 50,
 
   /**

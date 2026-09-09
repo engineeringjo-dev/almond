@@ -1,6 +1,7 @@
 import type {
   CompanyDiscount, CorporateMemberEntry, CorporateEntitlement,
 } from '@almond/shared/loyalty/corporate';
+import type { RedemptionRow } from '@almond/shared/loyalty/redemption';
 import type { OrderType, PaymentMethodId, TierId } from '@almond/shared/types';
 import type { EarnBreakdown } from '@almond/shared/loyalty/earn';
 import type { HoldoutStamp } from '@almond/shared/loyalty/holdout';
@@ -298,6 +299,39 @@ export interface Backend {
    *  ineligible — one identical answer for all four),
    *  conflict('voucher_already_redeemed'), conflict('voucher_expired'). */
   redeemSecondVisitVoucher(memberId: string, at: Date): Promise<SecondVisitVoucher>;
+  // ---- Redemptions (loyalty/redemption.ts) ----
+  /**
+   * Spend points and mint the artifact the member actually presents.
+   *
+   * 🔴 THE POINTS ARE SPENT HERE, AT CREATION. That is what makes a
+   * double-spend impossible and what keeps the balance honest the moment the
+   * member acts. The other half of the bargain is `sweepRedemptions`: if this
+   * code is never used, the points come back in full.
+   */
+  createRedemption(memberId: string, points: number): Promise<RedemptionRow>;
+  /** By code, across all members — how the till resolves a code read aloud. */
+  findRedemptionByCode(code: string): Promise<RedemptionRow | null>;
+  /** The member's own live redemption, if any. */
+  activeRedemption(memberId: string): Promise<RedemptionRow | null>;
+  /**
+   * Consume it, exactly once. Throws conflict('redemption_already_settled'),
+   * conflict('redemption_expired'), conflict('redemption_cancelled') or
+   * notFound — never returns a row it did not just settle.
+   */
+  settleRedemption(id: string, via: 'pos' | 'web', at: Date): Promise<RedemptionRow>;
+  /** The member changed their mind. Points return immediately. */
+  cancelRedemption(memberId: string, id: string, at: Date): Promise<RedemptionRow>;
+  /**
+   * Return the points of every expired, unused redemption, and say how many.
+   *
+   * Called on the member's own reads rather than by a cron, because the BFF has
+   * none — the same lazy-settlement shape as point-lot expiry. A member who
+   * never comes back is not refunded until they do, which costs them nothing:
+   * the points are theirs either way and the balance is correct the instant it
+   * is read.
+   */
+  sweepRedemptions(memberId: string, at: Date): Promise<number>;
+
   // ---- Corporate discounts (loyalty/corporate.ts) ----
   /** Every company, active or not. The back-office lists them all; only the
    *  active ones entitle anyone (`entitlementFor` enforces that). */

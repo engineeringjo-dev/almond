@@ -1,10 +1,11 @@
-import { randomUUID } from 'node:crypto';
+import { randomInt, randomUUID } from 'node:crypto';
 import { config as loyalty } from '@almond/shared/config';
 import { ammanDayKey } from '@almond/shared/lib/ammanWeekday';
 import {
   consumeFifo, expiredBetween, grantLot, liveBalance, lotRulesFromConfig, migrateBalance,
   pruneLots, walletLotRulesFromConfig,
 } from '@almond/shared/loyalty/lots';
+import { jodFromPoints } from '@almond/shared/loyalty/earn';
 import { normalizeName, profileBonusFor } from '@almond/shared/loyalty/profile';
 import {
   decideSecondVisit, secondVisitStatus,
@@ -19,6 +20,11 @@ import {
   buildRosterIndex, entitlementFor,
   type CompanyDiscount, type CorporateMemberEntry,
 } from '@almond/shared/loyalty/corporate';
+import {
+  isRedeemable, normalizeRedemptionCode, redemptionExpiresAt, shouldRefund,
+  REDEMPTION_ALPHABET, REDEMPTION_CODE_LENGTH,
+  type RedemptionRow,
+} from '@almond/shared/loyalty/redemption';
 import type { TierId } from '@almond/shared/types';
 import { conflict, notFound } from '../http-error';
 import { toFils } from '../money';
@@ -45,6 +51,58 @@ const WALLET_LOTS = walletLotRulesFromConfig();
 /** In-memory, runnable adapter. State lives in process memory (fine for dev /
  *  demo / tests); swap for the Odoo adapter in production. */
 export function createMemoryBackend(): Backend {
+  // ---- Redemptions ----
+  const redemptions = new Map<string, RedemptionRow>();
+
+  /**
+   * A code, from a cryptographic source.
+   *
+   * 🔴 NOT Math.random(). This code is worth money to whoever holds it, and
+   * Math.random() is a predictable PRNG — an attacker who observes a few codes
+   * can narrow the next ones. randomInt() draws from the OS entropy pool, and
+   * the modulo-free API means the alphabet is sampled uniformly rather than
+   * with the bias `% length` would introduce.
+   */
+  const newRedemptionCode = (): string => {
+    for (;;) {
+      let out = '';
+      for (let i = 0; i < REDEMPTION_CODE_LENGTH; i += 1) {
+        out += REDEMPTION_ALPHABET[randomInt(REDEMPTION_ALPHABET.length)];
+      }
+      // A collision would hand one member another's code. Astronomically
+      // unlikely at 6.6e11, and cheap to exclude outright.
+      if (![...redemptions.values()].some((r) => r.code === out)) return out;
+    }
+  };
+
+  /**
+   * Return the points of every expired, unused redemption. Returns how many
+   * were swept so a caller can log it.
+   *
+   * The refund is what makes spending-at-creation honest: without it, a member
+   * who redeemed and was called away would simply be poorer for it.
+   */
+  const sweep = (m: Member, at: Date): number => {
+    let n = 0;
+    for (const row of redemptions.values()) {
+      if (row.memberId !== m.id || !shouldRefund(row, at)) continue;
+      row.cancelledAt = at.toISOString();
+      // Back onto the ledger as a FRESH lot with its own 12-month clock, and
+      // logged, so the member can see the points returned. A fresh clock is the
+      // honest choice: the original lot was consumed, and reviving it would
+      // hand back points that expire on a date the member can no longer see.
+      m.lots = grantLot(m.lots, row.points, 'earn', at, LOTS).lots;
+      log(m.id, {
+        deltaPoints: row.points,
+        reasonAr: 'انتهت صلاحية الاستبدال',
+        reasonEn: 'Redemption expired',
+        createdAt: at.toISOString(),
+      });
+      n += 1;
+    }
+    return n;
+  };
+
   // ---- Corporate discount register ----
   // Seeded EMPTY on purpose: a standing discount is an arrangement somebody
   // signed, and inventing a demo one would mean a 50% row nobody remembers
@@ -210,7 +268,11 @@ export function createMemoryBackend(): Backend {
     return due;
   };
 
-  return {
+  /** Named so a method can call a sibling — `createRedemption` spends points
+   *  through `spendPoints` rather than reimplementing the FIFO consume, and
+   *  `cancelRedemption` returns them through `addPoints` so the refund is
+   *  logged in the member's history like any other grant. */
+  const api: Backend = {
     async findOrCreateByPhone(phone, name) {
       const existing = byPhone.get(phone);
       if (existing) return members.get(existing)!;
@@ -469,6 +531,76 @@ export function createMemoryBackend(): Backend {
     },
     async getSubscription(id) { return subState(must(id)); },
 
+    // ---- Redemptions ----
+    async createRedemption(id, points) {
+      const m = must(id);
+      const now = new Date();
+      // Refund anything already dead BEFORE spending again, so a member whose
+      // last code lapsed can immediately re-spend those same points.
+      sweep(m, now);
+      // 🔴 SPEND FIRST. spendPoints checks the LIVE balance and throws without
+      // touching a lot when it is short, so a redemption row can never exist
+      // against points the member did not have.
+      await api.spendPoints(id, points, 'استبدال نقاط', 'Points redeemed');
+      const row: RedemptionRow = {
+        id: `rdm_${randomUUID()}`,
+        memberId: id,
+        code: newRedemptionCode(),
+        points,
+        // Computed ONCE and stored: a later change to the redemption rate must
+        // not revalue a code already in a member's hand.
+        valueJod: jodFromPoints(points),
+        createdAt: now.toISOString(),
+        expiresAt: redemptionExpiresAt(now, loyalty.REDEMPTION_TTL_SECONDS),
+        settledAt: null, cancelledAt: null, settledVia: null,
+      };
+      redemptions.set(row.id, row);
+      return { ...row };
+    },
+
+    async findRedemptionByCode(code) {
+      const c = normalizeRedemptionCode(code);
+      if (!c) return null;
+      const row = [...redemptions.values()].find((r) => r.code === c);
+      return row ? { ...row } : null;
+    },
+
+    async activeRedemption(id) {
+      const now = new Date();
+      sweep(must(id), now);
+      const row = [...redemptions.values()]
+        .find((r) => r.memberId === id && isRedeemable(r, now));
+      return row ? { ...row } : null;
+    },
+
+    async settleRedemption(rid, via, at) {
+      const row = redemptions.get(rid);
+      if (!row) throw notFound('redemption not found');
+      // 🔴 THE DOUBLE-SPEND GUARD, AND THE ORDER MATTERS. `settledAt` is checked
+      // and written with no await between them, so two tills scanning the same
+      // code cannot both pass the check. Same discipline as
+      // redeemSecondVisitVoucher.
+      if (row.settledAt) throw conflict('redemption_already_settled', 'This code has already been used');
+      if (row.cancelledAt) throw conflict('redemption_cancelled', 'This code was cancelled');
+      if (!isRedeemable(row, at)) throw conflict('redemption_expired', 'This code has expired');
+      row.settledAt = at.toISOString();
+      row.settledVia = via;
+      return { ...row };
+    },
+
+    async cancelRedemption(id, rid, at) {
+      const row = redemptions.get(rid);
+      if (!row || row.memberId !== id) throw notFound('redemption not found');
+      if (row.settledAt) throw conflict('redemption_already_settled', 'This code has already been used');
+      if (row.cancelledAt) return { ...row };            // idempotent
+      row.cancelledAt = at.toISOString();
+      // The points come straight back — the member gave up the code unused.
+      await api.addPoints(id, row.points, 'إلغاء استبدال', 'Redemption cancelled');
+      return { ...row };
+    },
+
+    async sweepRedemptions(id, at) { return sweep(must(id), at); },
+
     // ---- Corporate discounts ----
     async listCompanies() { return companies.map((c) => ({ ...c })); },
 
@@ -513,6 +645,8 @@ export function createMemoryBackend(): Backend {
         .map((u) => ({ ...u }));
     },
   };
+
+  return api;
 
   function subState(m: Member): SubscriptionState {
     const active = m.subRenewsAt > Date.now();

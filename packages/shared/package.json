@@ -21,6 +21,7 @@
     "./loyalty/challenges": "./src/loyalty/challenges.ts",
     "./loyalty/profile": "./src/loyalty/profile.ts",
     "./loyalty/redeem": "./src/loyalty/redeem.ts",
+    "./loyalty/redemption": "./src/loyalty/redemption.ts",
     "./loyalty/secondVisit": "./src/loyalty/secondVisit.ts",
     "./loyalty/corporate": "./src/loyalty/corporate.ts",
     "./pos/tokenWire": "./src/pos/tokenWire.ts",
