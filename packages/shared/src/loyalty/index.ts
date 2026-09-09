@@ -8,3 +8,4 @@ export * from './challenges';
 export * from './profile';
 export * from './redeem';
 export * from './secondVisit';
+export * from './corporate';

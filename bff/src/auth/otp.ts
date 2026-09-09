@@ -1,14 +1,22 @@
 import { randomInt, timingSafeEqual } from 'node:crypto';
+import { normalizeJordanPhone } from '@almond/shared/lib/phone';
 import { config } from '../config';
 import { badRequest, unauthorized, tooManyRequests } from '../http-error';
 
-/** Normalize any Jordanian phone entry to canonical +9627XXXXXXXX. */
+/**
+ * Normalize any Jordanian phone entry to canonical +9627XXXXXXXX.
+ *
+ * The RULE moved to @almond/shared/lib/phone so the corporate roster upload
+ * normalises identically. If sign-in and the roster disagreed by a leading zero
+ * the employee's discount would simply never match — no error, no log, just
+ * full price at the till. This keeps the HTTP behaviour (throw) that every
+ * caller here expects; the shared function returns null so a bulk upload can
+ * report its bad rows instead of aborting on the first.
+ */
 export function normalizePhone(raw: string): string {
-  let d = (raw ?? '').replace(/[^\d+]/g, '').replace(/^\+/, '').replace(/^00/, '');
-  if (d.startsWith('962')) d = d.slice(3);
-  d = d.replace(/^0/, '');
-  if (!/^7\d{8}$/.test(d)) throw badRequest('invalid Jordan phone number');
-  return `+962${d}`;
+  const p = normalizeJordanPhone(raw);
+  if (!p) throw badRequest('invalid Jordan phone number');
+  return p;
 }
 
 /**

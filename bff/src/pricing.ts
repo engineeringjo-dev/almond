@@ -5,9 +5,17 @@ import type { CartItem, CartCustomization } from '@almond/shared/types';
 import { badRequest } from './http-error';
 import type { CheckoutLine } from './backend/types';
 
+/** The same subtotal `computeTotals` computes, exposed so a discount can be
+ *  derived from it before that function is called. One definition: if these two
+ *  ever disagreed, the discount would be a percentage of a different basket
+ *  than the one being billed. */
+function subtotalOf(items: CartItem[]): number {
+  return computeTotals(items, 0).subtotal;
+}
+
 /** Server-authoritative re-pricing: rebuild every line from the shared menu so
  *  prices, sizes and modifier deltas can never be forged by the client. */
-export function reprice(lines: CheckoutLine[]): {
+export function reprice(lines: CheckoutLine[], discountFor?: (subtotal: number) => number): {
   items: CartItem[];
   totals: CartTotals;
   /** Drink+food pairs. Pricing counts pairs; loyalty/earn.ts prices them. */
@@ -42,7 +50,16 @@ export function reprice(lines: CheckoutLine[]): {
   });
   return {
     items,
-    totals: computeTotals(items, 0),
+    /**
+     * The discount goes through `computeTotals`' EXISTING slot rather than
+     * being subtracted afterwards, because that slot is applied BEFORE tax
+     * (`taxable = subtotal - discount`). A corporate discount subtracted from
+     * the total instead would charge 16% tax on money the member never paid.
+     *
+     * It is a callback because the amount depends on the subtotal, which is
+     * computed here — the caller knows the PERCENTAGE, this knows the base.
+     */
+    totals: computeTotals(items, discountFor ? discountFor(subtotalOf(items)) : 0),
     comboPairs: comboPairs(items),
     hasDrink: basketHasDrink(items),
   };

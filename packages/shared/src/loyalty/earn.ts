@@ -1,4 +1,5 @@
 import { config } from '../config';
+import { corporateEarnsPoints } from './corporate';
 import { tiers } from './constants';
 import { ammanWeekday } from '../lib/ammanWeekday';
 
@@ -204,6 +205,30 @@ export interface EarnContext {
    *  Defaults to false: no caller may grant the bonus day by asserting it from
    *  the device — that was D2. See docs/LOYALTY-EARN-PATCH.md §3.2 / §8.1. */
   bonusDayActivated?: boolean;
+  /**
+   * 🔴 THE MEMBER HOLDS A STANDING CORPORATE DISCOUNT — AN ALMOND EMPLOYEE AT
+   * 50%, A SAVE THE CHILDREN CARD AT 20%. When true, this invoice grants ZERO
+   * points, and so does every other invoice they ever present.
+   *
+   * Owner, 2026-09-08, asked whether a discounted bill still earns cashback:
+   * «من يستحق خصم دائم لا يأخذ نقاط ابدا». The discount IS the reward. An
+   * employee at 50% who also earned the top rung's 9% would walk out with 55%
+   * of the menu price, and the two mechanisms would compound every time anyone
+   * tuned either.
+   *
+   * IT IS ENFORCED HERE, IN THE ENGINE, AND NOT AT THE CALL SITES. There are
+   * four ways a grant is produced today — /v1/checkout, the app's mock service,
+   * the checkout estimate, and the till's earn path — and a rule applied at
+   * three of them is a rule that pays out at the fourth. Every one of those
+   * routes through computeEarn, so this is the one place it cannot be missed.
+   *
+   * The server decides it from the roster; a client may not asserted it — but
+   * note the asymmetry that makes that safe: a client CLAIMING corporate status
+   * only ever reduces its own grant to zero, so the field is unforgeable in the
+   * direction that would cost money. It is still resolved server-side, because
+   * the DISCOUNT it accompanies is very much forgeable in the other direction.
+   */
+  corporate?: boolean;
   /** Decision clock. Defaults to now; pass it in tests and in estimates. */
   at?: Date;
 }
@@ -412,7 +437,13 @@ export function computeEarn(
   const cappable = scaled + tierBonus + weekdayBonus;
   const cap = base * rules.maxEarnMultiplier;
   const capApplied = cappable > cap;
-  const points = Math.round(Math.min(cappable, cap)) + comboBonus;
+  // 🔴 THE CORPORATE ZERO, APPLIED LAST AND OVER EVERYTHING — including the
+  // combo bonus, which deliberately escapes the ceiling above (§8.7) and would
+  // otherwise be the one grant a standing-discount holder still collected.
+  // `corporateEarnsPoints()` carries the reason; see loyalty/corporate.ts.
+  const points = ctx.corporate && !corporateEarnsPoints()
+    ? 0
+    : Math.round(Math.min(cappable, cap)) + comboBonus;
 
   return {
     total,

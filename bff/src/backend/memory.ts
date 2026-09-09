@@ -15,10 +15,16 @@ import {
   qualifyingVisitDays, shiftDayKey, spendEntry, standing, windowRulesFromConfig,
   type Evaluation,
 } from '@almond/shared/loyalty/window';
+import {
+  buildRosterIndex, entitlementFor,
+  type CompanyDiscount, type CorporateMemberEntry,
+} from '@almond/shared/loyalty/corporate';
 import type { TierId } from '@almond/shared/types';
 import { conflict, notFound } from '../http-error';
 import { toFils } from '../money';
-import type { Backend, Member, HistoryEntry, NewOrder, OrderRecord, SubscriptionState } from './types';
+import type {
+  Backend, Member, HistoryEntry, NewOrder, OrderRecord, SubscriptionState, CorporateUse,
+} from './types';
 
 /** One business day for the whole system (§3.6) — Amman, not the host's UTC.
  *  This is the §5 step 1 repoint. It moves the daily free-drink counter's reset
@@ -39,6 +45,14 @@ const WALLET_LOTS = walletLotRulesFromConfig();
 /** In-memory, runnable adapter. State lives in process memory (fine for dev /
  *  demo / tests); swap for the Odoo adapter in production. */
 export function createMemoryBackend(): Backend {
+  // ---- Corporate discount register ----
+  // Seeded EMPTY on purpose: a standing discount is an arrangement somebody
+  // signed, and inventing a demo one would mean a 50% row nobody remembers
+  // agreeing to. The back-office uploads the real thing.
+  const companies: CompanyDiscount[] = [];
+  const roster = new Map<string, CorporateMemberEntry>();
+  const corporateUses: CorporateUse[] = [];
+
   const members = new Map<string, Member>();
   const byPhone = new Map<string, string>();
   const history = new Map<string, HistoryEntry[]>();
@@ -454,6 +468,50 @@ export function createMemoryBackend(): Backend {
       return subState(m);
     },
     async getSubscription(id) { return subState(must(id)); },
+
+    // ---- Corporate discounts ----
+    async listCompanies() { return companies.map((c) => ({ ...c })); },
+
+    async saveCompany(c) {
+      const i = companies.findIndex((x) => x.id === c.id);
+      if (i >= 0) companies[i] = { ...c }; else companies.push({ ...c });
+      return { ...c };
+    },
+
+    async replaceRoster(companyId, entries) {
+      // REPLACE. Every phone currently pointing at this company is dropped
+      // first, so a member who left the company stops being entitled the moment
+      // HR uploads the new list — a merge would leave leavers on 50% forever.
+      for (const [phone, e] of roster) if (e.companyId === companyId) roster.delete(phone);
+      for (const e of buildRosterIndex(entries).values()) roster.set(e.phone, e);
+      return [...roster.values()].filter((e) => e.companyId === companyId).length;
+    },
+
+    async listRoster(companyId) {
+      const all = [...roster.values()].map((e) => ({ ...e }));
+      return companyId ? all.filter((e) => e.companyId === companyId) : all;
+    },
+
+    async entitlementFor(memberId) {
+      // From the member's STORED phone — the one OTP proved — never from input.
+      const m = members.get(memberId);
+      return m ? entitlementFor(m.phone, companies, roster) : null;
+    },
+
+    async recordCorporateUse(use) {
+      const row = { ...use, id: `cuse_${randomUUID()}` };
+      corporateUses.unshift(row);
+      return { ...row };
+    },
+
+    async listCorporateUses(filter) {
+      return corporateUses
+        .filter((u) => !filter?.companyId || u.companyId === filter.companyId)
+        .filter((u) => !filter?.memberId || u.memberId === filter.memberId)
+        .filter((u) => !filter?.from || u.at >= filter.from)
+        .filter((u) => !filter?.to || u.at <= filter.to)
+        .map((u) => ({ ...u }));
+    },
   };
 
   function subState(m: Member): SubscriptionState {

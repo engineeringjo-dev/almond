@@ -1,3 +1,6 @@
+import type {
+  CompanyDiscount, CorporateMemberEntry, CorporateEntitlement,
+} from '@almond/shared/loyalty/corporate';
 import type { OrderType, PaymentMethodId, TierId } from '@almond/shared/types';
 import type { EarnBreakdown } from '@almond/shared/loyalty/earn';
 import type { HoldoutStamp } from '@almond/shared/loyalty/holdout';
@@ -167,6 +170,33 @@ export interface OrderRecord extends NewOrder {
 }
 
 /** The single seam to the source of truth. `memory` today; `odoo` later. */
+/**
+ * ONE USE of a standing discount — the row behind «بدي يبين عندي كل موظف شو اخذ
+ * درنك، وكم مرة استخدم خصمه».
+ *
+ * The items are stored as NAMES and quantities rather than ids, because this is
+ * a record of what happened and must stay readable after the menu is
+ * regenerated — which it now is, from Odoo, on demand. An id-only log would
+ * turn into a list of dead references the first time a product is retired.
+ */
+export interface CorporateUse {
+  id: string;
+  memberId: string;
+  companyId: string;
+  /** Canonical phone at the time of use, so the report reads without a join. */
+  phone: string;
+  /** ISO instant. */
+  at: string;
+  orderId: string | null;
+  /** What they took. `[{ nameAr, nameEn, qty }]`. */
+  items: { nameAr: string; nameEn: string; qty: number }[];
+  /** The percentage that applied, stored because a company's rate changes and
+   *  history must not be rewritten by an edit in the back-office. */
+  percentOff: number;
+  /** JOD taken off, at the rate above. */
+  discountJod: number;
+}
+
 export interface Backend {
   findOrCreateByPhone(phone: string, name?: string): Promise<Member>;
   getMember(id: string): Promise<Member>;
@@ -268,6 +298,37 @@ export interface Backend {
    *  ineligible — one identical answer for all four),
    *  conflict('voucher_already_redeemed'), conflict('voucher_expired'). */
   redeemSecondVisitVoucher(memberId: string, at: Date): Promise<SecondVisitVoucher>;
+  // ---- Corporate discounts (loyalty/corporate.ts) ----
+  /** Every company, active or not. The back-office lists them all; only the
+   *  active ones entitle anyone (`entitlementFor` enforces that). */
+  listCompanies(): Promise<CompanyDiscount[]>;
+  /** Create or replace one company by id. Validated with `companyError` at the
+   *  route, so a 150% arrangement never reaches storage. */
+  saveCompany(c: CompanyDiscount): Promise<CompanyDiscount>;
+  /** Replace a company's roster wholesale and return how many are on it.
+   *
+   * REPLACE, not merge: an uploaded list is the company's current staff, and a
+   * merge would leave last quarter's leavers holding a 50% card forever. The
+   * previous roster is discarded, which is why the upload screen shows the
+   * count before and after. */
+  replaceRoster(companyId: string, entries: CorporateMemberEntry[]): Promise<number>;
+  /** One company's roster, or the whole register when no id is given. */
+  listRoster(companyId?: string): Promise<CorporateMemberEntry[]>;
+  /** What this MEMBER is entitled to right now, resolved from their stored
+   *  phone against the register. Null for everyone else.
+   *
+   * 🔴 RESOLVED SERVER-SIDE, FROM THE PHONE OTP PROVED. Never from a request
+   * body: a client that could name its own company could award itself 50%. */
+  entitlementFor(memberId: string): Promise<CorporateEntitlement | null>;
+  /** Log a use of a standing discount, for the staff-drinks report. */
+  recordCorporateUse(use: Omit<CorporateUse, 'id'>): Promise<CorporateUse>;
+  /** Uses, newest first, optionally narrowed to one company or one member.
+   *  This is what answers "which drink did each employee take, and how many
+   *  times did they use their discount". */
+  listCorporateUses(filter?: {
+    companyId?: string; memberId?: string; from?: string; to?: string;
+  }): Promise<CorporateUse[]>;
+
   // "Almond Club" subscription
   activateSubscription(id: string): Promise<SubscriptionState>;
   /** Use one of today's free drinks; throws conflict on not_subscribed/daily_cap. */

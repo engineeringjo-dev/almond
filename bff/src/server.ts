@@ -11,6 +11,7 @@ import { registerPosRoutes } from './routes/pos';
 import { registerMeRoutes } from './routes/me';
 import { registerSubscriptionRoutes } from './routes/subscription';
 import { registerForecastRoutes } from './routes/forecast';
+import { registerCorporateRoutes } from './routes/corporate';
 
 /**
  * `backend` is injectable ONLY so a test can build a member the routes cannot
@@ -57,6 +58,7 @@ export async function build(backend: Backend = createBackend()): Promise<Fastify
   app.get('/health', async () => ({ ok: true, dataSource: config.DATA_SOURCE }));
   registerAuthRoutes(app, backend);
   registerCheckoutRoutes(app, backend);
+  registerCorporateRoutes(app, backend);
   registerWalletRoutes(app, backend);
   registerLoyaltyRoutes(app, backend);
   registerPosRoutes(app, backend);

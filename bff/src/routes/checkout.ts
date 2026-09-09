@@ -4,6 +4,7 @@ import { parse } from '../validate';
 import { requireMember, memberId } from '../plugins/auth';
 import { idempotencyPreHandler, idempotencyOnSend } from '../plugins/idempotency';
 import { reprice } from '../pricing';
+import { corporateDiscountAmount } from '@almond/shared/loyalty/corporate';
 import { computeEarn } from '../earn';
 import { assignHoldout, holdoutSpecFromConfig, stampAllExperiments } from '@almond/shared/loyalty/holdout';
 import { toSecondVisitView, type SecondVisitVoucherView } from '@almond/shared/loyalty/secondVisit';
@@ -48,7 +49,25 @@ export function registerCheckoutRoutes(app: FastifyInstance, backend: Backend): 
     const standing = await backend.getStanding(id);
 
     // 1) Authoritative re-price from the menu (ignore any client totals).
-    const { items, totals, comboPairs, hasDrink } = reprice(input.lines);
+    /**
+     * 🔴 THE STANDING CORPORATE DISCOUNT — resolved from the member's STORED
+     * phone, never from the request body. An Almond employee pays half; a Save
+     * the Children card pays 80%. There is no endpoint through which a client
+     * can name its own company.
+     *
+     * It is applied INSIDE the authoritative re-price, before anything is
+     * debited, so every downstream number is the amount the member actually
+     * paid: what the wallet is charged, what the rolling window records, and
+     * what the tax is computed on. Discounting the receipt afterwards would
+     * charge full price and tax the discount away.
+     */
+    const entitlement = await backend.entitlementFor(id);
+    const { items, totals, comboPairs, hasDrink } = reprice(
+      input.lines,
+      entitlement
+        ? (subtotal) => corporateDiscountAmount(subtotal, entitlement.percentOff)
+        : undefined,
+    );
     // One instant for this whole request. It dates the voucher's 30-day life,
     // which is an INSTANT and not a business day — Asia/Amman is UTC+3
     // year-round, so 30 × 86.4e6 ms is exactly 30 Amman calendar days. The
@@ -154,6 +173,7 @@ export function registerCheckoutRoutes(app: FastifyInstance, backend: Backend): 
       // earns on the full app invoice, because those are two different bills.
       const earn = computeEarn({
         total: totals.total,          // tax-inclusive, per §1.1
+        corporate: entitlement !== null,   // zero points; see loyalty/corporate.ts
         pointsRedeemed: 0,            // see above: no points rail on this route
         windowSpend: standing.windowSpend,
         // The FLOOR, not an override: computeEarn pays max(live rung, held
@@ -169,6 +189,26 @@ export function registerCheckoutRoutes(app: FastifyInstance, backend: Backend): 
       // The whole breakdown is persisted on the order (§5b) so a grant can be
       // re-derived and the shadow delta reconstructed after the fact.
       await backend.recordEarnBreakdown(order.id, earn);
+
+      // 🔴 THE USE IS LOGGED, NOT INFERRED. «بدي يبين عندي كل موظف شو اخذ درنك،
+      // وكم مرة استخدم خصمه» — which drink each employee took, and how many
+      // times they used their discount. That cannot be reconstructed later from
+      // orders alone: the rate a company is on changes, and re-reading today's
+      // percentage against last month's orders would rewrite history. So the
+      // rate that actually applied is written down with the items, once, here.
+      if (entitlement) {
+        const member = await backend.getMember(id);
+        await backend.recordCorporateUse({
+          memberId: id,
+          companyId: entitlement.company.id,
+          phone: member.phone,
+          at: now.toISOString(),
+          orderId: order.id,
+          items: items.map((l) => ({ nameAr: l.nameAr, nameEn: l.nameEn, qty: l.qty })),
+          percentOff: entitlement.percentOff,
+          discountJod: totals.discount,
+        });
+      }
       const pointsBalance = await backend.addPoints(id, pointsEarned, 'نقاط طلب', 'Order points');
       // Dated and pruned to the rolling window — never `windowSpend += jod`.
       await backend.recordSpend(id, totals.total);

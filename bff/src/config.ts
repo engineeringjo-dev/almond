@@ -38,6 +38,12 @@ export const config = {
   OTP_MAX_SENDS_PER_HOUR: Number(process.env.OTP_MAX_SENDS_PER_HOUR ?? 5),
 
   POS_SCAN_KEY: process.env.POS_SCAN_KEY ?? '',
+  /** Shared key for the back-office write routes (the corporate register).
+   *  Same posture as POS_SCAN_KEY: unset means the endpoints are a closed door,
+   *  never an open one. The website's AdminGate is a CLIENT-SIDE mock password
+   *  and protects nothing on its own, so this must be held server-side and the
+   *  back-office must reach the BFF through its own server, never the browser. */
+  ADMIN_KEY: process.env.ADMIN_KEY ?? '',
   CORS_ORIGINS: process.env.CORS_ORIGINS ?? '*',
 
   ODOO_BASE_URL: process.env.ODOO_BASE_URL ?? '',
@@ -64,7 +70,10 @@ const INSECURE_DEFAULTS: Record<string, string> = {
  * is exactly how `OTP_DEV_CODE = '123456'` came to exist.
  */
 export function insecureBootReasons(
-  env: { NODE_ENV: string; JWT_SECRET: string; POS_TOKEN_SECRET: string; POS_SCAN_KEY: string } = config,
+  env: {
+    NODE_ENV: string; JWT_SECRET: string; POS_TOKEN_SECRET: string;
+    POS_SCAN_KEY: string; ADMIN_KEY: string;
+  } = config,
 ): string[] {
   if (env.NODE_ENV !== 'production') return [];
   const reasons: string[] = [];
@@ -77,5 +86,9 @@ export function insecureBootReasons(
   // whole comparison when the key was falsy. It now fails closed, so an empty
   // key in production is a dead endpoint rather than an open one — refuse both.
   if (!env.POS_SCAN_KEY) reasons.push('POS_SCAN_KEY is unset — /v1/pos/scan cannot authenticate the till');
+  // The corporate register decides who pays half price. An unset key makes the
+  // write routes dead rather than public, but a dead back-office in production
+  // is still a misconfiguration worth refusing to boot on.
+  if (!env.ADMIN_KEY) reasons.push('ADMIN_KEY is unset — the corporate register cannot be administered');
   return reasons;
 }

@@ -374,6 +374,7 @@ describe('T29g production refuses to boot on development secrets', () => {
     JWT_SECRET: 'dev-insecure-change-me',
     POS_TOKEN_SECRET: 'dev-insecure-pos-change-me',
     POS_SCAN_KEY: '',
+    ADMIN_KEY: '',
   };
 
   it('names every unset or default secret', () => {
@@ -381,10 +382,14 @@ describe('T29g production refuses to boot on development secrets', () => {
     expect(reasons.join(' | ')).toMatch(/JWT_SECRET/);
     expect(reasons.join(' | ')).toMatch(/POS_TOKEN_SECRET/);
     expect(reasons.join(' | ')).toMatch(/POS_SCAN_KEY/);
+    // The corporate register decides who pays half price; an unset key there is
+    // a dead back-office in production, which is a misconfiguration worth
+    // refusing to boot on rather than discovering when HR cannot upload.
+    expect(reasons.join(' | ')).toMatch(/ADMIN_KEY/);
   });
 
   it('rejects a short secret', () => {
-    expect(insecureBootReasons({ ...prod, JWT_SECRET: 'short', POS_SCAN_KEY: 'k' }).join(' | '))
+    expect(insecureBootReasons({ ...prod, JWT_SECRET: 'short', POS_SCAN_KEY: 'k', ADMIN_KEY: 'k' }).join(' | '))
       .toMatch(/JWT_SECRET is shorter/);
   });
 
@@ -394,6 +399,7 @@ describe('T29g production refuses to boot on development secrets', () => {
       JWT_SECRET: 'x'.repeat(48),
       POS_TOKEN_SECRET: 'y'.repeat(48),
       POS_SCAN_KEY: 'z'.repeat(32),
+      ADMIN_KEY: 'w'.repeat(32),
     })).toEqual([]);
   });
 

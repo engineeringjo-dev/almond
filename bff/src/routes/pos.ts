@@ -24,7 +24,7 @@ const tokenBody = z.object({
   mode: z.enum(POS_MODES).optional(),
 });
 
-export function registerPosRoutes(app: FastifyInstance, _backend: Backend): void {
+export function registerPosRoutes(app: FastifyInstance, backend: Backend): void {
   // Member asks for a fresh, short-lived token to display as a QR at the till.
   //
   // The return type is the SHARED wire contract (@almond/shared/pos/tokenWire),
@@ -57,6 +57,34 @@ export function registerPosRoutes(app: FastifyInstance, _backend: Backend): void
     }
     const { token } = parse(z.object({ token: z.string() }), req.body);
     const { memberId: id, mode } = verifyPosToken(token); // single-use + expiry enforced
-    return reply.send({ memberId: id, mode });
+
+    /**
+     * 🔴 THE STANDING DISCOUNT TRAVELS WITH THE SCAN, AND IT IS RESOLVED HERE.
+     *
+     * Owner, 2026-09-08, on how an employee proves entitlement: «رح يعمل redeem
+     * ل qr code بتكون صلاحيته دقيقة منذ انشاءه» — a QR whose life is one minute.
+     * That is what this token already is: HMAC-signed, single-use, and
+     * POS_TOKEN_TTL_SECONDS is 60. So there is nothing to invent; the till just
+     * needs to be TOLD the percentage when it scans one.
+     *
+     * The alternative — a per-company code printed on a card — was considered
+     * and is worse: a code that opens a 50% discount is shared on WhatsApp
+     * within a week, and nothing about it identifies who used it. This is bound
+     * to the member, expires in a minute, and cannot be replayed.
+     *
+     * `earnsPoints` is stated so the till does not have to know the rule.
+     */
+    const entitlement = await backend.entitlementFor(id);
+    return reply.send({
+      memberId: id,
+      mode,
+      corporate: entitlement && {
+        companyId: entitlement.company.id,
+        nameAr: entitlement.company.nameAr,
+        nameEn: entitlement.company.nameEn,
+        percentOff: entitlement.percentOff,
+      },
+      earnsPoints: !entitlement,
+    });
   });
 }
