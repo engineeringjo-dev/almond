@@ -4,6 +4,7 @@ import { menuItems } from '@almond/shared/menu';
 import { calendarFeatures, daypartOf } from '@almond/shared/lib/calendar';
 import { parse } from '../validate';
 import { requireMember } from '../plugins/auth';
+import { requireAdmin } from '../plugins/adminAuth';
 import { listOrderLines, historyFor, recordStockout } from '../analytics/orderLines';
 import { seasonalNaive, computePar, suggestedOrder, type ItemEconomics } from '../forecasting/par';
 
@@ -13,8 +14,15 @@ import { seasonalNaive, computePar, suggestedOrder, type ItemEconomics } from '.
  * Swapping in ETS/LightGBM later only changes the mu/sigma source.
  */
 export function registerForecastRoutes(app: FastifyInstance): void {
-  // Raw training data export (branch ops / analytics).
-  app.get('/v1/analytics/order-lines', { preHandler: [requireMember] }, async (req) => {
+  /**
+   * Raw training-data export (branch ops / analytics).
+   *
+   * 🔴 ADMIN, NOT MEMBER. This was `requireMember`, and every customer is a
+   * member: any signed-in customer could pull up to 5,000 order lines carrying
+   * OTHER customers' `memberId`, branch, item, quantity and line total. The
+   * route reads like analytics and was guarded like a profile page.
+   */
+  app.get('/v1/analytics/order-lines', { preHandler: [requireAdmin] }, async (req) => {
     const q = req.query as { branchId?: string; since?: string; limit?: string };
     return listOrderLines({
       branchId: q.branchId,
@@ -23,7 +31,14 @@ export function registerForecastRoutes(app: FastifyInstance): void {
     });
   });
 
-  // Record unmet demand so models don't learn censored (understated) demand.
+  /**
+   * Record unmet demand so models don't learn censored (understated) demand.
+   *
+   * Stays MEMBER-guarded on purpose, unlike the export above: this is a
+   * customer hitting an out-of-stock item in the app, so the customer is the
+   * only one who can report it. It writes a counter and returns nothing about
+   * anyone else.
+   */
   app.post('/v1/analytics/stockout', { preHandler: [requireMember] }, async (req, reply) => {
     const { branchId, itemId } = parse(z.object({ branchId: z.string(), itemId: z.string() }), req.body);
     recordStockout(branchId, itemId);
@@ -31,7 +46,9 @@ export function registerForecastRoutes(app: FastifyInstance): void {
   });
 
   // Prep sheet: par + suggested order per item for a branch × daypart.
-  app.get('/v1/forecast/prep-sheet', { preHandler: [requireMember] }, async (req) => {
+  // Branch operations, not a customer-facing figure: it states what a branch
+  // should prepare tomorrow, which is a business plan, not a member's data.
+  app.get('/v1/forecast/prep-sheet', { preHandler: [requireAdmin] }, async (req) => {
     const q = req.query as { branchId?: string; daypart?: string; foodCostPct?: string };
     const branchId = q.branchId ?? 'all';
     const now = new Date();

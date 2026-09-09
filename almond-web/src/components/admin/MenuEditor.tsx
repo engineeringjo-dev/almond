@@ -4,7 +4,6 @@ import { useMemo, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { LogOut, RotateCcw, Search } from 'lucide-react';
 import { useMenuOverlay } from '@/store/menuOverlayStore';
-import { useAdminAuth } from '@/store/adminAuth';
 import { fieldClass } from '@/components/forms/styles';
 import { cn } from '@/lib/cn';
 
@@ -118,7 +117,6 @@ export function MenuEditor({ items }: { items: AdminItem[] }) {
   const t = useTranslations('Admin');
   const edits = useMenuOverlay((s) => s.edits);
   const resetAll = useMenuOverlay((s) => s.resetAll);
-  const logout = useAdminAuth((s) => s.logout);
   const [query, setQuery] = useState('');
 
   const q = query.trim().toLowerCase();
@@ -146,14 +144,6 @@ export function MenuEditor({ items }: { items: AdminItem[] }) {
               {t('resetAll')}
             </button>
           )}
-          <button
-            type="button"
-            onClick={logout}
-            className="inline-flex items-center gap-1 text-sm font-bold text-text-secondary hover:text-primary"
-          >
-            <LogOut className="h-4 w-4" />
-            {t('logout')}
-          </button>
         </div>
       </div>
 

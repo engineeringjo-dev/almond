@@ -19,6 +19,28 @@ import { registerCorporateRoutes } from './routes/corporate';
  * they already crossed — takes 90 days of wall-clock to occur, and there is no
  * route that back-dates a sale. Production calls this with no argument.
  */
+/**
+ * WHAT A BROWSER MAY SEND US.
+ *
+ * 🔴 BOTH LISTS WERE SHORT BY EXACTLY WHAT THE BACK-OFFICE NEEDS, AND THE
+ * FAILURE IS INVISIBLE. `x-admin-key` was missing from the headers and `PUT`
+ * from the methods, while both corporate writes — saving a company and
+ * replacing a roster — are `PUT` carrying that header. A browser never reaches
+ * the route: the preflight fails and the caller sees an opaque network error
+ * with no server log, which reads as "the server is down".
+ *
+ * They are named constants rather than string literals inline because that is
+ * how they drifted: a route was added with a new method and header, and the two
+ * literals sat in a file nobody editing routes opens.
+ *
+ * NOTE this widens what a BROWSER may attempt, not what is authorised. The
+ * admin routes still require the shared key (plugins/adminAuth.ts), and the
+ * key belongs on a server, never in a browser — the back-office calls its own
+ * server, which calls us.
+ */
+const CORS_HEADERS = 'content-type,authorization,idempotency-key,x-pos-key,x-admin-key';
+const CORS_METHODS = 'GET,POST,PUT,OPTIONS';
+
 export async function build(backend: Backend = createBackend()): Promise<FastifyInstance> {
   // §G gate 0. Every secret below has a working development fallback, which is
   // what let `OTP_DEV_CODE = '123456'` sit in the codebase unnoticed: nothing
@@ -39,8 +61,8 @@ export async function build(backend: Backend = createBackend()): Promise<Fastify
     const origin = req.headers.origin;
     if (config.CORS_ORIGINS === '*') reply.header('access-control-allow-origin', '*');
     else if (origin && allow.includes(origin)) reply.header('access-control-allow-origin', origin);
-    reply.header('access-control-allow-headers', 'content-type,authorization,idempotency-key,x-pos-key');
-    reply.header('access-control-allow-methods', 'GET,POST,OPTIONS');
+    reply.header('access-control-allow-headers', CORS_HEADERS);
+    reply.header('access-control-allow-methods', CORS_METHODS);
     if (req.method === 'OPTIONS') return reply.code(204).send();
   });
 

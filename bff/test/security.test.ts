@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, afterAll, beforeAll } from 'vitest';
 import type { FastifyInstance } from 'fastify';
 
 import { config, insecureBootReasons } from '../src/config';
+import { signIn } from './lib/signIn';
 import { requestOtp, verifyOtp, normalizePhone, __resetOtpState } from '../src/auth/otp';
 import { parsePosToken, PosTokenWireError } from '@almond/shared/pos/tokenWire';
 import { issuePosToken, verifyPosToken } from '../src/pos/token';
@@ -407,5 +408,77 @@ describe('T29g production refuses to boot on development secrets', () => {
     // Deliberate: if `npm run dev` needed secrets, the next person would add a
     // fixed default to get unblocked. That is exactly how '123456' happened.
     expect(insecureBootReasons({ ...prod, NODE_ENV: 'development' })).toEqual([]);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// S12 — the two holes the back-office research found.
+// ---------------------------------------------------------------------------
+describe('S12 analytics is admin data, and CORS admits what the admin routes need', () => {
+  let app: FastifyInstance;
+  const KEY = 'test-admin-key-'.padEnd(32, 'x');
+  const setAdminKey = (v: string) => { (config as unknown as { ADMIN_KEY: string }).ADMIN_KEY = v; };
+
+  beforeAll(async () => { app = await build(); setAdminKey(KEY); });
+  afterAll(async () => { await app.close(); setAdminKey(''); });
+
+  it('🔴 a signed-in CUSTOMER cannot export other customers order lines', async () => {
+    // This route was `requireMember`. Every customer is a member, and the
+    // payload carries memberId, branch, item and lineTotal for up to 5,000
+    // lines — so any customer could download the business's order history.
+    const token = await signIn(app, '0791234567');
+    const asMember = await app.inject({
+      method: 'GET', url: '/v1/analytics/order-lines',
+      headers: { authorization: `Bearer ${token}` },
+    });
+    expect(asMember.statusCode).toBe(401);
+
+    const asAdmin = await app.inject({
+      method: 'GET', url: '/v1/analytics/order-lines', headers: { 'x-admin-key': KEY },
+    });
+    expect(asAdmin.statusCode).toBe(200);
+  });
+
+  it('the prep sheet is a business plan, not a member figure', async () => {
+    const token = await signIn(app, '0781111111');
+    expect((await app.inject({
+      method: 'GET', url: '/v1/forecast/prep-sheet?branchId=b1',
+      headers: { authorization: `Bearer ${token}` },
+    })).statusCode).toBe(401);
+  });
+
+  it('reporting a stockout stays open to members — only the customer can see one', async () => {
+    const token = await signIn(app, '0791111222');
+    const r = await app.inject({
+      method: 'POST', url: '/v1/analytics/stockout',
+      payload: { branchId: 'b1', itemId: 'x' },
+      headers: { authorization: `Bearer ${token}` },
+    });
+    expect(r.statusCode).toBe(201);
+  });
+
+  it('🔴 the CORS preflight admits every method and header the routes actually use', async () => {
+    // The failure this catches is silent: a missing method or header makes the
+    // browser fail preflight, so the caller sees a network error and no server
+    // log. Asserted against the ROUTES, not a copy of the list — a new admin
+    // route with a new verb fails here rather than in production.
+    const pre = await app.inject({
+      method: 'OPTIONS', url: '/v1/admin/companies',
+      headers: { origin: 'https://almond.jo', 'access-control-request-method': 'PUT' },
+    });
+    expect(pre.statusCode).toBe(204);
+    const allowedMethods = (pre.headers['access-control-allow-methods'] as string).split(',');
+    const allowedHeaders = (pre.headers['access-control-allow-headers'] as string).split(',');
+
+    const printed = app.printRoutes({ commonPrefix: false });
+    for (const verb of ['GET', 'POST', 'PUT', 'DELETE', 'PATCH']) {
+      if (printed.includes(`(${verb}`) || printed.includes(`${verb}, `)) {
+        expect(allowedMethods, `${verb} is served but not allowed`).toContain(verb);
+      }
+    }
+    // The credentials the routes require, each named where it is checked.
+    for (const h of ['authorization', 'x-pos-key', 'x-admin-key', 'idempotency-key', 'content-type']) {
+      expect(allowedHeaders, `${h} is required by a route`).toContain(h);
+    }
   });
 });

@@ -1,14 +1,13 @@
 import type { FastifyInstance, FastifyRequest } from 'fastify';
-import { timingSafeEqual } from 'node:crypto';
 import { z } from 'zod';
 import {
   companyError, parseRoster, corporateDiscountAmount,
   type CompanyDiscount,
 } from '@almond/shared/loyalty/corporate';
-import { config } from '../config';
 import { parse } from '../validate';
 import { requireMember, memberId } from '../plugins/auth';
-import { badRequest, unauthorized } from '../http-error';
+import { requireAdmin } from '../plugins/adminAuth';
+import { badRequest } from '../http-error';
 import type { Backend } from '../backend';
 
 /**
@@ -32,22 +31,6 @@ import type { Backend } from '../backend';
  * 50%" — has no endpoint to say it to.
  */
 
-/** Constant-time comparison — `!==` on a secret leaks its prefix through timing. */
-function keyMatches(presented: string, expected: string): boolean {
-  const a = Buffer.from(presented, 'utf8');
-  const b = Buffer.from(expected, 'utf8');
-  return a.length === b.length && timingSafeEqual(a, b);
-}
-
-/** FAILS CLOSED. An unset ADMIN_KEY is a locked door, not an unlocked one —
- *  the same lesson /v1/pos/scan learned the hard way (§G gate 0). */
-function requireAdmin(req: FastifyRequest): void {
-  const presented = req.headers['x-admin-key'];
-  if (!config.ADMIN_KEY || typeof presented !== 'string' || !keyMatches(presented, config.ADMIN_KEY)) {
-    throw unauthorized('invalid admin key');
-  }
-}
-
 const companyBody = z.object({
   id: z.string().min(1).max(64).regex(/^[a-z0-9-]+$/, 'id must be lowercase letters, digits and dashes'),
   nameAr: z.string().max(120).default(''),
@@ -65,7 +48,7 @@ export function registerCorporateRoutes(app: FastifyInstance, backend: Backend):
   // ---- Back-office ----
 
   app.get('/v1/admin/companies', async (req) => {
-    requireAdmin(req);
+    await requireAdmin(req);
     const companies = await backend.listCompanies();
     const roster = await backend.listRoster();
     // The count travels with the company because "Almond staff, 50%, 137 people"
@@ -78,7 +61,7 @@ export function registerCorporateRoutes(app: FastifyInstance, backend: Backend):
   });
 
   app.put('/v1/admin/companies', async (req, reply) => {
-    requireAdmin(req);
+    await requireAdmin(req);
     const body = parse(companyBody, req.body);
     // Validated with the SHARED predicate, so the back-office preview and the
     // server agree about what is refusable — including the 150% that would owe
@@ -89,7 +72,7 @@ export function registerCorporateRoutes(app: FastifyInstance, backend: Backend):
   });
 
   app.put('/v1/admin/companies/:id/roster', async (req, reply) => {
-    requireAdmin(req);
+    await requireAdmin(req);
     const { id } = parse(z.object({ id: z.string().min(1) }), req.params);
     const companies = await backend.listCompanies();
     if (!companies.some((c) => c.id === id)) throw badRequest('no such company');
@@ -107,7 +90,7 @@ export function registerCorporateRoutes(app: FastifyInstance, backend: Backend):
   });
 
   app.get('/v1/admin/companies/:id/roster', async (req) => {
-    requireAdmin(req);
+    await requireAdmin(req);
     const { id } = parse(z.object({ id: z.string().min(1) }), req.params);
     return { roster: await backend.listRoster(id) };
   });
@@ -122,7 +105,7 @@ export function registerCorporateRoutes(app: FastifyInstance, backend: Backend):
    * reimplementing the same group-by.
    */
   app.get('/v1/admin/corporate/uses', async (req) => {
-    requireAdmin(req);
+    await requireAdmin(req);
     const q = parse(z.object({
       companyId: z.string().optional(),
       from: z.string().optional(),
