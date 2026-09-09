@@ -44,6 +44,13 @@ export const config = {
    *  and protects nothing on its own, so this must be held server-side and the
    *  back-office must reach the BFF through its own server, never the browser. */
   ADMIN_KEY: process.env.ADMIN_KEY ?? '',
+  /** Postgres (Supabase). Set ⇒ the server keeps members, points, redemptions
+   *  and the corporate register in a database that survives a restart. Unset ⇒
+   *  in-memory, which is right for dev and tests and wrong for anything a
+   *  person typed. See backend/index.ts. */
+  DATABASE_URL: process.env.DATABASE_URL ?? '',
+  /** Supabase's pooler needs TLS without hostname verification. */
+  DATABASE_SSL: process.env.DATABASE_SSL === 'true',
   CORS_ORIGINS: process.env.CORS_ORIGINS ?? '*',
 
   ODOO_BASE_URL: process.env.ODOO_BASE_URL ?? '',
