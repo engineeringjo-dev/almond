@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_pos_pos_form_almond_loyalty" model="ir.ui.view">
+        <field name="name">pos.order.form.almond_loyalty_pos</field>
+        <field name="model">pos.order</field>
+        <field name="inherit_id" ref="point_of_sale.view_pos_pos_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//page[@name='extra']" position="after">
+                <page name="almond_loyalty" string="Almond Loyalty"
+                      invisible="not almond_member_id and not almond_redemption_value">
+                    <group>
+                        <group>
+                            <field name="almond_member_id"/>
+                            <field name="almond_earn_state"/>
+                            <field name="almond_points_earned"/>
+                            <field name="almond_corporate_percent" invisible="not almond_corporate_percent"/>
+                        </group>
+                        <group>
+                            <field name="almond_redemption_code"/>
+                            <field name="almond_redemption_value"/>
+                            <field name="almond_redemption_mismatch" decoration-danger="almond_redemption_mismatch"/>
+                        </group>
+                    </group>
+                </page>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="view_pos_order_tree_almond_loyalty" model="ir.ui.view">
+        <field name="name">pos.order.list.almond_loyalty_pos</field>
+        <field name="model">pos.order</field>
+        <field name="inherit_id" ref="point_of_sale.view_pos_order_tree"/>
+        <field name="arch" type="xml">
+            <xpath expr="//list" position="inside">
+                <field name="almond_earn_state" optional="hide"/>
+                <field name="almond_points_earned" optional="hide"/>
+            </xpath>
+        </field>
+    </record>
+</odoo>

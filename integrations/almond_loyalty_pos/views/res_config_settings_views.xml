@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="res_config_settings_view_form_almond_loyalty" model="ir.ui.view">
+        <field name="name">res.config.settings.view.form.inherit.almond_loyalty_pos</field>
+        <field name="model">res.config.settings</field>
+        <field name="inherit_id" ref="point_of_sale.res_config_settings_view_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//block[@id='pos_payment_terminals_section']" position="after">
+                <block title="Almond Loyalty" id="almond_loyalty_section">
+                    <!-- Per shop: applies to the POS selected at the top of the page. -->
+                    <setting id="almond_loyalty_shop" string="Almond Loyalty on this shop"
+                             help="Show the «ألموند» button on the till and send points after payment.">
+                        <field name="pos_almond_loyalty_enabled"/>
+                        <div class="content-group mt16" invisible="not pos_almond_loyalty_enabled">
+                            <div class="row">
+                                <label for="pos_almond_loyalty_branch_id" class="col-lg-4 o_light_label"/>
+                                <field name="pos_almond_loyalty_branch_id" placeholder="e.g. mecca-st"
+                                       required="pos_almond_loyalty_enabled"/>
+                            </div>
+                        </div>
+                    </setting>
+                    <!-- Global + secret: system administrators only. -->
+                    <setting id="almond_loyalty_api" string="Almond API (all shops)" groups="base.group_system"
+                             help="Server-to-server connection. The POS key never reaches the tills.">
+                        <div class="content-group">
+                            <div class="row mt8">
+                                <label for="almond_loyalty_api_url" class="col-lg-4 o_light_label"/>
+                                <field name="almond_loyalty_api_url" placeholder="https://api.almond.jo"/>
+                            </div>
+                            <div class="row mt8">
+                                <label for="almond_loyalty_timeout" class="col-lg-4 o_light_label"/>
+                                <field name="almond_loyalty_timeout"/>
+                            </div>
+                            <div class="row mt8">
+                                <label for="almond_loyalty_pos_key_new" class="col-lg-4 o_light_label"/>
+                                <field name="almond_loyalty_pos_key_new" password="True"
+                                       placeholder="(unchanged)"/>
+                            </div>
+                            <div class="row mt8">
+                                <field name="almond_loyalty_pos_key_is_set" invisible="1"/>
+                                <span class="col-lg-4 o_light_label">POS key</span>
+                                <span class="col text-success" invisible="not almond_loyalty_pos_key_is_set">Set</span>
+                                <span class="col text-danger" invisible="almond_loyalty_pos_key_is_set">Not set</span>
+                                <button name="action_almond_loyalty_clear_key" type="object" string="Clear key"
+                                        class="btn-link" invisible="not almond_loyalty_pos_key_is_set"
+                                        confirm="Remove the Almond POS key? Loyalty stops on every till until a new key is saved."/>
+                            </div>
+                        </div>
+                    </setting>
+                </block>
+            </xpath>
+        </field>
+    </record>
+</odoo>

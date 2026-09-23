@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates id="template" xml:space="preserve">
+    <!-- Always-visible row, right after the customer button (Odoo 19.0
+         point_of_sale.ControlButtons has exactly one SelectPartnerButton). -->
+    <t t-name="almond_loyalty_pos.ControlButtons" t-inherit="point_of_sale.ControlButtons" t-inherit-mode="extension">
+        <xpath expr="//SelectPartnerButton" position="after">
+            <button t-if="!props.showRemainingButtons and pos.almondLoyaltyIsEnabled()"
+                    class="o_almond_loyalty_button"
+                    t-att-class="buttonClass"
+                    t-on-click="() => this.clickAlmondLoyalty()">
+                <i class="fa fa-star me-1" role="img" aria-label="Almond"/>
+                <t t-esc="almondLoyaltyLabel"/>
+            </button>
+        </xpath>
+    </t>
+</templates>

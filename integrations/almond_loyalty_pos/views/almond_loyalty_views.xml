@@ -1,0 +1,145 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- ================= Outbox ================= -->
+    <record id="almond_loyalty_outbox_view_list" model="ir.ui.view">
+        <field name="name">almond.loyalty.outbox.list</field>
+        <field name="model">almond.loyalty.outbox</field>
+        <field name="arch" type="xml">
+            <list create="0" delete="0" decoration-danger="state == 'failed'"
+                  decoration-muted="state in ('done', 'cancelled')" decoration-warning="state == 'pending' and attempts &gt; 0">
+                <field name="create_date"/>
+                <field name="kind"/>
+                <field name="pos_order_ref"/>
+                <field name="pos_order_id" optional="show"/>
+                <field name="state"/>
+                <field name="attempts"/>
+                <field name="next_try"/>
+                <field name="last_error" optional="show"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="almond_loyalty_outbox_view_form" model="ir.ui.view">
+        <field name="name">almond.loyalty.outbox.form</field>
+        <field name="model">almond.loyalty.outbox</field>
+        <field name="arch" type="xml">
+            <form create="0" delete="0">
+                <header>
+                    <button name="action_retry_now" type="object" string="Retry now" class="btn-primary"
+                            invisible="state not in ('pending', 'failed')" groups="base.group_system"/>
+                    <button name="action_cancel" type="object" string="Cancel"
+                            invisible="state not in ('pending', 'failed')" groups="base.group_system"
+                            confirm="Cancel this loyalty call? It will not be sent."/>
+                    <field name="state" widget="statusbar" statusbar_visible="pending,done"/>
+                </header>
+                <sheet>
+                    <group>
+                        <group>
+                            <field name="kind"/>
+                            <field name="pos_order_ref"/>
+                            <field name="pos_order_id"/>
+                            <field name="origin_order_id" invisible="kind != 'reverse'"/>
+                        </group>
+                        <group>
+                            <field name="attempts"/>
+                            <field name="next_try"/>
+                            <field name="done_at"/>
+                            <field name="last_error"/>
+                        </group>
+                    </group>
+                    <group string="Response">
+                        <field name="response" nolabel="1" colspan="2"/>
+                    </group>
+                    <group string="Payload" groups="base.group_system">
+                        <field name="payload" nolabel="1" colspan="2"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="almond_loyalty_outbox_view_search" model="ir.ui.view">
+        <field name="name">almond.loyalty.outbox.search</field>
+        <field name="model">almond.loyalty.outbox</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="pos_order_ref"/>
+                <filter name="pending" string="Pending" domain="[('state', '=', 'pending')]"/>
+                <filter name="failed" string="Failed" domain="[('state', '=', 'failed')]"/>
+                <separator/>
+                <filter name="earn" string="Earn" domain="[('kind', '=', 'earn')]"/>
+                <filter name="reverse" string="Reverse" domain="[('kind', '=', 'reverse')]"/>
+                <filter name="group_state" string="Status" context="{'group_by': 'state'}"/>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_almond_loyalty_outbox" model="ir.actions.act_window">
+        <field name="name">Almond Loyalty Outbox</field>
+        <field name="res_model">almond.loyalty.outbox</field>
+        <field name="view_mode">list,form</field>
+        <field name="context">{'search_default_failed': 1, 'search_default_pending': 1}</field>
+    </record>
+
+    <!-- ================= Scans / redemptions (read-only logs) ================= -->
+    <record id="almond_loyalty_scan_view_list" model="ir.ui.view">
+        <field name="name">almond.loyalty.scan.list</field>
+        <field name="model">almond.loyalty.scan</field>
+        <field name="arch" type="xml">
+            <list create="0" delete="0" edit="0">
+                <field name="create_date"/>
+                <field name="config_id"/>
+                <field name="user_id"/>
+                <field name="member_id"/>
+                <field name="mode"/>
+                <field name="earns_points"/>
+                <field name="corporate_percent" optional="show"/>
+                <field name="redemption_value" optional="show"/>
+                <field name="order_uuid" optional="hide"/>
+                <field name="active" optional="hide"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="action_almond_loyalty_scan" model="ir.actions.act_window">
+        <field name="name">Almond Member Scans</field>
+        <field name="res_model">almond.loyalty.scan</field>
+        <field name="view_mode">list</field>
+        <field name="context">{'active_test': False}</field>
+    </record>
+
+    <record id="almond_loyalty_redemption_view_list" model="ir.ui.view">
+        <field name="name">almond.loyalty.redemption.list</field>
+        <field name="model">almond.loyalty.redemption</field>
+        <field name="arch" type="xml">
+            <list create="0" delete="0" edit="0">
+                <field name="create_date"/>
+                <field name="config_id"/>
+                <field name="user_id"/>
+                <field name="member_id"/>
+                <field name="method"/>
+                <field name="code"/>
+                <field name="value_jod" sum="Total"/>
+                <field name="points" optional="hide"/>
+                <field name="pos_order_id"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="action_almond_loyalty_redemption" model="ir.actions.act_window">
+        <field name="name">Almond Redemptions</field>
+        <field name="res_model">almond.loyalty.redemption</field>
+        <field name="view_mode">list</field>
+    </record>
+
+    <!-- ================= Menus (POS > Configuration) ================= -->
+    <menuitem id="menu_almond_loyalty_root" name="Almond Loyalty"
+              parent="point_of_sale.menu_point_config_product" sequence="90"
+              groups="point_of_sale.group_pos_manager"/>
+    <menuitem id="menu_almond_loyalty_outbox" action="action_almond_loyalty_outbox"
+              parent="menu_almond_loyalty_root" sequence="10"/>
+    <menuitem id="menu_almond_loyalty_redemption" action="action_almond_loyalty_redemption"
+              parent="menu_almond_loyalty_root" sequence="20"/>
+    <menuitem id="menu_almond_loyalty_scan" action="action_almond_loyalty_scan"
+              parent="menu_almond_loyalty_root" sequence="30"/>
+</odoo>

@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates id="template" xml:space="preserve">
+    <t t-name="almond_loyalty_pos.AlmondLoyaltyDialog">
+        <Dialog title.translate="Almond — ألموند" size="'md'">
+            <div class="almond-loyalty-dialog d-flex flex-column gap-3">
+                <!-- Current member / redemption state -->
+                <div t-if="info and info.memberRef" class="alert alert-success mb-0">
+                    <div>
+                        <strong>Member</strong>: …<t t-esc="info.memberRef"/>
+                    </div>
+                    <div t-if="info.corporate">
+                        <t t-esc="info.corporate.nameAr or info.corporate.nameEn"/>:
+                        <strong><t t-esc="info.corporate.percentOff"/>%</strong> off — no points
+                    </div>
+                    <div t-elif="info.earnsPoints">Points will be earned after payment.</div>
+                    <div t-else="">No points on this order.</div>
+                    <div t-if="info.redemption" class="mt-2">
+                        Redemption available: <strong><t t-esc="formatJod(info.redemption.valueJod)"/> JOD</strong>
+                        <button class="btn btn-primary btn-sm ms-2" t-att-disabled="state.busy"
+                                t-on-click="redeemFromScan">Use it</button>
+                    </div>
+                </div>
+                <div t-if="settledTotal" class="alert alert-info mb-0">
+                    Redeemed on this order: <strong><t t-esc="formatJod(settledTotal)"/> JOD</strong>
+                </div>
+
+                <!-- One input: scanner types here, or the cashier types the code -->
+                <div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" id="almond_redeem_qr"
+                           t-model="state.redeemQr"/>
+                    <label class="form-check-label" for="almond_redeem_qr">The QR is a redemption (redeem)</label>
+                </div>
+                <input t-ref="input" class="form-control form-control-lg" type="text" dir="ltr"
+                       autocomplete="off" spellcheck="false"
+                       t-model="state.input" t-on-keydown="onKeydown"
+                       placeholder="Scan the member QR or type the code (AB2C-D3EF)"/>
+                <div t-if="state.error" class="text-danger" t-esc="state.error"/>
+            </div>
+            <t t-set-slot="footer">
+                <button class="btn btn-primary btn-lg lh-lg" t-att-disabled="state.busy or !state.input.trim()"
+                        t-on-click="submit">
+                    <i t-if="state.busy" class="fa fa-spinner fa-spin me-1"/>Apply
+                </button>
+                <button t-if="info and info.memberRef" class="btn btn-secondary btn-lg lh-lg"
+                        t-att-disabled="state.busy" t-on-click="detach">Remove member</button>
+                <button class="btn btn-secondary btn-lg lh-lg" t-on-click="props.close">Close</button>
+            </t>
+        </Dialog>
+    </t>
+</templates>

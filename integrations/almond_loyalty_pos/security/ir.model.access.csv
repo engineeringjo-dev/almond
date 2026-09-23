@@ -1,0 +1,7 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_almond_loyalty_outbox_manager,almond.loyalty.outbox.pos.manager,model_almond_loyalty_outbox,point_of_sale.group_pos_manager,1,0,0,0
+access_almond_loyalty_outbox_system,almond.loyalty.outbox.system,model_almond_loyalty_outbox,base.group_system,1,1,1,0
+access_almond_loyalty_scan_manager,almond.loyalty.scan.pos.manager,model_almond_loyalty_scan,point_of_sale.group_pos_manager,1,0,0,0
+access_almond_loyalty_scan_system,almond.loyalty.scan.system,model_almond_loyalty_scan,base.group_system,1,1,1,0
+access_almond_loyalty_redemption_manager,almond.loyalty.redemption.pos.manager,model_almond_loyalty_redemption,point_of_sale.group_pos_manager,1,0,0,0
+access_almond_loyalty_redemption_system,almond.loyalty.redemption.system,model_almond_loyalty_redemption,base.group_system,1,1,1,0
