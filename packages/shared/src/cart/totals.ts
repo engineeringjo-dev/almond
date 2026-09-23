@@ -48,7 +48,23 @@ export function computeTotals(items: CartItem[], promoDiscount: number): CartTot
   const discount = Math.max(brunchDiscount, promoDiscount);
 
   const taxable = Math.max(0, subtotal - discount);
-  const tax = taxable * config.TAX_RATE;
-  const total = taxable + tax;
+  const { tax, total } = applyTax(taxable);
   return { subtotal, brunchDiscount, promoDiscount, discount, tax, total };
 }
+
+/**
+ * Tax on an amount the member is charged. With PRICES_TAX_INCLUSIVE the menu
+ * price already CONTAINS the tax (as at the till): the total is the amount
+ * itself and `tax` is the part of it that is tax — shown, never added. The
+ * exclusive branch exists so the rule is one switch, not a code change.
+ */
+export function applyTax(amount: number): { tax: number; total: number } {
+  if (config.PRICES_TAX_INCLUSIVE) {
+    return { tax: amount - amount / (1 + config.TAX_RATE), total: amount };
+  }
+  const tax = amount * config.TAX_RATE;
+  return { tax, total: amount + tax };
+}
+
+/** The rate as a whole-number percentage for labels ("8"), from the config. */
+export const TAX_PERCENT = Math.round(config.TAX_RATE * 100);

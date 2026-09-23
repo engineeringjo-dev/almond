@@ -202,7 +202,18 @@ export const config = {
   // holds at most 15 months of grants — ~5 rows at the measured median member
   // (1 visit / 90 days), ~55 at the p95.
   POINT_LOT_RETENTION_DAYS: 90,
-  TAX_RATE: 0.16, // 16% (section 4.6)
+  // 🔴 8%, AND ALREADY INSIDE THE PRICE. The menu is Odoo's `list_price`, the
+  // shop's own price, and Almond's POS taxes every sale at 8% `price_include`
+  // — the customer at the till pays list_price, full stop. This said 16% and
+  // was ADDED on top: a spec assumption from the Talabat-export era that
+  // survived the switch to shop prices (IMPLEMENTATION-PLAYBOOK warned that
+  // list_price "may include or exclude tax depending on the company setting —
+  // verify"), so online orders cost 16% more than the same basket at the
+  // counter, and earned 16% more points on it. 16% belongs only to Odoo's
+  // "Delivery Careem" product, which is not a website line. Confirm against
+  // account.tax on the live company before changing either number.
+  TAX_RATE: 0.08,
+  PRICES_TAX_INCLUSIVE: true,
   // The combo price discount is WITHDRAWN — the business stopped running it
   // (owner, 2026-09-04: "الكومبو راح من كل مكان"). Kept at 0 rather than
   // deleted so cart/totals.ts keeps its shape and `brunchDiscount` still

@@ -1,7 +1,7 @@
 'use client';
 
 import { useLocale, useTranslations } from 'next-intl';
-import type { CartTotals } from '@almond/shared/cart';
+import { TAX_PERCENT, type CartTotals } from '@almond/shared/cart';
 import { asLang, formatJOD } from '@/lib/format';
 import { cn } from '@/lib/cn';
 
@@ -44,7 +44,7 @@ export function CartSummary({ totals }: { totals: CartTotals }) {
       {totals.discount > 0 && (
         <Row label={t('discount')} value={`− ${formatJOD(totals.discount, lang)}`} accent />
       )}
-      <Row label={t('tax')} value={formatJOD(totals.tax, lang)} />
+      <Row label={t('tax', { rate: TAX_PERCENT })} value={formatJOD(totals.tax, lang)} />
       <div className="border-t border-neutral-warm pt-3">
         <Row label={t('total')} value={formatJOD(totals.total, lang)} strong />
       </div>

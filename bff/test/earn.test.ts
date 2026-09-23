@@ -600,22 +600,24 @@ describe('earn: the arithmetic (T1-T4)', () => {
 describe('earn: the ceiling (D1) and where the combo sits (D4) — T5, T5b', () => {
   it('T5 earn: the combo bonus and the cap on the priced-pair basket', () => {
     // §4 D4 secondary example, priced through computeTotals so the tax basis
-    // (§1.1) cannot drift: a 17.50 subtotal is a 20.30 INVOICE.
+    // (§1.1) cannot drift. Prices INCLUDE the 8% tax, as at the till, so a
+    // 17.50 basket is a 17.50 invoice (it was 20.30 while 16% was added on top).
     const cart = [
       cartLine(COMBO_DRINK.id, 0.75, 10, true),
       cartLine(COMBO_FOOD.id, 1.0, 10, false),
     ];
-    expect(computeTotals(cart, 0).total).toBeCloseTo(20.3, 6);
+    const invoice = computeTotals(cart, 0).total;
+    expect(invoice).toBeCloseTo(17.5, 6);
     expect(comboPairs(cart)).toBe(10);
 
-    const r = computeEarn({ total: 20.3, comboPairs: 10, at: MON }, RULES);
+    const r = computeEarn({ total: invoice, comboPairs: 10, at: MON }, RULES);
     expect(r.comboBonus).toBe(500);
-    expect(r.subtotal).toBeCloseTo(601.5, 6);
-    expect(r.cap).toBeCloseTo(507.5, 6);
+    expect(r.subtotal).toBeCloseTo(587.5, 6);
+    expect(r.cap).toBeCloseTo(437.5, 6);
 
     // SHIPPED SEMANTICS (D4 not in — §8.7). The combo is added after the
-    // ceiling, so the grant is 602 — bit-identical to the pre-patch server.
-    expect(r.points).toBe(602);
+    // ceiling, so the grant is the uncapped sum.
+    expect(r.points).toBe(588);
     // ... and the ceiling is not what limits it: the sum is over the cap, but
     // only the non-combo part is trimmed (here: nothing to trim).
     expect(r.subtotal).toBeGreaterThan(r.cap);
@@ -626,7 +628,8 @@ describe('earn: the ceiling (D1) and where the combo sits (D4) — T5, T5b', () 
 
   it('T5b earn: a zero-priced food item still mints uncapped combo points (§2.1, §8.7)', () => {
     // §4 D4 primary example: 10 x mineral water + 10 x a ZERO-priced Mother's
-    // Day cake ⇒ subtotal 7.50, invoice 8.70.
+    // Day cake ⇒ subtotal 7.50, invoice 7.50 (tax is inside the price; the spec's
+    // example predates that and says 8.70).
     const cart = [
       cartLine(COMBO_DRINK.id, 0.75, 10, true),
       // The zero price is supplied HERE, by the fixture — it is the point of the
@@ -637,9 +640,13 @@ describe('earn: the ceiling (D1) and where the combo sits (D4) — T5, T5b', () 
       // staff item) and still mints combo points, which is what §8.7 is about.
       cartLine(COMBO_FOOD.id, 0, 10, false),
     ];
-    expect(computeTotals(cart, 0).total).toBeCloseTo(8.7, 6);
+    expect(computeTotals(cart, 0).total).toBeCloseTo(7.5, 6);
     expect(comboPairs(cart)).toBe(10);
 
+    // The earn function is exercised on the SPEC's literal 8.70 invoice, not on
+    // this cart's total: the IEEE-754 point below is about 8.7 specifically,
+    // and what this test pins — a zero-priced food line still mints the full,
+    // uncapped combo bonus — does not depend on how the invoice was taxed.
     const r = computeEarn({ total: 8.7, comboPairs: 10, at: MON }, RULES);
     expect(r.comboBonus).toBe(500);
     expect(r.points).toBe(544);
@@ -1104,7 +1111,10 @@ describe('T10 checkout: the points the route grants equal computeEarn on the sam
     };
     expect(body.pointsEarned).toBe(computeEarn(ctx).points);
     expect(body.pointsEarned).toBeGreaterThan(0);
-    expect(body.total).toBeGreaterThan(body.subtotal); // tax really is in there
+    // Tax is INSIDE the price (as at the till): the member pays the subtotal,
+    // and a real, positive part of it is tax.
+    expect(body.total).toBeCloseTo(body.subtotal, 6);
+    expect(body.tax).toBeGreaterThan(0);
 
     // On a bonus-day weekday the two answers genuinely differ, so the assertion
     // above has teeth on that day. On every other day T7c is what holds the

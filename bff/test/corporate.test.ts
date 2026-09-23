@@ -1,3 +1,4 @@
+import { applyTax } from '@almond/shared/cart';
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { randomUUID } from 'node:crypto';
 import type { FastifyInstance } from 'fastify';
@@ -298,9 +299,11 @@ describe('T35f the register reaches the till', () => {
 
     expect(body.subtotal).toBeCloseTo(full, 3);
     // The TAX is on the half. A discount subtracted after tax would charge tax
-    // on money the member never paid.
-    expect(body.tax).toBeCloseTo((full / 2) * loyaltyConfig.TAX_RATE, 3);
-    expect(body.total).toBeCloseTo((full / 2) * (1 + loyaltyConfig.TAX_RATE), 3);
+    // on money the member never paid. Prices include tax (as at the till), so
+    // the member pays the half, and the tax is the part of the half that is tax.
+    expect(body.tax).toBeCloseTo(applyTax(full / 2).tax, 3);
+    expect(body.total).toBeCloseTo(applyTax(full / 2).total, 3);
+    expect(body.total).toBeCloseTo(full / 2, 3);
     // 🔴 THE RULE, THROUGH THE REAL ROUTE.
     expect(body.pointsEarned).toBe(0);
     expect(body.pointsBalance).toBe(0);
@@ -310,7 +313,7 @@ describe('T35f the register reaches the till', () => {
     // The control. Without it a checkout broken for everyone would pass the
     // test above by granting zero to all.
     const body = (await buy(publicToken, 2)).json();
-    expect(body.total).toBeCloseTo(item.sizes[0].price * 2 * (1 + loyaltyConfig.TAX_RATE), 3);
+    expect(body.total).toBeCloseTo(applyTax(item.sizes[0].price * 2).total, 3);
     expect(body.pointsEarned).toBeGreaterThan(0);
   });
 
@@ -332,7 +335,7 @@ describe('T35f the register reaches the till', () => {
       id: 'almond', nameAr: 'موظفو ألموند', nameEn: 'Almond staff', percentOff: 50, active: false,
     });
     const body = (await buy(staffToken, 1)).json();
-    expect(body.total).toBeCloseTo(item.sizes[0].price * (1 + loyaltyConfig.TAX_RATE), 3);
+    expect(body.total).toBeCloseTo(applyTax(item.sizes[0].price).total, 3);
     expect(body.pointsEarned).toBeGreaterThan(0);
   });
 });

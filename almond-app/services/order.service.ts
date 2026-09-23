@@ -2,6 +2,7 @@ import type { CartItem, Order, OrderStatus } from '@/types';
 import { menuItems } from '@almond/shared/menu';
 import { itemKind } from '@almond/shared/lib/categoryKind';
 import { config } from '@/constants/config';
+import { applyTax } from '@almond/shared/cart';
 import { toAmmanISO } from '@/lib/format';
 import { delay, genId } from './util';
 
@@ -86,8 +87,12 @@ function seedHistory(userId: string) {
   // cannot claim a price the basket does not add up to.
   const t = (lines: CartItem[]) => {
     const subtotal = lines.reduce((sum, l) => sum + l.unitBasePrice * l.qty, 0);
-    const tax = Math.round(subtotal * config.TAX_RATE * 1000) / 1000;
-    return { subtotal, tax, discount: 0, total: Math.round((subtotal + tax) * 1000) / 1000 };
+    // The shared rule, not a private copy of it (tax is inside the price).
+    const { tax, total } = applyTax(subtotal);
+    return {
+      subtotal, discount: 0,
+      tax: Math.round(tax * 1000) / 1000, total: Math.round(total * 1000) / 1000,
+    };
   };
   const past: Order[] = [
     {

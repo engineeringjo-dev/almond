@@ -175,7 +175,7 @@
     "promoApplied": "Promo applied",
     "promoInvalid": "Invalid code",
     "subtotal": "Subtotal",
-    "tax": "Tax (16%)",
+    "tax": "Includes sales tax ({{rate}}%)",
     "discount": "Discount",
     "total": "Total",
     "paymentMethod": "Payment method",

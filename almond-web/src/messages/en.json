@@ -90,7 +90,7 @@
     "remove": "Remove",
     "subtotal": "Subtotal",
     "discount": "Discount",
-    "tax": "Tax (16%)",
+    "tax": "Includes sales tax ({rate}%)",
     "total": "Total",
     "checkout": "Checkout",
     "completeOrder": "Complete your order",
