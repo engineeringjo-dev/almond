@@ -40,9 +40,10 @@ test.describe('Language switch', () => {
   // Seen in the wild in this suite (desktop, ~1 run in 4); reproduced
   // deterministically below by holding the navigation and letting one English
   // prefetch through first.
-  // Suggested fix: `localeDetection: false` in defineRouting (the URL is then
-  // the only source of truth: unprefixed = Arabic), or `localeCookie: false`.
-  test.fixme('English → Arabic is not undone by an in-flight English prefetch', async ({ page, context }) => {
+  // FIXED 2026-09-23: `localeDetection: false` + `localeCookie: false` in
+  // src/i18n/routing.ts — the URL is the only source of truth (unprefixed =
+  // Arabic). This test is the regression guard.
+  test('English → Arabic is not undone by an in-flight English prefetch', async ({ page, context }) => {
     let release!: () => void;
     const gate = new Promise<void>((r) => (release = r));
     await page.route((url) => url.pathname === '/menu', async (route) => {
@@ -63,7 +64,9 @@ test.describe('Language switch', () => {
     await expect(page).toHaveURL(/localhost:\d+\/menu$/);
     await expect(page.locator('html')).toHaveAttribute('lang', 'ar');
     await expect(page.locator('html')).toHaveAttribute('dir', 'rtl');
-    expect((await context.cookies()).find((c) => c.name === 'NEXT_LOCALE')?.value).toBe('ar');
+    // The fix makes the URL the ONLY source of truth: no locale cookie is set at
+    // all, so no prefetch can ever write one that outvotes the address bar.
+    expect((await context.cookies()).find((c) => c.name === 'NEXT_LOCALE')).toBeUndefined();
   });
 });
 

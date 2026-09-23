@@ -119,16 +119,28 @@ describe('loyaltyStore', () => {
     expect(s.getState().walletBalance).toBe(w0);
   });
 
-  // Pins CURRENT demo behaviour so a change is deliberate: any well-formed
-  // ALMOND-XXXXX code credits 5 JOD, repeatedly, with no DATA_SOURCE gate.
-  // Harmless while the wallet is local-only; see the report — it must be gated
-  // before the wallet is wired to the BFF.
-  it('DEMO: any well-formed code credits 5 JOD, every time', async () => {
+  // Mock mode only: any well-formed ALMOND-XXXXX code credits 5 JOD, so the
+  // site is demoable. The next test pins that a live build refuses it.
+  it('DEMO (mock mode): any well-formed code credits 5 JOD, every time', async () => {
     const s = await load();
     const w0 = s.getState().walletBalance;
     expect(s.getState().redeemGift('ALMOND-ZZZZZ')).toBe(true);
     expect(s.getState().redeemGift('ALMOND-ZZZZZ')).toBe(true);
     expect(s.getState().walletBalance).toBeCloseTo(w0 + 10, 9);
+  });
+
+  it('LIVE (odoo): a code the store never issued credits nothing', async () => {
+    vi.resetModules();
+    vi.stubEnv('NEXT_PUBLIC_DATA_SOURCE', 'odoo');
+    try {
+      const { useLoyaltyStore } = await import('@/store/loyaltyStore');
+      const w0 = useLoyaltyStore.getState().walletBalance;
+      expect(useLoyaltyStore.getState().redeemGift('ALMOND-ZZZZZ')).toBe(false);
+      expect(useLoyaltyStore.getState().walletBalance).toBe(w0);
+    } finally {
+      vi.unstubAllEnvs();
+      vi.resetModules();
+    }
   });
 });
 

@@ -3,7 +3,7 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import type { GiftCard, GiftOccasion, PointsLogEntry, Voucher } from '@almond/shared/types';
-import { config } from '@/lib/config';
+import { config, isMock } from '@/lib/config';
 import { reloadBonus, genGiftCode } from '@/data/loyalty';
 import type { RedeemOption } from '@almond/shared/loyalty/redeem';
 
@@ -172,8 +172,11 @@ export const useLoyaltyStore = create<LoyaltyState>()(
           }));
           return true;
         }
-        // Demo: any well-formed code credits a 5 JOD gift.
-        if (/^ALMOND-[A-Z0-9]{5}$/.test(norm)) {
+        // Demo ONLY: any well-formed code credits a 5 JOD gift. Outside mock
+        // mode this would be free wallet money for typing a pattern, so a
+        // live build refuses codes it did not issue until gifts are
+        // redeemed server-side.
+        if (isMock && /^ALMOND-[A-Z0-9]{5}$/.test(norm)) {
           set((s) => ({
             walletBalance: s.walletBalance + 5,
             walletHistory: [

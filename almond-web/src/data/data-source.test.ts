@@ -61,13 +61,54 @@ describe('data/payment payForOrder', () => {
     await expect(payForOrder(order)).rejects.toThrow(/not wired/);
   });
 
-  // BUG (high once a gateway exists): src/components/checkout/CheckoutView.tsx:112
-  // `if (paymentMethod !== 'cash') void payForOrder(order);` — the result is
-  // discarded and the rejection is unhandled; the order is then saved, the
-  // cart cleared and the success page shown whether or not payment succeeded.
-  // Under 'odoo' today that is every card/CliQ order: "placed", never paid.
-  // Needs a component/integration test (out of scope for this unit suite).
-  it.todo('checkout awaits payForOrder and does not place the order when payment fails');
+  // REGRESSION — fixed 2026-09-23 (was high once a gateway exists):
+  // CheckoutView ran `void payForOrder(order)`, discarded the result, then saved
+  // the order, cleared the cart and showed success whatever payment did — and
+  // dispatched the courier BEFORE paying. The sequence now lives in
+  // src/data/checkout.ts#settleOrder, tested here.
+  it('checkout does not place the order, or dispatch a courier, when payment fails', async () => {
+    const { settleOrder } = await import('@/data/checkout');
+    const calls: string[] = [];
+    const result = await settleOrder(order, {
+      pay: async () => { calls.push('pay'); throw new Error('declined'); },
+      dispatch: async () => { calls.push('dispatch'); },
+      place: () => { calls.push('place'); },
+    });
+    expect(result.ok).toBe(false);
+    expect(calls).toEqual(['pay']);
+  });
+
+  it('checkout pays FIRST, then dispatches, then places', async () => {
+    const { settleOrder } = await import('@/data/checkout');
+    const calls: string[] = [];
+    let release!: () => void;
+    const paid = new Promise<void>((r) => { release = r; });
+    const pending = settleOrder(order, {
+      pay: async () => { calls.push('pay:start'); await paid; calls.push('pay:done'); },
+      dispatch: async () => { calls.push('dispatch'); },
+      place: () => { calls.push('place'); },
+    });
+    await Promise.resolve();
+    expect(calls).toEqual(['pay:start']); // nothing else happens while payment is pending
+    release();
+    expect(await pending).toEqual({ ok: true });
+    expect(calls).toEqual(['pay:start', 'pay:done', 'dispatch', 'place']);
+  });
+
+  it('a failed dispatch is reported but the paid order still stands', async () => {
+    const { settleOrder } = await import('@/data/checkout');
+    const reported: unknown[] = [];
+    let placed = false;
+    const result = await settleOrder(order, {
+      dispatch: async () => { throw new Error('ishbek down'); },
+      onDispatchError: (e) => reported.push(e),
+      place: () => { placed = true; },
+    });
+    await new Promise((r) => setTimeout(r, 0));
+    expect(result.ok).toBe(true);
+    expect(placed).toBe(true);
+    expect(reported).toHaveLength(1);
+  });
 
   // Consequence of the config.ts bug above, pinned at the money seam.
   it('a typo such as NEXT_PUBLIC_DATA_SOURCE=Odoo must not mark an order paid', async () => {

@@ -8,27 +8,30 @@ import type { Config } from 'tailwindcss';
  * The numeric scales (spacing/radius/type) mirror the shared `spacing`,
  * `radius` and `fontSize` tokens.
  */
+// Colours are `rgb(var(--color-x-rgb) / <alpha-value>)`, NOT `var(--color-x)`:
+// Tailwind cannot apply an opacity modifier (`bg-error/10`) to a bare var() and
+// silently generates no CSS for it. See src/theme/cssVars.ts#hexToChannels.
 const config: Config = {
   content: ['./src/**/*.{ts,tsx}'],
   theme: {
     extend: {
       colors: {
-        primary: 'var(--color-primary)',
-        'primary-dark': 'var(--color-primary-dark)',
-        accent: 'var(--color-accent)',
-        'accent-light': 'var(--color-accent-light)',
-        secondary: 'var(--color-secondary)',
-        'neutral-warm': 'var(--color-neutral-warm)',
-        background: 'var(--color-background)',
-        card: 'var(--color-card)',
-        'text-primary': 'var(--color-text-primary)',
-        'text-secondary': 'var(--color-text-secondary)',
-        success: 'var(--color-success)',
-        error: 'var(--color-error)',
-        'tier-bean': 'var(--color-tier-bean)',
-        'tier-silver': 'var(--color-tier-silver)',
-        'tier-gold': 'var(--color-tier-gold)',
-        'tier-black': 'var(--color-tier-black)',
+        primary: 'rgb(var(--color-primary-rgb) / <alpha-value>)',
+        'primary-dark': 'rgb(var(--color-primary-dark-rgb) / <alpha-value>)',
+        accent: 'rgb(var(--color-accent-rgb) / <alpha-value>)',
+        'accent-light': 'rgb(var(--color-accent-light-rgb) / <alpha-value>)',
+        secondary: 'rgb(var(--color-secondary-rgb) / <alpha-value>)',
+        'neutral-warm': 'rgb(var(--color-neutral-warm-rgb) / <alpha-value>)',
+        background: 'rgb(var(--color-background-rgb) / <alpha-value>)',
+        card: 'rgb(var(--color-card-rgb) / <alpha-value>)',
+        'text-primary': 'rgb(var(--color-text-primary-rgb) / <alpha-value>)',
+        'text-secondary': 'rgb(var(--color-text-secondary-rgb) / <alpha-value>)',
+        success: 'rgb(var(--color-success-rgb) / <alpha-value>)',
+        error: 'rgb(var(--color-error-rgb) / <alpha-value>)',
+        'tier-bean': 'rgb(var(--color-tier-bean-rgb) / <alpha-value>)',
+        'tier-silver': 'rgb(var(--color-tier-silver-rgb) / <alpha-value>)',
+        'tier-gold': 'rgb(var(--color-tier-gold-rgb) / <alpha-value>)',
+        'tier-black': 'rgb(var(--color-tier-black-rgb) / <alpha-value>)',
       },
       backgroundImage: {
         'gradient-rainbow': 'var(--gradient-rainbow)',

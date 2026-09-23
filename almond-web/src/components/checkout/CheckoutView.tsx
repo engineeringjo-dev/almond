@@ -16,6 +16,7 @@ import { useOrderStore } from '@/store/orderStore';
 import { useRouter } from '@/i18n/navigation';
 import { DELIVERY_ETA, DELIVERY_FEE, dispatchDelivery } from '@/data/delivery';
 import { payForOrder } from '@/data/payment';
+import { settleOrder } from '@/data/checkout';
 import { asLang, formatJOD } from '@/lib/format';
 import { OrderTypeTabs } from './OrderTypeTabs';
 import { BranchPicker } from './BranchPicker';
@@ -55,6 +56,8 @@ export function CheckoutView() {
 
   const [mounted, setMounted] = useState(false);
   const [error, setError] = useState(false);
+  const [placing, setPlacing] = useState(false);
+  const [payFailed, setPayFailed] = useState(false);
   useEffect(() => setMounted(true), []);
 
   const totals = useMemo(() => computeTotals(items, promoDiscount), [items, promoDiscount]);
@@ -83,11 +86,13 @@ export function CheckoutView() {
     );
   }
 
-  const place = () => {
+  const place = async () => {
+    if (placing) return; // a second tap must not place (or charge) twice
     if (!branchId || (isDelivery && !deliveryAddress.trim())) {
       setError(true);
       return;
     }
+    setPayFailed(false);
     const branch = getBranches().find((b) => b.id === branchId) ?? null;
     const order = createMockOrder({
       items,
@@ -102,17 +107,24 @@ export function CheckoutView() {
       deliveryAddress: isDelivery ? deliveryAddress.trim() : undefined,
       deliveryFee: isDelivery ? DELIVERY_FEE : 0,
     });
-    // Dispatch via our server route (Ishbek seam). Non-blocking for UX, but we
-    // surface failures instead of swallowing them silently.
-    if (isDelivery) {
-      dispatchDelivery(order).catch((err) =>
-        console.error('delivery dispatch failed', err),
-      );
+    // Pay first and wait for the answer; dispatch and place only after it
+    // (src/data/checkout.ts). A failed payment leaves the cart intact.
+    setPlacing(true);
+    const result = await settleOrder(order, {
+      pay: paymentMethod !== 'cash' ? payForOrder : undefined, // secure payment seam
+      dispatch: isDelivery ? dispatchDelivery : undefined, // Ishbek seam, our server route
+      onDispatchError: (err) => console.error('delivery dispatch failed', err),
+      place: (o) => {
+        setLastOrder(o);
+        clear();
+        router.push('/checkout/success');
+      },
+    });
+    if (!result.ok) {
+      console.error('payment failed', result.error);
+      setPayFailed(true);
+      setPlacing(false);
     }
-    if (paymentMethod !== 'cash') void payForOrder(order); // secure payment seam
-    setLastOrder(order);
-    clear();
-    router.push('/checkout/success');
   };
 
   return (
@@ -199,8 +211,19 @@ export function CheckoutView() {
             <Sparkles className="h-4 w-4 shrink-0" aria-hidden />
             {t('earnBeans', { beans })}
           </div>
-          <Button size="lg" className="w-full" onClick={place}>
-            {t('placeOrder')}
+          {payFailed && (
+            <p role="alert" className="text-sm font-bold text-error">
+              {t('paymentFailed')}
+            </p>
+          )}
+          <Button
+            size="lg"
+            className="w-full"
+            onClick={place}
+            disabled={placing}
+            aria-busy={placing || undefined}
+          >
+            {placing ? t('placing') : t('placeOrder')}
           </Button>
           <div className="space-y-2 border-t border-neutral-warm pt-4">
               <p className="flex items-center gap-2 text-sm font-bold text-text-secondary">

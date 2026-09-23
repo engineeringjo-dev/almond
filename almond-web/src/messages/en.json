@@ -119,6 +119,8 @@
     "payment": "Payment method",
     "summary": "Order summary",
     "placeOrder": "Place order",
+    "paymentFailed": "Payment did not go through, so your order was not placed. Your cart is unchanged — try again or choose another payment method.",
+    "placing": "Placing your order…",
     "selectBranch": "Please choose a branch to continue",
     "earnBeans": "Points on this order: {beans}",
     "addExtra": "Add a little extra",
