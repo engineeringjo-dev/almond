@@ -122,7 +122,13 @@ export function registerPosRoutes(app: FastifyInstance, backend: Backend): void 
     const at = new Date();
     let row = null;
     if (body.token) {
-      const { memberId: id } = verifyPosToken(body.token);
+      const { memberId: id, mode } = verifyPosToken(body.token);
+      // 🔴 ONLY A `redeem` QR SPENDS A REDEMPTION. The mode is a signed claim of
+      // what the member asked for (pos/token.ts); a pay or earn QR — the one a
+      // member shows to collect points — is not consent to consume the code
+      // they are saving. Without this, a till holding ANY of a member's QRs
+      // could settle their live redemption onto whatever bill it chose.
+      if (mode !== 'redeem') throw badRequest('this QR is not a redemption — ask the member to open their redemption code');
       await backend.sweepRedemptions(id, at);
       row = await backend.activeRedemption(id);
     } else {

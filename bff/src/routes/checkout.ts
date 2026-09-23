@@ -12,17 +12,20 @@ import { liveBalance } from '@almond/shared/loyalty/lots';
 import { toFils, toJod } from '../money';
 import { recordOrderLines } from '../analytics/orderLines';
 import type { Backend } from '../backend';
+import { unfundedValueAllowed } from '../plugins/funding';
 
 const bodySchema = z.object({
-  branchId: z.string(),
+  // Bounded: the branch id is copied into every order line the forecasting
+  // store keeps, and an unbounded string there is a megabyte per request.
+  branchId: z.string().min(1).max(64),
   orderType: z.enum(['pickup', 'dinein', 'delivery']),
   paymentMethod: z.enum(['cash', 'cliq', 'visa', 'mastercard', 'paypal', 'wallet']),
   lines: z.array(z.object({
     itemId: z.string(),
     sizeId: z.enum(['S', 'M', 'L']),
     optionIds: z.array(z.string()).default([]),
-    qty: z.number().int().positive(),
-  })).min(1),
+    qty: z.number().int().positive().max(1000),
+  })).min(1).max(500),
 });
 
 export function registerCheckoutRoutes(app: FastifyInstance, backend: Backend): void {
@@ -74,6 +77,20 @@ export function registerCheckoutRoutes(app: FastifyInstance, backend: Backend): 
     // business-day machinery (ammanDayKey) still owns the DISPLAYED date.
     const now = new Date();
     const paidFromBalance = input.paymentMethod === 'wallet';
+    /**
+     * 🔴 POINTS AND WINDOW SPEND ONLY FOR MONEY THAT MOVED.
+     *
+     * Only the wallet is debited here; cash/CliQ/card are captured nowhere in
+     * this route. Granting on them paid points — which /v1/loyalty/redeem turns
+     * into a code the till takes off a bill — for an order nobody paid, as
+     * often as a script could POST it (measured: a 60-coffee "cash" order,
+     * 200 points, redeemed for 2 JOD, repeatable). It also credited the 90-day
+     * window, and a rung once reached is never taken away, so three fake
+     * orders bought the top earn rate for life. The ORDER is still written: a
+     * pay-at-counter order is a real order. Its points are the till's to grant
+     * when the till takes the money. See plugins/funding.ts.
+     */
+    const funded = paidFromBalance || unfundedValueAllowed();
 
     // 2) Atomic saga with compensation.
     let walletDebited = 0;
@@ -185,10 +202,12 @@ export function registerCheckoutRoutes(app: FastifyInstance, backend: Backend): 
         comboPairs,
         bonusDayActivated: false,
       });
-      const pointsEarned = earn.points;
+      const pointsEarned = funded ? earn.points : 0;
       // The whole breakdown is persisted on the order (§5b) so a grant can be
-      // re-derived and the shadow delta reconstructed after the fact.
-      await backend.recordEarnBreakdown(order.id, earn);
+      // re-derived and the shadow delta reconstructed after the fact. An
+      // unfunded order records none: a breakdown describes a grant, and there
+      // was not one.
+      if (funded) await backend.recordEarnBreakdown(order.id, earn);
 
       // 🔴 THE USE IS LOGGED, NOT INFERRED. «بدي يبين عندي كل موظف شو اخذ درنك،
       // وكم مرة استخدم خصمه» — which drink each employee took, and how many
@@ -211,7 +230,7 @@ export function registerCheckoutRoutes(app: FastifyInstance, backend: Backend): 
       }
       const pointsBalance = await backend.addPoints(id, pointsEarned, 'نقاط طلب', 'Order points');
       // Dated and pruned to the rolling window — never `windowSpend += jod`.
-      await backend.recordSpend(id, totals.total);
+      if (funded) await backend.recordSpend(id, totals.total);
       const after = await backend.getMember(id);
       return reply.code(201).send({
         orderId: order.id,

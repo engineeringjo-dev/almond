@@ -1,4 +1,4 @@
-import Fastify, { type FastifyInstance } from 'fastify';
+import Fastify, { type FastifyInstance, type FastifyServerOptions } from 'fastify';
 import jwt from '@fastify/jwt';
 import { config, insecureBootReasons } from './config';
 import { createBackend, type Backend } from './backend';
@@ -52,7 +52,16 @@ export async function build(backend: Backend = createBackend()): Promise<Fastify
     );
   }
 
-  const app = Fastify({ logger: { level: process.env.LOG_LEVEL ?? 'info' } });
+  // trustProxy decides what `req.ip` is, and the per-IP OTP limits key on it.
+  // See config.TRUST_PROXY: unset behind a balancer, every member is one IP.
+  const options: FastifyServerOptions = {
+    logger: { level: process.env.LOG_LEVEL ?? 'info' },
+    trustProxy: config.TRUST_PROXY,
+  };
+  const app = Fastify(options);
+  if (config.NODE_ENV === 'production' && config.TRUST_PROXY === false) {
+    app.log.warn('TRUST_PROXY is unset: per-IP rate limits see the socket peer. Behind a load balancer that is ONE address for every member.');
+  }
   await app.register(jwt, { secret: config.JWT_SECRET });
 
   // Minimal CORS (no extra dependency).
@@ -61,6 +70,9 @@ export async function build(backend: Backend = createBackend()): Promise<Fastify
     const origin = req.headers.origin;
     if (config.CORS_ORIGINS === '*') reply.header('access-control-allow-origin', '*');
     else if (origin && allow.includes(origin)) reply.header('access-control-allow-origin', origin);
+    // The allow-origin value depends on the request's Origin, so a shared cache
+    // must key on it — or it serves one front-end's grant to another.
+    if (config.CORS_ORIGINS !== '*') reply.header('vary', 'origin');
     reply.header('access-control-allow-headers', CORS_HEADERS);
     reply.header('access-control-allow-methods', CORS_METHODS);
     if (req.method === 'OPTIONS') return reply.code(204).send();

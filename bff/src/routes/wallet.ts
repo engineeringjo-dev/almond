@@ -6,6 +6,8 @@ import { parse } from '../validate';
 import { requireMember, memberId } from '../plugins/auth';
 import { idempotencyPreHandler, idempotencyOnSend } from '../plugins/idempotency';
 import { toFils, toJod } from '../money';
+import { forbidden } from '../http-error';
+import { unfundedValueAllowed } from '../plugins/funding';
 import type { Backend } from '../backend';
 
 function reloadBonus(amount: number): number {
@@ -19,7 +21,14 @@ export function registerWalletRoutes(app: FastifyInstance, backend: Backend): vo
     onSend: [idempotencyOnSend],
   }, async (req, reply) => {
     const id = memberId(req);
-    const { amount } = parse(z.object({ amount: z.number().positive() }), req.body);
+    // 🔴 THIS ROUTE HAS NO PAYMENT BEHIND IT. `amount` is the client's word and
+    // nothing here captures a card — so outside dev/test it is refused, not
+    // credited. See plugins/funding.ts. `finite()` because JSON.parse('1e400')
+    // is Infinity, and an Infinity lot is a wallet no debit can empty.
+    if (!unfundedValueAllowed()) {
+      throw forbidden('payment_capture_required', 'wallet top-up needs a captured payment; none is wired');
+    }
+    const { amount } = parse(z.object({ amount: z.number().positive().finite() }), req.body);
     await backend.creditWallet(id, toFils(amount), 'topup');
     const bonus = reloadBonus(amount);
     if (bonus > 0) await backend.addPoints(id, bonus, 'مكافأة شحن المحفظة', 'Wallet reload bonus');

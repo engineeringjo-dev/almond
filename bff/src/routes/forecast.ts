@@ -3,10 +3,17 @@ import { z } from 'zod';
 import { menuItems } from '@almond/shared/menu';
 import { calendarFeatures, daypartOf } from '@almond/shared/lib/calendar';
 import { parse } from '../validate';
-import { requireMember } from '../plugins/auth';
+import { requireMember, memberId } from '../plugins/auth';
 import { requireAdmin } from '../plugins/adminAuth';
 import { listOrderLines, historyFor, recordStockout } from '../analytics/orderLines';
 import { seasonalNaive, computePar, suggestedOrder, type ItemEconomics } from '../forecasting/par';
+import { config } from '../config';
+import { limiter, rateLimit } from '../plugins/rateLimit';
+
+/** A stockout is a signal the par model trusts. Unbounded, one member could
+ *  both grow the in-memory event log without limit (each id up to the 1 MB
+ *  body limit) and teach the forecaster that an item is always sold out. */
+const stockouts = limiter('stockout', () => config.RATE_LIMITS.stockoutPerMember);
 
 /**
  * Phase 0 forecasting surface (docs/DEMAND-FORECASTING.md):
@@ -39,8 +46,11 @@ export function registerForecastRoutes(app: FastifyInstance): void {
    * only one who can report it. It writes a counter and returns nothing about
    * anyone else.
    */
-  app.post('/v1/analytics/stockout', { preHandler: [requireMember] }, async (req, reply) => {
-    const { branchId, itemId } = parse(z.object({ branchId: z.string(), itemId: z.string() }), req.body);
+  app.post('/v1/analytics/stockout', { preHandler: [requireMember, rateLimit(stockouts, memberId)] }, async (req, reply) => {
+    const { branchId, itemId } = parse(
+      z.object({ branchId: z.string().min(1).max(64), itemId: z.string().min(1).max(64) }),
+      req.body,
+    );
     recordStockout(branchId, itemId);
     return reply.code(201).send({ recorded: true });
   });

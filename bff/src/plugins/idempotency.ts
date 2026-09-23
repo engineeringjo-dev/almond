@@ -8,9 +8,27 @@ import { memberId } from './auth';
 type Entry = { status: 'pending' | 'done'; code?: number; body?: unknown; at: number };
 const store = new Map<string, Entry>();
 
+/**
+ * 🔴 THE STORE USED TO GROW FOREVER. `at` was written on every entry and read
+ * by nothing, so every financial POST ever made stayed in memory — and a member
+ * sending a fresh key per request (which is what the header is FOR) could grow
+ * it as fast as they could send, each key up to the 16 KB header limit. Entries
+ * now live 24 hours (Stripe's replay window) and the key is bounded to a length
+ * a UUID fits in with room to spare.
+ */
+const TTL_MS = 24 * 60 * 60 * 1000;
+const MAX_KEY_LENGTH = 128;
+let lastSweep = 0;
+
+function sweep(now: number): void {
+  if (now - lastSweep < 60_000) return;
+  lastSweep = now;
+  for (const [k, e] of store) if (now - e.at > TTL_MS) store.delete(k);
+}
+
 function keyFor(req: FastifyRequest): string | null {
   const k = req.headers['idempotency-key'];
-  if (!k || typeof k !== 'string') return null;
+  if (!k || typeof k !== 'string' || k.length > MAX_KEY_LENGTH) return null;
   let who = 'anon';
   try { who = memberId(req); } catch { /* unauthenticated */ }
   const url = (req.routeOptions?.url ?? req.url).split('?')[0];
@@ -20,10 +38,13 @@ function keyFor(req: FastifyRequest): string | null {
 export async function idempotencyPreHandler(req: FastifyRequest, reply: FastifyReply): Promise<void> {
   const key = keyFor(req);
   if (!key) {
-    reply.code(400).send({ error: 'idempotency_key_required', message: 'Send a unique Idempotency-Key header' });
+    reply.code(400).send({ error: 'idempotency_key_required', message: `Send a unique Idempotency-Key header (at most ${MAX_KEY_LENGTH} characters)` });
     return;
   }
-  const hit = store.get(key);
+  const now = Date.now();
+  sweep(now);
+  const found = store.get(key);
+  const hit = found && now - found.at <= TTL_MS ? found : undefined;
   if (hit?.status === 'done') {
     reply.header('Idempotent-Replay', 'true').code(hit.code ?? 200).send(hit.body);
     return;

@@ -9,10 +9,19 @@ import { parse } from '../validate';
 import { requireMember, memberId } from '../plugins/auth';
 import { idempotencyPreHandler, idempotencyOnSend } from '../plugins/idempotency';
 import type { Backend } from '../backend';
+import { config } from '../config';
+import { limiter, rateLimit } from '../plugins/rateLimit';
+
+// Per MEMBER, after requireMember. Each redeem writes a row and mints a code;
+// each settle is a code lookup. Neither has a reason to run more than a few
+// times a minute for one person, and an unbounded loop of either is load on
+// the one table the till reads.
+const redeems = limiter('redeem', () => config.RATE_LIMITS.redeemPerMember);
+const settles = limiter('redemption-settle', () => config.RATE_LIMITS.settlePerMember);
 
 export function registerLoyaltyRoutes(app: FastifyInstance, backend: Backend): void {
   app.post('/v1/loyalty/redeem', {
-    preHandler: [requireMember, idempotencyPreHandler],
+    preHandler: [requireMember, rateLimit(redeems, memberId), idempotencyPreHandler],
     onSend: [idempotencyOnSend],
   }, async (req, reply) => {
     const id = memberId(req);
@@ -103,7 +112,7 @@ export function registerLoyaltyRoutes(app: FastifyInstance, backend: Backend): v
    * that does not exist — so this cannot be used to discover live codes either.
    */
   app.post('/v1/loyalty/redemption/settle', {
-    preHandler: [requireMember, idempotencyPreHandler],
+    preHandler: [requireMember, rateLimit(settles, memberId), idempotencyPreHandler],
     onSend: [idempotencyOnSend],
   }, async (req, reply) => {
     const id = memberId(req);

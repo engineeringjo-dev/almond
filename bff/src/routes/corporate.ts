@@ -9,6 +9,12 @@ import { requireMember, memberId } from '../plugins/auth';
 import { requireAdmin } from '../plugins/adminAuth';
 import { badRequest } from '../http-error';
 import type { Backend } from '../backend';
+import { config } from '../config';
+import { limiter, rateLimit } from '../plugins/rateLimit';
+
+/** The quote is a read the cart calls "on every keystroke" — generous, but a
+ *  bound: each call is an entitlement lookup against the register. */
+const quotes = limiter('corporate-quote', () => config.RATE_LIMITS.quotePerMember);
 
 /**
  * THE CORPORATE REGISTER — companies, their standing discount, and who is on
@@ -163,8 +169,8 @@ export function registerCorporateRoutes(app: FastifyInstance, backend: Backend):
    * What a given basket total would cost them. A read: it moves nothing and
    * logs nothing, so the cart can call it on every keystroke.
    */
-  app.post('/v1/me/corporate/quote', { preHandler: [requireMember] }, async (req) => {
-    const { subtotal } = parse(z.object({ subtotal: z.number() }), req.body);
+  app.post('/v1/me/corporate/quote', { preHandler: [requireMember, rateLimit(quotes, memberId)] }, async (req) => {
+    const { subtotal } = parse(z.object({ subtotal: z.number().nonnegative().finite() }), req.body);
     const e = await backend.entitlementFor(memberId(req));
     const discount = e ? corporateDiscountAmount(subtotal, e.percentOff) : 0;
     return {

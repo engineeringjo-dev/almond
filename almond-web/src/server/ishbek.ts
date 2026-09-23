@@ -24,8 +24,10 @@ const KEY = process.env.ISHBEK_KEY ?? '';
 const WEBHOOK_SECRET = process.env.ISHBEK_WEBHOOK_SECRET ?? '';
 const BASE = integration.baseUrls.ishbek;
 
-/** Live only when pointed at Odoo AND a key is present; otherwise mock. */
-const isLive = (): boolean => DATA_SOURCE === 'odoo' && KEY.length > 0;
+/** Live only when pointed at Odoo AND a key is present; otherwise mock.
+ *  Exported so the route handlers can refuse to spend the key for an
+ *  anonymous caller (see app/api/delivery/dispatch/route.ts). */
+export const isLive = (): boolean => DATA_SOURCE === 'odoo' && KEY.length > 0;
 
 async function ishbekFetch<T>(path: string, body: unknown): Promise<T> {
   const res = await fetch(`${BASE}${path}`, {
@@ -117,7 +119,11 @@ export async function ishbekCancel(params: CancelParams): Promise<{ status: 'can
 
 export async function ishbekStatus(orderId: string): Promise<{ status: DispatchStatus }> {
   if (!isLive()) return { status: 'assigned' };
-  const res = await fetch(`${BASE}${integration.endpoints.deliveryStatus(orderId)}`, {
+  // ENCODED: the id arrives from a URL segment that Next has already DECODED,
+  // so `..%2F..%2Fx?y` would otherwise walk our keyed request to any Ishbek
+  // path and append a query. The route is staff-only now; this keeps even a
+  // staff session from turning the key into a general-purpose Ishbek client.
+  const res = await fetch(`${BASE}${integration.endpoints.deliveryStatus(encodeURIComponent(orderId))}`, {
     headers: { 'X-Ishbek-Key': KEY },
   });
   if (!res.ok) throw new Error(`Ishbek status → ${res.status}`);

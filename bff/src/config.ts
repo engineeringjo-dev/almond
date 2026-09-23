@@ -1,5 +1,27 @@
 import { config as shared } from '@almond/shared/config';
 
+/** An integer from the environment, or the default when unset/unparseable. */
+function envInt(name: string, fallback: number): number {
+  const n = Number(process.env[name]);
+  return Number.isFinite(n) && n > 0 ? Math.floor(n) : fallback;
+}
+
+/**
+ * Fastify's `trustProxy`. Unset ⇒ false: `req.ip` is the socket peer. Behind a
+ * load balancer that peer is the BALANCER, so every member shares one IP and
+ * the per-IP limits below throttle the whole city at once. Set `true`, a hop
+ * count (`1`), or a comma list of proxy addresses to read the client from
+ * X-Forwarded-For. Never `true` when the BFF is directly exposed: the header is
+ * then the caller's to write, and a per-IP limit becomes a per-string one.
+ */
+function parseTrustProxy(raw: string | undefined): boolean | string | ((addr: string, hop: number) => boolean) {
+  if (!raw) return false;
+  if (raw === 'true') return true;
+  // A hop count, expressed as the function form Fastify's types accept.
+  if (/^\d+$/.test(raw)) { const hops = Number(raw); return (_addr, hop) => hop < hops; }
+  return raw;
+}
+
 /** Server-side config. Secrets are read from the environment and NEVER shipped
  *  to any client bundle (that is the whole point of the BFF). */
 export const config = {
@@ -52,6 +74,27 @@ export const config = {
   /** Supabase's pooler needs TLS without hostname verification. */
   DATABASE_SSL: process.env.DATABASE_SSL === 'true',
   CORS_ORIGINS: process.env.CORS_ORIGINS ?? '*',
+  TRUST_PROXY: parseTrustProxy(process.env.TRUST_PROXY),
+
+  /**
+   * In-process fixed-window limits (plugins/rateLimit.ts). Same posture as the
+   * OTP caps in auth/otp.ts: per-instance until Redis, which is accepted.
+   *
+   * The OTP caps there are PER PHONE, and that is the gap these close: 25
+   * guesses/hour/phone is safe for one phone and says nothing about an attacker
+   * spraying guesses across all 47,720 of them (25 × 47,720 ≈ 1.2M guesses/hour
+   * ≈ one account per hour). Keyed by IP here, the spray is bounded per source.
+   * Jordanian mobile carriers NAT many phones behind one address, so the IP
+   * limits count FAILED verifies, not successful ones, and are generous.
+   */
+  RATE_LIMITS: {
+    otpRequestPerIp: { max: envInt('RATE_OTP_REQUEST_PER_IP', 20), windowSeconds: 600 },
+    otpFailedVerifyPerIp: { max: envInt('RATE_OTP_FAILED_VERIFY_PER_IP', 20), windowSeconds: 900 },
+    redeemPerMember: { max: envInt('RATE_REDEEM_PER_MEMBER', 10), windowSeconds: 60 },
+    settlePerMember: { max: envInt('RATE_SETTLE_PER_MEMBER', 10), windowSeconds: 60 },
+    quotePerMember: { max: envInt('RATE_QUOTE_PER_MEMBER', 60), windowSeconds: 60 },
+    stockoutPerMember: { max: envInt('RATE_STOCKOUT_PER_MEMBER', 20), windowSeconds: 60 },
+  },
 
   ODOO_BASE_URL: process.env.ODOO_BASE_URL ?? '',
   ODOO_API_KEY: process.env.ODOO_API_KEY ?? '',
@@ -80,6 +123,10 @@ export function insecureBootReasons(
   env: {
     NODE_ENV: string; JWT_SECRET: string; POS_TOKEN_SECRET: string;
     POS_SCAN_KEY: string; ADMIN_KEY: string;
+    /** Optional only so the older call sites that name the four secrets still
+     *  typecheck; `build()` passes the whole config, so it is always present
+     *  where it matters. */
+    CORS_ORIGINS?: string;
   } = config,
 ): string[] {
   if (env.NODE_ENV !== 'production') return [];
@@ -97,5 +144,18 @@ export function insecureBootReasons(
   // write routes dead rather than public, but a dead back-office in production
   // is still a misconfiguration worth refusing to boot on.
   if (!env.ADMIN_KEY) reasons.push('ADMIN_KEY is unset — the corporate register cannot be administered');
+  // Set is not the same as strong. Both keys are compared in constant time, but
+  // a 4-character key is guessed in 10^6-odd requests whatever the compare, and
+  // nothing rate-limits a server-to-server header. Same floor as the secrets.
+  for (const name of ['POS_SCAN_KEY', 'ADMIN_KEY'] as const) {
+    if (env[name] && env[name].length < 32) reasons.push(`${name} is shorter than 32 characters`);
+  }
+  // `*` is the development default. The BFF authenticates with bearer tokens,
+  // not cookies, so a wildcard does not hand a foreign page a member's session
+  // — but it does let any page on the internet drive the API from a visitor's
+  // browser, and production has a known, short list of front-ends.
+  if (env.CORS_ORIGINS !== undefined && env.CORS_ORIGINS.split(',').some((o) => o.trim() === '*')) {
+    reasons.push('CORS_ORIGINS is "*" — name the front-end origins explicitly');
+  }
   return reasons;
 }
