@@ -28,8 +28,13 @@ import type { Db } from './db';
 import type { HoldoutStamp } from '@almond/shared/loyalty/holdout';
 import type {
   Backend, Member, HistoryEntry, NewOrder, OrderRecord, SubscriptionState, CorporateUse,
+  PaymentIntent, TillSale,
 } from './types';
+import type { EarnBreakdown } from '@almond/shared/loyalty/earn';
 import { IDEMPOTENCY_SWEEP_EVERY_MS, IDEMPOTENCY_TTL_MS } from './idempotency';
+import { assertSameSale, earnTicketUsed, posOrderConflict, reverseGrant, ticketRefusalError } from '../pos/sales';
+import { assertIntentSpendable, nextIntentStatus } from '../payments/intent';
+import { toFils, toJod } from '../money';
 
 /**
  * THE DURABLE BACKEND. Same behaviour as the in-memory one, on Postgres.
@@ -89,6 +94,48 @@ function toMember(r: MemberRow): Member {
     evaluatedThrough: r.evaluated_through,
     subRenewsAt: Number(r.sub_renews_at ?? 0),
     subDay: r.sub_day, subDayCount: r.sub_day_count,
+  };
+}
+
+/** A pos_sales row → TillSale. `paid_total` is numeric (a string from pg);
+ *  it is held in fils everywhere else so a comparison is exact. */
+function toTillSale(row: Record<string, unknown>): TillSale {
+  const intOrNull = (v: unknown) => (v == null ? null : Number(v));
+  return {
+    posOrderRef: row.pos_order_ref as string,
+    memberId: row.member_id as string,
+    branchId: row.branch_id as string,
+    paidFils: toFils(num(row.paid_total)),
+    paidAt: iso(row.paid_at)!,
+    spendDay: (row.spend_day ?? null) as string | null,
+    pointsEarned: Number(row.points_earned),
+    pointsBalanceAfter: Number(row.points_balance_after),
+    earn: (row.earn_breakdown ?? null) as EarnBreakdown | null,
+    status: row.status as TillSale['status'],
+    reversedPoints: intOrNull(row.reversed_points),
+    shortfall: intOrNull(row.shortfall),
+    reverseBalanceAfter: intOrNull(row.reverse_balance_after),
+    reverseReason: (row.reverse_reason ?? null) as string | null,
+    reversedAt: iso(row.reversed_at),
+    createdAt: iso(row.created_at)!,
+  };
+}
+
+/** A payment_intents row → PaymentIntent. `amount_fils` is bigint (a string). */
+function toPaymentIntent(row: Record<string, unknown>): PaymentIntent {
+  return {
+    id: row.id as string,
+    memberId: row.member_id as string,
+    amountFils: Number(row.amount_fils),
+    currency: 'JOD',
+    cartHash: row.cart_hash as string,
+    provider: row.provider as string,
+    providerRef: row.provider_ref as string,
+    status: row.status as PaymentIntent['status'],
+    captureRef: (row.capture_ref ?? null) as string | null,
+    orderId: (row.order_id ?? null) as string | null,
+    createdAt: iso(row.created_at)!,
+    updatedAt: iso(row.updated_at)!,
   };
 }
 
@@ -703,6 +750,14 @@ export function createPostgresBackend(db: Db): Backend {
       // half-happened (bff/test/resilience-restart.test.ts R2.8).
       return withMember(id, async (m, log, t, logged) => {
         const { at } = input;
+        // The card payment, locked and checked BEFORE anything moves — the
+        // same rule the memory store applies (payments/intent.ts). Locked, so
+        // two checkouts presenting one payment are serial and the second finds
+        // it spent; the UNIQUE(order_id) constraint is the guarantee beneath.
+        if (input.payment) {
+          const pis = await t.query('select * from payment_intents where id = $1 for update', [input.payment.intentId]);
+          assertIntentSpendable(pis[0] ? toPaymentIntent(pis[0]) : null, id, input.payment);
+        }
         if (input.walletDebitFils > 0) {
           settleWalletExpiry(m, at, log);
           const res = consumeFifo(m.walletLots, input.walletDebitFils, at);
@@ -714,13 +769,23 @@ export function createPostgresBackend(db: Db): Backend {
           id: `ord_${randomUUID()}`, createdAt: at.toISOString(),
           ...(input.earn ? { earn: input.earn } : {}),
         };
+        // payment_intent_id is UNIQUE: the database refuses a second order that
+        // names a payment already spent (20260927), whatever the check above.
         await t.query(
           `insert into orders (id, member_id, branch_id, order_type, payment_method, total,
-             earn_breakdown, created_at)
-           values ($1,$2,$3,$4,$5,$6,$7,$8)`,
+             earn_breakdown, created_at, payment_intent_id)
+           values ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
           [order.id, id, order.branchId, order.type, order.paymentMethod, order.total,
-            input.earn ? JSON.stringify(input.earn) : null, order.createdAt],
+            input.earn ? JSON.stringify(input.earn) : null, order.createdAt,
+            input.payment?.intentId ?? null],
         );
+        if (input.payment) {
+          await t.query(
+            `update payment_intents set status = $2, capture_ref = $3, order_id = $4, updated_at = $5
+             where id = $1`,
+            [input.payment.intentId, 'captured', input.payment.captureRef, order.id, at.toISOString()],
+          );
+        }
 
         // Settled BEFORE the voucher, as the memory backend's decideVoucher
         // does, so both compute `unexplainedPoints` on the same ledger.
@@ -795,6 +860,140 @@ export function createPostgresBackend(db: Db): Backend {
           log({ deltaPoints: bonusPoints, reasonAr, reasonEn, createdAt: at.toISOString() });
         }
         return { walletBalanceFils: liveBalance(m.walletLots, at), pointsBalance: liveBalance(m.lots, at) };
+      });
+    },
+
+    // ---- the till's earn (pos_sales) ----
+    async tillEarn(input) {
+      // ONE withMember: the member lock opens it, and the grant, its ledger
+      // line, the window spend and the sale row commit together or not at all.
+      return withMember(input.memberId, async (m, log, t) => {
+        const { at } = input;
+        const found = await t.query('select * from pos_sales where pos_order_ref = $1 for update', [input.posOrderRef]);
+        if (found[0]) {
+          const sale = toTillSale(found[0]);
+          assertSameSale(sale, input);
+          return { sale, replay: true };
+        }
+        // The ticket belongs to ONE member, so a second sale on it is
+        // serialised behind this lock and found here; UNIQUE(earn_ticket_jti)
+        // is the guarantee beneath.
+        const spent = await t.query('select pos_order_ref from pos_sales where earn_ticket_jti = $1', [input.ticketJti]);
+        if (spent[0]) throw earnTicketUsed();
+        if (input.ticketRefusal) throw ticketRefusalError(input.ticketRefusal);
+        if (input.pointsEarned < 0) throw conflict('negative_grant', 'A grant cannot be negative');
+        settleExpiry(m, at, log);
+        m.lots = grantLot(m.lots, input.pointsEarned, 'earn', at, LOTS).lots;
+        log({
+          deltaPoints: input.pointsEarned, reasonAr: input.reasonAr,
+          reasonEn: input.reasonEn, createdAt: at.toISOString(),
+        });
+        // The day the spend is dated on is STORED, so a reversal can find it.
+        const spendDay = input.spendJod !== null && input.spendJod > 0 ? (input.spendDay ?? ammanDayKey(at)) : null;
+        if (input.spendJod !== null && spendDay !== null) applySpend(m, input.spendJod, at, log, spendDay);
+        const sale: TillSale = {
+          posOrderRef: input.posOrderRef, memberId: m.id, branchId: input.branchId,
+          paidFils: input.paidFils, paidAt: input.paidAt.toISOString(), spendDay,
+          pointsEarned: input.pointsEarned, pointsBalanceAfter: liveBalance(m.lots, at),
+          earn: input.earn, status: 'earned',
+          reversedPoints: null, shortfall: null, reverseBalanceAfter: null,
+          reverseReason: null, reversedAt: null, createdAt: at.toISOString(),
+        };
+        // 🔴 ON CONFLICT DO NOTHING, because the SELECT above is not a lock on
+        // a row that does not exist yet. The same reference reported for a
+        // DIFFERENT member (two tills, one typo) is not serialised by this
+        // member's lock: the second insert waits for the first to commit, then
+        // does nothing — and this sale is refused, its grant rolled back.
+        const inserted = await t.query(
+          `insert into pos_sales (pos_order_ref, member_id, branch_id, earn_ticket_jti, paid_total,
+             paid_at, spend_day, points_earned, points_balance_after, earn_breakdown, status, created_at)
+           values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
+           on conflict do nothing
+           returning pos_order_ref`,
+          [sale.posOrderRef, sale.memberId, sale.branchId, input.ticketJti, toJod(sale.paidFils),
+            sale.paidAt, sale.spendDay, sale.pointsEarned, sale.pointsBalanceAfter,
+            sale.earn ? JSON.stringify(sale.earn) : null, sale.status, sale.createdAt],
+        );
+        if (!inserted[0]) throw posOrderConflict();
+        return { sale, replay: false };
+      });
+    },
+
+    async reverseTillEarn(posOrderRef, reason, at) {
+      // Whose sale it is, read BEFORE the transaction — the member lock must be
+      // the first statement of it (R1.8), and a sale's member never changes.
+      const owner = await db.query<{ member_id: string }>(
+        'select member_id from pos_sales where pos_order_ref = $1', [posOrderRef],
+      );
+      if (!owner[0]) throw notFound('pos sale not found');
+      return withMember(owner[0].member_id, async (m, log, t) => {
+        const rows = await t.query('select * from pos_sales where pos_order_ref = $1 for update', [posOrderRef]);
+        const sale = toTillSale(rows[0]);
+        if (sale.status === 'reversed') return { sale, replay: true };
+        settleExpiry(m, at, log);
+        const back = reverseGrant(m.lots, m.spend, sale, at);
+        m.lots = back.lots;
+        m.spend = back.spend;
+        log({
+          deltaPoints: -back.reversedPoints, reasonAr: 'استرجاع نقاط طلب مُسترد',
+          reasonEn: 'Refunded purchase points', createdAt: at.toISOString(),
+        });
+        const reversed: TillSale = {
+          ...sale, status: 'reversed', reversedPoints: back.reversedPoints, shortfall: back.shortfall,
+          reverseBalanceAfter: liveBalance(m.lots, at), reverseReason: reason, reversedAt: at.toISOString(),
+        };
+        await t.query(
+          `update pos_sales set status = $2, reversed_points = $3, shortfall = $4,
+             reverse_balance_after = $5, reverse_reason = $6, reversed_at = $7
+           where pos_order_ref = $1`,
+          [posOrderRef, reversed.status, reversed.reversedPoints, reversed.shortfall,
+            reversed.reverseBalanceAfter, reversed.reverseReason, reversed.reversedAt],
+        );
+        return { sale: reversed, replay: false };
+      });
+    },
+
+    async getTillSale(posOrderRef) {
+      const rows = await db.query('select * from pos_sales where pos_order_ref = $1', [posOrderRef]);
+      return rows[0] ? toTillSale(rows[0]) : null;
+    },
+
+    // ---- card payment intents ----
+    async createPaymentIntent(intent, at) {
+      const row: PaymentIntent = {
+        ...intent, status: 'pending', captureRef: null, orderId: null,
+        createdAt: at.toISOString(), updatedAt: at.toISOString(),
+      };
+      await db.query(
+        `insert into payment_intents (id, member_id, amount_fils, currency, cart_hash, provider,
+           provider_ref, status, created_at, updated_at)
+         values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`,
+        [row.id, row.memberId, row.amountFils, row.currency, row.cartHash, row.provider,
+          row.providerRef, row.status, row.createdAt, row.updatedAt],
+      );
+      return row;
+    },
+
+    async getPaymentIntent(intentId) {
+      const rows = await db.query('select * from payment_intents where id = $1', [intentId]);
+      return rows[0] ? toPaymentIntent(rows[0]) : null;
+    },
+
+    async recordPaymentStatus(provider, providerRef, status, at) {
+      return db.tx(async (t) => {
+        const rows = await t.query(
+          'select * from payment_intents where provider = $1 and provider_ref = $2 for update',
+          [provider, providerRef],
+        );
+        if (!rows[0]) return null;
+        const intent = toPaymentIntent(rows[0]);
+        const next = nextIntentStatus(intent, status);
+        if (next === intent.status) return intent;
+        await t.query(
+          'update payment_intents set status = $2, updated_at = $3 where id = $1',
+          [intent.id, next, at.toISOString()],
+        );
+        return { ...intent, status: next, updatedAt: at.toISOString() };
       });
     },
 

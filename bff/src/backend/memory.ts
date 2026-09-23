@@ -31,8 +31,11 @@ import { toFils } from '../money';
 import type { HoldoutStamp } from '@almond/shared/loyalty/holdout';
 import type {
   Backend, Member, HistoryEntry, NewOrder, OrderRecord, SubscriptionState, CorporateUse,
+  PaymentIntent, TillSale,
 } from './types';
 import { IDEMPOTENCY_SWEEP_EVERY_MS, idempotencyExpired } from './idempotency';
+import { assertSameSale, earnTicketUsed, reverseGrant, ticketRefusalError } from '../pos/sales';
+import { assertIntentSpendable, nextIntentStatus } from '../payments/intent';
 
 /** One business day for the whole system (§3.6) — Amman, not the host's UTC.
  *  This is the §5 step 1 repoint. It moves the daily free-drink counter's reset
@@ -122,6 +125,12 @@ export function createMemoryBackend(): Backend {
    *  .oncePerMember must not drift apart (T32n pins the flag). The Odoo form is
    *  UNIQUE(partner_id) on almond_loyalty_second_visit. */
   const vouchers = new Map<string, SecondVisitVoucher>();
+  /** The till's sales, by POS order reference — the in-process twin of
+   *  pos_sales. `saleTickets` is its UNIQUE(earn_ticket_jti). */
+  const posSales = new Map<string, TillSale>();
+  const saleTickets = new Map<string, string>();
+  /** Card payment intents — the twin of payment_intents. */
+  const paymentIntents = new Map<string, PaymentIntent>();
 
   // Seed a demo member so a freshly-issued token has data.
   //
@@ -573,7 +582,13 @@ export function createMemoryBackend(): Backend {
       // the member, the order list, the ledger and the voucher back exactly as
       // they were, so a refusal half-way cannot leave a debit without an order.
       const rollback = begin(m);
+      // The payment intent is outside the member, so it is put back by hand.
+      const intentBefore = input.payment ? paymentIntents.get(input.payment.intentId) : undefined;
+      const intentCopy = intentBefore ? { ...intentBefore } : undefined;
       try {
+        // Checked FIRST, before anything moves: the same rule Postgres checks
+        // under its row lock (payments/intent.ts).
+        if (input.payment) assertIntentSpendable(intentBefore, id, input.payment);
         if (input.walletDebitFils > 0) {
           settleWalletExpiry(m, at);
           const res = consumeFifo(m.walletLots, input.walletDebitFils, at);
@@ -586,6 +601,13 @@ export function createMemoryBackend(): Backend {
           ...(input.earn ? { earn: input.earn } : {}),
         };
         orders.push(order);
+        if (input.payment && intentBefore) {
+          // Spent: bound to THIS order. A second order finds orderId set.
+          Object.assign(intentBefore, {
+            status: 'captured', captureRef: input.payment.captureRef,
+            orderId: order.id, updatedAt: at.toISOString(),
+          });
+        }
 
         // BEFORE the grant and the spend: the voucher's guards read the
         // member's pre-transaction balance and window (types.ts). A failure
@@ -623,6 +645,7 @@ export function createMemoryBackend(): Backend {
         };
       } catch (e) {
         rollback();
+        if (intentBefore && intentCopy) Object.assign(intentBefore, intentCopy);
         throw e;
       }
     },
@@ -658,6 +681,105 @@ export function createMemoryBackend(): Backend {
         rollback();
         throw e;
       }
+    },
+
+    // ---- The till's earn: the in-process twin of pos_sales ----
+    async tillEarn(input) {
+      const m = must(input.memberId);
+      const { at } = input;
+      // 🔴 NO `await` IN THIS BODY: the replay check, the ticket check and the
+      // grant are one step, so two retries of one sale cannot both grant.
+      const found = posSales.get(input.posOrderRef);
+      if (found) {
+        assertSameSale(found, input);
+        return { sale: { ...found }, replay: true };
+      }
+      if (saleTickets.has(input.ticketJti)) throw earnTicketUsed();
+      if (input.ticketRefusal) throw ticketRefusalError(input.ticketRefusal);
+      if (input.pointsEarned < 0) throw conflict('negative_grant', 'A grant cannot be negative');
+      const rollback = begin(m);
+      try {
+        settleExpiry(m, at);
+        m.lots = grantLot(m.lots, input.pointsEarned, 'earn', at, LOTS).lots;
+        log(m.id, {
+          deltaPoints: input.pointsEarned, reasonAr: input.reasonAr,
+          reasonEn: input.reasonEn, createdAt: at.toISOString(),
+        });
+        // The day the spend is dated on is STORED, so a reversal can find it.
+        const spendDay = input.spendJod !== null && input.spendJod > 0 ? (input.spendDay ?? ammanDayKey(at)) : null;
+        if (input.spendJod !== null && spendDay !== null) applySpend(m, input.spendJod, at, spendDay);
+        const sale: TillSale = {
+          posOrderRef: input.posOrderRef, memberId: m.id, branchId: input.branchId,
+          paidFils: input.paidFils, paidAt: input.paidAt.toISOString(), spendDay,
+          pointsEarned: input.pointsEarned, pointsBalanceAfter: liveBalance(m.lots, at),
+          earn: input.earn, status: 'earned',
+          reversedPoints: null, shortfall: null, reverseBalanceAfter: null,
+          reverseReason: null, reversedAt: null, createdAt: at.toISOString(),
+        };
+        posSales.set(sale.posOrderRef, sale);
+        saleTickets.set(input.ticketJti, sale.posOrderRef);
+        return { sale: { ...sale }, replay: false };
+      } catch (e) {
+        rollback();
+        throw e;
+      }
+    },
+    async reverseTillEarn(posOrderRef, reason, at) {
+      const sale = posSales.get(posOrderRef);
+      if (!sale) throw notFound('pos sale not found');
+      if (sale.status === 'reversed') return { sale: { ...sale }, replay: true };
+      const m = must(sale.memberId);
+      const rollback = begin(m);
+      try {
+        settleExpiry(m, at);
+        const back = reverseGrant(m.lots, m.spend, sale, at);
+        m.lots = back.lots;
+        m.spend = back.spend;
+        log(m.id, {
+          deltaPoints: -back.reversedPoints, reasonAr: 'استرجاع نقاط طلب مُسترد',
+          reasonEn: 'Refunded purchase points', createdAt: at.toISOString(),
+        });
+        Object.assign(sale, {
+          status: 'reversed', reversedPoints: back.reversedPoints, shortfall: back.shortfall,
+          reverseBalanceAfter: liveBalance(m.lots, at), reverseReason: reason, reversedAt: at.toISOString(),
+        });
+        return { sale: { ...sale }, replay: false };
+      } catch (e) {
+        rollback();
+        throw e;
+      }
+    },
+    async getTillSale(posOrderRef) {
+      const sale = posSales.get(posOrderRef);
+      return sale ? { ...sale } : null;
+    },
+
+    // ---- Card payment intents: the twin of payment_intents ----
+    async createPaymentIntent(intent, at) {
+      must(intent.memberId);
+      if (paymentIntents.has(intent.id)) throw conflict('payment_intent_exists', 'duplicate payment intent id');
+      for (const p of paymentIntents.values()) {
+        if (p.provider === intent.provider && p.providerRef === intent.providerRef) {
+          throw conflict('payment_intent_exists', 'duplicate provider reference');
+        }
+      }
+      const row: PaymentIntent = {
+        ...intent, status: 'pending', captureRef: null, orderId: null,
+        createdAt: at.toISOString(), updatedAt: at.toISOString(),
+      };
+      paymentIntents.set(row.id, row);
+      return { ...row };
+    },
+    async getPaymentIntent(intentId) {
+      const p = paymentIntents.get(intentId);
+      return p ? { ...p } : null;
+    },
+    async recordPaymentStatus(provider, providerRef, status, at) {
+      const p = [...paymentIntents.values()].find((x) => x.provider === provider && x.providerRef === providerRef);
+      if (!p) return null;
+      const next = nextIntentStatus(p, status);
+      if (next !== p.status) { p.status = next; p.updatedAt = at.toISOString(); }
+      return { ...p };
     },
 
     // ---- Idempotency-Key store: the in-process twin of idempotency_keys ----

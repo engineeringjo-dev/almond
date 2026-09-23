@@ -1,13 +1,17 @@
-import type { FastifyInstance } from 'fastify';
+import type { FastifyInstance, FastifyRequest } from 'fastify';
 import { timingSafeEqual } from 'node:crypto';
 import { z } from 'zod';
 import { POS_MODES, type PosTokenWire } from '@almond/shared/pos/tokenWire';
+import { ammanDayKey } from '@almond/shared/lib/ammanWeekday';
 import { config } from '../config';
 import { parse } from '../validate';
 import { requireMember, memberId } from '../plugins/auth';
-import { issuePosToken, verifyPosToken } from '../pos/token';
+import { issueEarnTicket, issuePosToken, readEarnTicket, verifyPosToken } from '../pos/token';
 import { toRedemptionView } from '@almond/shared/loyalty/redemption';
-import { badRequest, notFound, unauthorized } from '../http-error';
+import { HttpError, badRequest, notFound } from '../http-error';
+import { computeEarn } from '../earn';
+import { toFils, toJod } from '../money';
+import { limiter } from '../plugins/rateLimit';
 import type { Backend } from '../backend';
 
 /** Constant-time shared-key comparison — `!==` on a secret leaks its prefix. */
@@ -16,6 +20,61 @@ function keyMatches(presented: string, expected: string): boolean {
   const b = Buffer.from(expected, 'utf8');
   return a.length === b.length && timingSafeEqual(a, b);
 }
+
+/** FAIL CLOSED (§G gate 0): an unset key is a closed door, never an open one.
+ *  Every till route calls this first — before parsing, before rate limiting —
+ *  so a caller without the key learns nothing and spends nobody's budget. */
+function requirePosKey(req: FastifyRequest): void {
+  const presented = req.headers['x-pos-key'];
+  if (!config.POS_SCAN_KEY || typeof presented !== 'string' || !keyMatches(presented, config.POS_SCAN_KEY)) {
+    // Its own machine code: a wrong key is a misconfigured TILL (alert
+    // operations), never a member problem — see pos/token.ts "WHICH 401".
+    throw new HttpError(401, 'pos_key_invalid', 'invalid pos key');
+  }
+}
+
+/** Per till AND per key (config.RATE_LIMITS). Only a request that passed the
+ *  key check is counted, so an unauthenticated flood spends nobody's budget.
+ *  There is ONE valid key, so the per-key limit is a chain-wide ceiling. */
+const tillEarns = limiter('pos-earn-till', () => config.RATE_LIMITS.posEarnPerTill);
+const keyEarns = limiter('pos-earn-key', () => config.RATE_LIMITS.posEarnPerKey);
+const tillSettles = limiter('pos-settle-till', () => config.RATE_LIMITS.posSettlePerTill);
+const keySettles = limiter('pos-settle-key', () => config.RATE_LIMITS.posSettlePerKey);
+const KEY_BUCKET = 'pos-key';
+function limitTill(req: FastifyRequest, till: typeof tillEarns, key: typeof keyEarns): void {
+  // Both checked before either is counted, so a refusal by one does not
+  // spend the other's budget.
+  till.check(req.ip);
+  key.check(KEY_BUCKET);
+  till.hit(req.ip);
+  key.hit(KEY_BUCKET);
+}
+
+/** How far a till's clock may run ahead of ours before `paidAt` is refused. A
+ *  future-dated sale would date the window spend ahead (the window ignores
+ *  future days — a lost visit for the member). */
+const PAID_AT_MAX_SKEW_MS = 5 * 60 * 1000;
+
+const earnBody = z.object({
+  earnTicket: z.string().min(1).max(1024),
+  // The POS order's own unique reference (Odoo pos.order `name`, e.g.
+  // "Shop/0042") — the idempotency key for this sale.
+  posOrderRef: z.string().min(1).max(64),
+  // ISO-8601 WITH an explicit offset ("2026-09-23T10:15:00Z" or
+  // "…+03:00"). A naive timestamp is refused: "10:15" is two different
+  // instants in Amman and in UTC, and the day it lands on dates the spend.
+  branchId: z.string().min(1).max(64),
+  // JOD the till collected in MONEY, tax-inclusive — NOT the part paid with an
+  // Almond redemption. Whole fils: a till never holds a fraction of one.
+  paidTotal: z.number().finite().nonnegative().max(100_000)
+    .refine((v) => Math.abs(v * 1000 - Math.round(v * 1000)) < 1e-6, 'paidTotal has more than 3 decimals (fils)'),
+  paidAt: z.string().datetime({ offset: true }).optional(),
+});
+
+const reverseBody = z.object({
+  posOrderRef: z.string().min(1).max(64),
+  reason: z.string().trim().min(1).max(200),
+});
 
 /** The member's stated intent. Optional and defaulted, so a client that has not
  *  been updated still gets a usable token rather than a 400 in front of a
@@ -52,10 +111,7 @@ export function registerPosRoutes(app: FastifyInstance, backend: Backend): void 
     // comparison entirely and left the endpoint world-callable: anyone holding a
     // scanned token could resolve it to a member id with no credential at all.
     // An unconfigured key is now a closed door, not an open one.
-    const presented = req.headers['x-pos-key'];
-    if (!config.POS_SCAN_KEY || typeof presented !== 'string' || !keyMatches(presented, config.POS_SCAN_KEY)) {
-      throw unauthorized('invalid pos key');
-    }
+    requirePosKey(req);
     const { token } = parse(z.object({ token: z.string() }), req.body);
     const { memberId: id, mode } = verifyPosToken(token); // single-use + expiry enforced
 
@@ -80,6 +136,15 @@ export function registerPosRoutes(app: FastifyInstance, backend: Backend): void 
     // to take off the bill from the same scan that identified them.
     await backend.sweepRedemptions(id, new Date());
     const redemption = mode === 'redeem' ? await backend.activeRedemption(id) : null;
+    /**
+     * 🔴 THE EARN TICKET — the only way a till can grant this member points.
+     * Issued on an EARNING scan (pay/earn QR, a member who earns: not a
+     * corporate one) and spent once by POST /v1/pos/earn when the till has
+     * taken the money. It names the member the phone proved, so a till holding
+     * the POS key still cannot grant points to a member id of its choosing.
+     */
+    const earnsPoints = !entitlement;
+    const ticket = earnsPoints && (mode === 'pay' || mode === 'earn') ? issueEarnTicket(id) : null;
     return reply.send({
       memberId: id,
       mode,
@@ -90,7 +155,9 @@ export function registerPosRoutes(app: FastifyInstance, backend: Backend): void 
         nameEn: entitlement.company.nameEn,
         percentOff: entitlement.percentOff,
       },
-      earnsPoints: !entitlement,
+      earnsPoints,
+      earnTicket: ticket?.ticket ?? null,
+      earnTicketExpiresIn: ticket?.expiresIn ?? null,
     });
   });
 
@@ -109,10 +176,10 @@ export function registerPosRoutes(app: FastifyInstance, backend: Backend): void 
    * the member should not lose their redemption to it.
    */
   app.post('/v1/pos/redemption/settle', async (req, reply) => {
-    const presented = req.headers['x-pos-key'];
-    if (!config.POS_SCAN_KEY || typeof presented !== 'string' || !keyMatches(presented, config.POS_SCAN_KEY)) {
-      throw unauthorized('invalid pos key');
-    }
+    requirePosKey(req);
+    // A code read aloud is 8 characters: the per-key ceiling is what keeps a
+    // leaked key from guessing them, from however many addresses.
+    limitTill(req, tillSettles, keySettles);
     const body = parse(z.object({
       token: z.string().optional(),
       code: z.string().optional(),
@@ -148,6 +215,92 @@ export function registerPosRoutes(app: FastifyInstance, backend: Backend): void 
       valueJod: settled.valueJod,
       points: settled.points,
       redemption: toRedemptionView(settled, at),
+    });
+  });
+  /**
+   * THE TILL TOOK THE MONEY — grant the member's points for this sale.
+   *
+   * Owner, 2026-09-23: «اوافق النقاط بعد تاكيد الدفع» — points only after the
+   * payment is confirmed. For an in-store sale the till IS the confirmation:
+   * it reports the amount it collected, against the earn ticket the member's
+   * own QR produced at /v1/pos/scan.
+   *
+   * The grant is computed by the SAME shared function checkout uses
+   * (computeEarn: tax-inclusive total, the member's window standing and held
+   * rung, 0 for a corporate member) and lands in ONE transaction with the
+   * window spend and the pos_sales row (Backend.tillEarn).
+   *
+   * Idempotent by posOrderRef, durably: a retrying till gets the stored answer
+   * with `replay: true` and nothing is granted twice.
+   */
+  app.post('/v1/pos/earn', async (req, reply) => {
+    requirePosKey(req);
+    limitTill(req, tillEarns, keyEarns);
+    const body = parse(earnBody, req.body);
+    // Signature first — a ticket we did not sign is not even looked up, so the
+    // route cannot be used to probe which order references exist. Expiry and
+    // the sale window are NOT enforced here: they refuse a NEW sale, and a
+    // till's delayed retry of a sale already paid must still get its answer
+    // (Backend.tillEarn applies `ticketRefusal` only when it would create).
+    const ticket = readEarnTicket(body.earnTicket);
+    const now = new Date();
+    // Always send paidAt: absent, it is the DELIVERY time, which for an
+    // outbox retry days later is outside the ticket's sale window.
+    const paidAt = body.paidAt ? new Date(body.paidAt) : now;
+    if (paidAt.getTime() > now.getTime() + PAID_AT_MAX_SKEW_MS) throw badRequest('paidAt is in the future — check the till clock');
+    const scannedMs = ticket.iat * 1000;
+    const inWindow = paidAt.getTime() >= scannedMs - config.POS_EARN_PAID_BEFORE_SCAN_SECONDS * 1000
+      && paidAt.getTime() <= scannedMs + config.POS_EARN_SALE_WINDOW_SECONDS * 1000;
+    const ticketRefusal = ticket.expired ? 'expired' as const : !inWindow ? 'paid_outside_window' as const : null;
+    const paidFils = toFils(body.paidTotal);
+    const paidJod = toJod(paidFils);
+
+    // The standing is read BEFORE the grant, as checkout reads it: the sale is
+    // paid at the rung the member held when they walked in.
+    const standing = await backend.getStanding(ticket.memberId);
+    const entitlement = await backend.entitlementFor(ticket.memberId);
+    // pointsRedeemed is 0 because paidTotal is ALREADY the money part only —
+    // the till takes an Almond redemption off the bill before it collects.
+    const earn = computeEarn({
+      total: paidJod, corporate: entitlement !== null, pointsRedeemed: 0,
+      windowSpend: standing.windowSpend, heldRungId: standing.held.id,
+      paidFromBalance: false, comboPairs: 0, bonusDayActivated: false, at: paidAt,
+    });
+    const { sale, replay } = await backend.tillEarn({
+      posOrderRef: body.posOrderRef, memberId: ticket.memberId, ticketJti: ticket.jti,
+      ticketRefusal, branchId: body.branchId, paidFils, paidAt,
+      pointsEarned: earn.points, earn: earn.points > 0 ? earn : null,
+      // Money was collected, so the sale counts toward the rolling window —
+      // exactly like a funded checkout, dated on the Amman day it was paid.
+      spendJod: paidFils > 0 ? paidJod : null,
+      spendDay: paidFils > 0 ? ammanDayKey(paidAt) : null,
+      reasonAr: 'نقاط مشتريات الفرع', reasonEn: 'In-store purchase points',
+      at: now,
+    });
+    return reply.code(replay ? 200 : 201).send({
+      posOrderRef: sale.posOrderRef,
+      pointsEarned: sale.pointsEarned,
+      pointsBalance: sale.pointsBalanceAfter,
+      replay,
+    });
+  });
+
+  /**
+   * THE POS ORDER WAS REFUNDED OR VOIDED — take back what it granted, once.
+   * Never below zero: points the member already spent come back as
+   * `shortfall`, recorded on the sale for the back-office, not clawed.
+   */
+  app.post('/v1/pos/earn/reverse', async (req, reply) => {
+    requirePosKey(req);
+    limitTill(req, tillEarns, keyEarns);
+    const body = parse(reverseBody, req.body);
+    const { sale, replay } = await backend.reverseTillEarn(body.posOrderRef, body.reason, new Date());
+    return reply.code(replay ? 200 : 201).send({
+      posOrderRef: sale.posOrderRef,
+      reversedPoints: sale.reversedPoints ?? 0,
+      shortfall: sale.shortfall ?? 0,
+      pointsBalance: sale.reverseBalanceAfter ?? 0,
+      replay,
     });
   });
 }

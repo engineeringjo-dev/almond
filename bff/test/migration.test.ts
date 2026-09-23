@@ -29,6 +29,8 @@ const RLS_MIGRATION = readFileSync(
 );
 const IDEMPOTENCY_MIGRATION = readMigration('20260924_idempotency_keys.sql');
 const RESTRICT_MIGRATION = readMigration('20260925_restrict_financial_history.sql');
+const POS_SALES_MIGRATION = readMigration('20260926_pos_sales.sql');
+const PAYMENT_INTENTS_MIGRATION = readMigration('20260927_payment_intents.sql');
 /** The whole loyalty schema, as a deploy leaves it (minus the Supabase-only RLS file). */
 const SCHEMA = loyaltySchemaSql();
 const POSTGRES_TS = readFileSync(join(HERE, '..', 'src', 'backend', 'postgres.ts'), 'utf8');
@@ -39,8 +41,9 @@ const TABLES = [
   'members', 'point_history', 'orders', 'second_visit_vouchers', 'redemptions',
   'companies', 'corporate_roster', 'corporate_uses',
 ];
-/** …and what the full schema holds: 20260924 adds the durable Idempotency-Keys. */
-const ALL_TABLES = [...TABLES, 'idempotency_keys'];
+/** …and what the full schema holds: 20260924 adds the durable Idempotency-Keys,
+ *  20260926 the till's sales, 20260927 the card payment intents. */
+const ALL_TABLES = [...TABLES, 'idempotency_keys', 'pos_sales', 'payment_intents'];
 
 async function fresh(): Promise<PGlite> {
   const pg = new PGlite();
@@ -253,6 +256,13 @@ describe('R3 migration 20260909_loyalty_backend.sql', () => {
     // carries balances and redemption codes.
     await pg.exec(IDEMPOTENCY_MIGRATION);
     await pg.exec(RESTRICT_MIGRATION);
+    // 20260926/27 close their own tables the same way: a sale row carries a
+    // member's balance, an intent carries their payments.
+    await pg.exec(POS_SALES_MIGRATION);
+    await pg.exec(PAYMENT_INTENTS_MIGRATION);
+    const tables = await rows<{ t: string }>(pg,
+      `select table_name as t from information_schema.tables where table_schema = 'public' order by 1`);
+    expect(tables.map((x) => x.t)).toEqual([...ALL_TABLES].sort());
     expect(await reachable(pg, 'anon')).toEqual([]);
     expect(await reachable(pg, 'authenticated')).toEqual([]);
     const seq = await rows<{ ok: boolean }>(pg,
@@ -302,10 +312,13 @@ describe('R3 migration 20260909_loyalty_backend.sql', () => {
       await pool.query(SCHEMA);
       const { rows: t2 } = await pool.query(
         `select count(*)::int as n from information_schema.tables where table_schema = 'public'`);
-      expect(t2[0].n).toBe(9);
+      expect(t2[0].n).toBe(11);
+      // 6 from 20260925, plus pos_sales.member_id, payment_intents.member_id,
+      // payment_intents.order_id and orders.payment_intent_id — every FK that
+      // records money RESTRICTs.
       const { rows: fks } = await pool.query(`select count(*)::int as n from pg_constraint
         where contype = 'f' and confdeltype = 'r'`);
-      expect(fks[0].n).toBe(6);
+      expect(fks[0].n).toBe(10);
     } finally {
       await pool.end();
       await admin.query(`drop database if exists ${name}`);
@@ -451,5 +464,94 @@ describe('R3.9 migration 20260924_idempotency_keys.sql', () => {
     expect(await ins('k4', 'maybe', null, null)).toBe('23514');
     expect(await ins('x'.repeat(129), 'pending', null, null)).toBe('23514');
     expect(await ins('k5', 'done', 201, '{"ok":true}')).toBe('ok');
+  });
+});
+
+/**
+ * R3.10 — 20260926_pos_sales.sql and 20260927_payment_intents.sql.
+ *
+ * The same four properties as every loyalty migration: applies on a plain
+ * Postgres with no Supabase roles (the guarded REVOKE — R3.6d's lesson),
+ * re-applies unchanged, RLS on, and the constraints the money rests on refuse.
+ */
+describe('R3.10 migrations 20260926_pos_sales.sql + 20260927_payment_intents.sql', () => {
+  const code = async (pg: PGlite, sql: string, p: unknown[] = []) => {
+    try { await pg.query(sql, p); return 'ok'; } catch (e) { return (e as { code?: string }).code; }
+  };
+  const shape = (pg: PGlite, t: string) => rows(pg, `select column_name, data_type, is_nullable, column_default
+    from information_schema.columns where table_name = $1 order by 1`, [t]);
+
+  it('R3.10a apply on a plain Postgres (no Supabase roles), re-apply unchanged, RLS on', async () => {
+    const pg = await fresh();
+    await pg.exec(SCHEMA);
+    const before = { s: await shape(pg, 'pos_sales'), p: await shape(pg, 'payment_intents') };
+    expect(before.s.length).toBeGreaterThan(10);
+    expect(before.p.length).toBeGreaterThan(10);
+    await pg.exec(POS_SALES_MIGRATION);
+    await pg.exec(PAYMENT_INTENTS_MIGRATION);
+    await pg.exec(POS_SALES_MIGRATION);
+    expect({ s: await shape(pg, 'pos_sales'), p: await shape(pg, 'payment_intents') }).toEqual(before);
+    const rls = await rows<{ t: string; on: boolean }>(pg,
+      `select relname as t, relrowsecurity as on from pg_class where relname in ('pos_sales', 'payment_intents') order by 1`);
+    expect(rls).toEqual([{ t: 'payment_intents', on: true }, { t: 'pos_sales', on: true }]);
+  });
+
+  it('R3.10b pos_sales refuses a second row per order or per ticket, a negative amount and a half-written reversal', async () => {
+    const pg = await fresh();
+    await pg.exec(SCHEMA);
+    await pg.query(`insert into members (id, phone, held_tier_id) values ('m1', '+962791111111', 'base')`);
+    const sale = (ref: string, jti: string, paid = 5, extra = '', vals = '') => code(pg,
+      `insert into pos_sales (pos_order_ref, member_id, branch_id, earn_ticket_jti, paid_total, paid_at,
+         points_earned, points_balance_after${extra}) values ($1, 'm1', 'b1', $2, $3, now(), 10, 10${vals})`,
+      [ref, jti, paid]);
+    expect(await sale('Shop/1', 'j1')).toBe('ok');
+    expect(await sale('Shop/1', 'j2')).toBe('23505');                     // one row per POS order
+    expect(await sale('Shop/2', 'j1')).toBe('23505');                     // one sale per ticket
+    expect(await sale('Shop/3', 'j3', -1)).toBe('23514');                 // no negative money
+    expect(await sale('x'.repeat(65), 'j4')).toBe('23514');               // bounded reference
+    expect(await sale('Shop/5', 'j5', 5, ', status', `, 'maybe'`)).toBe('23514');
+    // A reversal must account for every point the sale granted…
+    expect(await sale('Shop/6', 'j6', 5, ', status, reversed_at, reversed_points, shortfall',
+      `, 'reversed', now(), 4, 5`)).toBe('23514');
+    // …and is all of its fields or none.
+    expect(await sale('Shop/7', 'j7', 5, ', status, reversed_points, shortfall', `, 'reversed', 4, 6`)).toBe('23514');
+    expect(await sale('Shop/8', 'j8', 5, ', status, reversed_at, reversed_points, shortfall',
+      `, 'reversed', now(), 4, 6`)).toBe('ok');
+    // Deleting a member never deletes what the till granted them.
+    expect(await code(pg, `delete from members where id = 'm1'`)).toBe('23001');
+  });
+
+  it('R3.10c payment_intents: whole positive fils, JOD only, one payment per order, one row per gateway id', async () => {
+    const pg = await fresh();
+    await pg.exec(SCHEMA);
+    await pg.query(`insert into members (id, phone, held_tier_id) values ('m1', '+962791111111', 'base')`);
+    await pg.query(`insert into orders (id, member_id, branch_id, order_type, payment_method, total)
+      values ('o1', 'm1', 'b1', 'pickup', 'visa', 5), ('o2', 'm1', 'b1', 'pickup', 'visa', 5)`);
+    const intent = (id: string, ref: string, fils: number, cur = 'JOD', status = 'pending', order: string | null = null) => code(pg,
+      `insert into payment_intents (id, member_id, amount_fils, currency, cart_hash, provider, provider_ref, status, order_id)
+       values ($1, 'm1', $2, $3, 'h', 'mock', $4, $5, $6)`, [id, fils, cur, ref, status, order]);
+    expect(await intent('pi1', 'r1', 5_000)).toBe('ok');
+    expect(await intent('pi2', 'r1', 5_000)).toBe('23505');               // a gateway id names one payment
+    expect(await intent('pi3', 'r3', 0)).toBe('23514');
+    expect(await intent('pi4', 'r4', 5_000, 'USD')).toBe('23514');
+    expect(await intent('pi5', 'r5', 5_000, 'JOD', 'pending', 'o1')).toBe('23514');   // spent ⇒ captured
+    expect(await intent('pi6', 'r6', 5_000, 'JOD', 'captured', 'o1')).toBe('ok');
+    expect(await intent('pi7', 'r7', 5_000, 'JOD', 'captured', 'o1')).toBe('23505');  // one payment, one order
+    expect(await intent('pi8', 'r8', 5_000, 'JOD', 'captured', 'nope')).toBe('23503');
+    expect(await code(pg, `delete from orders where id = 'o1'`)).toBe('23001');
+    expect(await code(pg, `delete from members where id = 'm1'`)).toBe('23001');
+    // …and from the order's side: two orders cannot name one payment.
+    const order = (id: string, pi: string | null) => code(pg, `insert into orders (id, member_id, branch_id,
+      order_type, payment_method, total, payment_intent_id) values ($1, 'm1', 'b1', 'pickup', 'visa', 5, $2)`, [id, pi]);
+    expect(await order('o3', 'pi1')).toBe('ok');
+    expect(await order('o4', 'pi1')).toBe('23505');
+    expect(await order('o5', 'pi_none')).toBe('23503');
+    expect(await order('o6', null)).toBe('ok');
+    expect(await order('o7', null)).toBe('ok');                              // cash orders: many NULLs
+  });
+
+  it('R3.10d the till and payment tables are in the full schema the tests and a deploy use', () => {
+    expect(SCHEMA).toContain('create table if not exists pos_sales');
+    expect(SCHEMA).toContain('create table if not exists payment_intents');
   });
 });

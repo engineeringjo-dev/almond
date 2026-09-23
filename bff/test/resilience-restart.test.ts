@@ -124,7 +124,7 @@ async function snapshot(b: Backend, w: World) {
 async function dump(db: Db) {
   const out: Record<string, unknown[]> = {};
   for (const t of ['members', 'point_history', 'orders', 'second_visit_vouchers', 'redemptions',
-    'companies', 'corporate_roster', 'corporate_uses', 'idempotency_keys']) {
+    'companies', 'corporate_roster', 'corporate_uses', 'idempotency_keys', 'pos_sales', 'payment_intents']) {
     out[t] = await db.query(`select * from ${t} order by 1`);
   }
   return JSON.parse(JSON.stringify(out));
@@ -563,6 +563,81 @@ describe.each(STORES)('R2.8 🔴 a crash mid-checkout moves no money — %s', (_
     expect(liveBalance((await seed.getMember(id)).walletLots)).toBe(20_000 - Math.round(total * 1000));
     expect((await dump(store.db)).orders).toHaveLength(1);
     await app.close();
+  }, 60_000);
+});
+
+/**
+ * R2.9 🔴 THE TILL'S EARN AND THE CARD PAYMENT ARE ONE TRANSACTION EACH — a
+ * crash at any statement inside them leaves the store byte-identical, and a
+ * restarted process answers a retrying till from the durable row.
+ */
+describe.each(STORES)('R2.9 🔴 a crash mid till-earn, mid reversal or mid card checkout moves nothing — %s', (_name, make) => {
+  let store: { db: Db; close(): Promise<void> };
+  beforeEach(async () => { store = await make(); }, 60_000);
+  afterEach(async () => { await store?.close(); });
+
+  const sale = (memberId: string, ref: string) => ({
+    posOrderRef: ref, memberId, ticketJti: `t-${ref}`, ticketRefusal: null, branchId: 'b1',
+    paidFils: 15_000, paidAt: new Date(), pointsEarned: 30, earn: { points: 30 } as never,
+    spendJod: 15, spendDay: null, reasonAr: 'نقاط مشتريات الفرع', reasonEn: 'In-store purchase points', at: new Date(),
+  });
+
+  it('tillEarn dies at the sale insert, the ledger line or the member write: nothing lands; the retry grants once', async () => {
+    const ok = createPostgresBackend(store.db);
+    const id = (await ok.findOrCreateByPhone(phone())).id;
+    const d0 = await dump(store.db);
+    for (const at of [/insert into pos_sales/, /insert into point_history/, /update members set/]) {
+      const dying = createPostgresBackend(crashingOn(store.db, at));
+      await expect(dying.tillEarn(sale(id, 'Shop/9')), String(at)).rejects.toThrow(/simulated crash/);
+      expect(await dump(store.db), String(at)).toEqual(d0);
+    }
+    // CONTROL: healthy, it lands — and a NEW process (a new backend object over
+    // the same database) answers the till's retry from the row: a replay.
+    const first = await ok.tillEarn(sale(id, 'Shop/9'));
+    expect(first.replay).toBe(false);
+    const restarted = createPostgresBackend(store.db);
+    const retry = await restarted.tillEarn({ ...sale(id, 'Shop/9'), ticketRefusal: 'expired' as const });
+    expect(retry).toEqual({ sale: first.sale, replay: true });
+    expect(liveBalance((await restarted.getMember(id)).lots)).toBe(30);
+    expect((await dump(store.db)).pos_sales).toHaveLength(1);
+  }, 60_000);
+
+  it('reverseTillEarn dies at the sale update, the ledger line or the member write: nothing lands', async () => {
+    const ok = createPostgresBackend(store.db);
+    const id = (await ok.findOrCreateByPhone(phone())).id;
+    await ok.tillEarn(sale(id, 'Shop/10'));
+    const d0 = await dump(store.db);
+    for (const at of [/update pos_sales set/, /insert into point_history/, /update members set/]) {
+      const dying = createPostgresBackend(crashingOn(store.db, at));
+      await expect(dying.reverseTillEarn('Shop/10', 'refund', new Date()), String(at)).rejects.toThrow(/simulated crash/);
+      expect(await dump(store.db), String(at)).toEqual(d0);
+    }
+    const r = await ok.reverseTillEarn('Shop/10', 'refund', new Date());
+    expect(r.sale).toMatchObject({ status: 'reversed', reversedPoints: 30, shortfall: 0 });
+    expect(liveBalance((await ok.getMember(id)).lots)).toBe(0);
+  }, 60_000);
+
+  it('a card checkout that dies while binding its payment leaves the payment unspent and no order', async () => {
+    const ok = createPostgresBackend(store.db);
+    const id = (await ok.findOrCreateByPhone(phone())).id;
+    const pi = await ok.createPaymentIntent({
+      id: 'pi_crash', memberId: id, amountFils: 5_800, currency: 'JOD', cartHash: 'c', provider: 'mock', providerRef: 'ref_crash',
+    }, new Date());
+    const input = {
+      order: { branchId: 'b1', type: 'pickup' as const, paymentMethod: 'visa' as const, subtotal: 5.37, tax: 0.43, total: 5.8 },
+      walletDebitFils: 0, pointsEarned: 43, pointsReasonAr: 'نقاط طلب', pointsReasonEn: 'Order points',
+      earn: { points: 43 } as never, spendJod: 5.8, corporateUse: null,
+      secondVisit: { basketHasDrink: true, arm: assignHoldout(id, holdoutSpecFromConfig('secondVisitVoucher')) },
+      at: new Date(), payment: { intentId: pi.id, amountFils: 5_800, cartHash: 'c', captureRef: 'cap' },
+    };
+    const d0 = await dump(store.db);
+    for (const at of [/update payment_intents set/, /insert into point_history/, /update members set/]) {
+      const dying = createPostgresBackend(crashingOn(store.db, at));
+      await expect(dying.checkout(id, input), String(at)).rejects.toThrow(/simulated crash/);
+      expect(await dump(store.db), String(at)).toEqual(d0);
+    }
+    const r = await ok.checkout(id, input);
+    expect((await ok.getPaymentIntent(pi.id))?.orderId).toBe(r.order.id);
   }, 60_000);
 });
 

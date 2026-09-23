@@ -12,6 +12,8 @@ import { registerMeRoutes } from './routes/me';
 import { registerSubscriptionRoutes } from './routes/subscription';
 import { registerForecastRoutes } from './routes/forecast';
 import { registerCorporateRoutes } from './routes/corporate';
+import { registerPaymentRoutes } from './routes/payments';
+import { providerConfigErrors } from './providers';
 
 /**
  * `backend` is injectable ONLY so a test can build a member the routes cannot
@@ -50,6 +52,12 @@ export async function build(backend: Backend = createBackend()): Promise<Fastify
     throw new Error(
       `refusing to boot in production with insecure configuration:\n  - ${insecure.join('\n  - ')}`,
     );
+  }
+  // Every environment: a provider name that is not registered, or a sign-in
+  // SMS template with no code in it, is a typo that would fail members quietly.
+  const seams = providerConfigErrors();
+  if (seams.length > 0) {
+    throw new Error(`refusing to boot with a broken integration setting:\n  - ${seams.join('\n  - ')}`);
   }
 
   // trustProxy decides what `req.ip` is, and the per-IP OTP limits key on it.
@@ -91,6 +99,10 @@ export async function build(backend: Backend = createBackend()): Promise<Fastify
   app.get('/health', async () => ({ ok: true, dataSource: config.DATA_SOURCE }));
   registerAuthRoutes(app, backend);
   registerCheckoutRoutes(app, backend);
+  // Awaited: the webhook route lives in its own encapsulated scope (it reads
+  // the RAW body for signature checks), and a scope registered without await
+  // is not on the route table until ready() — S18 reads the table before that.
+  await registerPaymentRoutes(app, backend);
   registerCorporateRoutes(app, backend);
   registerWalletRoutes(app, backend);
   registerLoyaltyRoutes(app, backend);

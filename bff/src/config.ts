@@ -42,6 +42,64 @@ export const config = {
   // can shorten the window without an app release: the app reads the TTL off
   // each response (`expiresIn`), never off its own copy of the constant.
   POS_TOKEN_TTL_SECONDS: Number(process.env.POS_TOKEN_TTL_SECONDS ?? shared.POS_TOKEN_TTL_SECONDS),
+  /**
+   * How long the EARN TICKET /v1/pos/scan hands the till stays DELIVERABLE
+   * (pos/token.ts). Default SEVEN DAYS.
+   *
+   * Not the 60-second QR TTL, and not "a sale's length" either. The Odoo POS
+   * addon (integrations/almond_loyalty_pos) queues /v1/pos/earn in an outbox
+   * and retries with backoff — for hours or days if the loyalty API is down,
+   * because a loyalty outage must never block a sale. A ticket that died
+   * before the outbox drained would silently LOSE the member's points; seven
+   * days outlives any outage we would not already be treating as a disaster.
+   *
+   * What a long lifetime does NOT widen: the ticket still names ONE member,
+   * pays for ONE sale (UNIQUE in pos_sales) and is signed by us — and the sale
+   * it pays for must have been PAID close to the scan (the two dials below),
+   * however late it is delivered. So a ticket held for a week cannot be
+   * attached to a sale rung up on day six.
+   */
+  POS_EARN_TICKET_TTL_SECONDS: envInt('POS_EARN_TICKET_TTL_SECONDS', 7 * 24 * 60 * 60),
+  /** The sale an earn ticket pays for must be PAID no later than this long
+   *  after the member's QR was scanned (`paidAt ≤ scan + window`). Six hours
+   *  covers a long table service; it is what stops a cashier holding an unused
+   *  ticket and attaching a stranger's later purchase to it. */
+  POS_EARN_SALE_WINDOW_SECONDS: envInt('POS_EARN_SALE_WINDOW_SECONDS', 6 * 60 * 60),
+  /** …and no EARLIER than this long before the scan: a member who paid and
+   *  then remembered their QR, plus till-clock skew. */
+  POS_EARN_PAID_BEFORE_SCAN_SECONDS: envInt('POS_EARN_PAID_BEFORE_SCAN_SECONDS', 30 * 60),
+
+  /**
+   * Which card gateway takes payments (bff/src/payments/index.ts).
+   *
+   * Unset ⇒ `unconfigured`: every card call answers 503
+   * `payment_provider_unconfigured` and a card order is refused. That is the
+   * honest default — the wallet and cash still work — and production is ALLOWED
+   * to boot on it. `mock` is for development and tests only, and production
+   * refuses to boot on it (insecureBootReasons). Any other value must be a
+   * provider registered in payments/index.ts, or the server refuses to boot in
+   * every environment (providers.ts).
+   */
+  PAYMENT_PROVIDER: process.env.PAYMENT_PROVIDER ?? '',
+  /** Where the gateway sends the member's browser after a hosted payment page.
+   *  Optional; passed through to PaymentProvider.createIntent as `returnUrl`. */
+  PAYMENT_RETURN_URL: process.env.PAYMENT_RETURN_URL ?? '',
+
+  /**
+   * Which SMS provider delivers the sign-in code (bff/src/auth/sms.ts).
+   *
+   * Unset ⇒ `log` outside production (the code goes to the server log, the
+   * `DEV OTP issued` line the E2E suite and the load test read) and
+   * `unconfigured` in production, where /v1/auth/otp/request then answers 503
+   * `sms_unavailable` instead of claiming `{ sent: true }` for a text nobody
+   * sent. `log` in production is refused at boot: it would print every
+   * member's code into the log and tell the phone it had been texted.
+   */
+  SMS_PROVIDER: process.env.SMS_PROVIDER ?? '',
+  /** The text of the sign-in SMS. `{code}` is replaced by the code. Arabic
+   *  first: this is the one message every member receives. Must contain
+   *  `{code}`, or the server refuses to boot (providers.ts). */
+  OTP_SMS_TEMPLATE: process.env.OTP_SMS_TEMPLATE ?? 'رمز التحقق من ألموند: {code}',
 
   // There is deliberately NO fixed OTP here. A constant that verifies every
   // phone is a master password for every account in the system, and it shipped
@@ -97,6 +155,22 @@ export const config = {
     settlePerMember: { max: envInt('RATE_SETTLE_PER_MEMBER', 10), windowSeconds: 60 },
     quotePerMember: { max: envInt('RATE_QUOTE_PER_MEMBER', 60), windowSeconds: 60 },
     stockoutPerMember: { max: envInt('RATE_STOCKOUT_PER_MEMBER', 20), windowSeconds: 60 },
+    /**
+     * The till routes, limited TWICE. Per TILL (source address — req.ip, see
+     * TRUST_PROXY): one misbehaving till cannot starve the others. Per POS KEY
+     * (every till shares one): a hard ceiling on the whole chain, which is what
+     * bounds brute-forcing 8-character redemption codes through /settle with a
+     * leaked key, whatever addresses it is spread across. Earning and settling
+     * have separate budgets, so a code-guessing flood cannot stop the chain
+     * earning. Generous: eight branches at peak are well under these.
+     */
+    posEarnPerTill: { max: envInt('RATE_POS_EARN_PER_TILL', 120), windowSeconds: 60 },
+    posEarnPerKey: { max: envInt('RATE_POS_EARN_PER_KEY', 1200), windowSeconds: 60 },
+    posSettlePerTill: { max: envInt('RATE_POS_SETTLE_PER_TILL', 60), windowSeconds: 60 },
+    posSettlePerKey: { max: envInt('RATE_POS_SETTLE_PER_KEY', 300), windowSeconds: 60 },
+    /** POST /v1/payments/intent, per member. Each one is a call to the card
+     *  gateway, which bills and rate-limits US. */
+    paymentIntentPerMember: { max: envInt('RATE_PAYMENT_INTENT_PER_MEMBER', 20), windowSeconds: 60 },
   },
 
   ODOO_BASE_URL: process.env.ODOO_BASE_URL ?? '',
@@ -133,6 +207,9 @@ export function insecureBootReasons(
     /** Optional for the same reason; checked only when present. */
     DATABASE_URL?: string;
     TRUST_PROXY_SET?: boolean;
+    /** Optional for the same reason as CORS_ORIGINS. */
+    PAYMENT_PROVIDER?: string;
+    SMS_PROVIDER?: string;
   } = config,
 ): string[] {
   if (env.NODE_ENV !== 'production') return [];
@@ -177,6 +254,17 @@ export function insecureBootReasons(
   // (20 per 10 minutes) becomes the limit for the WHOLE APP. Say which it is.
   if (env.TRUST_PROXY_SET === false) {
     reasons.push('TRUST_PROXY is unset — "true" (or a hop count) behind a load balancer or PaaS router, "false" if this server faces the internet directly');
+  }
+  // The mock gateway captures whatever a test tells it to — and its webhook
+  // secret is a constant in this repository. In production it would be a way
+  // to mark any card order "paid" without paying (payments/mock.ts).
+  if (env.PAYMENT_PROVIDER === 'mock') {
+    reasons.push('PAYMENT_PROVIDER is "mock" — the mock gateway captures on request; name a real provider or leave it unset (card payment then answers 503)');
+  }
+  // The log sender prints the sign-in code into the server log and tells the
+  // phone it was texted: a log reader could sign in as anyone.
+  if (env.SMS_PROVIDER === 'log') {
+    reasons.push('SMS_PROVIDER is "log" — sign-in codes would be written to the log and never texted; name a real provider or leave it unset (sign-in then answers 503)');
   }
   return reasons;
 }

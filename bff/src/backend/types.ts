@@ -247,6 +247,118 @@ export interface CheckoutInput {
   /** ONE instant for the whole checkout: the order, the ledger lines, the
    *  voucher's 30-day clock and the corporate use are all stamped with it. */
   at: Date;
+  /**
+   * The captured card payment this order spends, or absent/null (wallet, cash).
+   * Consumed INSIDE the transaction: the intent is locked, checked, and bound
+   * to the new order — so two orders cannot spend one payment, and a refused
+   * checkout leaves the payment unspent.
+   */
+  payment?: CheckoutPayment | null;
+}
+
+/**
+ * ONE SALE A TILL REPORTED — the row behind POST /v1/pos/earn, keyed by the POS
+ * order's own reference (Odoo `pos.order.name`, e.g. "Shop/0042").
+ *
+ * 🔴 THE KEY IS THE POS ORDER, NOT A CLIENT-GENERATED IDEMPOTENCY KEY. A till
+ * retries: the network drops, the Odoo queue re-sends, a cashier presses the
+ * button twice. Every one of those carries the same order reference, so the
+ * reference IS the idempotency key — durable (a row), cross-instance (the
+ * primary key) and meaningful to the back-office (it matches the receipt).
+ */
+export interface TillSale {
+  posOrderRef: string;
+  memberId: string;
+  branchId: string;
+  /** What the till collected in MONEY, tax-inclusive, in fils. */
+  paidFils: number;
+  /** ISO instant of the payment, as the till reported it (or the server's clock). */
+  paidAt: string;
+  /** The Amman day the window spend was recorded on — null when none was
+   *  (a sale paid entirely with points). Needed to take the spend back out on
+   *  a reversal. */
+  spendDay: string | null;
+  pointsEarned: number;
+  /** The member's live balance right after the grant — what a replay returns. */
+  pointsBalanceAfter: number;
+  /** The breakdown the grant was computed from (§5b), or null for a 0 grant
+   *  that had none (never for a real grant). */
+  earn: EarnBreakdown | null;
+  status: 'earned' | 'reversed';
+  /** Filled only once reversed. `reversedPoints + shortfall === pointsEarned`. */
+  reversedPoints: number | null;
+  shortfall: number | null;
+  reverseBalanceAfter: number | null;
+  reverseReason: string | null;
+  reversedAt: string | null;
+  createdAt: string;
+}
+
+/** A till's report that it took the money for one sale — already priced by
+ *  the route through @almond/shared. The backend only moves it. */
+export interface TillEarnInput {
+  posOrderRef: string;
+  /** From the VERIFIED earn ticket — never from the request body. */
+  memberId: string;
+  /** The ticket's id: single use, enforced by the store (UNIQUE). */
+  ticketJti: string;
+  /** Why the ticket may not START a new sale — expired, or the sale was paid
+   *  too far from the scan (routes/pos.ts) — or null. Decided by the route; a
+   *  REPLAY of a sale the ticket already paid for ignores it, so a till's
+   *  delayed retry still gets its answer. */
+  ticketRefusal: 'expired' | 'paid_outside_window' | null;
+  branchId: string;
+  paidFils: number;
+  paidAt: Date;
+  /** Computed by computeEarn in the route (0 for a corporate member). */
+  pointsEarned: number;
+  earn: EarnBreakdown | null;
+  /** JOD into the rolling window (the money actually collected), or null. */
+  spendJod: number | null;
+  /** Amman day key the spend is dated on (the day of `paidAt`). */
+  spendDay: string | null;
+  reasonAr: string;
+  reasonEn: string;
+  at: Date;
+}
+
+export interface TillEarnResult { sale: TillSale; replay: boolean }
+
+/**
+ * A card payment the member started — the row behind POST /v1/payments/intent
+ * and the ONLY thing that can make a card order `funded`.
+ *
+ * `cartHash` binds it to one basket and `amountFils` to that basket's re-priced
+ * total, so a payment captured for a coffee cannot be presented against a
+ * banquet. `orderId` binds it to the one order it paid for, under a UNIQUE
+ * constraint: a captured payment is spent exactly once.
+ */
+export interface PaymentIntent {
+  id: string;
+  memberId: string;
+  amountFils: number;
+  currency: 'JOD';
+  cartHash: string;
+  /** PaymentProvider.name that created it. A payment is only ever confirmed by
+   *  the provider that took it. */
+  provider: string;
+  providerRef: string;
+  status: 'pending' | 'captured' | 'failed';
+  captureRef: string | null;
+  orderId: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/** What Backend.checkout needs to spend a captured intent inside its one
+ *  transaction. Every field was checked by the route against the provider;
+ *  the backend re-checks what the database knows (owner, amount, basket,
+ *  unused) under the row lock. */
+export interface CheckoutPayment {
+  intentId: string;
+  amountFils: number;
+  cartHash: string;
+  captureRef: string | null;
 }
 
 export interface CheckoutResult {
@@ -451,6 +563,41 @@ export interface Backend {
   topUpWallet(
     id: string, fils: number, bonusPoints: number, reasonAr: string, reasonEn: string,
   ): Promise<{ walletBalanceFils: number; pointsBalance: number }>;
+
+  // ---- The till's earn (POST /v1/pos/earn) ----
+  /**
+   * Grant the points for one sale a till took the money for — ONE transaction
+   * holding the member lock: the grant, its ledger line, the window spend and
+   * the pos_sales row land together or not at all.
+   *
+   * Idempotent by `posOrderRef`: the same reference again returns the stored
+   * sale with `replay: true` and grants nothing. The same reference with a
+   * different member, amount or branch throws conflict('pos_order_conflict').
+   * A ticket already spent on another sale throws conflict('earn_ticket_used');
+   * an expired one starting a NEW sale throws 401 'earn_ticket_expired'.
+   */
+  tillEarn(input: TillEarnInput): Promise<TillEarnResult>;
+  /**
+   * Take back what a refunded or voided POS order granted — once. Never drives
+   * the balance negative: what the member already spent is reported as
+   * `shortfall`, not clawed. A second call returns the stored reversal with
+   * `replay: true`. notFound for an unknown reference.
+   */
+  reverseTillEarn(posOrderRef: string, reason: string, at: Date): Promise<TillEarnResult>;
+  /** The sale a till reported, or null. */
+  getTillSale(posOrderRef: string): Promise<TillSale | null>;
+
+  // ---- Card payments (bff/src/payments) ----
+  /** Store a new intent (status `pending`). */
+  createPaymentIntent(intent: Omit<PaymentIntent, 'status' | 'captureRef' | 'orderId' | 'createdAt' | 'updatedAt'>, at: Date): Promise<PaymentIntent>;
+  getPaymentIntent(id: string): Promise<PaymentIntent | null>;
+  /**
+   * A verified provider webhook: move a PENDING intent to `captured` or
+   * `failed`. A captured intent is never un-captured by a later webhook, and a
+   * spent one is never touched. Returns the intent after, or null when no
+   * intent carries that provider reference.
+   */
+  recordPaymentStatus(provider: string, providerRef: string, status: 'captured' | 'failed', at: Date): Promise<PaymentIntent | null>;
 
   // ---- Idempotency-Key store (plugins/idempotency.ts) ----
   /**

@@ -3,8 +3,6 @@ import { z } from 'zod';
 import { parse } from '../validate';
 import { requireMember, memberId } from '../plugins/auth';
 import { idempotency } from '../plugins/idempotency';
-import { reprice } from '../pricing';
-import { corporateDiscountAmount } from '@almond/shared/loyalty/corporate';
 import { computeEarn } from '../earn';
 import { assignHoldout, holdoutSpecFromConfig, stampAllExperiments } from '@almond/shared/loyalty/holdout';
 import { toSecondVisitView } from '@almond/shared/loyalty/secondVisit';
@@ -12,19 +10,15 @@ import { toFils, toJod } from '../money';
 import { recordOrderLines } from '../analytics/orderLines';
 import type { Backend } from '../backend';
 import { unfundedValueAllowed } from '../plugins/funding';
+import { badRequest } from '../http-error';
+import { cartBodySchema, GATEWAY_METHODS, priceCartForMember } from './cart';
+import { confirmCardPayment } from './payments';
+import type { CheckoutPayment } from '../backend/types';
 
-const bodySchema = z.object({
-  // Bounded: the branch id is copied into every order line the forecasting
-  // store keeps, and an unbounded string there is a megabyte per request.
-  branchId: z.string().min(1).max(64),
-  orderType: z.enum(['pickup', 'dinein', 'delivery']),
-  paymentMethod: z.enum(['cash', 'cliq', 'visa', 'mastercard', 'paypal', 'wallet']),
-  lines: z.array(z.object({
-    itemId: z.string(),
-    sizeId: z.enum(['S', 'M', 'L']),
-    optionIds: z.array(z.string()).default([]),
-    qty: z.number().int().positive().max(1000),
-  })).min(1).max(500),
+/** The cart (routes/cart.ts — the same schema the payment intent is taken
+ *  for), plus the captured payment a card order spends. */
+const bodySchema = cartBodySchema.extend({
+  paymentIntentId: z.string().min(1).max(64).optional(),
 });
 
 export function registerCheckoutRoutes(app: FastifyInstance, backend: Backend): void {
@@ -64,13 +58,7 @@ export function registerCheckoutRoutes(app: FastifyInstance, backend: Backend): 
      * what the tax is computed on. Discounting the receipt afterwards would
      * charge full price and tax the discount away.
      */
-    const entitlement = await backend.entitlementFor(id);
-    const { items, totals, comboPairs, hasDrink } = reprice(
-      input.lines,
-      entitlement
-        ? (subtotal) => corporateDiscountAmount(subtotal, entitlement.percentOff)
-        : undefined,
-    );
+    const { items, totals, comboPairs, hasDrink, entitlement } = await priceCartForMember(backend, id, input.lines);
     // One instant for this whole request. It dates the voucher's 30-day life,
     // which is an INSTANT and not a business day — Asia/Amman is UTC+3
     // year-round, so 30 × 86.4e6 ms is exactly 30 Amman calendar days. The
@@ -95,7 +83,26 @@ export function registerCheckoutRoutes(app: FastifyInstance, backend: Backend): 
      * wallet, or a PSP capture reference verified server-side"; it never goes
      * back to trusting the paymentMethod the client names.
      */
-    const funded = paidFromBalance || unfundedValueAllowed();
+    //
+    // THE GATEWAY HAS LANDED (as a seam): a card order is placed ONLY against a
+    // payment intent the PROVIDER confirms captured, for exactly this re-priced
+    // total and this basket, owned by this member and unspent — and the intent
+    // is consumed inside Backend.checkout's one transaction, under a UNIQUE
+    // constraint, so one payment can never fund two orders. Without one the
+    // order is refused outright (402): an order that says "paid by card" with
+    // no card payment behind it must not exist at all. Cash is unchanged — the
+    // order is written with 0 points and the till's /v1/pos/earn grants them
+    // when the till takes the money.
+    let payment: CheckoutPayment | null = null;
+    if (GATEWAY_METHODS.has(input.paymentMethod)) {
+      payment = await confirmCardPayment(backend, id, input.paymentIntentId, {
+        amountFils: toFils(totals.total),
+        cart: { branchId: input.branchId, orderType: input.orderType, lines: input.lines },
+      });
+    } else if (input.paymentIntentId !== undefined) {
+      throw badRequest(`paymentIntentId belongs to a card payment, not to "${input.paymentMethod}"`);
+    }
+    const funded = paidFromBalance || payment !== null || unfundedValueAllowed();
 
     // Bonus-day activation is not yet server-side state (promoStore is on the
     // device). Until POST /v1/promo/bonus-day/activate exists, the server
@@ -163,7 +170,7 @@ export function registerCheckoutRoutes(app: FastifyInstance, backend: Backend): 
         // a control arm that knows it is one is not a control arm.
         experimentArms: stampAllExperiments(id),
       },
-      // NOTE: card/cliq payments would capture via a PSP here (out of scope).
+      // Card/CliQ: the captured intent (above) is consumed in this transaction.
       walletDebitFils: paidFromBalance ? toFils(totals.total) : 0,
       pointsEarned: funded ? earn.points : 0,
       pointsReasonAr: 'نقاط طلب',
@@ -201,6 +208,7 @@ export function registerCheckoutRoutes(app: FastifyInstance, backend: Backend): 
         arm: assignHoldout(id, holdoutSpecFromConfig('secondVisitVoucher')),
       },
       at: now,
+      payment,
     });
     // A failed voucher evaluation never fails a paid checkout — the backend
     // rolled back only the voucher (a savepoint) — but it must not be silent:

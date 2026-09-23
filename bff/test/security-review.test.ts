@@ -394,7 +394,9 @@ describe('S17 member JWT (@fastify/jwt) refuses forged, unsigned and expired tok
 // this table fails the first test, so an unguarded route cannot arrive quietly
 // — the way /v1/analytics/order-lines arrived guarded as a member route.
 // ---------------------------------------------------------------------------
-type Guard = 'public' | 'member' | 'admin' | 'pos';
+/** `signed`: the credential is a payment gateway's signature over the raw
+ *  body (routes/payments.ts) — no member, no shared key. */
+type Guard = 'public' | 'member' | 'admin' | 'pos' | 'signed';
 const ROUTES: Record<string, Guard> = {
   'GET /health': 'public',
   'POST /v1/auth/otp/request': 'public',
@@ -418,6 +420,10 @@ const ROUTES: Record<string, Guard> = {
   'POST /v1/pos/token': 'member',
   'POST /v1/pos/scan': 'pos',
   'POST /v1/pos/redemption/settle': 'pos',
+  'POST /v1/pos/earn': 'pos',
+  'POST /v1/pos/earn/reverse': 'pos',
+  'POST /v1/payments/intent': 'member',
+  'POST /v1/payments/webhook/:provider': 'signed',
   'POST /v1/me/profile': 'member',
   'GET /v1/me/balance': 'member',
   'GET /v1/me/wallet': 'member',
@@ -466,15 +472,24 @@ describe('S18 the route guard matrix', () => {
   });
 
   it('no credential ⇒ 401 on every non-public route', async () => {
+    // A gateway must be configured for its webhook to be reachable at all
+    // (unconfigured, it is a 503 — covered in payments.test.ts); with the
+    // mock, an unsigned body must be a 401 like every other missing credential.
+    const prevProvider = config.PAYMENT_PROVIDER;
+    cfg.PAYMENT_PROVIDER = 'mock';
     const open: string[] = [];
-    for (const [key, guard] of Object.entries(ROUTES)) {
-      if (guard === 'public') continue;
-      const [method, url] = key.split(' ');
-      const r = await app.inject({
-        method: method as 'GET', url: url.replace(':id', 'x'),
-        headers: { 'idempotency-key': randomUUID() }, payload: method === 'GET' ? undefined : {},
-      });
-      if (r.statusCode !== 401) open.push(`${key} → ${r.statusCode}`);
+    try {
+      for (const [key, guard] of Object.entries(ROUTES)) {
+        if (guard === 'public') continue;
+        const [method, url] = key.split(' ');
+        const r = await app.inject({
+          method: method as 'GET', url: url.replace(':id', 'x').replace(':provider', 'mock'),
+          headers: { 'idempotency-key': randomUUID() }, payload: method === 'GET' ? undefined : {},
+        });
+        if (r.statusCode !== 401) open.push(`${key} → ${r.statusCode}`);
+      }
+    } finally {
+      cfg.PAYMENT_PROVIDER = prevProvider;
     }
     expect(open).toEqual([]);
   });
@@ -486,7 +501,7 @@ describe('S18 the route guard matrix', () => {
       if (guard !== 'admin' && guard !== 'pos') continue;
       const [method, url] = key.split(' ');
       const r = await app.inject({
-        method: method as 'GET', url: url.replace(':id', 'x'),
+        method: method as 'GET', url: url.replace(':id', 'x').replace(':provider', 'mock'),
         headers: headers(token), payload: method === 'GET' ? undefined : {},
       });
       if (r.statusCode !== 401) open.push(`${key} → ${r.statusCode}`);

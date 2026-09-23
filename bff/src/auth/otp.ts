@@ -72,7 +72,7 @@ function sweep(now: number): void {
  * non-production deployment can log it — it is never put in the HTTP response.
  * See routes/auth.ts, which is the only caller and drops it in production.
  */
-export function requestOtp(phone: string): { sent: true; code: string } {
+export function requestOtp(phone: string): { sent: true; code: string; at: number } {
   const now = Date.now();
   sweep(now);
 
@@ -89,7 +89,24 @@ export function requestOtp(phone: string): { sent: true; code: string } {
   // randomInt is CSPRNG-backed and unbiased over the range; Math.random is not.
   const code = String(randomInt(0, 1_000_000)).padStart(6, '0');
   pending.set(phone, { code, exp: now + config.OTP_TTL_SECONDS * 1000, attempts: 0 });
-  return { sent: true, code };
+  return { sent: true, code, at: now };
+}
+
+/**
+ * The SMS for this code was NOT sent (no provider, or the provider refused):
+ * take the send back out of the phone's cooldown and hourly cap, and burn the
+ * code. The member never received it, so it must neither count against them
+ * nor stay guessable. Only THIS send is undone — matched by its timestamp and
+ * code, so a concurrent successful send for the same phone is left alone.
+ */
+export function cancelOtpSend(phone: string, issued: { code: string; at: number }): void {
+  const ts = sends.get(phone);
+  if (ts) {
+    const i = ts.lastIndexOf(issued.at);
+    if (i >= 0) ts.splice(i, 1);
+    if (ts.length === 0) sends.delete(phone);
+  }
+  if (pending.get(phone)?.code === issued.code) pending.delete(phone);
 }
 
 export function verifyOtp(phone: string, code: string): void {
