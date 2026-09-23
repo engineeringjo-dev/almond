@@ -19,3 +19,12 @@ almond-web/next-env.d.ts
 *.tsbuildinfo
 .claude/settings.local.json
 __pycache__/
+
+# Playwright E2E output (root playwright.config.ts)
+playwright-report/
+test-results/
+blob-report/
+playwright/.cache/
+
+# Test coverage reports (vitest --coverage, any workspace)
+coverage/

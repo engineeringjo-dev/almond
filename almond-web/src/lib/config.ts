@@ -7,9 +7,20 @@ export type DataSource = 'mock' | 'odoo';
  * ('mock') so the site is fully demoable; flip per deploy via
  * NEXT_PUBLIC_DATA_SOURCE=odoo to go live — nothing else changes.
  */
-export const DATA_SOURCE: DataSource =
-  (process.env.NEXT_PUBLIC_DATA_SOURCE as DataSource | undefined) ??
-  (sharedConfig.DATA_SOURCE as DataSource);
+const rawSource: string = process.env.NEXT_PUBLIC_DATA_SOURCE ?? sharedConfig.DATA_SOURCE;
+
+// VALIDATED, NOT CAST. Every consumer tests `=== 'odoo'`, so a typo ('Odoo',
+// 'live', or an empty value, which `??` does not catch) used to run every MOCK
+// path — payForOrder() reported the order paid with no gateway — while isMock
+// said false. A deploy with a bad value must fail at boot, not take money it
+// never collected.
+if (rawSource !== 'mock' && rawSource !== 'odoo') {
+  throw new Error(
+    `NEXT_PUBLIC_DATA_SOURCE must be 'mock' or 'odoo', got ${JSON.stringify(rawSource)}`,
+  );
+}
+
+export const DATA_SOURCE: DataSource = rawSource;
 
 export const isMock = DATA_SOURCE === 'mock';
 

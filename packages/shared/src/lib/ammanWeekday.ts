@@ -19,3 +19,16 @@ export function ammanDayKey(at: Date = new Date()): string {
     timeZone: AMMAN, year: 'numeric', month: '2-digit', day: '2-digit',
   }).format(at);
 }
+
+/** Minutes since midnight on the Amman wall clock (0–1439). Branch hours are
+ *  Amman times, so "is it open?" must never read the viewer's device clock —
+ *  a phone on UTC at 08:30 Amman time would read 05:30 and show every branch
+ *  closed. Intl, not a fixed +3: Jordan was UTC+2 in winter until October 2022,
+ *  and a hard-coded offset silently shifts every historical hour. */
+export function ammanMinuteOfDay(at: Date = new Date()): number {
+  const parts = new Intl.DateTimeFormat('en-GB', {
+    timeZone: AMMAN, hour: '2-digit', minute: '2-digit', hourCycle: 'h23',
+  }).formatToParts(at);
+  const n = (t: string) => Number(parts.find((p) => p.type === t)?.value ?? 0);
+  return n('hour') * 60 + n('minute');
+}

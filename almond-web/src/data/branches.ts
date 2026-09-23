@@ -1,5 +1,6 @@
 import { branches } from '@almond/shared/menu';
 import type { Branch } from '@almond/shared/types';
+import { ammanMinuteOfDay } from '@almond/shared/lib/ammanWeekday';
 
 export function getBranches(): Branch[] {
   return branches;
@@ -12,6 +13,7 @@ export function getBranches(): Branch[] {
 export function isBranchOpen(branch: Branch, now: Date = new Date()): boolean {
   const [openH, openM] = branch.hours.open.split(':').map(Number);
   const [closeH, closeM] = branch.hours.close.split(':').map(Number);
-  const minutes = now.getHours() * 60 + now.getMinutes();
+  // Branch hours are Amman wall-clock times, whatever clock the visitor has.
+  const minutes = ammanMinuteOfDay(now);
   return minutes >= openH * 60 + openM && minutes < closeH * 60 + closeM;
 }

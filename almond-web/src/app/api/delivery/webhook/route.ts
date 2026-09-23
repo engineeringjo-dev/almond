@@ -25,6 +25,11 @@ export async function POST(req: Request) {
   } catch {
     return NextResponse.json({ error: 'invalid json' }, { status: 400 });
   }
+  // `null`, a number or an array parse fine and then throw on the field read
+  // below — an unhandled 500 instead of a 400.
+  if (!event || typeof event !== 'object' || Array.isArray(event)) {
+    return NextResponse.json({ error: 'invalid event' }, { status: 400 });
+  }
 
   // Guard the timezone contract: occurredAt must carry an explicit offset.
   if (!/[+-]\d{2}:\d{2}$/.test(event.occurredAt ?? '')) {

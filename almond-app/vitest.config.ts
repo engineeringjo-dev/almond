@@ -26,5 +26,24 @@ export default defineConfig({
   test: {
     environment: 'node',
     include: ['test/**/*.test.ts'],
+    // Reported, not enforced (no thresholds yet). The source dirs are listed
+    // explicitly so node_modules/, test/, public/ and the Expo config files
+    // stay out; screens and components ARE counted — the number is honest
+    // about how little of the UI the node suite reaches.
+    coverage: {
+      provider: 'v8',
+      reporter: ['text-summary', 'json-summary', 'html'],
+      reportsDirectory: 'coverage',
+      include: [
+        'app/**/*.{ts,tsx}',
+        'components/**/*.{ts,tsx}',
+        'constants/**/*.{ts,tsx}',
+        'hooks/**/*.{ts,tsx}',
+        'lib/**/*.{ts,tsx}',
+        'services/**/*.{ts,tsx}',
+        'stores/**/*.{ts,tsx}',
+      ],
+      exclude: ['**/*.test.{ts,tsx}', '**/*.d.ts', '**/menu.generated.ts', '**/*.config.*'],
+    },
   },
 });

@@ -72,7 +72,15 @@ export function applyItemPatch(item: MenuItem, patch?: ItemPatch): MenuItem {
   if (patch.inStock !== undefined) next = { ...next, inStock: patch.inStock };
   if (patch.nameAr) next = { ...next, nameAr: patch.nameAr };
   if (patch.nameEn) next = { ...next, nameEn: patch.nameEn };
-  if (patch.price !== undefined && next.sizes.length > 0) {
+  // Only a real price reaches the menu. The editor's `Number(field)` turns a
+  // cleared box into 0 and garbage into NaN; either would publish the item at
+  // 0.000 or "NaN" JOD. Zero itself stays allowed — a free item is a decision.
+  if (
+    typeof patch.price === 'number' &&
+    Number.isFinite(patch.price) &&
+    patch.price >= 0 &&
+    next.sizes.length > 0
+  ) {
     next = {
       ...next,
       sizes: next.sizes.map((s, i) => (i === 0 ? { ...s, price: patch.price as number } : s)),
