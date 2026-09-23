@@ -25,9 +25,11 @@ import {
 import type { TierId } from '@almond/shared/types';
 import { conflict, notFound } from '../http-error';
 import type { Db } from './db';
+import type { HoldoutStamp } from '@almond/shared/loyalty/holdout';
 import type {
   Backend, Member, HistoryEntry, NewOrder, OrderRecord, SubscriptionState, CorporateUse,
 } from './types';
+import { IDEMPOTENCY_SWEEP_EVERY_MS, IDEMPOTENCY_TTL_MS } from './idempotency';
 
 /**
  * THE DURABLE BACKEND. Same behaviour as the in-memory one, on Postgres.
@@ -92,18 +94,28 @@ function toMember(r: MemberRow): Member {
 
 export function createPostgresBackend(db: Db): Backend {
   /** Load a member, mutate it with the shared rules, write it back — all inside
-   *  one transaction holding `FOR UPDATE` on the row, so two concurrent
-   *  checkouts cannot both read the same balance and both spend it. */
+   *  one transaction holding a row lock, so two concurrent checkouts cannot
+   *  both read the same balance and both spend it.
+   *
+   *  `FOR NO KEY UPDATE`, not `FOR UPDATE`: every writer here takes the same
+   *  mode, and it conflicts with itself, so money operations on one member are
+   *  still strictly serial. What it does NOT conflict with is `FOR KEY SHARE` —
+   *  the lock Postgres takes on the parent row to check a foreign key. With
+   *  `FOR UPDATE`, inserting an order or a corporate use for a member (any
+   *  session, any reason) queued behind whoever held that member's row; the
+   *  member's id never changes, so there was nothing for that wait to protect. */
   async function withMember<T>(
     id: string,
-    fn: (m: Member, log: (e: HistoryEntry) => void, t: Db) => Promise<T> | T,
+    fn: (
+      m: Member, log: (e: HistoryEntry) => void, t: Db, logged: readonly HistoryEntry[],
+    ) => Promise<T> | T,
   ): Promise<T> {
     return db.tx(async (t) => {
-      const rows = await t.query<MemberRow>('select * from members where id = $1 for update', [id]);
+      const rows = await t.query<MemberRow>('select * from members where id = $1 for no key update', [id]);
       if (!rows[0]) throw notFound('member not found');
       const m = toMember(rows[0]);
       const lines: HistoryEntry[] = [];
-      const out = await fn(m, (e) => lines.push(e), t);
+      const out = await fn(m, (e) => lines.push(e), t, lines);
       await saveMember(t, m);
       for (const e of lines) {
         await t.query(
@@ -173,6 +185,85 @@ export function createPostgresBackend(db: Db): Backend {
     }
     return due;
   };
+
+  /** recordSpend's body, shared with checkout so the window has ONE writer. */
+  const applySpend = (
+    m: Member, jod: number, at: Date, log: (e: HistoryEntry) => void, occurredOn?: string,
+  ): void => {
+    settleExpiry(m, at, log);
+    runDueEvaluation(m, at);
+    m.spend.push(occurredOn ? { jod, day: occurredOn } : spendEntry(jod, at));
+    m.spend = pruneSpend(m.spend, WINDOW, at);
+    m.heldTierId = holdRung(
+      m.heldTierId,
+      qualifiedRung(
+        qualifyingSpend(m.spend, WINDOW, at),
+        qualifyingVisitDays(m.spend, WINDOW, at), WINDOW,
+      ),
+      WINDOW,
+    ).id as TierId;
+  };
+
+  /**
+   * Decide the second-visit voucher for a member ALREADY LOCKED by the caller's
+   * transaction, and insert the row the decision produces.
+   *
+   * `pendingLedger` is the sum of ledger lines this transaction has logged but
+   * not yet inserted (withMember writes them after its callback). Leaving them
+   * out would compute `unexplainedPoints` against a ledger missing its newest
+   * lines — the one number the 19,040 JOD over-issue guard rests on.
+   */
+  async function decideVoucherIn(
+    t: Db, m: Member,
+    input: { orderId: string; basketHasDrink: boolean; arm: HoldoutStamp; at: Date },
+    pendingLedger: number,
+  ): Promise<SecondVisitVoucher | null> {
+    const existing = await t.query(
+      'select * from second_visit_vouchers where member_id = $1', [m.id],
+    );
+    if (existing[0]) return null;      // once per member, ever
+
+    // Every input computed exactly as the memory backend computes it — the
+    // 19,040 JOD over-issue guard rests on `unexplainedPoints` being the
+    // balance MINUS what this BFF itself granted, so the sum is over the
+    // whole ledger (both signs), not just the debits.
+    const ledger = await t.query<{ n: string }>(
+      'select coalesce(sum(delta_points),0)::text as n from point_history where member_id = $1',
+      [m.id],
+    );
+    const prior = await t.query<{ n: string }>(
+      'select count(*)::text as n from orders where member_id = $1 and id <> $2',
+      [m.id, input.orderId],
+    );
+    const decision = decideSecondVisit({
+      memberId: m.id,
+      orderId: input.orderId,
+      voucherId: `svv_${randomUUID()}`,
+      basketHasDrink: input.basketHasDrink,
+      arm: input.arm,
+      alreadyEvaluated: false,          // checked above: a row means never again
+      priorTransactions: Number(prior[0]?.n ?? 0),
+      unexplainedPoints:
+        liveBalance(m.lots, input.at) - Number(ledger[0]?.n ?? 0) - pendingLedger,
+      priorWindowSpend: qualifyingSpend(m.spend, WINDOW, input.at),
+      at: input.at,
+    });
+
+    const row = decision.row;
+    if (!row) return null;
+    await t.query(
+      `insert into second_visit_vouchers (member_id, outcome, arm, issued_at, expires_at, redeemed_at)
+       values ($1,$2,$3,$4,$5,$6)`,
+      [m.id, row.outcome, input.arm, row.issuedAt, row.expiresAt, row.redeemedAt],
+    );
+    return row.outcome === 'issued' ? row : null;
+  }
+
+  const sumDeltas = (lines: readonly HistoryEntry[]) => lines.reduce((s, e) => s + e.deltaPoints, 0);
+
+  /** Last time THIS backend object deleted expired idempotency keys. Per
+   *  process, which is fine: the sweep reclaims space, it guards nothing. */
+  let idemSweptAt = 0;
 
   const toRedemption = (r: Record<string, unknown>): RedemptionRow => ({
     id: r.id as string, memberId: r.member_id as string, code: r.code as string,
@@ -332,21 +423,7 @@ export function createPostgresBackend(db: Db): Backend {
     },
 
     async recordSpend(id, jod, occurredOn) {
-      await withMember(id, (m, log) => {
-        const at = new Date();
-        settleExpiry(m, at, log);
-        runDueEvaluation(m, at);
-        m.spend.push(occurredOn ? { jod, day: occurredOn } : spendEntry(jod, at));
-        m.spend = pruneSpend(m.spend, WINDOW, at);
-        m.heldTierId = holdRung(
-          m.heldTierId,
-          qualifiedRung(
-            qualifyingSpend(m.spend, WINDOW, at),
-            qualifyingVisitDays(m.spend, WINDOW, at), WINDOW,
-          ),
-          WINDOW,
-        ).id as TierId;
-      });
+      await withMember(id, (m, log) => applySpend(m, jod, new Date(), log, occurredOn));
     },
 
     async getStanding(id) {
@@ -395,48 +472,10 @@ export function createPostgresBackend(db: Db): Backend {
     async evaluateSecondVisitVoucher(input) {
       return db.tx(async (t) => {
         const rows = await t.query<MemberRow>(
-          'select * from members where id = $1 for update', [input.memberId],
+          'select * from members where id = $1 for no key update', [input.memberId],
         );
         if (!rows[0]) throw notFound('member not found');
-        const m = toMember(rows[0]);
-        const existing = await t.query(
-          'select * from second_visit_vouchers where member_id = $1', [input.memberId],
-        );
-        if (existing[0]) return null;      // once per member, ever
-
-        // Every input computed exactly as the memory backend computes it — the
-        // 19,040 JOD over-issue guard rests on `unexplainedPoints` being the
-        // balance MINUS what this BFF itself granted, so the sum is over the
-        // whole ledger (both signs), not just the debits.
-        const ledger = await t.query<{ n: string }>(
-          'select coalesce(sum(delta_points),0)::text as n from point_history where member_id = $1',
-          [input.memberId],
-        );
-        const prior = await t.query<{ n: string }>(
-          'select count(*)::text as n from orders where member_id = $1 and id <> $2',
-          [input.memberId, input.orderId],
-        );
-        const decision = decideSecondVisit({
-          memberId: input.memberId,
-          orderId: input.orderId,
-          voucherId: `svv_${randomUUID()}`,
-          basketHasDrink: input.basketHasDrink,
-          arm: input.arm,
-          alreadyEvaluated: false,          // checked above: a row means never again
-          priorTransactions: Number(prior[0]?.n ?? 0),
-          unexplainedPoints: liveBalance(m.lots, input.at) - Number(ledger[0]?.n ?? 0),
-          priorWindowSpend: qualifyingSpend(m.spend, WINDOW, input.at),
-          at: input.at,
-        });
-
-        const row = decision.row;
-        if (!row) return null;
-        await t.query(
-          `insert into second_visit_vouchers (member_id, outcome, arm, issued_at, expires_at, redeemed_at)
-           values ($1,$2,$3,$4,$5,$6)`,
-          [input.memberId, row.outcome, input.arm, row.issuedAt, row.expiresAt, row.redeemedAt],
-        );
-        return row.outcome === 'issued' ? row : null;
+        return decideVoucherIn(t, toMember(rows[0]), input, 0);
       });
     },
 
@@ -653,6 +692,175 @@ export function createPostgresBackend(db: Db): Backend {
         items: (r.items ?? []) as CorporateUse['items'],
         percentOff: num(r.percent_off), discountJod: num(r.discount_jod),
       }));
+    },
+
+    // ---- composite money movements: one transaction each ----
+    async checkout(id, input) {
+      // ONE withMember: the member row is locked FOR UPDATE for the whole of
+      // it, and every statement below commits together or not at all. A
+      // process that dies anywhere in here leaves the wallet as it was and no
+      // order — there is no compensation left to run, because nothing
+      // half-happened (bff/test/resilience-restart.test.ts R2.8).
+      return withMember(id, async (m, log, t, logged) => {
+        const { at } = input;
+        if (input.walletDebitFils > 0) {
+          settleWalletExpiry(m, at, log);
+          const res = consumeFifo(m.walletLots, input.walletDebitFils, at);
+          if (!res.ok) throw conflict('insufficient_wallet', 'Wallet balance is not enough');
+          m.walletLots = res.lots;
+        }
+        const order: OrderRecord = {
+          ...input.order, memberId: id, pointsEarned: input.pointsEarned,
+          id: `ord_${randomUUID()}`, createdAt: at.toISOString(),
+          ...(input.earn ? { earn: input.earn } : {}),
+        };
+        await t.query(
+          `insert into orders (id, member_id, branch_id, order_type, payment_method, total,
+             earn_breakdown, created_at)
+           values ($1,$2,$3,$4,$5,$6,$7,$8)`,
+          [order.id, id, order.branchId, order.type, order.paymentMethod, order.total,
+            input.earn ? JSON.stringify(input.earn) : null, order.createdAt],
+        );
+
+        // Settled BEFORE the voucher, as the memory backend's decideVoucher
+        // does, so both compute `unexplainedPoints` on the same ledger.
+        settleExpiry(m, at, log);
+        // 🔴 A SAVEPOINT, because the voucher must never fail a paid order,
+        // and inside one transaction a failed statement would otherwise poison
+        // everything after it. Rolled back to here, the order and the debit
+        // stand and no voucher row is left behind.
+        let secondVisitVoucher: SecondVisitVoucher | null = null;
+        let secondVisitError: unknown = null;
+        await t.query('savepoint second_visit');
+        try {
+          secondVisitVoucher = await decideVoucherIn(
+            t, m, { orderId: order.id, ...input.secondVisit, at }, sumDeltas(logged),
+          );
+          await t.query('release savepoint second_visit');
+        } catch (e) {
+          secondVisitError = e;
+          await t.query('rollback to savepoint second_visit');
+        }
+
+        if (input.corporateUse) {
+          const u = input.corporateUse;
+          await t.query(
+            `insert into corporate_uses (id, member_id, company_id, phone, used_at, order_id,
+               items, percent_off, discount_jod)
+             values ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
+            [`cuse_${randomUUID()}`, id, u.companyId, m.phone, at.toISOString(), order.id,
+              JSON.stringify(u.items), u.percentOff, u.discountJod],
+          );
+        }
+        if (input.pointsEarned < 0) throw conflict('negative_grant', 'A grant cannot be negative');
+        m.lots = grantLot(m.lots, input.pointsEarned, 'earn', at, LOTS).lots;
+        log({
+          deltaPoints: input.pointsEarned, reasonAr: input.pointsReasonAr,
+          reasonEn: input.pointsReasonEn, createdAt: at.toISOString(),
+        });
+        if (input.spendJod !== null) applySpend(m, input.spendJod, at, log);
+        return {
+          order,
+          pointsBalance: liveBalance(m.lots, at),
+          walletBalanceFils: liveBalance(m.walletLots, at),
+          secondVisitVoucher,
+          secondVisitError,
+        };
+      });
+    },
+
+    async purchaseSubscription(id, walletDebitFils) {
+      return withMember(id, (m, log) => {
+        const at = new Date();
+        if (walletDebitFils > 0) {
+          settleWalletExpiry(m, at, log);
+          const res = consumeFifo(m.walletLots, walletDebitFils, at);
+          if (!res.ok) throw conflict('insufficient_wallet', 'Wallet balance is not enough');
+          m.walletLots = res.lots;
+        }
+        m.subRenewsAt = Date.now() + loyalty.SUBSCRIPTION.periodDays * 86400000;
+        return { subscription: subState(m), walletBalanceFils: liveBalance(m.walletLots, at) };
+      });
+    },
+
+    async topUpWallet(id, fils, bonusPoints, reasonAr, reasonEn) {
+      if (bonusPoints < 0) throw conflict('negative_grant', 'A grant cannot be negative');
+      return withMember(id, (m, log) => {
+        const at = new Date();
+        settleWalletExpiry(m, at, log);
+        m.walletLots = grantLot(m.walletLots, fils, 'topup', at, WALLET_LOTS).lots;
+        if (bonusPoints > 0) {
+          settleExpiry(m, at, log);
+          m.lots = grantLot(m.lots, bonusPoints, 'earn', at, LOTS).lots;
+          log({ deltaPoints: bonusPoints, reasonAr, reasonEn, createdAt: at.toISOString() });
+        }
+        return { walletBalanceFils: liveBalance(m.walletLots, at), pointsBalance: liveBalance(m.lots, at) };
+      });
+    },
+
+    // ---- Idempotency-Key store ----
+    async claimIdempotencyKey(memberId, key, requestHash, at) {
+      const now = at.toISOString();
+      const cutoff = new Date(at.getTime() - IDEMPOTENCY_TTL_MS).toISOString();
+      if (at.getTime() - idemSweptAt >= IDEMPOTENCY_SWEEP_EVERY_MS) {
+        idemSweptAt = at.getTime();
+        // Space only — expiry is enforced by the reads below whether or not
+        // this ran, so a failed sweep must not fail a payment.
+        await db.query('delete from idempotency_keys where created_at < $1', [cutoff])
+          .catch(() => { /* the next sweep retries */ });
+      }
+      // Each statement is atomic on its own, so no transaction is needed: the
+      // INSERT is the claim (the primary key admits one row per member+key,
+      // and a concurrent insert waits for the first to commit), and the
+      // UPDATE re-claims a key whose holder has expired. A row deleted by a
+      // release between the two is simply claimed on the next pass.
+      for (let pass = 0; pass < 3; pass += 1) {
+        const inserted = await db.query(
+          `insert into idempotency_keys (member_id, idem_key, request_hash, status, created_at)
+           values ($1,$2,$3,$4,$5)
+           on conflict (member_id, idem_key) do nothing
+           returning member_id`,
+          [memberId, key, requestHash, 'pending', now],
+        );
+        if (inserted.length > 0) return { state: 'claimed' };
+        const reclaimed = await db.query(
+          `update idempotency_keys
+           set request_hash = $3, status = $4, response_code = null, response_body = null, created_at = $5
+           where member_id = $1 and idem_key = $2 and created_at < $6
+           returning member_id`,
+          [memberId, key, requestHash, 'pending', now, cutoff],
+        );
+        if (reclaimed.length > 0) return { state: 'claimed' };
+        const rows = await db.query(
+          `select request_hash, status, response_code, response_body
+           from idempotency_keys where member_id = $1 and idem_key = $2`,
+          [memberId, key],
+        );
+        const r = rows[0];
+        if (!r) continue;                                    // released meanwhile: try again
+        if (r.request_hash !== requestHash) return { state: 'mismatch' };
+        if (r.status !== 'done') return { state: 'pending' };
+        return { state: 'done', statusCode: Number(r.response_code), body: String(r.response_body) };
+      }
+      // Three passes each raced by a release: someone is churning this key.
+      // "In progress" is the answer that cannot move money twice.
+      return { state: 'pending' };
+    },
+
+    async completeIdempotencyKey(memberId, key, requestHash, statusCode, body) {
+      await db.query(
+        `update idempotency_keys set status = $4, response_code = $5, response_body = $6
+         where member_id = $1 and idem_key = $2 and request_hash = $3 and status = $7`,
+        [memberId, key, requestHash, 'done', statusCode, body, 'pending'],
+      );
+    },
+
+    async releaseIdempotencyKey(memberId, key, requestHash) {
+      await db.query(
+        `delete from idempotency_keys
+         where member_id = $1 and idem_key = $2 and request_hash = $3 and status = $4`,
+        [memberId, key, requestHash, 'pending'],
+      );
     },
 
     // ---- subscription ----

@@ -7,7 +7,7 @@ import { notFound } from '../http-error';
 import { toSecondVisitView } from '@almond/shared/loyalty/secondVisit';
 import { parse } from '../validate';
 import { requireMember, memberId } from '../plugins/auth';
-import { idempotencyPreHandler, idempotencyOnSend } from '../plugins/idempotency';
+import { idempotency } from '../plugins/idempotency';
 import type { Backend } from '../backend';
 import { config } from '../config';
 import { limiter, rateLimit } from '../plugins/rateLimit';
@@ -20,9 +20,10 @@ const redeems = limiter('redeem', () => config.RATE_LIMITS.redeemPerMember);
 const settles = limiter('redemption-settle', () => config.RATE_LIMITS.settlePerMember);
 
 export function registerLoyaltyRoutes(app: FastifyInstance, backend: Backend): void {
+  const idem = idempotency(backend);
   app.post('/v1/loyalty/redeem', {
-    preHandler: [requireMember, rateLimit(redeems, memberId), idempotencyPreHandler],
-    onSend: [idempotencyOnSend],
+    preHandler: [requireMember, rateLimit(redeems, memberId), idem.preHandler],
+    onSend: [idem.onSend],
   }, async (req, reply) => {
     const id = memberId(req);
     const { points } = parse(z.object({ points: z.number().int().positive() }), req.body);
@@ -45,12 +46,24 @@ export function registerLoyaltyRoutes(app: FastifyInstance, backend: Backend): v
      * never used, `sweepRedemptions` returns them in full.
      */
     const row = await backend.createRedemption(id, points);
-    const member = await backend.getMember(id);
+    // 🔴 THE POINTS ARE SPENT — FROM HERE ON, NOTHING MAY BECOME A 5xx. The
+    // idempotency plugin releases a key on a 5xx (a 5xx normally means nothing
+    // happened), so a failing balance read here used to let the client's retry
+    // spend the same points a second time and mint a second code. The code is
+    // what the member needs at the till; the balance is a courtesy that the
+    // next balance read supplies. So a failed read answers 201 with the code
+    // and `pointsBalance: null`, and the key is stored as done.
+    let pointsBalance: number | null = null;
+    try {
+      pointsBalance = liveBalance((await backend.getMember(id)).lots);
+    } catch (err) {
+      req.log.error({ err, redemptionId: row.id }, 'balance read failed after a committed redemption');
+    }
     return reply.code(201).send({
       // The original three fields are unchanged, so every existing caller and
       // test keeps its answer; the redemption is added beside them.
       redeemed: true,
-      pointsBalance: liveBalance(member.lots),
+      pointsBalance,
       // ONE conversion, in loyalty/earn.ts — and now stored on the row, so a
       // later change to the rate cannot revalue a code already issued.
       valueJod: row.valueJod,
@@ -88,8 +101,8 @@ export function registerLoyaltyRoutes(app: FastifyInstance, backend: Backend): v
 
   /** The member gave up on it. Points return immediately, not at expiry. */
   app.post('/v1/me/redemption/cancel', {
-    preHandler: [requireMember, idempotencyPreHandler],
-    onSend: [idempotencyOnSend],
+    preHandler: [requireMember, idem.preHandler],
+    onSend: [idem.onSend],
   }, async (req, reply) => {
     const id = memberId(req);
     const { redemptionId } = parse(z.object({ redemptionId: z.string().min(1) }), req.body);
@@ -112,8 +125,8 @@ export function registerLoyaltyRoutes(app: FastifyInstance, backend: Backend): v
    * that does not exist — so this cannot be used to discover live codes either.
    */
   app.post('/v1/loyalty/redemption/settle', {
-    preHandler: [requireMember, rateLimit(settles, memberId), idempotencyPreHandler],
-    onSend: [idempotencyOnSend],
+    preHandler: [requireMember, rateLimit(settles, memberId), idem.preHandler],
+    onSend: [idem.onSend],
   }, async (req, reply) => {
     const id = memberId(req);
     const { code } = parse(z.object({ code: z.string().min(1).max(32) }), req.body);
@@ -154,8 +167,8 @@ export function registerLoyaltyRoutes(app: FastifyInstance, backend: Backend): v
   });
 
   app.post('/v1/loyalty/voucher/redeem', {
-    preHandler: [requireMember, idempotencyPreHandler],
-    onSend: [idempotencyOnSend],
+    preHandler: [requireMember, idem.preHandler],
+    onSend: [idem.onSend],
   }, async (req, reply) => {
     const at = new Date();
     // Redemption moves NO points and NO wallet balance. The whole economic

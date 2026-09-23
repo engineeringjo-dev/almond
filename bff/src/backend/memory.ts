@@ -28,9 +28,11 @@ import {
 import type { TierId } from '@almond/shared/types';
 import { conflict, notFound } from '../http-error';
 import { toFils } from '../money';
+import type { HoldoutStamp } from '@almond/shared/loyalty/holdout';
 import type {
   Backend, Member, HistoryEntry, NewOrder, OrderRecord, SubscriptionState, CorporateUse,
 } from './types';
+import { IDEMPOTENCY_SWEEP_EVERY_MS, idempotencyExpired } from './idempotency';
 
 /** One business day for the whole system (§3.6) — Amman, not the host's UTC.
  *  This is the §5 step 1 repoint. It moves the daily free-drink counter's reset
@@ -268,6 +270,132 @@ export function createMemoryBackend(): Backend {
     return due;
   };
 
+  /**
+   * Record one qualifying purchase against the rolling window — the body of
+   * recordSpend, shared with checkout so the window has ONE writer.
+   */
+  const applySpend = (m: Member, jod: number, at: Date, occurredOn?: string): void => {
+    settleExpiry(m, at);
+    // Close any due period FIRST, so this quarter's requalification is judged
+    // on the window as it stood before this transaction.
+    runDueEvaluation(m, at);
+    // A day the CALLER decided (a till reporting late), or today in Amman —
+    // never the host's date. An `occurredOn` in the future is a clock fault:
+    // it is recorded as evidence but the window will not count it (a fast
+    // till must not hand out a head start), and it is not discarded here
+    // because silently dropping a sale is worse than not counting it.
+    m.spend.push(occurredOn ? { jod, day: occurredOn } : spendEntry(jod, at));
+    // Bounded, not unbounded: the array can only ever hold the window. The
+    // scalar it replaced could only ever grow — that WAS the defect.
+    m.spend = pruneSpend(m.spend, WINDOW, at);
+    // 🔴 The ONLY assignment of heldTierId on the write path, and it names
+    // holdRung so W1-2's source walk can see it. holdRung cannot go down.
+    m.heldTierId = holdRung(
+      m.heldTierId,
+      qualifiedRung(qualifyingSpend(m.spend, WINDOW, at), qualifyingVisitDays(m.spend, WINDOW, at), WINDOW),
+      WINDOW,
+    ).id as TierId;
+  };
+
+  /**
+   * Decide the second-visit voucher for one transaction and store the row the
+   * decision produces. Synchronous, so checkout can run it inside its own
+   * critical section; the public evaluateSecondVisitVoucher is this and
+   * nothing else.
+   */
+  const decideVoucher = (
+    m: Member,
+    input: { orderId: string; basketHasDrink: boolean; arm: HoldoutStamp; at: Date },
+  ): SecondVisitVoucher | null => {
+    // Settle first, so `unexplainedPoints` below is computed on a member whose
+    // expiry history is caught up. Still strictly PRE-grant — no points line
+    // and no spend row of this transaction has been written.
+    settleExpiry(m, input.at);
+    const decision = decideSecondVisit({
+      memberId: m.id,
+      orderId: input.orderId,
+      voucherId: `svv_${randomUUID()}`,
+      basketHasDrink: input.basketHasDrink,
+      arm: input.arm,
+      // The authoritative guard: a row, of ANY outcome, means this member has
+      // already been evaluated and never will be again.
+      alreadyEvaluated: vouchers.has(m.id),
+      // The DURABLE marker. `orders` is never pruned, so it still answers
+      // "has this member transacted before?" for a sale 100 days old —
+      // Member.spend cannot, because W1 prunes it to the 90-day window and
+      // its own docstring says it is not a lifetime history.
+      //
+      // Excluded BY ID rather than by subtracting one, so the count is
+      // independent of where in the checkout this call lands.
+      priorTransactions: orders.filter(
+        (o) => o.memberId === m.id && o.id !== input.orderId,
+      ).length,
+      // 🔴 Read here, before this transaction's grant and spend are written. A
+      // member holding a balance the BFF never granted has a history the BFF
+      // cannot see — all 47,720 live members are in exactly that position,
+      // which is the 19,040 JOD over-issue this guard exists to prevent.
+      //
+      // 🔴 MINUS WHAT THE BFF ITSELF GRANTED. `history` is the complete
+      // ledger of every points movement this process made (addPoints and
+      // spendPoints are the only writers of m.lots that log, so the
+      // remainder is exactly the balance that arrived from somewhere else.
+      // Without the subtraction, POST /v1/wallet/topup — which grants 50
+      // points at 20 JOD with no order behind it — made a brand-new member
+      // look migrated and cost them the voucher permanently (T32u).
+      //
+      // 🔴 THE LIVE BALANCE, NOT A STORED SCALAR. A migration lot carries no
+      // history row on purpose (loyalty/lots.ts migrationLot), so for all
+      // 47,720 migrated members this remainder is still their whole balance
+      // and this guard still refuses. Logging the migration grant would make
+      // every one of them "explained" and re-open the over-issue silently.
+      unexplainedPoints:
+        liveBalance(m.lots, input.at)
+        - (history.get(m.id) ?? []).reduce((s, h) => s + h.deltaPoints, 0),
+      priorWindowSpend: qualifyingSpend(m.spend, WINDOW, input.at),
+      at: input.at,
+    });
+    if (decision.row) vouchers.set(m.id, decision.row);
+    // Only an ISSUED row is visible to the caller. Copy, never the stored
+    // object: handing out a mutable reference to `redeemedAt` would be
+    // handing out the double-spend guard itself.
+    const row = decision.row;
+    return row && row.outcome === 'issued' ? { ...row } : null;
+  };
+
+  /**
+   * An undo log for one member-scoped write — the memory backend's ROLLBACK.
+   *
+   * 🔴 A METHOD THAT MOVES MONEY IN SEVERAL STEPS MUST BE ALL-OR-NOTHING HERE
+   * TOO, or the contract suite would prove atomicity of Postgres and a
+   * half-written member in `npm run dev`. The member is restored IN PLACE
+   * (must() hands out the stored object; replacing it would strand every
+   * reference) and every side table is put back to its length before.
+   */
+  const begin = (m: Member) => {
+    const before = structuredClone(m);
+    const historyLen = (history.get(m.id) ?? []).length;
+    const ordersLen = orders.length;
+    const usesLen = corporateUses.length;
+    const voucher = vouchers.get(m.id);
+    return () => {
+      Object.assign(m, before);
+      // `log` unshifts, so the lines that existed before are the LAST ones.
+      const h = history.get(m.id) ?? [];
+      history.set(m.id, h.slice(h.length - historyLen));
+      orders.length = ordersLen;
+      corporateUses.splice(0, corporateUses.length - usesLen);
+      if (voucher) vouchers.set(m.id, voucher); else vouchers.delete(m.id);
+    };
+  };
+
+  // ---- Idempotency-Key store ----
+  type IdemEntry =
+    | { hash: string; at: number; status: 'pending' }
+    | { hash: string; at: number; status: 'done'; statusCode: number; body: string };
+  const idem = new Map<string, IdemEntry>();
+  let idemSweptAt = 0;
+  const idemSlot = (memberId: string, key: string) => `${memberId}\u0000${key}`;
+
   /** Named so a method can call a sibling — `createRedemption` spends points
    *  through `spendPoints` rather than reimplementing the FIFO consume, and
    *  `cancelRedemption` returns them through `addPoints` so the refund is
@@ -374,28 +502,7 @@ export function createMemoryBackend(): Backend {
       return { profile: { name, birthday: m.birthday }, bonusGranted: bonus, pointsBalance };
     },
     async recordSpend(id, jod, occurredOn) {
-      const m = must(id);
-      const at = new Date();
-      settleExpiry(m, at);
-      // Close any due period FIRST, so this quarter's requalification is judged
-      // on the window as it stood before this transaction.
-      runDueEvaluation(m, at);
-      // A day the CALLER decided (a till reporting late), or today in Amman —
-      // never the host's date. An `occurredOn` in the future is a clock fault:
-      // it is recorded as evidence but the window will not count it (a fast
-      // till must not hand out a head start), and it is not discarded here
-      // because silently dropping a sale is worse than not counting it.
-      m.spend.push(occurredOn ? { jod, day: occurredOn } : spendEntry(jod, at));
-      // Bounded, not unbounded: the array can only ever hold the window. The
-      // scalar it replaced could only ever grow — that WAS the defect.
-      m.spend = pruneSpend(m.spend, WINDOW, at);
-      // 🔴 The ONLY assignment of heldTierId on the write path, and it names
-      // holdRung so W1-2's source walk can see it. holdRung cannot go down.
-      m.heldTierId = holdRung(
-        m.heldTierId,
-        qualifiedRung(qualifyingSpend(m.spend, WINDOW, at), qualifyingVisitDays(m.spend, WINDOW, at), WINDOW),
-        WINDOW,
-      ).id as TierId;
+      applySpend(must(id), jod, new Date(), occurredOn);
     },
     async getStanding(id) { const m = must(id); return standing(m.spend, m.heldTierId, WINDOW); },
     async evaluateTier(id, at) { return runDueEvaluation(must(id), at ?? new Date()); },
@@ -416,63 +523,7 @@ export function createMemoryBackend(): Backend {
     async getHistory(id) { must(id); return history.get(id) ?? []; },
 
     async evaluateSecondVisitVoucher(input) {
-      const m = must(input.memberId);
-      // Settle first, so `unexplainedPoints` below is computed on a member whose
-      // expiry history is caught up. Still strictly PRE-transaction — no grant
-      // and no spend row has been written — so T32a's ordering invariant and
-      // checkout.ts's saga hold unchanged.
-      settleExpiry(m, input.at);
-      const decision = decideSecondVisit({
-        memberId: input.memberId,
-        orderId: input.orderId,
-        voucherId: `svv_${randomUUID()}`,
-        basketHasDrink: input.basketHasDrink,
-        arm: input.arm,
-        // The authoritative guard: a row, of ANY outcome, means this member has
-        // already been evaluated and never will be again.
-        alreadyEvaluated: vouchers.has(input.memberId),
-        // The DURABLE marker. `orders` is never pruned, so it still answers
-        // "has this member transacted before?" for a sale 100 days old —
-        // Member.spend cannot, because W1 prunes it to the 90-day window and
-        // its own docstring says it is not a lifetime history.
-        //
-        // Excluded BY ID rather than by subtracting one, so the count is
-        // independent of where in the checkout saga this call lands.
-        priorTransactions: orders.filter(
-          (o) => o.memberId === input.memberId && o.id !== input.orderId,
-        ).length,
-        // 🔴 Read here, inside the backend, and therefore genuinely
-        // PRE-transaction: addPoints and recordSpend have not run yet (the
-        // route calls this at saga step 4). A member holding a balance the BFF
-        // never granted has a history the BFF cannot see — all 47,720 live
-        // members are in exactly that position, which is the 19,040 JOD
-        // over-issue this guard exists to prevent.
-        //
-        // 🔴 MINUS WHAT THE BFF ITSELF GRANTED. `history` is the complete
-        // ledger of every points movement this process made (addPoints and
-        // spendPoints are the only writers of m.lots that log, so the
-        // remainder is exactly the balance that arrived from somewhere else.
-        // Without the subtraction, POST /v1/wallet/topup — which grants 50
-        // points at 20 JOD with no order behind it — made a brand-new member
-        // look migrated and cost them the voucher permanently (T32u).
-        //
-        // 🔴 THE LIVE BALANCE, NOT A STORED SCALAR. A migration lot carries no
-        // history row on purpose (loyalty/lots.ts migrationLot), so for all
-        // 47,720 migrated members this remainder is still their whole balance
-        // and this guard still refuses. Logging the migration grant would make
-        // every one of them "explained" and re-open the over-issue silently.
-        unexplainedPoints:
-          liveBalance(m.lots, input.at)
-          - (history.get(input.memberId) ?? []).reduce((s, h) => s + h.deltaPoints, 0),
-        priorWindowSpend: qualifyingSpend(m.spend, WINDOW, input.at),
-        at: input.at,
-      });
-      if (decision.row) vouchers.set(input.memberId, decision.row);
-      // Only an ISSUED row is visible to the caller. Copy, never the stored
-      // object: handing out a mutable reference to `redeemedAt` would be
-      // handing out the double-spend guard itself.
-      const row = decision.row;
-      return row && row.outcome === 'issued' ? { ...row } : null;
+      return decideVoucher(must(input.memberId), input);
     },
     async getSecondVisitVoucher(memberId) {
       must(memberId);
@@ -511,6 +562,132 @@ export function createMemoryBackend(): Backend {
       }
       v.redeemedAt = at.toISOString();
       return { ...v };
+    },
+
+    async checkout(id, input) {
+      const m = must(id);
+      const { at } = input;
+      // 🔴 THERE IS NO `await` IN THIS BODY, and that is what makes it one
+      // transaction here: Node runs it start to finish before any other call
+      // can observe the member. `begin` is the rollback — any throw below puts
+      // the member, the order list, the ledger and the voucher back exactly as
+      // they were, so a refusal half-way cannot leave a debit without an order.
+      const rollback = begin(m);
+      try {
+        if (input.walletDebitFils > 0) {
+          settleWalletExpiry(m, at);
+          const res = consumeFifo(m.walletLots, input.walletDebitFils, at);
+          if (!res.ok) throw conflict('insufficient_wallet', 'Wallet balance is not enough');
+          m.walletLots = res.lots;
+        }
+        const order: OrderRecord = {
+          ...input.order, memberId: id, pointsEarned: input.pointsEarned,
+          id: `ord_${randomUUID()}`, createdAt: at.toISOString(),
+          ...(input.earn ? { earn: input.earn } : {}),
+        };
+        orders.push(order);
+
+        // BEFORE the grant and the spend: the voucher's guards read the
+        // member's pre-transaction balance and window (types.ts). A failure
+        // here is reported, never thrown — a marketing grant must not roll back
+        // a paid order. decideVoucher writes its row last, so a throw leaves
+        // no row behind.
+        let secondVisitVoucher: SecondVisitVoucher | null = null;
+        let secondVisitError: unknown = null;
+        try {
+          secondVisitVoucher = decideVoucher(m, { orderId: order.id, ...input.secondVisit, at });
+        } catch (e) {
+          secondVisitError = e;
+        }
+
+        if (input.corporateUse) {
+          corporateUses.unshift({
+            ...input.corporateUse, id: `cuse_${randomUUID()}`, memberId: id,
+            phone: m.phone, at: at.toISOString(), orderId: order.id,
+          });
+        }
+        if (input.pointsEarned < 0) throw conflict('negative_grant', 'A grant cannot be negative');
+        settleExpiry(m, at);
+        m.lots = grantLot(m.lots, input.pointsEarned, 'earn', at, LOTS).lots;
+        log(id, {
+          deltaPoints: input.pointsEarned, reasonAr: input.pointsReasonAr,
+          reasonEn: input.pointsReasonEn, createdAt: at.toISOString(),
+        });
+        if (input.spendJod !== null) applySpend(m, input.spendJod, at);
+        return {
+          order,
+          pointsBalance: liveBalance(m.lots, at),
+          walletBalanceFils: liveBalance(m.walletLots, at),
+          secondVisitVoucher,
+          secondVisitError,
+        };
+      } catch (e) {
+        rollback();
+        throw e;
+      }
+    },
+    async purchaseSubscription(id, walletDebitFils) {
+      const m = must(id);
+      const at = new Date();
+      // No await, and nothing after the balance check can throw: the debit
+      // and the activation happen together or not at all.
+      if (walletDebitFils > 0) {
+        settleWalletExpiry(m, at);
+        const res = consumeFifo(m.walletLots, walletDebitFils, at);
+        if (!res.ok) throw conflict('insufficient_wallet', 'Wallet balance is not enough');
+        m.walletLots = res.lots;
+      }
+      m.subRenewsAt = Date.now() + loyalty.SUBSCRIPTION.periodDays * 86400000;
+      return { subscription: subState(m), walletBalanceFils: liveBalance(m.walletLots, at) };
+    },
+    async topUpWallet(id, fils, bonusPoints, reasonAr, reasonEn) {
+      const m = must(id);
+      const at = new Date();
+      if (bonusPoints < 0) throw conflict('negative_grant', 'A grant cannot be negative');
+      const rollback = begin(m);
+      try {
+        settleWalletExpiry(m, at);
+        m.walletLots = grantLot(m.walletLots, fils, 'topup', at, WALLET_LOTS).lots;
+        if (bonusPoints > 0) {
+          settleExpiry(m, at);
+          m.lots = grantLot(m.lots, bonusPoints, 'earn', at, LOTS).lots;
+          log(id, { deltaPoints: bonusPoints, reasonAr, reasonEn, createdAt: at.toISOString() });
+        }
+        return { walletBalanceFils: liveBalance(m.walletLots, at), pointsBalance: liveBalance(m.lots, at) };
+      } catch (e) {
+        rollback();
+        throw e;
+      }
+    },
+
+    // ---- Idempotency-Key store: the in-process twin of idempotency_keys ----
+    async claimIdempotencyKey(memberId, key, requestHash, at) {
+      // No await anywhere below: the check and the claim are one step, so two
+      // parallel requests with one key cannot both see it free.
+      if (at.getTime() - idemSweptAt >= IDEMPOTENCY_SWEEP_EVERY_MS) {
+        idemSweptAt = at.getTime();
+        for (const [k, e] of idem) if (idempotencyExpired(e.at, at)) idem.delete(k);
+      }
+      const slot = idemSlot(memberId, key);
+      const found = idem.get(slot);
+      if (!found || idempotencyExpired(found.at, at)) {
+        idem.set(slot, { hash: requestHash, at: at.getTime(), status: 'pending' });
+        return { state: 'claimed' };
+      }
+      if (found.hash !== requestHash) return { state: 'mismatch' };
+      if (found.status === 'pending') return { state: 'pending' };
+      return { state: 'done', statusCode: found.statusCode, body: found.body };
+    },
+    async completeIdempotencyKey(memberId, key, requestHash, statusCode, body) {
+      const slot = idemSlot(memberId, key);
+      const found = idem.get(slot);
+      if (found?.status !== 'pending' || found.hash !== requestHash) return;
+      idem.set(slot, { hash: requestHash, at: found.at, status: 'done', statusCode, body });
+    },
+    async releaseIdempotencyKey(memberId, key, requestHash) {
+      const slot = idemSlot(memberId, key);
+      const found = idem.get(slot);
+      if (found?.status === 'pending' && found.hash === requestHash) idem.delete(slot);
     },
 
     async activateSubscription(id) {

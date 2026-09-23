@@ -7,6 +7,7 @@ import { PGlite } from '@electric-sql/pglite';
 import { Pool } from 'pg';
 import { createPostgresBackend } from '../src/backend/postgres';
 import { fromPglite } from '../src/backend/db';
+import { loyaltySchemaSql, readMigration } from './lib/schema';
 
 /**
  * R3 — THE MIGRATION supabase/migrations/20260909_loyalty_backend.sql.
@@ -26,13 +27,20 @@ const MIGRATION = readFileSync(
 const RLS_MIGRATION = readFileSync(
   join(HERE, '..', '..', 'supabase', 'migrations', '20260923_loyalty_rls.sql'), 'utf8',
 );
+const IDEMPOTENCY_MIGRATION = readMigration('20260924_idempotency_keys.sql');
+const RESTRICT_MIGRATION = readMigration('20260925_restrict_financial_history.sql');
+/** The whole loyalty schema, as a deploy leaves it (minus the Supabase-only RLS file). */
+const SCHEMA = loyaltySchemaSql();
 const POSTGRES_TS = readFileSync(join(HERE, '..', 'src', 'backend', 'postgres.ts'), 'utf8');
 const PG_URL = process.env.ALMOND_TEST_PG_URL;
 
+/** What 20260909 creates. */
 const TABLES = [
   'members', 'point_history', 'orders', 'second_visit_vouchers', 'redemptions',
   'companies', 'corporate_roster', 'corporate_uses',
 ];
+/** …and what the full schema holds: 20260924 adds the durable Idempotency-Keys. */
+const ALL_TABLES = [...TABLES, 'idempotency_keys'];
 
 async function fresh(): Promise<PGlite> {
   const pg = new PGlite();
@@ -56,6 +64,7 @@ function columnsUsedByPostgresTs(): Map<string, Set<string>> {
     'select', 'from', 'where', 'and', 'or', 'for', 'update', 'insert', 'into', 'values', 'set',
     'returning', 'order', 'by', 'desc', 'asc', 'limit', 'is', 'null', 'not', 'on', 'conflict', 'do',
     'nothing', 'excluded', 'coalesce', 'count', 'sum', 'text', 'delete', 'as', 'n',
+    'no', 'key',                                   // `for no key update` (the member lock)
   ]);
   const used = new Map<string, Set<string>>();
   const add = (t: string, c: string) => { if (!used.has(t)) used.set(t, new Set()); used.get(t)!.add(c); };
@@ -111,7 +120,7 @@ describe('R3 migration 20260909_loyalty_backend.sql', () => {
 
   it('R3.3 every table and column postgres.ts uses exists (derived from its SQL)', async () => {
     const pg = await fresh();
-    await pg.exec(MIGRATION);
+    await pg.exec(SCHEMA);
     const cols = await rows<{ table_name: string; column_name: string }>(pg,
       `select table_name, column_name from information_schema.columns where table_schema = 'public'`);
     const have = new Map<string, Set<string>>();
@@ -121,7 +130,7 @@ describe('R3 migration 20260909_loyalty_backend.sql', () => {
     }
     const used = columnsUsedByPostgresTs();
     // The derivation must SEE the code, or this test passes on nothing.
-    expect([...used.keys()].sort()).toEqual([...TABLES].sort());
+    expect([...used.keys()].sort()).toEqual([...ALL_TABLES].sort());
     expect([...used.values()].reduce((n, s) => n + s.size, 0)).toBeGreaterThan(60);
 
     const missing: string[] = [];
@@ -240,6 +249,10 @@ describe('R3 migration 20260909_loyalty_backend.sql', () => {
     const pg = await withSupabaseDefaults();
     await pg.exec(MIGRATION);
     await pg.exec(RLS_MIGRATION);
+    // 20260924 closes its own table the same way: a stored response body
+    // carries balances and redemption codes.
+    await pg.exec(IDEMPOTENCY_MIGRATION);
+    await pg.exec(RESTRICT_MIGRATION);
     expect(await reachable(pg, 'anon')).toEqual([]);
     expect(await reachable(pg, 'authenticated')).toEqual([]);
     const seq = await rows<{ ok: boolean }>(pg,
@@ -270,10 +283,160 @@ describe('R3 migration 20260909_loyalty_backend.sql', () => {
       const { rows: t } = await pool.query(
         `select count(*)::int as n from information_schema.tables where table_schema = 'public'`);
       expect(t[0].n).toBe(8);
+      // …and the full schema on top of it, twice: the two later files are
+      // re-runnable on a real server too (plpgsql DO blocks included).
+      await pool.query(SCHEMA);
+      await pool.query(SCHEMA);
+      const { rows: t2 } = await pool.query(
+        `select count(*)::int as n from information_schema.tables where table_schema = 'public'`);
+      expect(t2[0].n).toBe(9);
+      const { rows: fks } = await pool.query(`select count(*)::int as n from pg_constraint
+        where contype = 'f' and confdeltype = 'r'`);
+      expect(fks[0].n).toBe(6);
     } finally {
       await pool.end();
       await admin.query(`drop database if exists ${name}`);
       await admin.end();
     }
+  });
+});
+
+/** Every FK constraint in public: table, column list, referenced table, delete action. */
+async function foreignKeys(pg: PGlite) {
+  return rows<{ tbl: string; name: string; def: string; action: string }>(pg, `
+    select c.conrelid::regclass::text as tbl, c.conname as name,
+           pg_get_constraintdef(c.oid) as def, c.confdeltype::text as action
+    from pg_constraint c join pg_namespace n on n.oid = c.connamespace
+    where n.nspname = 'public' and c.contype = 'f' order by 1, 2`);
+}
+
+/** The FKs that carry money's history — RESTRICT after 20260925. */
+const HISTORY_FKS: [string, string, string][] = [
+  ['point_history', 'member_id', 'members'],
+  ['orders', 'member_id', 'members'],
+  ['redemptions', 'member_id', 'members'],
+  ['second_visit_vouchers', 'member_id', 'members'],
+  ['corporate_uses', 'member_id', 'members'],
+  ['corporate_uses', 'company_id', 'companies'],
+];
+
+describe('R3.8 migration 20260925_restrict_financial_history.sql — deleting a member never deletes money', () => {
+  const fkOf = (fks: Awaited<ReturnType<typeof foreignKeys>>, t: string, col: string, ref: string) =>
+    fks.filter((f) => f.tbl === t && f.def.startsWith(`FOREIGN KEY (${col}) REFERENCES ${ref}(id)`));
+
+  it('R3.8a the base migration CASCADEs (why this file exists) and the fix makes each history FK RESTRICT', async () => {
+    const pg = await fresh();
+    await pg.exec(MIGRATION);
+    const before = await foreignKeys(pg);
+    for (const [t, col, ref] of HISTORY_FKS) expect(fkOf(before, t, col, ref).map((f) => f.action), t).toEqual(['c']);
+
+    await pg.exec(RESTRICT_MIGRATION);
+    const after = await foreignKeys(pg);
+    for (const [t, col, ref] of HISTORY_FKS) {
+      const fk = fkOf(after, t, col, ref);
+      expect(fk.map((f) => f.action), `${t}.${col}`).toEqual(['r']);
+      expect(fk[0].def, `${t}.${col}`).toMatch(/ON DELETE RESTRICT$/);
+      // The name is kept, so nothing that refers to it by name breaks.
+      expect(fk[0].name).toBe(fkOf(before, t, col, ref)[0].name);
+    }
+    // The roster is current state, not history: it still follows its company.
+    expect(fkOf(after, 'corporate_roster', 'company_id', 'companies').map((f) => f.action)).toEqual(['c']);
+    expect(after).toHaveLength(before.length);                // nothing added, nothing lost
+  });
+
+  it('R3.8b re-running changes nothing, and a missing FK is put back as RESTRICT', async () => {
+    const pg = await fresh();
+    await pg.exec(SCHEMA);
+    const once = await foreignKeys(pg);
+    await pg.exec(RESTRICT_MIGRATION);
+    await pg.exec(RESTRICT_MIGRATION);
+    expect(await foreignKeys(pg)).toEqual(once);
+
+    await pg.exec('alter table orders drop constraint orders_member_id_fkey');
+    await pg.exec(RESTRICT_MIGRATION);
+    expect(fkOf(await foreignKeys(pg), 'orders', 'member_id', 'members').map((f) => f.action)).toEqual(['r']);
+  });
+
+  // SQLSTATE: ON DELETE RESTRICT refuses with 23001 restrict_violation — not
+  // 23503, which is what the default NO ACTION raises. Both are class 23
+  // (integrity); RESTRICT was chosen because it is checked at once and cannot
+  // be deferred to commit, so no transaction can delete first and "fix" later.
+  it('R3.8c 🔴 deleting a member with history is REFUSED (23001) — and nothing is deleted', async () => {
+    const pg = await fresh();
+    await pg.exec(SCHEMA);
+    const b = createPostgresBackend(fromPglite(pg));
+    const code = async (sql: string, p: unknown[] = []) => {
+      try { await pg.query(sql, p); return 'ok'; } catch (e) { return (e as { code?: string }).code; }
+    };
+    const count = async (t: string, id: string) =>
+      (await rows<{ n: number }>(pg, `select count(*)::int as n from ${t} where member_id = $1`, [id]))[0].n;
+
+    // Each kind of history, alone on its own member, must block the delete.
+    const withLedger = await b.findOrCreateByPhone('+962791000001');
+    await b.addPoints(withLedger.id, 100, 'منحة', 'Grant');
+    const withOrder = await b.findOrCreateByPhone('+962791000002');
+    await pg.query(`insert into orders (id, member_id, branch_id, order_type, payment_method, total)
+      values ('o1', $1, 'b1', 'pickup', 'cash', 5)`, [withOrder.id]);
+    const withCode = await b.findOrCreateByPhone('+962791000003');
+    await pg.query(`insert into redemptions (id, member_id, code, points, value_jod, expires_at)
+      values ('r1', $1, 'ABCD2345', 100, 1, now())`, [withCode.id]);
+    const withVoucher = await b.findOrCreateByPhone('+962791000004');
+    await pg.query(`insert into second_visit_vouchers (member_id, outcome, arm) values ($1, 'issued', '{}')`, [withVoucher.id]);
+    await b.saveCompany({ id: 'acme', nameAr: '', nameEn: 'Acme', percentOff: 20, active: true });
+    const withUse = await b.findOrCreateByPhone('+962791000005');
+    await b.recordCorporateUse({
+      memberId: withUse.id, companyId: 'acme', phone: withUse.phone, at: new Date().toISOString(),
+      orderId: null, items: [], percentOff: 20, discountJod: 1,
+    });
+
+    for (const m of [withLedger, withOrder, withCode, withVoucher, withUse]) {
+      expect(await code('delete from members where id = $1', [m.id]), m.phone).toBe('23001');
+    }
+    expect(await count('point_history', withLedger.id)).toBe(1);
+    expect(await count('orders', withOrder.id)).toBe(1);
+    expect(await count('redemptions', withCode.id)).toBe(1);
+    expect(await count('corporate_uses', withUse.id)).toBe(1);
+    // A company whose discount was used keeps its report.
+    expect(await code(`delete from companies where id = 'acme'`)).toBe('23001');
+
+    // CONTROL — the refusal is about history, not about deleting at all: a
+    // member with none, and a company nobody used, still go.
+    const clean = await b.findOrCreateByPhone('+962791000006');
+    expect(await code('delete from members where id = $1', [clean.id])).toBe('ok');
+    await b.saveCompany({ id: 'unused', nameAr: '', nameEn: 'Unused', percentOff: 10, active: true });
+    await b.replaceRoster('unused', [{ phone: '0791000007', companyId: 'unused' }]);
+    expect(await code(`delete from companies where id = 'unused'`)).toBe('ok');
+  });
+});
+
+describe('R3.9 migration 20260924_idempotency_keys.sql', () => {
+  it('R3.9a applies on a plain Postgres (no Supabase roles), re-applies unchanged, and constrains its rows', async () => {
+    const pg = await fresh();
+    await pg.exec(MIGRATION);
+    await pg.exec(IDEMPOTENCY_MIGRATION);
+    const shape = async () => rows(pg, `select column_name, data_type, is_nullable from information_schema.columns
+      where table_name = 'idempotency_keys' order by 1`);
+    const first = await shape();
+    expect(first.map((c) => (c as { column_name: string }).column_name)).toEqual([
+      'created_at', 'idem_key', 'member_id', 'request_hash', 'response_body', 'response_code', 'status',
+    ]);
+    await pg.exec(IDEMPOTENCY_MIGRATION);
+    expect(await shape()).toEqual(first);
+    const rls = await rows<{ on: boolean }>(pg, `select relrowsecurity as on from pg_class where relname = 'idempotency_keys'`);
+    expect(rls[0].on).toBe(true);
+
+    const code = async (sql: string, p: unknown[] = []) => {
+      try { await pg.query(sql, p); return 'ok'; } catch (e) { return (e as { code?: string }).code; }
+    };
+    const ins = (key: string, status: string, rc: number | null, body: string | null) => code(
+      `insert into idempotency_keys (member_id, idem_key, request_hash, status, response_code, response_body)
+       values ('m1', $1, 'h', $2, $3, $4)`, [key, status, rc, body]);
+    expect(await ins('k1', 'pending', null, null)).toBe('ok');
+    expect(await ins('k1', 'pending', null, null)).toBe('23505');       // one row per member + key
+    expect(await ins('k2', 'done', null, null)).toBe('23514');          // a finished key carries its answer
+    expect(await ins('k3', 'pending', 201, '{}')).toBe('23514');        // a pending one does not
+    expect(await ins('k4', 'maybe', null, null)).toBe('23514');
+    expect(await ins('x'.repeat(129), 'pending', null, null)).toBe('23514');
+    expect(await ins('k5', 'done', 201, '{"ok":true}')).toBe('ok');
   });
 });

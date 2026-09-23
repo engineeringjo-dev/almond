@@ -198,6 +198,68 @@ export interface CorporateUse {
   discountJod: number;
 }
 
+/**
+ * What a claim on an Idempotency-Key found.
+ *
+ *   claimed   nobody holds this key (or its holder expired): run the request.
+ *   pending   a request holding it has not finished — or its process died
+ *             before it could say how it ended. NEVER re-run: it may already
+ *             have moved money, and "did it?" is exactly what nobody knows.
+ *   mismatch  the key was used for a DIFFERENT request (method, route or body).
+ *             Replaying the first one's answer to the second would tell the
+ *             client something happened that it never asked for.
+ *   done      finished: replay the stored answer, byte for byte.
+ */
+export type IdempotencyClaim =
+  | { state: 'claimed' }
+  | { state: 'pending' }
+  | { state: 'mismatch' }
+  | { state: 'done'; statusCode: number; body: string };
+
+/**
+ * One checkout, already priced — handed to `Backend.checkout` whole.
+ *
+ * Every number here was computed by the ROUTE through @almond/shared (reprice,
+ * computeEarn, the funding gate). The backend does no pricing and no earn
+ * arithmetic of its own: it only moves what it is told to move, and moves all
+ * of it or none of it.
+ */
+export interface CheckoutInput {
+  order: Omit<NewOrder, 'memberId' | 'pointsEarned'>;
+  /** Fils to take from the wallet, oldest lot first. 0 unless paid from it. */
+  walletDebitFils: number;
+  /** The grant, already through the `funded` gate (0 on an unfunded order).
+   *  Logged even at 0, exactly as addPoints always has. */
+  pointsEarned: number;
+  pointsReasonAr: string;
+  pointsReasonEn: string;
+  /** The earn breakdown to persist on the order, or null when nothing was
+   *  granted — a breakdown describes a grant, and there was not one. */
+  earn: EarnBreakdown | null;
+  /** JOD to record into the rolling window, or null (unfunded: no window). */
+  spendJod: number | null;
+  /** The standing discount that applied, or null. `phone` and `orderId` are
+   *  filled in by the backend from the locked member row and the new order. */
+  corporateUse: Omit<CorporateUse, 'id' | 'memberId' | 'phone' | 'orderId' | 'at'> | null;
+  /** The voucher's inputs. The arm is derived from the member id by the route,
+   *  never read from a request body. */
+  secondVisit: { basketHasDrink: boolean; arm: HoldoutStamp };
+  /** ONE instant for the whole checkout: the order, the ledger lines, the
+   *  voucher's 30-day clock and the corporate use are all stamped with it. */
+  at: Date;
+}
+
+export interface CheckoutResult {
+  order: OrderRecord;
+  pointsBalance: number;
+  walletBalanceFils: number;
+  /** Only an ISSUED voucher — null for every other outcome, as ever. */
+  secondVisitVoucher: SecondVisitVoucher | null;
+  /** Why the voucher step failed, if it did. It never fails the checkout: a
+   *  marketing grant must not roll back a paid order. The route logs it. */
+  secondVisitError: unknown;
+}
+
 export interface Backend {
   findOrCreateByPhone(phone: string, name?: string): Promise<Member>;
   getMember(id: string): Promise<Member>;
@@ -362,6 +424,56 @@ export interface Backend {
   listCorporateUses(filter?: {
     companyId?: string; memberId?: string; from?: string; to?: string;
   }): Promise<CorporateUse[]>;
+
+  // ---- Composite money movements: ONE transaction each ----
+  /**
+   * Debit the wallet, write the order, evaluate the second-visit voucher, log
+   * the corporate use, grant the points and record the window spend — as ONE
+   * atomic unit.
+   *
+   * 🔴 THIS REPLACED A SAGA. debitWallet, createOrder and addPoints used to be
+   * three transactions stitched together by the route, and the compensating
+   * refund ran only on a thrown error. A process that died after the debit —
+   * a deploy, an OOM — kept the member's money and wrote no order. Now either
+   * every row lands or none does; there is nothing left to compensate.
+   *
+   * Throws conflict('insufficient_wallet') and conflict('negative_grant')
+   * having written nothing.
+   */
+  checkout(memberId: string, input: CheckoutInput): Promise<CheckoutResult>;
+  /** Debit the wallet (when `walletDebitFils` > 0) and activate the
+   *  subscription in ONE transaction — the same fix as `checkout`. */
+  purchaseSubscription(
+    id: string, walletDebitFils: number,
+  ): Promise<{ subscription: SubscriptionState; walletBalanceFils: number }>;
+  /** Credit a top-up lot and grant its reload bonus in ONE transaction. A
+   *  bonus of 0 writes no points line, as the route always behaved. */
+  topUpWallet(
+    id: string, fils: number, bonusPoints: number, reasonAr: string, reasonEn: string,
+  ): Promise<{ walletBalanceFils: number; pointsBalance: number }>;
+
+  // ---- Idempotency-Key store (plugins/idempotency.ts) ----
+  /**
+   * Claim `key` for this member and request. Durable in the store itself, so
+   * a retry after a restart — or on another instance — sees the first attempt.
+   *
+   * 🔴 THE KEYS USED TO LIVE IN A PER-PROCESS Map. The money was durable and
+   * the memory of which request had already moved it was not: redeem with key
+   * K, restart, retry K, and the points were spent twice and a second code
+   * minted (bff/test/resilience-restart.test.ts R2.6).
+   *
+   * `at` is the caller's clock, so expiry (24 h) is judged identically by both
+   * implementations and by a test that moves time.
+   */
+  claimIdempotencyKey(memberId: string, key: string, requestHash: string, at: Date): Promise<IdempotencyClaim>;
+  /** Record the answer to replay. Only a PENDING claim with the same hash is
+   *  completed — never someone else's. */
+  completeIdempotencyKey(
+    memberId: string, key: string, requestHash: string, statusCode: number, body: string,
+  ): Promise<void>;
+  /** Drop a PENDING claim so the request may be retried (a 5xx that moved
+   *  nothing). A completed key is never released. */
+  releaseIdempotencyKey(memberId: string, key: string, requestHash: string): Promise<void>;
 
   // "Almond Club" subscription
   activateSubscription(id: string): Promise<SubscriptionState>;

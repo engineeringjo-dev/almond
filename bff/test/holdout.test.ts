@@ -552,10 +552,15 @@ describe('H12 the arm is recorded server-side and returned to nobody', () => {
     // The bff/test/earn.test.ts:756 idiom. An order written without its arm can
     // never be assigned one after the fact — that is the whole point of a
     // snapshot — so the call must be inside the createOrder literal.
+    //
+    // CHANGED 2026-09-23: the order is now written by backend.checkout (one
+    // transaction with the debit and the grant), so the literal that must
+    // carry the stamp is that call's `order:` object, not a createOrder call.
     const src = readFileSync(join(REPO, 'bff/src/routes/checkout.ts'), 'utf8');
     expect(src).toMatch(/experimentArms:\s*stampAllExperiments\(/);
-    const create = src.slice(src.indexOf('backend.createOrder('));
-    expect(create.slice(0, create.indexOf('});'))).toMatch(/experimentArms/);
+    const call = src.slice(src.indexOf('backend.checkout('));
+    const orderLiteral = call.slice(call.indexOf('order: {'));
+    expect(orderLiteral.slice(0, orderLiteral.indexOf('},'))).toMatch(/experimentArms:\s*stampAllExperiments\(/);
   });
 
   it('the backend stores the arms on the order record', async () => {

@@ -103,5 +103,17 @@ export function createOdooBackend(): Backend {
     activateSubscription: () => todo('activateSubscription'),
     redeemSubscriptionDrink: () => todo('redeemSubscriptionDrink'),
     getSubscription: () => todo('getSubscription'),
+    // The composite movements must be ONE Odoo transaction each (one RPC that
+    // writes the wallet move, the order and the loyalty lines together) — not
+    // a chain of RPCs, which is the saga these methods replaced.
+    checkout: () => todo('checkout'),
+    purchaseSubscription: () => todo('purchaseSubscription'),
+    topUpWallet: () => todo('topUpWallet'),
+    // Idempotency-Keys must be durable wherever the ledger is — a key held
+    // only in process memory is the R2.6 double-spend. Listed so the stub
+    // fails on the right name.
+    claimIdempotencyKey: () => todo('claimIdempotencyKey'),
+    completeIdempotencyKey: () => todo('completeIdempotencyKey'),
+    releaseIdempotencyKey: () => todo('releaseIdempotencyKey'),
   } as unknown as Backend;
 }

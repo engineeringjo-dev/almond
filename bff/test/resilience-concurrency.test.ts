@@ -1,8 +1,5 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { randomInt, randomUUID } from 'node:crypto';
-import { readFileSync } from 'node:fs';
-import { dirname, join } from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { Pool } from 'pg';
 import type { FastifyInstance } from 'fastify';
 import { liveBalance } from '@almond/shared/loyalty/lots';
@@ -15,6 +12,7 @@ import type { Backend } from '../src/backend';
 import { build } from '../src/server';
 import { config } from '../src/config';
 import { pgTestDb } from './lib/pgTestDb';
+import { loyaltySchemaSql } from './lib/schema';
 import { signIn } from './lib/signIn';
 
 /**
@@ -32,9 +30,10 @@ import { signIn } from './lib/signIn';
  *             serialises whole transactions on it (it used to interleave them:
  *             ten parallel spends of 30 on a balance of 100 all succeeded).
  *             So this proves the LOGIC is right under any ORDER of whole
- *             transactions, and proves NOTHING about row locks: with
- *             `FOR UPDATE` deleted from postgres.ts it stays green. That is why
- *             R1.8 captures the SQL and pins the lock textually.
+ *             transactions, and proves NOTHING about row locks: with the
+ *             member row lock (`FOR NO KEY UPDATE`) deleted from postgres.ts
+ *             it stays green. That is why R1.8 captures the SQL and pins the
+ *             lock textually.
  *
  *  real-pg    A real PostgreSQL through `pg.Pool` (max 20) — genuine parallel
  *             sessions contending for the same row. Runs only when
@@ -42,14 +41,13 @@ import { signIn } from './lib/signIn';
  *             dropped per suite), e.g.
  *               ALMOND_TEST_PG_URL='postgresql://postgres@localhost/postgres?host=/path/to/sock'
  *             Unset (CI today) it is SKIPPED, not faked. With it set, deleting
- *             `FOR UPDATE` from withMember produces a real double-spend here.
+ *             the row lock from withMember produces a real double-spend here.
  */
 
 const PG_URL = process.env.ALMOND_TEST_PG_URL;
-const MIGRATION = readFileSync(
-  join(dirname(fileURLToPath(import.meta.url)), '..', '..', 'supabase', 'migrations', '20260909_loyalty_backend.sql'),
-  'utf8',
-);
+/** Every loyalty migration, in order (lib/schema.ts) — the HTTP tests below
+ *  need 20260924's idempotency_keys as much as the base tables. */
+const MIGRATION = loyaltySchemaSql();
 
 interface Harness {
   backend: Backend;
@@ -58,7 +56,7 @@ interface Harness {
 }
 
 /** A throwaway database on a real server, migrated from the real file. */
-async function realPg(): Promise<Harness & { db: Db }> {
+async function realPg(): Promise<Harness & { db: Db; url: string }> {
   const admin = new Pool({ connectionString: PG_URL, max: 1 });
   const name = `resil_${randomUUID().replace(/-/g, '').slice(0, 16)}`;
   await admin.query(`create database ${name}`);
@@ -69,6 +67,7 @@ async function realPg(): Promise<Harness & { db: Db }> {
   const db = fromPool(pool);
   return {
     db,
+    url: url.toString(),
     backend: createPostgresBackend(db),
     async close() {
       await pool.end();
@@ -238,6 +237,31 @@ describe.each(HARNESSES)('R1 concurrency — %s', (_name, make) => {
     expect(cancelledCodes).toBeGreaterThan(0);
   }, 60_000);
 
+  it('R1.14 🔴 N parallel wallet checkouts exceeding the balance: no overdraft, and an order only where money moved', async () => {
+    const id = await member();
+    await h.backend.creditWallet(id, 10_000, 'topup');
+    const { ok, errs } = await burst(12, () => h.backend.checkout(id, {
+      order: { branchId: 'b1', type: 'pickup', paymentMethod: 'wallet', subtotal: 2.78, tax: 0.22, total: 3 },
+      walletDebitFils: 3_000, pointsEarned: 22, pointsReasonAr: 'نقاط طلب', pointsReasonEn: 'Order points',
+      earn: { points: 22 } as never, spendJod: 3, corporateUse: null,
+      secondVisit: { basketHasDrink: true, arm: assignHoldout(id, holdoutSpecFromConfig('secondVisitVoucher')) },
+      at: new Date(),
+    }));
+    expect(ok).toHaveLength(3);                               // floor(10 / 3)
+    expect(new Set(errs)).toEqual(new Set(['insufficient_wallet']));
+    expect(liveBalance((await h.backend.getMember(id)).walletLots)).toBe(1_000);
+    expect(new Set(ok.map((r) => r.order.id)).size).toBe(3);
+    expect(new Set(ok.map((r) => r.walletBalanceFils))).toEqual(new Set([7_000, 4_000, 1_000]));
+    // Points and window only for the three that paid — a refused one wrote nothing.
+    expect(await balance(id)).toBe(66);
+    expect(await ledgerSum(id)).toBe(66);
+    expect((await h.backend.getStanding(id)).windowSpend).toBe(9);
+    if (h.db) {
+      const orders = await h.db.query<{ n: number }>('select count(*)::int as n from orders where member_id = $1', [id]);
+      expect(orders[0].n).toBe(3);
+    }
+  }, 60_000);
+
   it('R1.9 two parallel first sign-ins with one phone create ONE member', async () => {
     const p = newPhone().canonical;
     const { ok, errs } = await burst(6, () => h.backend.findOrCreateByPhone(p));
@@ -380,7 +404,7 @@ function recording(inner: Db, groups: Group[]): Db {
   };
 }
 
-describe('R1.8 🔴 postgres.ts takes FOR UPDATE before every read-modify-write (SQL capture)', () => {
+describe('R1.8 🔴 postgres.ts takes a row lock (FOR NO KEY UPDATE on members) before every read-modify-write (SQL capture)', () => {
   const MUTABLE = ['members', 'redemptions', 'second_visit_vouchers'];
   let groups: Group[];
   let b: Backend;
@@ -403,7 +427,7 @@ describe('R1.8 🔴 postgres.ts takes FOR UPDATE before every read-modify-write 
         if (!m || !MUTABLE.includes(m[1])) return;
         expect(g.tx, `${label}: "${s}" ran outside a transaction`).toBe(true);
         const locked = g.sql.slice(0, i).some((p) =>
-          new RegExp(`^select .* from ${m[1]} .*for update$`).test(p));
+          new RegExp(`^select .* from ${m[1]} .*for (no key )?update$`).test(p));
         expect(locked, `${label}: "${s}" without a prior SELECT … FROM ${m[1]} … FOR UPDATE`).toBe(true);
       });
     }
@@ -422,12 +446,23 @@ describe('R1.8 🔴 postgres.ts takes FOR UPDATE before every read-modify-write 
       ['sweepRedemptions', () => b.sweepRedemptions(id, new Date())],
       ['activateSubscription', () => b.activateSubscription(id)],
       ['redeemSubscriptionDrink', () => b.redeemSubscriptionDrink(id)],
+      // The composite movements that replaced multi-transaction sagas: ONE
+      // transaction each, and it is the member lock that opens it.
+      ['topUpWallet', () => b.topUpWallet(id, 20_000, 50, 'أ', 'A')],
+      ['purchaseSubscription', () => b.purchaseSubscription(id, 1_000)],
+      ['checkout', () => b.checkout(id, {
+        order: { branchId: 'b1', type: 'pickup', paymentMethod: 'wallet', subtotal: 3, tax: 0.24, total: 3.24 },
+        walletDebitFils: 3_240, pointsEarned: 16, pointsReasonAr: 'نقاط طلب', pointsReasonEn: 'Order points',
+        earn: { points: 16 } as never, spendJod: 3.24, corporateUse: null,
+        secondVisit: { basketHasDrink: true, arm: assignHoldout(id, holdoutSpecFromConfig('secondVisitVoucher')) },
+        at: new Date(),
+      })],
     ];
     for (const [label, call] of cases) {
       const gs = await during(call);
       const txs = gs.filter((g) => g.tx);
       expect(txs, `${label}: expected exactly one transaction`).toHaveLength(1);
-      expect(txs[0].sql[0], label).toBe('select * from members where id = $1 for update');
+      expect(txs[0].sql[0], label).toBe('select * from members where id = $1 for no key update');
       expect(txs[0].sql.some((s) => s.startsWith('update members set')), label).toBe(true);
       assertLocked(gs, label);
     }
@@ -460,11 +495,57 @@ describe('R1.8 🔴 postgres.ts takes FOR UPDATE before every read-modify-write 
       memberId: id, orderId: order.id, basketHasDrink: true,
       arm: assignHoldout(id, holdoutSpecFromConfig('secondVisitVoucher')), at: new Date(),
     }));
-    expect(gs.filter((g) => g.tx)[0].sql[0]).toBe('select * from members where id = $1 for update');
+    expect(gs.filter((g) => g.tx)[0].sql[0]).toBe('select * from members where id = $1 for no key update');
     gs = await during(() => b.redeemSecondVisitVoucher(id, new Date()).catch(() => null));
     expect(gs.filter((g) => g.tx)[0].sql[0]).toBe('select * from second_visit_vouchers where member_id = $1 for update');
     assertLocked(gs, 'redeemSecondVisitVoucher');
   });
+
+  it.skipIf(!PG_URL)('real-pg: the member lock blocks another money write but NOT an order insert for that member', async () => {
+    const h = await realPg();
+    const pool = new Pool({ connectionString: h.url, max: 2 });
+    const other = await pool.connect();
+    let release: () => void = () => {};
+    let inFlight: Promise<unknown> = Promise.resolve();
+    try {
+      const id = (await h.backend.findOrCreateByPhone(newPhone().canonical)).id;
+      // Hold a REAL backend transaction open with its member lock taken —
+      // whatever lock withMember actually takes — by pausing it at its write.
+      const gate = new Promise<void>((r) => { release = r; });
+      let locked!: () => void;
+      const isLocked = new Promise<void>((r) => { locked = r; });
+      const pausing: Db = {
+        query: (text, params) => h.db.query(text, params),
+        tx: (fn) => h.db.tx((t) => fn({
+          async query<T>(text: string, params?: unknown[]) {
+            if (/^\s*update members set/.test(text)) { locked(); await gate; }
+            return t.query<T>(text, params);
+          },
+          tx: (f) => f(t),
+        })),
+      };
+      inFlight = createPostgresBackend(pausing).addPoints(id, 10, 'منحة', 'Grant');
+      await isLocked;
+      await other.query(`set statement_timeout = '1500ms'`);
+      // An FK insert takes FOR KEY SHARE on the member row. Under FOR NO KEY
+      // UPDATE it goes straight through; under FOR UPDATE it would queue
+      // behind the money write and die on the timeout here.
+      await other.query(`insert into orders (id, member_id, branch_id, order_type, payment_method, total)
+        values ('o_while_locked', $1, 'b1', 'pickup', 'cash', 1)`, [id]);
+      // A second money write on the same member still waits — the serialisation
+      // every balance guard rests on is intact.
+      await expect(other.query('select * from members where id = $1 for no key update', [id]))
+        .rejects.toMatchObject({ code: '57014' });                       // canceled by the timeout
+      release();
+      expect(await inFlight).toBe(10);
+    } finally {
+      release();                                                        // never leave the tx hanging
+      await inFlight.catch(() => {});
+      other.release();
+      await pool.end();
+      await h.close();
+    }
+  }, 60_000);
 
   it('a top-level query issued from inside a transaction fails loudly (both adapters)', async () => {
     const db = await pgTestDb();

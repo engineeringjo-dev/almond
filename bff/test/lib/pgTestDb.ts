@@ -1,8 +1,6 @@
-import { readFileSync } from 'node:fs';
-import { dirname, join } from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { PGlite } from '@electric-sql/pglite';
 import { fromPglite, type Db } from '../../src/backend/db';
+import { loyaltySchemaSql } from './schema';
 
 /**
  * A real Postgres, from the real migration, in-process.
@@ -15,14 +13,12 @@ import { fromPglite, type Db } from '../../src/backend/db';
 export async function pgTestDb(): Promise<Db> {
   const pg = new PGlite();
   await pg.waitReady;
-  // Resolved from THIS FILE, not from process.cwd() — the working directory
-  // differs between `npm test`, a workspace run and an editor, and a schema the
-  // tests cannot find is a suite that silently tests nothing.
-  const here = dirname(fileURLToPath(import.meta.url));
-  const sql = readFileSync(
-    join(here, '..', '..', '..', 'supabase', 'migrations', '20260909_loyalty_backend.sql'),
-    'utf8',
-  );
+  // Resolved from the migrations folder (lib/schema.ts), not from
+  // process.cwd() — the working directory differs between `npm test`, a
+  // workspace run and an editor, and a schema the tests cannot find is a suite
+  // that silently tests nothing. EVERY loyalty migration, in order: a table the
+  // code writes that only a later migration creates must exist here too.
+  const sql = loyaltySchemaSql();
   await pg.exec(sql);
   return fromPglite(pg);
 }

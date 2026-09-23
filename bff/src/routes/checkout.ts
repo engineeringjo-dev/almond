@@ -2,13 +2,12 @@ import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { parse } from '../validate';
 import { requireMember, memberId } from '../plugins/auth';
-import { idempotencyPreHandler, idempotencyOnSend } from '../plugins/idempotency';
+import { idempotency } from '../plugins/idempotency';
 import { reprice } from '../pricing';
 import { corporateDiscountAmount } from '@almond/shared/loyalty/corporate';
 import { computeEarn } from '../earn';
 import { assignHoldout, holdoutSpecFromConfig, stampAllExperiments } from '@almond/shared/loyalty/holdout';
-import { toSecondVisitView, type SecondVisitVoucherView } from '@almond/shared/loyalty/secondVisit';
-import { liveBalance } from '@almond/shared/loyalty/lots';
+import { toSecondVisitView } from '@almond/shared/loyalty/secondVisit';
 import { toFils, toJod } from '../money';
 import { recordOrderLines } from '../analytics/orderLines';
 import type { Backend } from '../backend';
@@ -29,9 +28,10 @@ const bodySchema = z.object({
 });
 
 export function registerCheckoutRoutes(app: FastifyInstance, backend: Backend): void {
+  const idem = idempotency(backend);
   app.post('/v1/checkout', {
-    preHandler: [requireMember, idempotencyPreHandler],
-    onSend: [idempotencyOnSend],
+    preHandler: [requireMember, idem.preHandler],
+    onSend: [idem.onSend],
   }, async (req, reply) => {
     const id = memberId(req);
     const input = parse(bodySchema, req.body);
@@ -92,164 +92,134 @@ export function registerCheckoutRoutes(app: FastifyInstance, backend: Backend): 
      */
     const funded = paidFromBalance || unfundedValueAllowed();
 
-    // 2) Atomic saga with compensation.
-    let walletDebited = 0;
-    try {
-      if (paidFromBalance) {
-        // 🔴 THE ASSIGNMENT COMES AFTER THE AWAIT, AND THAT IS THE WHOLE POINT.
-        //
-        // It used to be `walletDebited = toFils(total)` on the line BEFORE the
-        // debit. When debitWallet threw — an insufficient balance, the most
-        // ordinary failure this route has — the catch below saw a non-zero
-        // `walletDebited` and "compensated" by CREDITING money that had never
-        // left the wallet. A member with 1 JOD who tried to buy a 5 JOD coffee
-        // ended up with more money than they started with, every time they
-        // tried. Found by T34f on 2026-09-08.
-        //
-        // A compensation variable must record what actually happened, never
-        // what was about to be attempted.
-        const fils = toFils(totals.total);
-        await backend.debitWallet(id, fils); // throws → nothing below runs
-        walletDebited = fils;
-      }
-      // NOTE: card/cliq payments would capture via a PSP here (out of scope).
-      const order = await backend.createOrder({
-        memberId: id, branchId: input.branchId, type: input.orderType,
+    // Bonus-day activation is not yet server-side state (promoStore is on the
+    // device). Until POST /v1/promo/bonus-day/activate exists, the server
+    // never pays the bonus day — a client-asserted flag would be a
+    // self-crediting vector. See docs/LOYALTY-EARN-PATCH.md §3.2 / §8.1.
+    //
+    // 🔴 WHAT THE MEMBER PAID FOR THIS ORDER WITH POINTS — `pointsRedeemed`
+    // below. Points are money (owner, 2026-09-08) and the part of a bill paid
+    // with them earns nothing, so computeEarn takes the redeemed points off
+    // the invoice before the ceiling and before the rate.
+    //
+    // IT IS ZERO HERE, AND THAT IS A FACT ABOUT THIS ROUTE, NOT A DEFAULT.
+    // /v1/checkout takes NO payment in points: its body has no points field,
+    // reprice() prices the menu, and the only balance it can debit is the
+    // wallet. Redemption is a SEPARATE rail — POST /v1/loyalty/redeem spends
+    // points and hands back `valueJod` for the till to take off an Odoo order
+    // this route never sees, exactly like the second-visit voucher's free
+    // line. Nothing in this repo joins a redemption to an order id, so there
+    // is no number to pass here and inventing one ("points spent in the last
+    // few minutes") would be a guess written into a grant.
+    //
+    // WHEN THE TWO RAILS ARE JOINED — a points field on this body, or an Odoo
+    // POS order carrying both the redemption and the sale — the real figure
+    // goes in on that line, and it must be the points ACTUALLY spent against
+    // THIS invoice, resolved server-side and never asserted by a client.
+    // Until then a member who redeems at the till and then orders in the app
+    // earns on the full app invoice, because those are two different bills.
+    //
+    // Computed BEFORE anything is written: the grant depends only on the
+    // invoice and the standing read above, never on the order id.
+    const earn = computeEarn({
+      total: totals.total,          // tax-inclusive, per §1.1
+      corporate: entitlement !== null,   // zero points; see loyalty/corporate.ts
+      pointsRedeemed: 0,            // see above: no points rail on this route
+      windowSpend: standing.windowSpend,
+      // The FLOOR, not an override: computeEarn pays max(live rung, held
+      // rung), so a member whose 90-day window has rolled off keeps the rate
+      // they reached — there is no demotion (config/index.ts:186-191). Which
+      // invoice first gets a NEW rate is settled where `standing` is read.
+      heldRungId: standing.held.id,
+      paidFromBalance,
+      comboPairs,
+      bonusDayActivated: false,
+    });
+
+    // 2) ONE transaction: debit, order, voucher, corporate use, grant, spend.
+    //
+    // 🔴 THIS WAS A THREE-TRANSACTION SAGA. debitWallet, createOrder and
+    // addPoints each committed on their own, and the compensating refund ran
+    // only on a thrown error — so a process that died after the debit (a
+    // deploy, an OOM) kept the member's money and wrote no order. There is
+    // nothing to compensate now: Backend.checkout commits every row or none,
+    // and `insufficient_wallet` is refused having written nothing.
+    //
+    // The route still decides every NUMBER — the price above, the grant, the
+    // funded gate — through @almond/shared; the backend only moves them.
+    const result = await backend.checkout(id, {
+      order: {
+        branchId: input.branchId, type: input.orderType,
         paymentMethod: input.paymentMethod,
-        subtotal: totals.subtotal, tax: totals.tax, total: totals.total, pointsEarned: 0,
+        subtotal: totals.subtotal, tax: totals.tax, total: totals.total,
         // The experiment arms this member was in when the order was written
         // (§4.11's snapshot). RECORDED, NEVER ACTED ON HERE: nothing in this
         // route branches on an arm, and no field of the 201 body carries one —
         // a control arm that knows it is one is not a control arm.
         experimentArms: stampAllExperiments(id),
-      });
-      // Log the sold lines with calendar covariates (forecasting training data).
-      recordOrderLines({
-        orderId: order.id, memberId: id, branchId: input.branchId,
-        orderType: input.orderType, items,
-      });
-
-      // 4) The second-visit voucher — «تانية علينا» (BRIEF §3 W2).
-      //
-      // 🔴 THIS RUNS BEFORE computeEarn/addPoints/recordSpend AND THAT IS
-      // LOAD-BEARING. The backend reads the member's PRE-transaction balance to
-      // decide eligibility (a balance the BFF never granted means a history it
-      // cannot see — the guard against re-issuing to all 47,720 migrated
-      // members). memory.ts's must() returns the stored Member and addPoints
-      // mutates it in place, so moved below the grant this guard would read a
-      // post-grant balance and NOBODY would ever be issued a voucher.
-      // bff/test/secondVisit.test.ts T32a goes red the moment it moves.
-      //
-      // Wrapped so it can never fail a checkout that already took money: a
-      // marketing grant must not roll back a paid order. The cost of that
-      // trade — a swallowed error loses this member's voucher permanently,
-      // because the next transaction is no longer their first — is accepted
-      // here and removed properly in Odoo, where the row is written in the same
-      // database transaction as the order.
-      let secondVisitVoucher: SecondVisitVoucherView | null = null;
-      try {
-        const issued = await backend.evaluateSecondVisitVoucher({
-          memberId: id,
-          orderId: order.id,
-          basketHasDrink: hasDrink,
-          // The arm comes from the member id, never from the request body: a
-          // client that can choose its own arm is not a control arm.
-          arm: assignHoldout(id, holdoutSpecFromConfig('secondVisitVoucher')),
-          at: now,
-        });
-        secondVisitVoucher = toSecondVisitView(issued, now);
-      } catch (e) {
-        req.log.error({ err: e }, 'second-visit voucher evaluation failed');
-      }
-
-      // Bonus-day activation is not yet server-side state (promoStore is on the
-      // device). Until POST /v1/promo/bonus-day/activate exists, the server
-      // never pays the bonus day — a client-asserted flag would be a
-      // self-crediting vector. See docs/LOYALTY-EARN-PATCH.md §3.2 / §8.1.
-      //
-      // 🔴 WHAT THE MEMBER PAID FOR THIS ORDER WITH POINTS — `pointsRedeemed`
-      // below. Points are money (owner, 2026-09-08) and the part of a bill paid
-      // with them earns nothing, so computeEarn takes the redeemed points off
-      // the invoice before the ceiling and before the rate.
-      //
-      // IT IS ZERO HERE, AND THAT IS A FACT ABOUT THIS ROUTE, NOT A DEFAULT.
-      // /v1/checkout takes NO payment in points: its body has no points field,
-      // reprice() prices the menu, and the only balance it can debit is the
-      // wallet. Redemption is a SEPARATE rail — POST /v1/loyalty/redeem spends
-      // points and hands back `valueJod` for the till to take off an Odoo order
-      // this route never sees, exactly like the second-visit voucher's free
-      // line. Nothing in this repo joins a redemption to an order id, so there
-      // is no number to pass here and inventing one ("points spent in the last
-      // few minutes") would be a guess written into a grant.
-      //
-      // WHEN THE TWO RAILS ARE JOINED — a points field on this body, or an Odoo
-      // POS order carrying both the redemption and the sale — the real figure
-      // goes in on that line, and it must be the points ACTUALLY spent against
-      // THIS invoice, resolved server-side and never asserted by a client.
-      // Until then a member who redeems at the till and then orders in the app
-      // earns on the full app invoice, because those are two different bills.
-      const earn = computeEarn({
-        total: totals.total,          // tax-inclusive, per §1.1
-        corporate: entitlement !== null,   // zero points; see loyalty/corporate.ts
-        pointsRedeemed: 0,            // see above: no points rail on this route
-        windowSpend: standing.windowSpend,
-        // The FLOOR, not an override: computeEarn pays max(live rung, held
-        // rung), so a member whose 90-day window has rolled off keeps the rate
-        // they reached — there is no demotion (config/index.ts:186-191). Which
-        // invoice first gets a NEW rate is settled where `standing` is read.
-        heldRungId: standing.held.id,
-        paidFromBalance,
-        comboPairs,
-        bonusDayActivated: false,
-      });
-      const pointsEarned = funded ? earn.points : 0;
+      },
+      // NOTE: card/cliq payments would capture via a PSP here (out of scope).
+      walletDebitFils: paidFromBalance ? toFils(totals.total) : 0,
+      pointsEarned: funded ? earn.points : 0,
+      pointsReasonAr: 'نقاط طلب',
+      pointsReasonEn: 'Order points',
       // The whole breakdown is persisted on the order (§5b) so a grant can be
       // re-derived and the shadow delta reconstructed after the fact. An
       // unfunded order records none: a breakdown describes a grant, and there
       // was not one.
-      if (funded) await backend.recordEarnBreakdown(order.id, earn);
-
+      earn: funded ? earn : null,
+      // Dated and pruned to the rolling window — never `windowSpend += jod`.
+      spendJod: funded ? totals.total : null,
       // 🔴 THE USE IS LOGGED, NOT INFERRED. «بدي يبين عندي كل موظف شو اخذ درنك،
       // وكم مرة استخدم خصمه» — which drink each employee took, and how many
-      // times they used their discount. That cannot be reconstructed later from
-      // orders alone: the rate a company is on changes, and re-reading today's
-      // percentage against last month's orders would rewrite history. So the
-      // rate that actually applied is written down with the items, once, here.
-      if (entitlement) {
-        const member = await backend.getMember(id);
-        await backend.recordCorporateUse({
-          memberId: id,
+      // times they used their discount. That cannot be reconstructed later
+      // from orders alone: the rate a company is on changes, and re-reading
+      // today's percentage against last month's orders would rewrite history.
+      // So the rate that actually applied is written down with the items, in
+      // the same transaction as the order it belongs to.
+      corporateUse: entitlement
+        ? {
           companyId: entitlement.company.id,
-          phone: member.phone,
-          at: now.toISOString(),
-          orderId: order.id,
           items: items.map((l) => ({ nameAr: l.nameAr, nameEn: l.nameEn, qty: l.qty })),
           percentOff: entitlement.percentOff,
           discountJod: totals.discount,
-        });
-      }
-      const pointsBalance = await backend.addPoints(id, pointsEarned, 'نقاط طلب', 'Order points');
-      // Dated and pruned to the rolling window — never `windowSpend += jod`.
-      if (funded) await backend.recordSpend(id, totals.total);
-      const after = await backend.getMember(id);
-      return reply.code(201).send({
-        orderId: order.id,
-        subtotal: totals.subtotal, tax: totals.tax, total: totals.total,
-        itemCount: items.reduce((s, l) => s + l.qty, 0),
-        pointsEarned, pointsBalance, walletBalance: toJod(liveBalance(after.walletLots)),
-        // null for a member who was suppressed, declined, ineligible or already
-        // evaluated — the SAME bytes in every case, so the body cannot be read
-        // to work out which arm the member is in.
-        secondVisitVoucher,
-      });
-    } catch (err) {
-      if (walletDebited > 0) {
-        // 'refund', not 'topup': the member did not buy this money back, we are
-        // returning it. The lot gets a fresh 24-month clock, which is the
-        // generous side of an ambiguity nobody should have to lose sleep over.
-        try { await backend.creditWallet(id, walletDebited, 'refund'); } catch { /* compensation best-effort */ }
-      }
-      throw err;
+        }
+        : null,
+      // The second-visit voucher — «تانية علينا» (BRIEF §3 W2). The backend
+      // evaluates it after the order is written and BEFORE the grant and the
+      // spend: its guards read the member's PRE-transaction balance and window
+      // (bff/test/secondVisit.test.ts T32a goes red if that order changes).
+      // The arm comes from the member id, never from the request body: a
+      // client that can choose its own arm is not a control arm.
+      secondVisit: {
+        basketHasDrink: hasDrink,
+        arm: assignHoldout(id, holdoutSpecFromConfig('secondVisitVoucher')),
+      },
+      at: now,
+    });
+    // A failed voucher evaluation never fails a paid checkout — the backend
+    // rolled back only the voucher (a savepoint) — but it must not be silent:
+    // the member lost it permanently, because the next order is not their first.
+    if (result.secondVisitError) {
+      req.log.error({ err: result.secondVisitError }, 'second-visit voucher evaluation failed');
     }
+    // Log the sold lines with calendar covariates (forecasting training data).
+    // After the commit, so a refused checkout never trains the forecast.
+    recordOrderLines({
+      orderId: result.order.id, memberId: id, branchId: input.branchId,
+      orderType: input.orderType, items,
+    });
+    return reply.code(201).send({
+      orderId: result.order.id,
+      subtotal: totals.subtotal, tax: totals.tax, total: totals.total,
+      itemCount: items.reduce((s, l) => s + l.qty, 0),
+      pointsEarned: result.order.pointsEarned,
+      pointsBalance: result.pointsBalance,
+      walletBalance: toJod(result.walletBalanceFils),
+      // null for a member who was suppressed, declined, ineligible or already
+      // evaluated — the SAME bytes in every case, so the body cannot be read
+      // to work out which arm the member is in.
+      secondVisitVoucher: toSecondVisitView(result.secondVisitVoucher, now),
+    });
   });
 }

@@ -1,9 +1,8 @@
-import { describe, it, expect, afterAll, vi } from 'vitest';
+import { describe, it, expect, afterAll, afterEach, beforeEach, vi } from 'vitest';
 import { randomInt, randomUUID } from 'node:crypto';
-import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { dirname, join } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { join } from 'node:path';
 import { PGlite } from '@electric-sql/pglite';
 import { Pool } from 'pg';
 import { liveBalance } from '@almond/shared/loyalty/lots';
@@ -13,6 +12,8 @@ import { createPostgresBackend } from '../src/backend/postgres';
 import { fromPglite, fromPool, type Db } from '../src/backend/db';
 import type { Backend } from '../src/backend';
 import { pgTestDb } from './lib/pgTestDb';
+import { loyaltySchemaSql } from './lib/schema';
+import { menuItems } from '@almond/shared/menu';
 
 /**
  * R2 — WHAT SURVIVES A RESTART.
@@ -39,10 +40,8 @@ import { pgTestDb } from './lib/pgTestDb';
  */
 
 const PG_URL = process.env.ALMOND_TEST_PG_URL;
-const MIGRATION = readFileSync(
-  join(dirname(fileURLToPath(import.meta.url)), '..', '..', 'supabase', 'migrations', '20260909_loyalty_backend.sql'),
-  'utf8',
-);
+/** Every loyalty migration, in order — the schema a deploy runs on. */
+const MIGRATION = loyaltySchemaSql();
 const phone = () => `+96278${randomInt(1_000_000, 10_000_000)}`;
 
 interface World { memberIds: string[]; codes: string[] }
@@ -125,7 +124,7 @@ async function snapshot(b: Backend, w: World) {
 async function dump(db: Db) {
   const out: Record<string, unknown[]> = {};
   for (const t of ['members', 'point_history', 'orders', 'second_visit_vouchers', 'redemptions',
-    'companies', 'corporate_roster', 'corporate_uses']) {
+    'companies', 'corporate_roster', 'corporate_uses', 'idempotency_keys']) {
     out[t] = await db.query(`select * from ${t} order by 1`);
   }
   return JSON.parse(JSON.stringify(out));
@@ -252,6 +251,23 @@ function crashingOn(inner: Db, pattern: RegExp): Db {
   };
 }
 
+/** A Db whose statement matching `pattern` fails INSIDE Postgres (division by
+ *  zero, 22012) rather than in JS. Only a real SQL error aborts the enclosing
+ *  transaction, so only this can prove a savepoint is doing its job. */
+function sqlErrorOn(inner: Db, pattern: RegExp): Db {
+  const swap = (text: string) => (pattern.test(text) ? 'select 1/0' : text);
+  const child = (t: Db): Db => ({
+    query<T>(text: string, params?: unknown[]) {
+      return pattern.test(text) ? t.query<T>(swap(text)) : t.query<T>(text, params);
+    },
+    tx<T>(fn: (x: Db) => Promise<T>) { return fn(child(t)); },
+  });
+  return {
+    query<T>(text: string, params?: unknown[]) { return inner.query<T>(swap(text), pattern.test(text) ? [] : params); },
+    tx<T>(fn: (x: Db) => Promise<T>) { return inner.tx((t) => fn(child(t))); },
+  };
+}
+
 describe('R2.5 🔴 a crash mid-transaction leaves nothing half-written', () => {
   it('spend dies after the member row is written but before its ledger line: rolled back whole', async () => {
     const db = await pgTestDb();
@@ -283,63 +299,273 @@ describe('R2.5 🔴 a crash mid-transaction leaves nothing half-written', () => 
   }, 60_000);
 });
 
+/** A throwaway database on the real server (ALMOND_TEST_PG_URL), migrated
+ *  from the real files; `close` drops it. */
+async function realPgDb(): Promise<{ db: Db; close(): Promise<void> }> {
+  const admin = new Pool({ connectionString: PG_URL, max: 1 });
+  const name = `restart_${randomUUID().replace(/-/g, '').slice(0, 16)}`;
+  await admin.query(`create database ${name}`);
+  const url = new URL(PG_URL!);
+  url.pathname = `/${name}`;
+  const pool = new Pool({ connectionString: url.toString(), max: 10 });
+  await pool.query(MIGRATION);
+  return {
+    db: fromPool(pool),
+    async close() {
+      await pool.end();
+      await admin.query(`drop database if exists ${name}`);
+      await admin.end();
+    },
+  };
+}
+
+/** PGlite always; a real Postgres too when ALMOND_TEST_PG_URL is set. */
+const STORES: [string, () => Promise<{ db: Db; close(): Promise<void> }>][] = [
+  ['pglite', async () => ({ db: await pgTestDb(), close: async () => {} })],
+  ...(PG_URL ? [['real-pg', realPgDb] as [string, () => Promise<{ db: Db; close(): Promise<void> }>]] : []),
+];
+
+/** "A new process": a fresh module graph (vi.resetModules), so no module-level
+ *  state survives — over the SAME database, which is what a restart has. */
+async function boot(backend: (pgMod: typeof import('../src/backend/postgres')) => Backend) {
+  vi.resetModules();
+  const { build } = await import('../src/server');
+  const pgMod = await import('../src/backend/postgres');
+  return build(backend(pgMod));
+}
+type App = Awaited<ReturnType<typeof boot>>;
+
 /**
- * R2.6 🔴 KNOWN GAP, PINNED — the Idempotency-Key does NOT survive a restart.
+ * R2.6 🔴 THE Idempotency-Key SURVIVES A RESTART — this used to be a PINNED GAP.
  *
- * bff/src/plugins/idempotency.ts keeps its keys in a module-level Map. The
- * money is durable (Postgres) but the memory of which requests already moved
- * it is not. The sequence below is an ordinary production event: a member
- * redeems points, the process dies (deploy, OOM, crash) before the phone reads
- * the 201, the phone retries with the SAME key — exactly what the key is for —
- * and the restarted process, holding an empty Map, spends the points AGAIN
- * and mints a second code. The same holds across two instances behind a load
- * balancer, with no restart at all. (/v1/loyalty/redeem is used because it is
- * live in production; /v1/wallet/topup is now refused there, and /v1/checkout
- * paying from the wallet has the same shape.)
- *
- * A "restart" here is a fresh module graph (vi.resetModules) over the SAME
- * database — which is precisely what a new process has. This test asserts the
- * CURRENT, UNSAFE outcome (spent twice) so it cannot pass by accident; when
- * the key store moves into Postgres it goes red — then assert 700.
+ * bff/src/plugins/idempotency.ts kept its keys in a module-level Map: the money
+ * was durable (Postgres) and the memory of which request had already moved it
+ * was not. A member redeemed, the process died before the phone read the 201,
+ * the phone retried with the SAME key — exactly what the key is for — and the
+ * restarted process spent the points AGAIN and minted a second code. This test
+ * asserted that unsafe outcome (400 left of 1,000) until the keys moved into
+ * the store (supabase/migrations/20260924_idempotency_keys.sql); it now asserts
+ * the safe one, on PGlite and on a real Postgres.
  */
-describe('R2.6 KNOWN GAP (pinned): Idempotency-Key across a restart', () => {
-  it('a retried redeem after a restart spends the points TWICE', async () => {
-    const db = await pgTestDb();
-    const boot = async () => {
-      vi.resetModules();                                   // a new process: fresh module state
-      const { build } = await import('../src/server');
-      const pgMod = await import('../src/backend/postgres');
-      return build(pgMod.createPostgresBackend(db));
-    };
-    const b = createPostgresBackend(db);
+describe.each(STORES)('R2.6 🔴 Idempotency-Key across a restart — %s', (_name, make) => {
+  let store: { db: Db; close(): Promise<void> };
+  beforeEach(async () => { store = await make(); }, 60_000);
+  afterEach(async () => { await store?.close(); });
+
+  const member = async () => {
+    const b = createPostgresBackend(store.db);
     const id = (await b.findOrCreateByPhone(phone())).id;
     await b.addPoints(id, 1_000, 'منحة', 'Grant');
-    const key = randomUUID();
-    const redeem = async (app: Awaited<ReturnType<typeof boot>>) => app.inject({
-      method: 'POST', url: '/v1/loyalty/redeem', payload: { points: 300 },
-      headers: { authorization: `Bearer ${app.jwt.sign({ sub: id })}`, 'idempotency-key': key },
-    });
-    const points = async () => liveBalance((await createPostgresBackend(db).getMember(id)).lots);
+    return id;
+  };
+  const points = async (id: string) => liveBalance((await createPostgresBackend(store.db).getMember(id)).lots);
+  const redeem = (app: App, id: string, key: string, pts = 300) => app.inject({
+    method: 'POST', url: '/v1/loyalty/redeem', payload: { points: pts },
+    headers: { authorization: `Bearer ${app.jwt.sign({ sub: id })}`, 'idempotency-key': key },
+  });
+  const pg = (m: typeof import('../src/backend/postgres')) => m.createPostgresBackend(store.db);
 
-    const app1 = await boot();
-    const first = await redeem(app1);
+  it('a retried redeem after a restart REPLAYS the first answer and spends nothing twice', async () => {
+    const id = await member();
+    const key = randomUUID();
+
+    const app1 = await boot(pg);
+    const first = await redeem(app1, id, key);
     expect(first.statusCode).toBe(201);
-    // Same process: the key works — a replay is a replay.
-    const replay = await redeem(app1);
+    const replay = await redeem(app1, id, key);            // same process: a replay is a replay
     expect(replay.headers['idempotent-replay']).toBe('true');
-    expect(replay.json()).toEqual(first.json());
-    expect(await points()).toBe(700);
+    expect(replay.body).toBe(first.body);
+    expect(await points(id)).toBe(700);
     await app1.close();                                    // the process dies
 
-    const app2 = await boot();                             // …and comes back
-    const retry = await redeem(app2);
+    const app2 = await boot(pg);                           // …and comes back
+    const retry = await redeem(app2, id, key);
     expect(retry.statusCode).toBe(201);
-    expect(retry.headers['idempotent-replay']).toBeUndefined();
-    expect(retry.json().redemption.id).not.toBe(first.json().redemption.id);
-    // SAFE STATE WOULD BE: 700, and `retry` a replay of `first`.
-    expect(await points()).toBe(400);
+    expect(retry.headers['idempotent-replay']).toBe('true');
+    expect(retry.body).toBe(first.body);                   // byte for byte: the SAME code
+    expect(await points(id)).toBe(700);                    // was 400 while the gap was open
+    // CONTROL: a NEW key is a new request, so the test can see a double spend.
+    expect((await redeem(app2, id, randomUUID())).statusCode).toBe(201);
+    expect(await points(id)).toBe(400);
+    await app2.close();
+  }, 60_000);
+
+  it('two live instances over one database share the keys — sequentially and in parallel', async () => {
+    const id = await member();
+    const a = await boot(pg);
+    const b = await boot(pg);
+    const key = randomUUID();
+    const first = await redeem(a, id, key);
+    const other = await redeem(b, id, key);
+    expect(other.headers['idempotent-replay']).toBe('true');
+    expect(other.body).toBe(first.body);
+
+    const k2 = randomUUID();
+    const rs = await Promise.all(Array.from({ length: 8 }, (_, i) => redeem(i % 2 ? a : b, id, k2)));
+    expect(rs.every((r) => r.statusCode === 201 || r.statusCode === 409)).toBe(true);
+    const ids = new Set(rs.filter((r) => r.statusCode === 201).map((r) => r.json().redemption.id));
+    expect(ids.size).toBe(1);
+    for (const r of rs.filter((x) => x.statusCode === 409)) expect(r.json().error).toBe('request_in_progress');
+    expect(await points(id)).toBe(400);                    // two keys, two spends — never more
+    await a.close();
+    await b.close();
+  }, 60_000);
+
+  it('the same key with a DIFFERENT body is 422 — not a replay, and it moves nothing', async () => {
+    const id = await member();
+    const app = await boot(pg);
+    const key = randomUUID();
+    expect((await redeem(app, id, key, 300)).statusCode).toBe(201);
+    const reused = await redeem(app, id, key, 600);
+    expect(reused.statusCode).toBe(422);
+    expect(reused.json().error).toBe('idempotency_key_reused');
+    expect(reused.headers['idempotent-replay']).toBeUndefined();
+    expect(await points(id)).toBe(700);
+    // The same key on ANOTHER route is another request too.
+    const onCheckout = await app.inject({
+      method: 'POST', url: '/v1/subscription/subscribe', payload: { paymentMethod: 'wallet' },
+      headers: { authorization: `Bearer ${app.jwt.sign({ sub: id })}`, 'idempotency-key': key },
+    });
+    expect(onCheckout.statusCode).toBe(422);
+    await app.close();
+  }, 60_000);
+
+  it('🔴 a request whose process died after moving money is NEVER re-run: 409 until the key expires', async () => {
+    const id = await member();
+    const key = randomUUID();
+    // The redemption commits, then the process dies before it can record how
+    // the request ended — simulated by the completion write failing.
+    const app1 = await boot((m) => ({
+      ...m.createPostgresBackend(store.db),
+      completeIdempotencyKey: async () => { throw new Error('process died'); },
+    }));
+    expect((await redeem(app1, id, key)).statusCode).toBe(201);   // the member was answered…
+    await app1.close();
+    expect(await points(id)).toBe(700);
+
+    const app2 = await boot(pg);
+    const retry = await redeem(app2, id, key);
+    expect(retry.statusCode).toBe(409);                    // …and the retry cannot spend again
+    expect(retry.json()).toEqual({ error: 'request_in_progress' });
+    expect(await points(id)).toBe(700);
     await app2.close();
   }, 60_000);
 });
+
+/**
+ * R2.8 🔴 CHECKOUT IS ONE TRANSACTION — a crash anywhere inside it leaves the
+ * wallet as it was and no order.
+ *
+ * It was a three-transaction saga (debitWallet, createOrder, addPoints) whose
+ * refund ran only on a thrown error. A process that died after the debit kept
+ * the member's money with no order to show for it. Each crash point below is a
+ * statement INSIDE Backend.checkout; the store must be byte-identical after.
+ */
+describe.each(STORES)('R2.8 🔴 a crash mid-checkout moves no money — %s', (_name, make) => {
+  let store: { db: Db; close(): Promise<void> };
+  beforeEach(async () => { store = await make(); }, 60_000);
+  afterEach(async () => { await store?.close(); });
+
+  const input = (id: string) => ({
+    order: { branchId: 'b1', type: 'pickup' as const, paymentMethod: 'wallet' as const, subtotal: 5.37, tax: 0.43, total: 5.8 },
+    walletDebitFils: 5_800, pointsEarned: 43,
+    pointsReasonAr: 'نقاط طلب', pointsReasonEn: 'Order points',
+    earn: { points: 43 } as never, spendJod: 5.8,
+    corporateUse: { companyId: 'acme', items: [{ nameAr: 'لاتيه', nameEn: 'Latte', qty: 1 }], percentOff: 10, discountJod: 0.6 },
+    secondVisit: { basketHasDrink: true, arm: assignHoldout(id, holdoutSpecFromConfig('secondVisitVoucher')) },
+    at: new Date(),
+  });
+
+  it('dies at the points insert, the order insert, the use insert or the member write: nothing lands', async () => {
+    const ok = createPostgresBackend(store.db);
+    await ok.saveCompany({ id: 'acme', nameAr: '', nameEn: 'Acme', percentOff: 10, active: true });
+    const id = (await ok.findOrCreateByPhone(phone())).id;
+    await ok.creditWallet(id, 10_000, 'topup');
+    const d0 = await dump(store.db);
+    for (const at of [/insert into point_history/, /insert into orders/, /insert into corporate_uses/, /update members set/]) {
+      const dying = createPostgresBackend(crashingOn(store.db, at));
+      await expect(dying.checkout(id, input(id)), String(at)).rejects.toThrow(/simulated crash/);
+      expect(await dump(store.db), String(at)).toEqual(d0);   // not one row moved
+    }
+    expect(liveBalance((await ok.getMember(id)).walletLots)).toBe(10_000);
+    // CONTROL: the same call on a healthy store does move all of it.
+    const r = await ok.checkout(id, input(id));
+    expect(r.walletBalanceFils).toBe(4_200);
+    const after = await dump(store.db);
+    expect(after.orders).toHaveLength(1);
+    expect(after.corporate_uses).toHaveLength(1);
+  }, 60_000);
+
+  it('a voucher failure is contained by its savepoint: the paid order stands, only the voucher is lost', async () => {
+    const ok = createPostgresBackend(store.db);
+    await ok.saveCompany({ id: 'acme', nameAr: '', nameEn: 'Acme', percentOff: 10, active: true });
+    const id = (await ok.findOrCreateByPhone(phone())).id;
+    await ok.creditWallet(id, 10_000, 'topup');
+    // A REAL SQL error, so Postgres aborts the transaction: without the
+    // savepoint rolled back, every statement after it would fail (25P02) and
+    // take the paid order down with the voucher.
+    const flaky = createPostgresBackend(sqlErrorOn(store.db, /insert into second_visit_vouchers/));
+    const r = await flaky.checkout(id, input(id));
+    expect((r.secondVisitError as { code?: string }).code).toBe('22012');
+    expect(r.secondVisitVoucher).toBeNull();
+    expect(liveBalance((await ok.getMember(id)).walletLots)).toBe(4_200);
+    const d = await dump(store.db);
+    expect(d.orders).toHaveLength(1);
+    expect(d.second_visit_vouchers).toHaveLength(0);
+  }, 60_000);
+
+  it('subscribe and top-up are one transaction too: a crash leaves no debit without a subscription, no credit without its bonus', async () => {
+    const ok = createPostgresBackend(store.db);
+    const id = (await ok.findOrCreateByPhone(phone())).id;
+    await ok.creditWallet(id, 20_000, 'topup');
+    const d0 = await dump(store.db);
+    const diesAtSave = createPostgresBackend(crashingOn(store.db, /update members set/));
+    await expect(diesAtSave.purchaseSubscription(id, 18_000)).rejects.toThrow(/simulated crash/);
+    // The top-up's credit is in the member row, its bonus in the ledger: the
+    // ledger insert runs AFTER the member write, so dying there is the case a
+    // two-call route could not survive.
+    const diesAtBonus = createPostgresBackend(crashingOn(store.db, /insert into point_history/));
+    await expect(diesAtBonus.topUpWallet(id, 20_000, 50, 'مكافأة', 'Bonus')).rejects.toThrow(/simulated crash/);
+    expect(await dump(store.db)).toEqual(d0);
+    expect(liveBalance((await ok.getMember(id)).walletLots)).toBe(20_000);
+    expect((await ok.getSubscription(id)).active).toBe(false);
+  }, 60_000);
+
+  it('over HTTP: the process dies mid-checkout, restarts, and the retry with the same key charges ONCE', async () => {
+    const seed = createPostgresBackend(store.db);
+    const id = (await seed.findOrCreateByPhone(phone())).id;
+    await seed.creditWallet(id, 20_000, 'topup');
+    const item = menuItems.find((m) => m.inStock !== false && m.sizes.length > 0 && m.sizes[0].price > 0)!;
+    const body = {
+      branchId: 'b1', orderType: 'pickup', paymentMethod: 'wallet',
+      lines: [{ itemId: item.id, sizeId: item.sizes[0].id, optionIds: [], qty: 1 }],
+    };
+    const key = randomUUID();
+    const send = (app: App) => app.inject({
+      method: 'POST', url: '/v1/checkout', payload: body,
+      headers: { authorization: `Bearer ${app.jwt.sign({ sub: id })}`, 'idempotency-key': key },
+    });
+    const d0 = await dump(store.db);
+    const dying = await boot((m) => m.createPostgresBackend(crashingOn(store.db, /insert into point_history/)));
+    expect((await send(dying)).statusCode).toBe(500);
+    await dying.close();
+    const { idempotency_keys: _k, ...rest } = await dump(store.db);
+    const { idempotency_keys: _k0, ...rest0 } = d0;
+    expect(rest).toEqual(rest0);                           // no debit, no order, no ledger line
+
+    const app = await boot(pg2(store.db));
+    const ok = await send(app);
+    expect(ok.statusCode).toBe(201);
+    const again = await send(app);
+    expect(again.headers['idempotent-replay']).toBe('true');
+    expect(again.body).toBe(ok.body);
+    const total = ok.json().total as number;
+    expect(liveBalance((await seed.getMember(id)).walletLots)).toBe(20_000 - Math.round(total * 1000));
+    expect((await dump(store.db)).orders).toHaveLength(1);
+    await app.close();
+  }, 60_000);
+});
+
+const pg2 = (db: Db) => (m: typeof import('../src/backend/postgres')) => m.createPostgresBackend(db);
 
 afterAll(() => { /* each test owns and closes its own database */ });

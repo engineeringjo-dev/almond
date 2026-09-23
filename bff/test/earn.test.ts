@@ -17,6 +17,7 @@ import * as bffEarn from '../src/earn';
 import { reprice } from '../src/pricing';
 import { build } from '../src/server';
 import { createMemoryBackend } from '../src/backend/memory';
+import { assignHoldout, holdoutSpecFromConfig } from '@almond/shared/loyalty/holdout';
 import {
   REPO, ROOTS, EXT, collectSources, stripComments, type SourceFile,
 } from './lib/sources';
@@ -1116,24 +1117,42 @@ describe('T10 checkout: the points the route grants equal computeEarn on the sam
 
   it('T10b checkout: the breakdown behind the grant is persisted on the order (§5b)', async () => {
     // A return value nothing writes down observes nothing (§4 D8 item 1). The
-    // route must call backend.recordEarnBreakdown, or the shadow delta in §5b
+    // route must hand the breakdown to the backend, or the shadow delta in §5b
     // cannot be reconstructed and D8's goal is not met.
+    //
+    // CHANGED 2026-09-23 with the checkout atomicity fix: the route no longer
+    // calls backend.recordEarnBreakdown(order.id, earn) as a separate step —
+    // the breakdown travels INSIDE backend.checkout, and is written in the same
+    // transaction as the order and the grant it describes. What is pinned is
+    // unchanged in substance: the funded breakdown reaches the order.
     const src = readFileSync(join(REPO, 'bff/src/routes/checkout.ts'), 'utf8');
-    expect(src).toMatch(/backend\.recordEarnBreakdown\(\s*order\.id\s*,\s*earn\s*\)/);
+    const call = src.slice(src.indexOf('backend.checkout('));
+    expect(call.slice(0, call.indexOf('\n    });'))).toMatch(/\bearn:\s*funded\s*\?\s*earn\s*:\s*null/);
 
     // ... and the backend really stores it, with points that match the grant.
     const backend = createMemoryBackend();
     const member = await backend.findOrCreateByPhone('+962790000111', 'T10b');
-    const order = await backend.createOrder({
+    const earn = computeEarn({ total: 11.6, bonusDayActivated: false, at: MON }, RULES);
+    const { order } = await backend.checkout(member.id, {
+      order: { branchId: 'b1', type: 'pickup', paymentMethod: 'cash', subtotal: 10, tax: 1.6, total: 11.6 },
+      walletDebitFils: 0, pointsEarned: earn.points,
+      pointsReasonAr: 'نقاط طلب', pointsReasonEn: 'Order points',
+      earn, spendJod: 11.6, corporateUse: null,
+      secondVisit: { basketHasDrink: false, arm: assignHoldout(member.id, holdoutSpecFromConfig('secondVisitVoucher')) },
+      at: MON,
+    });
+    expect(order.earn).toEqual(earn);
+    expect(order.pointsEarned).toBe(earn.points);
+    // The standalone method still stores it for a caller that has an order id.
+    const other = await backend.createOrder({
       memberId: member.id, branchId: 'b1', type: 'pickup', paymentMethod: 'cash',
       subtotal: 10, tax: 1.6, total: 11.6, pointsEarned: 0,
     });
-    const earn = computeEarn({ total: 11.6, bonusDayActivated: false, at: MON }, RULES);
-    await backend.recordEarnBreakdown(order.id, earn);
+    await backend.recordEarnBreakdown(other.id, earn);
     // The memory backend stores the record by reference, so the object
     // createOrder handed back IS the stored row.
-    expect(order.earn).toEqual(earn);
-    expect(order.pointsEarned).toBe(earn.points);
+    expect(other.earn).toEqual(earn);
+    expect(other.pointsEarned).toBe(earn.points);
   });
 });
 
