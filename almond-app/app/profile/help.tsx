@@ -5,7 +5,7 @@ import { Screen } from '@/components/ui/Screen';
 import { Text } from '@/components/ui/Text';
 import { Card } from '@/components/ui/Card';
 import { ListRow } from '@/components/ui/ListRow';
-import { colors, spacing } from '@/constants/theme';
+import { spacing } from '@/constants/theme';
 import { useI18n } from '@/hooks/useI18n';
 
 export default function HelpScreen() {

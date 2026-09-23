@@ -3,7 +3,7 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import type { GiftCard, GiftOccasion, PointsLogEntry, Voucher } from '@almond/shared/types';
-import { config, isMock } from '@/lib/config';
+import { isMock } from '@/lib/config';
 import { reloadBonus, genGiftCode } from '@/data/loyalty';
 import type { RedeemOption } from '@almond/shared/loyalty/redeem';
 

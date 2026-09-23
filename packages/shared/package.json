@@ -39,7 +39,8 @@
     "./lib/ammanWeekday": "./src/lib/ammanWeekday.ts"
   },
   "scripts": {
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint . --max-warnings 0"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",

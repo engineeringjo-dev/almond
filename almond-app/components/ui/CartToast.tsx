@@ -35,8 +35,11 @@ export function CartToast() {
       ]).start(() => hide());
     }, isError ? 3200 : 1800);
     return () => clearTimeout(timer);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [seq, visible]);
+    // `seq` is what restarts the animation for a new toast. `isError` only
+    // changes together with `seq` (showAdded/showError set both), and `y`,
+    // `opacity` (ref-held Animated values) and `hide` (a zustand action) are
+    // stable, so listing them changes nothing at runtime.
+  }, [seq, visible, isError, hide, y, opacity]);
 
   if (!visible) return null;
 

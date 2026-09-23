@@ -38,6 +38,12 @@ jobs:
       - name: Install
         run: npm ci
 
+      # Zero warnings, whole repo, one config (eslint.config.mjs). Before it
+      # there was no ESLint at all; its first run found a real crash — a hook
+      # after an early return on the app's Rewards tab.
+      - name: Lint (whole repo, zero warnings)
+        run: npm run lint
+
       # Types first: it is the fastest check and the one most likely to fail,
       # so a broken signature costs seconds rather than the whole suite.
       - name: Typecheck (shared, website, bff, app)

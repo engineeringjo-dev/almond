@@ -7,8 +7,7 @@ import { signIn } from './lib/signIn';
 
 let app: FastifyInstance;
 let token: string;
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const post = (url: string, body: any) =>
+const post = (url: string, body: object) =>
   app.inject({ method: 'POST', url, payload: body, headers: { authorization: `Bearer ${token}`, 'idempotency-key': randomUUID() } });
 
 beforeAll(async () => {

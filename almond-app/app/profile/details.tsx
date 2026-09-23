@@ -1,5 +1,5 @@
 import { createElement, useState } from 'react';
-import { View, StyleSheet, TextInput, Alert, Platform } from 'react-native';
+import { StyleSheet, TextInput, Alert, Platform } from 'react-native';
 import { Stack, router } from 'expo-router';
 
 import { Screen } from '@/components/ui/Screen';

@@ -11,7 +11,7 @@ import { router } from 'expo-router';
 
 import { Text } from '@/components/ui/Text';
 import { Button } from '@/components/ui/Button';
-import { colors, spacing, radius } from '@/constants/theme';
+import { colors, spacing } from '@/constants/theme';
 import { useI18n } from '@/hooks/useI18n';
 import { useAppStore } from '@/stores/appStore';
 

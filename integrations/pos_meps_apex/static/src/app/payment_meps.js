@@ -35,7 +35,7 @@ export class PaymentMepsApex extends PaymentInterface {
             line.transaction_id = res.rrn || res.authCode;
             line.payment_ref_no = res.authCode;
             return true;
-        } catch (e) {
+        } catch {
             line.set_payment_status?.("retry");
             return false;
         }

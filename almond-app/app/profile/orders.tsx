@@ -5,7 +5,7 @@ import { Screen } from '@/components/ui/Screen';
 import { Text } from '@/components/ui/Text';
 import { Card } from '@/components/ui/Card';
 import { EmptyState } from '@/components/ui/EmptyState';
-import { colors, spacing, radius } from '@/constants/theme';
+import { colors, spacing } from '@/constants/theme';
 import { useI18n } from '@/hooks/useI18n';
 import { formatJOD, formatDate } from '@/lib/format';
 import { useOrderHistory } from '@/hooks/useOrder';

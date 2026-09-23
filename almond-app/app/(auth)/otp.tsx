@@ -12,7 +12,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Text } from '@/components/ui/Text';
 import { Button } from '@/components/ui/Button';
-import { colors, spacing, radius, fontFamily, fontSize } from '@/constants/theme';
+import { colors, spacing, radius } from '@/constants/theme';
 import { useI18n } from '@/hooks/useI18n';
 import { authService } from '@/services/auth.service';
 import { useAuthStore } from '@/stores/authStore';
@@ -39,7 +39,7 @@ export default function Otp() {
   // Auto-verify once 6 digits entered (auto-fill from SMS, section 2.1).
   useEffect(() => {
     if (code.length === OTP_LENGTH) verify();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- fire once per entered code: `verify` is a fresh closure every render, so depending on it would re-submit the same 6 digits after each loading toggle
   }, [code]);
 
   const verify = async () => {

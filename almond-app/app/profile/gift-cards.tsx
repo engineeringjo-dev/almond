@@ -17,7 +17,6 @@ import {
   GIFT_DESIGNS,
   GIFT_OCCASIONS,
   giftDesignsByOccasion,
-  giftDesignById,
   type GiftDesign,
 } from '@/lib/giftDesigns';
 

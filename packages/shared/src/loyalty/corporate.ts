@@ -139,7 +139,7 @@ export function parseRoster(text: string, companyId: string): RosterParseResult 
   const errors: RosterParseResult['errors'] = [];
   const seen = new Set<string>();
 
-  const lines = (text ?? '').replace(/^﻿/, '').split(/\r?\n/);
+  const lines = (text ?? '').replace(/^\uFEFF/, '').split(/\r?\n/);
   lines.forEach((raw, i) => {
     const line = raw.trim();
     if (!line) return;

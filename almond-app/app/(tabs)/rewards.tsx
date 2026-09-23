@@ -108,6 +108,10 @@ export default function RewardsScreen() {
   const balanceQ = useLoyaltyBalance();
   const redeemReward = useRedeemReward();
   const [statusPage, setStatusPage] = useState(0);
+  // Status carousel scroll handle. Declared BEFORE the early returns below: a
+  // hook after them runs only once data has loaded, so the loading→loaded
+  // render would call one more hook than the previous one and React throws.
+  const statusRef = useRef<ScrollView>(null);
 
   if (balanceQ.isError) {
     return <Screen error onRetry={balanceQ.refetch} />;
@@ -191,7 +195,6 @@ export default function RewardsScreen() {
 
   // Status carousel: cards are narrower than the screen so the NEXT tier card
   // peeks in — a clear signal there's more than one. Arrows + dots reinforce it.
-  const statusRef = useRef<ScrollView>(null);
   const cardW = width - spacing.lg * 2 - 40;
   const step = cardW + spacing.md;
   const onStatusScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {

@@ -2,8 +2,7 @@ import { describe, it, expect, afterEach } from 'vitest';
 import { ammanDayKey, ammanWeekday } from '@almond/shared/lib/ammanWeekday';
 import { computeEarn } from '@almond/shared/loyalty/earn';
 import {
-  addMonthsToDayKey, consumeFifo, grantLot, liveBalance, lotExpiresOn,
-  lotRulesFromConfig, migrateBalance, nextExpiry, type PointLot,
+  grantLot, liveBalance, lotExpiresOn, lotRulesFromConfig,
 } from '@almond/shared/loyalty/lots';
 import {
   qualifyingSpend, qualifyingVisitDays, spendEntry, windowRulesFromConfig,

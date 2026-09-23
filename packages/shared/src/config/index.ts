@@ -210,8 +210,10 @@ export const config = {
   // list_price "may include or exclude tax depending on the company setting —
   // verify"), so online orders cost 16% more than the same basket at the
   // counter, and earned 16% more points on it. 16% belongs only to Odoo's
-  // "Delivery Careem" product, which is not a website line. Confirm against
-  // account.tax on the live company before changing either number.
+  // "Delivery Careem" product, which is not a website line.
+  // SETTLED by the owner, 2026-09-23: «الضريبة ٨% والسعر من اودو سيكون
+  // مباشرة» — 8%, and Odoo's price is the final price. bff/test/tax.test.ts
+  // turns red if tax is ever added on top of it again.
   TAX_RATE: 0.08,
   PRICES_TAX_INCLUSIVE: true,
   // The combo price discount is WITHDRAWN — the business stopped running it

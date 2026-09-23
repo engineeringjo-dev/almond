@@ -3,7 +3,7 @@ import { readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 
 import { config } from '@/constants/config';
-import { menuItems, tiers } from '@/services/seed';
+import { tiers } from '@/services/seed';
 import { redeemOptions } from '@almond/shared/loyalty/redeem';
 import { nextChallenge } from '@almond/shared/loyalty/challenges';
 import { jodFromPoints, pointsFromJod } from '@almond/shared/loyalty/earn';
@@ -23,14 +23,8 @@ import type { TierId } from '@/types';
  * reward card names something its own value can buy.
  *
  * Both are outcome tests. C8 asserts the SENTENCE a member sees at a given
- * standing; C7 asserts a rung against a real price out of the shipped menu.
+ * standing; C7 asserts what the redemption offers against the member's balance.
  */
-
-const price = (id: string): number => {
-  const item = menuItems.find((m) => m.id === id);
-  if (!item) throw new Error(`menu item not found: ${id}`);
-  return Math.min(...item.sizes.map((s) => s.price));
-};
 
 // ---------------------------------------------------------------------------
 // C6 — the tier's name IS its rate.

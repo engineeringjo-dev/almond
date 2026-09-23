@@ -2,11 +2,8 @@ import type {
   LoyaltyBalance,
   Voucher,
   PointsLogEntry,
-  EarnResult,
   SpinConfig,
   SpinEligibility,
-  SpinResult,
-  ReferralInfo,
 } from '@/types';
 import type { GiftCard, Subscription, PaymentMethodId, TierId } from '@/types';
 import type { LoyaltyService, EarnInput } from './loyalty.service';

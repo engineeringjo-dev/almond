@@ -57,8 +57,7 @@ const lineOf = (id: string) => {
 let app: FastifyInstance;
 let backend: Backend;
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const auth = (token: string, extra: Record<string, string> = {}): any =>
+const auth = (token: string, extra: Record<string, string> = {}): Record<string, string> =>
   ({ authorization: `Bearer ${token}`, ...extra });
 
 async function checkout(token: string, itemId: string) {

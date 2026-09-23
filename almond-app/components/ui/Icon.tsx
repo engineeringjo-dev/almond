@@ -10,7 +10,6 @@ import {
   MapPin,
   Navigation,
   Home,
-  ShoppingBag,
   ShoppingCart,
   ClipboardList,
   Bell,

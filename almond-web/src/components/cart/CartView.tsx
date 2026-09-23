@@ -6,7 +6,6 @@ import { ShoppingBag } from 'lucide-react';
 import { computeTotals } from '@almond/shared/cart';
 import { getCartCrossSell } from '@almond/shared/lib/recommendations';
 import { useCartStore } from '@/store/cartStore';
-import { useLoyaltyStore } from '@/store/loyaltyStore';
 import { CartLine } from './CartLine';
 import { ComboBanner } from './ComboBanner';
 import { CartSummary } from './CartSummary';

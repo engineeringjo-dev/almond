@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { useTranslations } from 'next-intl';
-import { LogOut, RotateCcw, Search } from 'lucide-react';
+import { RotateCcw, Search } from 'lucide-react';
 import { useMenuOverlay } from '@/store/menuOverlayStore';
 import { fieldClass } from '@/components/forms/styles';
 import { cn } from '@/lib/cn';

@@ -116,8 +116,7 @@ let backend: Backend;
 let phoneSeq = 700;
 const nextPhone = () => `+96278${String(++phoneSeq).padStart(7, '0')}`;
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const authOf = (token: string, extra: Record<string, string> = {}): any =>
+const authOf = (token: string, extra: Record<string, string> = {}): Record<string, string> =>
   ({ authorization: `Bearer ${token}`, ...extra });
 
 async function enrol(on = app): Promise<{ token: string; id: string }> {

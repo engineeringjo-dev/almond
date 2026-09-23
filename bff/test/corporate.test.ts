@@ -2,7 +2,6 @@ import { applyTax } from '@almond/shared/cart';
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { randomUUID } from 'node:crypto';
 import type { FastifyInstance } from 'fastify';
-import { config as loyaltyConfig } from '@almond/shared/config';
 import { menuItems } from '@almond/shared/menu';
 import { build } from '../src/server';
 import { config } from '../src/config';

@@ -13,7 +13,7 @@ import { useUserId } from '@/stores/authStore';
 
 /** Visit reward (section 14.3): countdown banner; expires automatically if unused. */
 export function VisitRewardBanner() {
-  const { t, lang } = useI18n();
+  const { t } = useI18n();
   const userId = useUserId();
   const qc = useQueryClient();
   const { data: reward } = useActiveVisitReward();

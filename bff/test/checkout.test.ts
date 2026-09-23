@@ -12,8 +12,7 @@ const line = (() => {
   return { itemId: item.id, sizeId: item.sizes[0].id, optionIds: [], qty: 1 };
 })();
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function post(url: string, body: any, headers: Record<string, string> = {}): Promise<any> {
+async function post(url: string, body: object, headers: Record<string, string> = {}) {
   return app.inject({ method: 'POST', url, payload: body, headers: { authorization: `Bearer ${token}`, ...headers } });
 }
 

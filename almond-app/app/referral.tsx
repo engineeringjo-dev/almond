@@ -1,4 +1,4 @@
-import { View, StyleSheet, Share, Pressable } from 'react-native';
+import { View, StyleSheet, Share } from 'react-native';
 import { Stack } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 
