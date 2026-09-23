@@ -9,7 +9,9 @@
     "dev": "tsx watch src/server.ts",
     "start": "tsx src/server.ts",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "coverage": "vitest run --coverage",
+    "test:pg": "vitest run test/resilience-concurrency.test.ts test/resilience-restart.test.ts test/migration.test.ts"
   },
   "dependencies": {
     "@almond/shared": "*",

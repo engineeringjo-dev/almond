@@ -44,11 +44,22 @@ Supporting directories: `docs/` (specifications and decision records),
 nvm use            # .nvmrc — Node 22. The workflows read the same file.
 npm ci             # the lockfile exactly; never `npm install` in CI
 
-npm run typecheck                   # all four workspaces
-npm test --workspace @almond/bff    # 397 tests
-npm test --workspace almond-app     # 109 tests
-npm run web:build                   # the website
+npm run typecheck        # all four workspaces + the E2E and load scripts
+npm test                 # bff (514) + app (109) + website (202)
+npm run web:build        # the website
+npm run test:e2e         # Playwright: journeys, WCAG AA, RTL — phone + desktop
+npm run coverage         # per-suite coverage into each workspace's coverage/
 ```
+
+Money under genuine concurrency needs a real Postgres (PGlite is one
+connection and cannot prove row locks); without it those cases are skipped,
+not faked:
+
+```bash
+ALMOND_TEST_PG_URL=postgresql://… npm run test:pg --workspace @almond/bff
+```
+
+`npm run load:baseline` reproduces docs/LOAD-BASELINE.md.
 
 Two terminals to run the whole thing:
 
@@ -74,7 +85,7 @@ say why a tempting default would be a security hole rather than a convenience.
 | Variable | Where | Unset means |
 |---|---|---|
 | `DATA_SOURCE` | both | `mock` — the MENU and prices come from the committed export. `odoo` is not wired end to end. |
-| `DATABASE_URL` | `bff` | in-memory — members, points and the corporate register are **forgotten on restart**. Set it to Postgres and the same behaviour persists. |
+| `DATABASE_URL` | `bff` | in-memory — members, points and the corporate register are **forgotten on restart**. Set it to Postgres — **after applying all four `supabase/migrations/2026092*`/`20260909` files in order**, the RLS one above all — and the same behaviour persists. |
 
 They answer different questions — one is where the menu comes from, the other
 is where members are kept — and conflating them is how `DATA_SOURCE=odoo` came

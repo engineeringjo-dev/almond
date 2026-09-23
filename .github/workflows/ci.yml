@@ -1,7 +1,7 @@
 name: CI
 
 # THE GATE. Until this file existed there were 506 tests and nothing that ran
-# them: both workflows in this directory deploy, neither verifies. A suite
+# them (there are now ~900 plus an E2E suite): both workflows in this directory deploy, neither verifies. A suite
 # nobody runs is documentation with a test runner attached.
 #
 # It runs on every push and every pull request, including to the release branch,
@@ -49,8 +49,31 @@ jobs:
       - name: Test — app (earn parity, copy, POS QR)
         run: npm test --workspace almond-app
 
-      # The website has no test suite yet; a build failure is what stands in
-      # for one, and it is a real check — it type-checks every page, resolves
-      # every import and renders the static routes.
+      - name: Test — website (admin session, webhooks, money seams, i18n parity)
+        run: npm test --workspace almond-web
+
+      # A real check on its own: it type-checks every page, resolves every
+      # import and renders the static routes.
       - name: Build — website
         run: npm run web:build
+
+      # The customer's journeys in a real browser, on a phone and a desktop:
+      # menu → cart → checkout, Arabic RTL and English LTR, WCAG AA (axe fails
+      # the run on any serious or critical violation), no horizontal scroll,
+      # and the admin key absent from every byte the browser receives.
+      # Playwright builds and starts its own website + BFF (playwright.config.ts).
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Test — E2E + accessibility + RTL (Playwright)
+        run: npm run test:e2e
+
+      - name: Upload Playwright report
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 14
