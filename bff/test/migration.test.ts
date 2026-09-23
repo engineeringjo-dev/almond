@@ -260,6 +260,19 @@ describe('R3 migration 20260909_loyalty_backend.sql', () => {
     expect(seq[0].ok).toBe(false);
   });
 
+  it('R3.6d the RLS migration applies on a plain Postgres with no Supabase roles', async () => {
+    // Found by applying it to a real PG16 for the load test: an unguarded
+    // `REVOKE … FROM anon` aborts the whole migration where `anon` does not
+    // exist — i.e. on any self-hosted Postgres. RLS must still end up on.
+    const pg = await fresh();
+    await pg.exec(MIGRATION);
+    await pg.exec(RLS_MIGRATION);
+    const off = await rows<{ t: string }>(pg, `
+      select c.relname as t from pg_class c join pg_namespace n on n.oid = c.relnamespace
+      where n.nspname = 'public' and c.relkind = 'r' and not c.relrowsecurity`);
+    expect(off).toEqual([]);
+  });
+
   it('R3.6c the RLS migration is re-runnable and does not touch the owner', async () => {
     const pg = await withSupabaseDefaults();
     await pg.exec(MIGRATION);

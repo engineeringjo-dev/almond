@@ -76,6 +76,47 @@ fresh `npm run load:baseline` on the code as handed over — same machine, same
 ~8 ms. Same caveats as below: one process, memory backend, the generator on
 the same 4 vCPU — a baseline, not a capacity claim.
 
+## Results — on a real Postgres 16, with a year of data (2026-09-23)
+
+`LOAD_DATABASE_URL=postgresql:///postgres?host=<socket dir> npm run load:baseline`
+against a local PG16 with all four migrations applied, seeded with **1,008,535
+orders across 50,001 members** (≈ a year at a few thousand orders a day). A
+fourth scenario was added: **`POST /v1/checkout` — a real write**, each request
+with its own Idempotency-Key, all 50 connections on the SAME member, which is
+the worst case for the row lock (real traffic spreads over many members).
+
+| Scenario | req/s | p50 ms | p95 ms | p99 ms | errors |
+|---|---:|---:|---:|---:|---:|
+| GET /health | 26,934 | 1.85 | 3.12 | 4.30 | 0 |
+| GET /v1/me/balance (JWT) | 3,466 | 13.84 | 19.64 | 23.00 | 0 |
+| POST /v1/pos/token (JWT) | 10,691 | 4.25 | 7.43 | 9.70 | 0 |
+| **POST /v1/checkout (write)** | **386** | 127.77 | 160.62 | **198.72** | 0 |
+
+The same run on an EMPTY database gave 377 req/s, p99 225 ms for checkout:
+**a million orders changed nothing** — the member lookup is an index scan
+(`orders_member_idx`, 0.3 ms at 1M rows, checked with EXPLAIN ANALYZE).
+
+What "thousands of clicks a day" means against this: 10,000 app opens × ~5
+API calls = 50,000 requests a day; with 15% of the day in the breakfast hour
+that is ~2 requests/s, perhaps ~6/s in the peak minute. The slowest real
+operation — a write, on one process — sustains ~386/s. The headroom is two
+orders of magnitude; capacity is not the risk. Configuration is: see
+docs/HANDOVER.md §٤ (DATABASE_URL, TRUST_PROXY — both now refused at boot).
+
+### Found by this run
+
+- **The memory store slows linearly with total orders** — each checkout counts
+  every order in the process to answer "has this member ordered before?"
+  (`orders.filter` in memory.ts): 3.3 ms per checkout at 500 orders, 20.8 ms at
+  3,000; under load, p99 4.8 s and 6 timeouts. Postgres answers the same
+  question from an index. The memory store is for development and tests, and
+  production now REFUSES to boot without DATABASE_URL, so it cannot end up
+  there by omission.
+- **The RLS migration failed on a plain Postgres** (`role "anon" does not
+  exist`): the REVOKE assumed Supabase's roles. Now guarded by pg_roles, like
+  the idempotency migration; bff/test/migration.test.ts R3.6d applies it to a
+  database with no Supabase roles.
+
 ## Results — before the fix (the code as it was)
 
 Two consecutive runs, 50 connections, 20 s each. Errors / timeouts / non-2xx

@@ -89,6 +89,11 @@ export function registerCheckoutRoutes(app: FastifyInstance, backend: Backend): 
      * orders bought the top earn rate for life. The ORDER is still written: a
      * pay-at-counter order is a real order. Its points are the till's to grant
      * when the till takes the money. See plugins/funding.ts.
+     *
+     * OWNER DECISION, 2026-09-23: «اوافق النقاط بعد تاكيد الدفع» — points only
+     * once payment is confirmed. When a gateway lands, `funded` becomes "the
+     * wallet, or a PSP capture reference verified server-side"; it never goes
+     * back to trusting the paymentMethod the client names.
      */
     const funded = paidFromBalance || unfundedValueAllowed();
 

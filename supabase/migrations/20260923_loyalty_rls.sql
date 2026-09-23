@@ -29,9 +29,21 @@ alter table companies             enable row level security;
 alter table corporate_roster      enable row level security;
 alter table corporate_uses        enable row level security;
 
-revoke all on table members, point_history, orders, second_visit_vouchers,
-                    redemptions, companies, corporate_roster, corporate_uses
-  from anon, authenticated;
-
+-- Guarded by pg_roles: `anon` and `authenticated` exist only on Supabase. A
+-- bare `REVOKE … FROM anon` aborts this whole migration on any other Postgres
+-- (found by applying it to a plain PG16 for the load test) — and on such a
+-- server there is no PostgREST role to revoke from, so skipping is correct.
 -- point_history.id is a bigserial: its sequence was default-granted too.
-revoke all on sequence point_history_id_seq from anon, authenticated;
+do $$
+declare r text;
+begin
+  foreach r in array array['anon', 'authenticated'] loop
+    if exists (select 1 from pg_roles where rolname = r) then
+      execute format(
+        'revoke all on table members, point_history, orders, second_visit_vouchers,
+           redemptions, companies, corporate_roster, corporate_uses from %I', r);
+      execute format('revoke all on sequence point_history_id_seq from %I', r);
+    end if;
+  end loop;
+end
+$$;

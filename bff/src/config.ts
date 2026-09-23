@@ -75,6 +75,9 @@ export const config = {
   DATABASE_SSL: process.env.DATABASE_SSL === 'true',
   CORS_ORIGINS: process.env.CORS_ORIGINS ?? '*',
   TRUST_PROXY: parseTrustProxy(process.env.TRUST_PROXY),
+  /** Whether the deployer SAID how clients reach this server. Unset and
+   *  "false" parse the same, but only one of them is a decision. */
+  TRUST_PROXY_SET: (process.env.TRUST_PROXY ?? '') !== '',
 
   /**
    * In-process fixed-window limits (plugins/rateLimit.ts). Same posture as the
@@ -127,6 +130,9 @@ export function insecureBootReasons(
      *  typecheck; `build()` passes the whole config, so it is always present
      *  where it matters. */
     CORS_ORIGINS?: string;
+    /** Optional for the same reason; checked only when present. */
+    DATABASE_URL?: string;
+    TRUST_PROXY_SET?: boolean;
   } = config,
 ): string[] {
   if (env.NODE_ENV !== 'production') return [];
@@ -156,6 +162,21 @@ export function insecureBootReasons(
   // browser, and production has a known, short list of front-ends.
   if (env.CORS_ORIGINS !== undefined && env.CORS_ORIGINS.split(',').some((o) => o.trim() === '*')) {
     reasons.push('CORS_ORIGINS is "*" — name the front-end origins explicitly');
+  }
+  // Measured, not assumed (docs/LOAD-BASELINE.md): without DATABASE_URL the
+  // server runs on process memory — every member, point and company forgotten
+  // on the next restart — and it does NOT say so. The memory store is for
+  // development and tests; it also counts all orders on every checkout, so it
+  // slows linearly as orders accumulate (20 ms per checkout at 3,000 orders).
+  if (env.DATABASE_URL !== undefined && !env.DATABASE_URL) {
+    reasons.push('DATABASE_URL is unset — members, points and companies would live in process memory and vanish on restart (apply supabase/migrations first)');
+  }
+  // Unset parses as "trust nobody", which is right for a server facing the
+  // internet and catastrophic behind a load balancer or a PaaS router: every
+  // member then shares the balancer's address, and the per-IP sign-in limit
+  // (20 per 10 minutes) becomes the limit for the WHOLE APP. Say which it is.
+  if (env.TRUST_PROXY_SET === false) {
+    reasons.push('TRUST_PROXY is unset — "true" (or a hop count) behind a load balancer or PaaS router, "false" if this server faces the internet directly');
   }
   return reasons;
 }

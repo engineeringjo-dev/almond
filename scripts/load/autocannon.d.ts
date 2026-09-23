@@ -14,6 +14,12 @@ declare module 'autocannon' {
     headers?: Record<string, string>;
     body?: string;
     timeout?: number;
+    /** Per-request hook: return the request to send (used here to give every
+     *  checkout its own Idempotency-Key, as a real client would). */
+    requests?: Array<{ setupRequest?: (req: RequestParams) => RequestParams }>;
+  }
+  interface RequestParams {
+    method?: string; path?: string; headers?: Record<string, string>; body?: string;
   }
   interface Histogram {
     average: number; mean: number; stddev: number; min: number; max: number;
@@ -36,5 +42,5 @@ declare module 'autocannon' {
   }
   function autocannon(opts: Options, cb: (err: Error | null, result: Result) => void): Instance;
   export default autocannon;
-  export type { Options, Result, Instance };
+  export type { Options, Result, Instance, RequestParams };
 }

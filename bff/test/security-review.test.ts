@@ -288,6 +288,18 @@ describe('S15 production boot', () => {
     expect(r).toMatch(/ADMIN_KEY is shorter/);
   });
 
+  it('production refuses to boot on the memory store, or with TRUST_PROXY unstated', () => {
+    const base = { ...strong, CORS_ORIGINS: 'https://almond.jo' };
+    const mem = insecureBootReasons({ ...base, DATABASE_URL: '', TRUST_PROXY_SET: true }).join(' | ');
+    expect(mem).toMatch(/DATABASE_URL is unset/);
+    const proxy = insecureBootReasons({ ...base, DATABASE_URL: 'postgresql://x', TRUST_PROXY_SET: false }).join(' | ');
+    expect(proxy).toMatch(/TRUST_PROXY is unset/);
+    // Both stated → nothing to refuse. "false" is a decision, not an omission.
+    expect(insecureBootReasons({ ...base, DATABASE_URL: 'postgresql://x', TRUST_PROXY_SET: true })).toEqual([]);
+    // Development runs on memory by design.
+    expect(insecureBootReasons({ ...base, NODE_ENV: 'development', DATABASE_URL: '', TRUST_PROXY_SET: false })).toEqual([]);
+  });
+
   it('the default call — the one build() makes — reads CORS from the live config', () => {
     const prev = config.CORS_ORIGINS;
     try {

@@ -58,10 +58,9 @@ export async function build(backend: Backend = createBackend()): Promise<Fastify
     logger: { level: process.env.LOG_LEVEL ?? 'info' },
     trustProxy: config.TRUST_PROXY,
   };
+  // Production refuses to boot with TRUST_PROXY unset (insecureBootReasons);
+  // an explicit "false" is a stated decision and needs no warning.
   const app = Fastify(options);
-  if (config.NODE_ENV === 'production' && config.TRUST_PROXY === false) {
-    app.log.warn('TRUST_PROXY is unset: per-IP rate limits see the socket peer. Behind a load balancer that is ONE address for every member.');
-  }
   await app.register(jwt, { secret: config.JWT_SECRET });
 
   // Minimal CORS (no extra dependency).

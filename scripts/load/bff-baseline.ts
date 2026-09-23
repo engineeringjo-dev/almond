@@ -27,14 +27,22 @@
  *   POST /v1/pos/token      — JWT verify + HMAC-signed token mint
  */
 import { spawn, type ChildProcess } from 'node:child_process';
+import { randomUUID } from 'node:crypto';
+import { menuItems } from '@almond/shared/menu';
 import { readFileSync } from 'node:fs';
 import { cpus, totalmem } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import autocannon, { type Result } from 'autocannon';
+import autocannon, { type RequestParams, type Result } from 'autocannon';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const PORT = 8093;
+/** A real, orderable menu line for the write scenario. */
+const CHECKOUT_LINE = (() => {
+  const item = menuItems.find((m) => m.inStock !== false && m.sizes.length > 0 && !(m.customizations ?? []).length);
+  if (!item) throw new Error('no plain in-stock item on the menu');
+  return { itemId: item.id, sizeId: item.sizes[0].id, optionIds: [], qty: 1 };
+})();
 const BASE = `http://127.0.0.1:${PORT}`;
 const DURATION = Number(process.env.LOAD_DURATION ?? 20);
 const CONNECTIONS = Number(process.env.LOAD_CONNECTIONS ?? 50);
@@ -88,7 +96,10 @@ async function startServer(lines: string[]): Promise<ChildProcess> {
     env: {
       ...process.env,
       PORT: String(PORT), DATA_SOURCE: 'memory', NODE_ENV: 'development',
-      LOG_LEVEL: 'warn', DATABASE_URL: '',
+      // LOAD_DATABASE_URL runs the SAME scenarios against Postgres — the store
+      // production uses — instead of process memory. Apply supabase/migrations
+      // to that database first.
+      LOG_LEVEL: 'warn', DATABASE_URL: process.env.LOAD_DATABASE_URL ?? '',
     },
     stdio: ['ignore', 'pipe', 'pipe'],
   });
@@ -130,13 +141,24 @@ async function signIn(lines: string[]): Promise<string> {
   return ((await ver.json()) as { token: string }).token;
 }
 
-function run(opts: { url: string; method: 'GET' | 'POST'; headers?: Record<string, string>; body?: string; duration: number }) {
+function run(opts: {
+  url: string; method: 'GET' | 'POST'; headers?: Record<string, string>; body?: string; duration: number;
+  /** Give every request its own Idempotency-Key, so each one is a real write. */
+  freshKey?: boolean;
+}) {
   return new Promise<{ result: Result; times: Float64Array }>((res, rej) => {
     let times = new Float64Array(1 << 16);
     let n = 0;
     const inst = autocannon({
       url: opts.url, method: opts.method, headers: opts.headers, body: opts.body,
       connections: CONNECTIONS, duration: opts.duration, timeout: 10,
+      ...(opts.freshKey ? {
+        requests: [{
+          setupRequest: (r: RequestParams) => ({
+            ...r, headers: { ...r.headers, 'idempotency-key': randomUUID() },
+          }),
+        }],
+      } : {}),
     }, (err, result) => (err ? rej(err) : res({ result, times: times.slice(0, n).sort() })));
     inst.on('response', (_c: unknown, _s: number, _b: number, t: number) => {
       if (n === times.length) { const g = new Float64Array(times.length * 2); g.set(times); times = g; }
@@ -149,7 +171,7 @@ async function main() {
   const lines: string[] = [];
   const child = await startServer(lines);
   const pid = child.pid!;
-  console.error(`BFF started, pid ${pid}, port ${PORT}, memory backend`);
+  console.error(`BFF started, pid ${pid}, port ${PORT}, ${process.env.LOAD_DATABASE_URL ? 'POSTGRES backend' : 'memory backend'}`);
   const rows: Row[] = [];
   const rss: Record<string, number | null> = { start: rssMb(pid) };
   try {
@@ -162,11 +184,24 @@ async function main() {
         scenario: 'POST /v1/pos/token (JWT)', url: `${BASE}/v1/pos/token`, method: 'POST' as const,
         headers: { ...auth, 'content-type': 'application/json' }, body: JSON.stringify({ mode: 'pay' }),
       },
+      {
+        // A WRITE: re-price from the menu, one transaction that locks the
+        // member row, inserts the order and records the spend. Every request
+        // carries its own Idempotency-Key, so none is a cheap replay. All 50
+        // connections hit the SAME member — the worst case for the row lock;
+        // real traffic spreads over thousands of members and contends less.
+        scenario: 'POST /v1/checkout (JWT, write)', url: `${BASE}/v1/checkout`, method: 'POST' as const,
+        headers: { ...auth, 'content-type': 'application/json' }, freshKey: true,
+        body: JSON.stringify({ branchId: 'b1', orderType: 'pickup', paymentMethod: 'cash', lines: [CHECKOUT_LINE] }),
+      },
     ];
     for (const s of scenarios) {
       // Sanity first: the scenario must actually succeed once, or its req/s is
       // the speed of a 401.
-      const probe = await fetch(s.url, { method: s.method, headers: s.headers, body: s.body });
+      const probe = await fetch(s.url, {
+        method: s.method, body: s.body,
+        headers: { ...s.headers, ...('freshKey' in s && s.freshKey ? { 'idempotency-key': randomUUID() } : {}) },
+      });
       if (!probe.ok) throw new Error(`${s.scenario}: probe returned ${probe.status} ${await probe.text()}`);
       console.error(`→ ${s.scenario}: warm-up ${WARMUP}s, measure ${DURATION}s × ${CONNECTIONS} connections`);
       await run({ ...s, duration: WARMUP });
