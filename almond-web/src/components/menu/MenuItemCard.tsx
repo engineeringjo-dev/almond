@@ -5,9 +5,10 @@ import { useState } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
 import { Check, Plus } from 'lucide-react';
 import type { MenuItem } from '@almond/shared/types';
-import { Link } from '@/i18n/navigation';
+import { Link, useRouter } from '@/i18n/navigation';
 import { useCartStore } from '@/store/cartStore';
 import { itemFromPrice } from '@/data/menu';
+import { requiredChoiceGroups } from '@almond/shared/menu/pricing';
 import { asLang, formatJOD } from '@/lib/format';
 import { cn } from '@/lib/cn';
 
@@ -16,6 +17,7 @@ export function MenuItemCard({ item }: { item: MenuItem }) {
   const t = useTranslations('Menu');
   const addItem = useCartStore((s) => s.addItem);
   const [added, setAdded] = useState(false);
+  const router = useRouter();
 
   const name = lang === 'ar' ? item.nameAr : item.nameEn;
   const desc = lang === 'ar' ? item.descAr : item.descEn;
@@ -24,6 +26,13 @@ export function MenuItemCard({ item }: { item: MenuItem }) {
 
   const quickAdd = () => {
     if (!item.sizes.length) return;
+    // A required choice (Bagel Type…) is the customer's to make. Quick-add used
+    // to drop every group, putting a bagel of no type in the cart; such an item
+    // opens its page instead, where the choice is asked.
+    if (requiredChoiceGroups(item).length) {
+      router.push(`/menu/${item.id}`);
+      return;
+    }
     // Cheapest size, no customizations — the default "quick add".
     const size = item.sizes.reduce((a, b) => (b.price < a.price ? b : a), item.sizes[0]);
     addItem(item, size, [], 1);

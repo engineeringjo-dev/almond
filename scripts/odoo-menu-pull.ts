@@ -187,8 +187,8 @@ async function main() {
     [[['product_tmpl_id', 'in', ids]]], { fields: ['id', 'product_tmpl_id', 'attribute_id', 'value_ids'] });
   const attrVals = await bilingual<AttrValRow>('product.template.attribute.value',
     [['product_tmpl_id', 'in', ids]], ['id', 'name', 'price_extra', 'attribute_id', 'product_tmpl_id']);
-  const attrLineNames = await bilingual<{ id: number; name: string }>(
-    'product.attribute', [], ['id', 'name']);
+  const attrLineNames = await bilingual<{ id: number; name: string; display_type: string }>(
+    'product.attribute', [], ['id', 'name', 'display_type']);
 
   const withImage = new Set(await call<number[]>('product.template', 'search',
     [[...domain, ['image_1920', '!=', false]]]));
@@ -273,12 +273,14 @@ async function main() {
       } else {
         groups.push({
           id: `g-${line.id}`, nameEn: attrEn, nameAr: attrAr,
-          // Odoo does not mark an attribute as single- or multi-choice, and the
-          // app treats single-choice as MANDATORY (it pre-selects one). Calling
-          // everything multi-choice is the safe direction: an optional extra
-          // that should have been required under-quotes nobody, while a
-          // required group applied wrongly would add money to every card.
-          multiple: true,
+          // Odoo DOES say: product.attribute.display_type is 'multi' for a
+          // checkbox group and radio/pills/select/color/image for "pick exactly
+          // one" — which is how the POS asks it. Calling everything multi-choice
+          // (the old default here) let a bagel be ordered with no Bagel Type or
+          // with three (e2e/menu.spec.ts). A single-choice group is mandatory:
+          // the configurator pre-selects one and itemFromPrice adds its
+          // cheapest option to the "from" price, so the card cannot under-quote.
+          multiple: attrLineNames.get(line.attribute_id[0])?.en.display_type === 'multi',
           options: values.map((v) => ({
             id: `o-${v.en.id}`, nameEn: v.en.name, nameAr: v.ar.name,
             priceDelta: round3(v.en.price_extra),

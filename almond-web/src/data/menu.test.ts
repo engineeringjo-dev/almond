@@ -211,3 +211,22 @@ describe('searchItems', () => {
     expect(searchItems('zzqqxx-no-such-item')).toEqual([]);
   });
 });
+
+describe('requiredChoiceGroups (what quick-add must not skip)', () => {
+  it('a single-choice group with options is required; multi-choice and empty groups are not', async () => {
+    const { requiredChoiceGroups } = await import('@almond/shared/menu/pricing');
+    const it0 = item();
+    const withGroups = {
+      ...it0,
+      customizations: [
+        { id: 'type', nameEn: 'Bagel Type', nameAr: 'نوع البيغل', multiple: false,
+          options: [{ id: 'plain', nameEn: 'Plain', nameAr: 'سادة', priceDelta: 0 }] },
+        { id: 'extras', nameEn: 'Extras', nameAr: 'إضافات', multiple: true,
+          options: [{ id: 'cheese', nameEn: 'Cheese', nameAr: 'جبنة', priceDelta: 0.5 }] },
+        { id: 'empty', nameEn: 'Empty', nameAr: 'فارغ', multiple: false, options: [] },
+      ],
+    } as typeof it0;
+    expect(requiredChoiceGroups(withGroups).map((g) => g.id)).toEqual(['type']);
+    expect(requiredChoiceGroups(it0)).toEqual([]);
+  });
+});

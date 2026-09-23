@@ -25,13 +25,19 @@ import type { MenuItem } from '../types';
  *
  * One function, one answer, both surfaces.
  */
+/** Groups the customer MUST answer before the item can go in a cart — a
+ *  single-choice group with options (Bagel Type, milk). The configurator
+ *  pre-selects one; anything that skips the configurator must not skip them. */
+export function requiredChoiceGroups(item: MenuItem) {
+  return (item.customizations ?? []).filter((g) => !g.multiple && g.options.length > 0);
+}
+
 export function itemFromPrice(item: MenuItem): number {
   const base = item.sizes.length
     ? item.sizes.reduce((min, s) => Math.min(min, s.price), Infinity)
     : 0;
 
-  const mandatory = (item.customizations ?? [])
-    .filter((g) => !g.multiple && g.options.length > 0)
+  const mandatory = requiredChoiceGroups(item)
     .reduce(
       (sum, g) => sum + g.options.reduce((m, o) => Math.min(m, o.priceDelta), Infinity),
       0,
