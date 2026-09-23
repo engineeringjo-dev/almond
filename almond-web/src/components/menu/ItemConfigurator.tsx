@@ -3,7 +3,7 @@
 import Image from 'next/image';
 import { useMemo, useState } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
-import { Check, ChevronLeft } from 'lucide-react';
+import { ArrowRight, Check, ChevronLeft, ChevronRight } from 'lucide-react';
 import type { CartCustomization, ItemSize, MenuItem } from '@almond/shared/types';
 import { getSizeUpsell } from '@almond/shared/lib/recommendations';
 import { applyItemPatch } from '@/data/menu';
@@ -92,7 +92,8 @@ export function ItemConfigurator({ item: baseItem }: { item: MenuItem }) {
         href="/menu"
         className="inline-flex items-center gap-1 text-sm font-bold text-text-secondary hover:text-primary"
       >
-        <ChevronLeft className="h-4 w-4 rtl:rotate-180" />
+        {/* "Back" points to the reading start: left in LTR, right in RTL. */}
+        <ChevronLeft className="h-4 w-4 rtl:rotate-180" aria-hidden />
         {t('back')}
       </Link>
 
@@ -118,8 +119,8 @@ export function ItemConfigurator({ item: baseItem }: { item: MenuItem }) {
 
           {/* Sizes */}
           {item.sizes.length > 1 && (
-            <div className="mt-6">
-              <h2 className="text-sm font-bold uppercase tracking-wide text-text-secondary">
+            <div className="mt-6" role="group" aria-labelledby="cfg-size">
+              <h2 id="cfg-size" className="text-sm font-bold uppercase tracking-wide text-text-secondary">
                 {t('size')}
               </h2>
               <div className="mt-3 flex flex-wrap gap-2">
@@ -128,6 +129,7 @@ export function ItemConfigurator({ item: baseItem }: { item: MenuItem }) {
                     key={s.id}
                     type="button"
                     onClick={() => setSizeId(s.id)}
+                    aria-pressed={s.id === sizeId}
                     className={cn(
                       'rounded-pill border px-4 py-2 text-sm font-bold transition-colors',
                       s.id === sizeId
@@ -149,20 +151,27 @@ export function ItemConfigurator({ item: baseItem }: { item: MenuItem }) {
               onClick={() => setSizeId(upsell.size.id)}
               className="mt-4 flex w-full items-center justify-between rounded-md border border-dashed border-primary bg-accent-light px-4 py-3 text-start"
             >
-              <span className="text-sm font-bold text-primary">
+              <span className="text-sm font-bold text-primary-dark">
                 {t('upsize', {
                   size: tr(upsell.size.nameAr, upsell.size.nameEn),
                   price: formatJOD(upsell.delta, lang),
                 })}
               </span>
-              <ChevronLeft className="h-4 w-4 shrink-0 text-primary rtl:rotate-180" />
+              {/* A forward nudge: points right in LTR, left in RTL. */}
+              <ChevronRight className="h-4 w-4 shrink-0 text-primary rtl:rotate-180" aria-hidden />
             </button>
           )}
 
           {/* Customization groups */}
           {item.customizations.map((g) => (
-            <div key={g.id} className="mt-6">
-              <h2 className="text-sm font-bold uppercase tracking-wide text-text-secondary">
+            <div
+              key={g.id}
+              className="mt-6"
+              role="group"
+              aria-labelledby={`cfg-${g.id}`}
+              data-choice={g.multiple ? 'multiple' : 'single'}
+            >
+              <h2 id={`cfg-${g.id}`} className="text-sm font-bold uppercase tracking-wide text-text-secondary">
                 {tr(g.nameAr, g.nameEn)}
               </h2>
               <div className="mt-3 space-y-2">
@@ -173,6 +182,7 @@ export function ItemConfigurator({ item: baseItem }: { item: MenuItem }) {
                       key={o.id}
                       type="button"
                       onClick={() => toggle(g.id, o.id, g.multiple)}
+                      aria-pressed={selected}
                       className={cn(
                         'flex w-full items-center justify-between rounded-md border px-4 py-3 text-start transition-colors',
                         selected
@@ -182,6 +192,7 @@ export function ItemConfigurator({ item: baseItem }: { item: MenuItem }) {
                     >
                       <span className="flex items-center gap-3">
                         <span
+                          aria-hidden
                           className={cn(
                             'flex h-5 w-5 shrink-0 items-center justify-center border',
                             g.multiple ? 'rounded-md' : 'rounded-pill',
@@ -193,7 +204,9 @@ export function ItemConfigurator({ item: baseItem }: { item: MenuItem }) {
                         <span className="font-bold">{tr(o.nameAr, o.nameEn)}</span>
                       </span>
                       {o.priceDelta > 0 && (
-                        <span className="text-sm text-text-secondary">
+                        // text-secondary on the selected (light violet) fill is 4.2:1 —
+                        // below AA for small text — so the selected row darkens it.
+                        <span className={cn('text-sm', selected ? 'text-primary-dark' : 'text-text-secondary')}>
                           +{formatJOD(o.priceDelta, lang)}
                         </span>
                       )}
@@ -205,7 +218,7 @@ export function ItemConfigurator({ item: baseItem }: { item: MenuItem }) {
           ))}
 
           {/* Quantity + add */}
-          <div className="sticky bottom-0 -mx-5 mt-8 border-t border-neutral-warm bg-background/95 px-5 py-4 backdrop-blur md:static md:mx-0 md:border-0 md:bg-transparent md:px-0 md:py-0">
+          <div className="sticky bottom-0 -mx-5 mt-8 border-t border-neutral-warm bg-background px-5 py-4 backdrop-blur md:static md:mx-0 md:border-0 md:bg-transparent md:px-0 md:py-0">
             <div className="flex items-center gap-3">
               <QtyStepper
                 value={qty}
@@ -222,7 +235,7 @@ export function ItemConfigurator({ item: baseItem }: { item: MenuItem }) {
                   t('soldOut')
                 ) : added ? (
                   <>
-                    <Check className="h-5 w-5" /> {t('added')}
+                    <Check className="h-5 w-5" aria-hidden /> {t('added')}
                   </>
                 ) : (
                   <>
@@ -236,7 +249,11 @@ export function ItemConfigurator({ item: baseItem }: { item: MenuItem }) {
                 href="/cart"
                 className="mt-3 block text-center text-sm font-bold text-primary"
               >
-                {nav('cart')} →
+                {/* Was a literal "→", which points backwards in Arabic. */}
+                <span className="inline-flex items-center gap-1">
+                  {nav('cart')}
+                  <ArrowRight className="h-4 w-4 rtl:rotate-180" aria-hidden />
+                </span>
               </Link>
             )}
           </div>

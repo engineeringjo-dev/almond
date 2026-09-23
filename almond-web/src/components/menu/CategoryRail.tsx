@@ -6,7 +6,7 @@ import { cn } from '@/lib/cn';
 type RailItem = { id: string; name: string };
 
 /** Sticky category chips. Scrolls to a section on click; highlights the one in view. */
-export function CategoryRail({ items }: { items: RailItem[] }) {
+export function CategoryRail({ items, label }: { items: RailItem[]; label: string }) {
   const [active, setActive] = useState(items[0]?.id);
 
   useEffect(() => {
@@ -34,12 +34,16 @@ export function CategoryRail({ items }: { items: RailItem[] }) {
   };
 
   return (
-    <div className="no-scrollbar sticky top-16 z-30 -mx-5 flex gap-2 overflow-x-auto border-b border-neutral-warm bg-background/95 px-5 py-3 backdrop-blur md:-mx-8 md:px-8">
+    <nav
+      aria-label={label}
+      className="no-scrollbar sticky top-16 z-30 -mx-5 flex gap-2 overflow-x-auto border-b border-neutral-warm bg-background px-5 py-3 backdrop-blur md:-mx-8 md:px-8"
+    >
       {items.map((it) => (
         <button
           key={it.id}
           type="button"
           onClick={() => go(it.id)}
+          aria-current={active === it.id ? 'true' : undefined}
           className={cn(
             'shrink-0 rounded-pill px-4 py-1.5 text-sm font-bold transition-colors',
             active === it.id
@@ -50,6 +54,6 @@ export function CategoryRail({ items }: { items: RailItem[] }) {
           {it.name}
         </button>
       ))}
-    </div>
+    </nav>
   );
 }

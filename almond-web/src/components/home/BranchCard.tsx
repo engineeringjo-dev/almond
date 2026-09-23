@@ -8,7 +8,16 @@ import { isBranchOpen } from '@/data/branches';
 import { asLang, formatNumber } from '@/lib/format';
 import { cn } from '@/lib/cn';
 
-export function BranchCard({ branch, distanceKm }: { branch: Branch; distanceKm?: number }) {
+export function BranchCard({
+  branch,
+  distanceKm,
+  headingLevel = 3,
+}: {
+  branch: Branch;
+  distanceKm?: number;
+  headingLevel?: 2 | 3;
+}) {
+  const Heading = headingLevel === 2 ? 'h2' : 'h3';
   const t = useTranslations('Branches');
   const lang = asLang(useLocale());
 
@@ -24,9 +33,9 @@ export function BranchCard({ branch, distanceKm }: { branch: Branch; distanceKm?
     <div className="rounded-lg border border-neutral-warm bg-card p-5 shadow-card">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <h3 className="text-lg font-bold">{name}</h3>
+          <Heading className="text-lg font-bold">{name}</Heading>
           <p className="mt-1 flex items-center gap-1 text-sm text-text-secondary">
-            <MapPin className="h-4 w-4 shrink-0" />
+            <MapPin className="h-4 w-4 shrink-0" aria-hidden />
             {area}
             {distanceKm != null && (
               <span className="font-bold text-primary">
@@ -39,7 +48,8 @@ export function BranchCard({ branch, distanceKm }: { branch: Branch; distanceKm?
           <span
             className={cn(
               'shrink-0 rounded-pill px-3 py-1 text-xs font-bold',
-              open ? 'bg-accent-light text-primary' : 'bg-neutral-warm text-text-secondary',
+              // primary on light violet is 4.2:1 (fails AA at 12px); primary-dark is 10:1.
+              open ? 'bg-accent-light text-primary-dark' : 'bg-neutral-warm text-text-secondary',
             )}
           >
             {open ? t('openNow') : t('closed')}
@@ -47,7 +57,7 @@ export function BranchCard({ branch, distanceKm }: { branch: Branch; distanceKm?
         )}
       </div>
       <p className="mt-3 flex items-center gap-1 text-sm text-text-secondary">
-        <Clock className="h-4 w-4 shrink-0" />
+        <Clock className="h-4 w-4 shrink-0" aria-hidden />
         <span dir="ltr">
           {branch.hours.open}–{branch.hours.close}
         </span>

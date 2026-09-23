@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useId, useState } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
 import { Check, Copy, Gift } from 'lucide-react';
 import type { GiftCard, GiftOccasion } from '@almond/shared/types';
@@ -12,6 +12,9 @@ import { cn } from '@/lib/cn';
 
 export function GiftsView() {
   const t = useTranslations('Gifts');
+  // Ties every <label> to its control: a sibling label with no htmlFor
+  // names nothing, so each field was announced as an unlabeled edit box.
+  const uid = useId();
   const lang = asLang(useLocale());
   const sendGift = useLoyaltyStore((s) => s.sendGift);
   const redeemGift = useLoyaltyStore((s) => s.redeemGift);
@@ -126,10 +129,10 @@ export function GiftsView() {
             </div>
 
             <div>
-              <label className="mb-2 block text-sm font-bold uppercase tracking-wide text-text-secondary">
+              <label className="mb-2 block text-sm font-bold uppercase tracking-wide text-text-secondary" htmlFor={`${uid}-1`}>
                 {t('recipient')}
               </label>
-              <input
+              <input id={`${uid}-1`}
                 value={recipient}
                 onChange={(e) => setRecipient(e.target.value)}
                 placeholder={t('recipientPlaceholder')}
@@ -138,10 +141,10 @@ export function GiftsView() {
             </div>
 
             <div>
-              <label className="mb-2 block text-sm font-bold uppercase tracking-wide text-text-secondary">
+              <label className="mb-2 block text-sm font-bold uppercase tracking-wide text-text-secondary" htmlFor={`${uid}-2`}>
                 {t('message')}
               </label>
-              <textarea
+              <textarea id={`${uid}-2`}
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
                 placeholder={t('messagePlaceholder')}
@@ -171,13 +174,13 @@ export function GiftsView() {
 
             {created && (
               <div className="rounded-lg border border-primary bg-accent-light p-4">
-                <p className="text-sm text-text-secondary">{t('sent')}</p>
+                <p className="text-sm text-primary-dark">{t('sent')}</p>
                 <div className="mt-2 flex items-center justify-between gap-2">
-                  <code className="text-lg font-bold text-primary">{created.code}</code>
+                  <code className="text-lg font-bold text-primary-dark">{created.code}</code>
                   <button
                     type="button"
                     onClick={copyCode}
-                    className="inline-flex items-center gap-1 rounded-pill border border-primary px-3 py-1 text-sm font-bold text-primary"
+                    className="inline-flex items-center gap-1 rounded-pill border border-primary px-3 py-1 text-sm font-bold text-primary-dark"
                   >
                     {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
                     {copied ? t('copied') : t('copy')}
@@ -197,6 +200,7 @@ export function GiftsView() {
                 setRedeemStatus('idle');
               }}
               placeholder={t('codePlaceholder')}
+              aria-label={t('codePlaceholder')}
               className="h-11 flex-1 rounded-md border border-neutral-warm bg-background px-4 outline-none focus:border-primary"
             />
             <Button onClick={submitRedeem} size="md">

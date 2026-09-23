@@ -89,7 +89,7 @@ export function BackOffice({ menuItemCount, itemsWithoutPhoto, menuItems }: {
         </form>
       </div>
 
-      <nav className="mb-6 flex flex-wrap gap-1 border-b border-neutral-warm" role="tablist">
+      <nav className="mb-6 flex flex-wrap gap-1 border-b border-neutral-warm" role="tablist" aria-label={t('title')}>
         {tabs.map(([id, label]) => (
           <button
             key={id}
@@ -108,7 +108,7 @@ export function BackOffice({ menuItemCount, itemsWithoutPhoto, menuItems }: {
       </nav>
 
       {error ? (
-        <p className="mb-6 rounded-md border border-error bg-error/10 p-4 text-sm">
+        <p role="alert" className="mb-6 rounded-md border border-error bg-error/10 p-4 text-sm">
           {t('loadError', { msg: error })}
         </p>
       ) : null}
@@ -276,6 +276,7 @@ function CompanyCard({ company, onChanged, onToggle }: {
         <span className={labelClass}>{t('roster')}</span>
         <p className="mb-2 text-xs leading-relaxed text-text-secondary">{t('rosterHint')}</p>
         <textarea
+          aria-label={`${t('roster')} — ${company.nameAr || company.nameEn}`}
           className="min-h-28 w-full rounded-md border border-neutral-warm bg-background p-3 font-mono text-sm outline-none focus:border-primary"
           dir="ltr"
           value={text}

@@ -20,15 +20,18 @@ export function Footer() {
   const year = new Date().getFullYear();
 
   return (
+    // The dark gradient starts at brand violet (#6C5CB4): white at 60–80%
+    // opacity measures 3.1–4.2:1 there, under AA for body text. Secondary text
+    // is white/90 (≥4.8:1 across the gradient).
     <footer className="mt-xxl bg-gradient-dark text-white">
       <div className="container-content grid gap-8 py-xxl md:grid-cols-[1.6fr_1fr_1fr]">
         <div className="max-w-md">
           <Logo variant="light" className="h-10" />
-          <p className="mt-4 text-md text-white/80">{t('tagline')}</p>
-          <p className="mt-2 text-sm text-white/60">{t('madeIn')}</p>
+          <p className="mt-4 text-md text-white/90">{t('tagline')}</p>
+          <p className="mt-2 text-sm text-white/90">{t('madeIn')}</p>
         </div>
         <div>
-          <h2 className="text-sm font-bold uppercase tracking-wide text-white/70">
+          <h2 className="text-sm font-bold uppercase tracking-wide text-white/90">
             {t('explore')}
           </h2>
           <ul className="mt-4 flex flex-col gap-3">
@@ -45,7 +48,7 @@ export function Footer() {
           </ul>
         </div>
         <div>
-          <h2 className="text-sm font-bold uppercase tracking-wide text-white/70">
+          <h2 className="text-sm font-bold uppercase tracking-wide text-white/90">
             {t('companyTitle')}
           </h2>
           <ul className="mt-4 flex flex-col gap-3">
@@ -63,7 +66,7 @@ export function Footer() {
         </div>
       </div>
       <div className="border-t border-white/15">
-        <div className="container-content py-5 text-sm text-white/60">
+        <div className="container-content py-5 text-sm text-white/90">
           © {year} {t('company')}. {t('rights')}
         </div>
       </div>

@@ -36,19 +36,36 @@ export function AppDownloadBanner() {
     'inline-flex h-9 items-center gap-1.5 rounded-pill bg-primary px-3 text-xs font-bold text-white hover:bg-primary-dark';
 
   return (
-    <div className="fixed inset-x-0 bottom-0 z-40 border-t border-neutral-warm bg-white/95 backdrop-blur">
+    <aside
+      aria-label={t('bannerLabel')}
+      className="fixed inset-x-0 bottom-0 z-40 border-t border-neutral-warm bg-white/95 backdrop-blur"
+    >
       <div className="container-content flex items-center gap-3 py-3">
         <Logo kind="badge" className="h-9 shrink-0" />
         <div className="min-w-0 flex-1">
           <p className="truncate text-sm font-bold">{t('title')}</p>
           <p className="hidden truncate text-xs text-text-secondary sm:block">{t('subtitle')}</p>
         </div>
-        <a href={APP_STORE_URL} target="_blank" rel="noopener noreferrer" className={store}>
-          <Apple className="h-4 w-4" />
+        {/* On a phone only the icon shows, so the name must come from aria-label
+            (an icon-only link has no accessible name otherwise). */}
+        <a
+          href={APP_STORE_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label={t('appStore')}
+          className={store}
+        >
+          <Apple className="h-4 w-4" aria-hidden />
           <span className="hidden sm:inline">{t('appStore')}</span>
         </a>
-        <a href={PLAY_STORE_URL} target="_blank" rel="noopener noreferrer" className={store}>
-          <Play className="h-4 w-4" />
+        <a
+          href={PLAY_STORE_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label={t('googlePlay')}
+          className={store}
+        >
+          <Play className="h-4 w-4" aria-hidden />
           <span className="hidden sm:inline">{t('googlePlay')}</span>
         </a>
         <button
@@ -57,9 +74,9 @@ export function AppDownloadBanner() {
           aria-label={t('dismiss')}
           className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-pill text-text-secondary hover:bg-neutral-warm"
         >
-          <X className="h-4 w-4" />
+          <X className="h-4 w-4" aria-hidden />
         </button>
       </div>
-    </div>
+    </aside>
   );
 }

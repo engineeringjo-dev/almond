@@ -13,7 +13,7 @@ import { fieldClass, labelClass } from '@/components/forms/styles';
 export function AdminLogin({ configured }: { configured: boolean }) {
   const t = useTranslations('Admin');
   const [pass, setPass] = useState('');
-  const [err, setErr] = useState('');
+  const [err, setErr] = useState<'' | 'wrong' | 'throttled'>('');
   const [busy, setBusy] = useState(false);
 
   return (
@@ -25,7 +25,7 @@ export function AdminLogin({ configured }: { configured: boolean }) {
           // Says what is missing rather than refusing a correct password in
           // silence — an operator otherwise retypes it against a server that
           // could never have accepted it.
-          <p className="mt-4 rounded-md border border-error bg-error/10 p-3 text-sm">
+          <p role="alert" className="mt-4 rounded-md border border-error bg-[color:color-mix(in_srgb,var(--color-error)_10%,transparent)] p-3 text-sm">
             {t('notConfigured')}
           </p>
         ) : (
@@ -41,7 +41,9 @@ export function AdminLogin({ configured }: { configured: boolean }) {
               });
               setBusy(false);
               if (r.ok) window.location.reload();
-              else setErr(((await r.json()) as { error?: string }).error ?? t('wrongPass'));
+              // A throttled login (429) is not a wrong password — saying so
+              // would send the administrator retyping a correct one.
+              else setErr(r.status === 429 ? 'throttled' : 'wrong');
             }}
           >
             <div>
@@ -53,9 +55,15 @@ export function AdminLogin({ configured }: { configured: boolean }) {
                 className={fieldClass}
                 value={pass}
                 onChange={(e) => setPass(e.target.value)}
+                aria-invalid={err ? true : undefined}
+                aria-describedby={err ? 'admin-pass-error' : undefined}
               />
             </div>
-            {err ? <p className="text-sm text-error">{t('wrongPass')}</p> : null}
+            {err ? (
+              <p id="admin-pass-error" role="alert" className="text-sm text-error">
+                {err === 'throttled' ? t('tooManyAttempts') : t('wrongPass')}
+              </p>
+            ) : null}
             <Button type="submit" disabled={busy} className="w-full">{t('login')}</Button>
           </form>
         )}

@@ -17,13 +17,13 @@ const ICONS: Record<PaymentMethodId, typeof Wallet> = {
   paypal: CreditCard,
 };
 
-export function PaymentMethods() {
+export function PaymentMethods({ labelledBy }: { labelledBy?: string }) {
   const lang = asLang(useLocale());
   const method = useCartStore((s) => s.paymentMethod);
   const setMethod = useCartStore((s) => s.setPaymentMethod);
 
   return (
-    <div className="grid gap-2 sm:grid-cols-2">
+    <div role="group" aria-labelledby={labelledBy} className="grid gap-2 sm:grid-cols-2">
       {paymentMethods.map((p) => {
         const Icon = ICONS[p.id];
         const selected = p.id === method;
@@ -32,16 +32,17 @@ export function PaymentMethods() {
             key={p.id}
             type="button"
             onClick={() => setMethod(p.id)}
+            aria-pressed={selected}
             className={cn(
               'flex items-center justify-between rounded-lg border px-4 py-3 transition-colors',
               selected ? 'border-primary bg-accent-light' : 'border-neutral-warm hover:border-primary',
             )}
           >
             <span className="flex items-center gap-2">
-              <Icon className="h-5 w-5 shrink-0 text-primary" />
+              <Icon className="h-5 w-5 shrink-0 text-primary" aria-hidden />
               <span className="font-bold">{lang === 'ar' ? p.nameAr : p.nameEn}</span>
             </span>
-            {selected && <Check className="h-5 w-5 shrink-0 text-primary" />}
+            {selected && <Check className="h-5 w-5 shrink-0 text-primary" aria-hidden />}
           </button>
         );
       })}

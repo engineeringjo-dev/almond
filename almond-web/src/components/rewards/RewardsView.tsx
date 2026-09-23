@@ -127,11 +127,12 @@ export function RewardsView() {
                   )}
                 >
                   <span className="inline-flex items-center gap-1 font-bold">
-                    {done && <Check className="h-4 w-4" />}
+                    {done && <Check className="h-4 w-4" aria-hidden />}
                     {done ? t('redeemed') : formatJOD(o.jod, lang)}
                   </span>
                   {!done && (
-                    <span className="text-xs opacity-80">
+                    // Full colour: at 80% opacity the violet on lavender is 3.6:1.
+                    <span className="text-xs">
                       {o.full ? t('wholeBalance') : t('cost', { cost: o.points })}
                     </span>
                   )}
@@ -156,13 +157,13 @@ export function RewardsView() {
                   className="flex items-center justify-between rounded-lg border border-dashed border-primary bg-accent-light px-4 py-3"
                 >
                   <div>
-                    <p className="font-bold text-primary">{tr(v.titleAr, v.titleEn)}</p>
-                    <p className="text-xs text-text-secondary">
+                    <p className="font-bold text-primary-dark">{tr(v.titleAr, v.titleEn)}</p>
+                    <p className="text-xs text-primary-dark">
                       {t('expires', { date: formatDate(v.expiresAt, lang) })}
                     </p>
                   </div>
                   {v.type === 'credit' && v.value != null && (
-                    <span className="font-bold text-primary">{formatJOD(v.value, lang)}</span>
+                    <span className="font-bold text-primary-dark">{formatJOD(v.value, lang)}</span>
                   )}
                 </div>
               ))

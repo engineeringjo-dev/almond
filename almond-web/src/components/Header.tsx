@@ -63,14 +63,14 @@ export function Header() {
             aria-label={mounted && user ? t('account') : t('login')}
             className="hidden h-10 w-10 items-center justify-center rounded-pill text-text-primary hover:bg-neutral-warm sm:inline-flex"
           >
-            <User className="h-5 w-5" />
+            <User className="h-5 w-5" aria-hidden />
           </Link>
           <Link
             href="/cart"
             aria-label={t('cart')}
             className="relative inline-flex h-10 w-10 items-center justify-center rounded-pill text-text-primary hover:bg-neutral-warm"
           >
-            <ShoppingBag className="h-5 w-5" />
+            <ShoppingBag className="h-5 w-5" aria-hidden />
             {mounted && count > 0 && (
               <span className="absolute -end-0.5 -top-0.5 inline-flex h-5 min-w-5 items-center justify-center rounded-pill bg-primary px-1 text-xs font-bold text-white">
                 {count}
@@ -84,17 +84,18 @@ export function Header() {
             type="button"
             aria-label={open ? t('closeMenu') : t('openMenu')}
             aria-expanded={open}
+            aria-controls="mobile-nav"
             onClick={() => setOpen((v) => !v)}
             className="inline-flex h-10 w-10 items-center justify-center rounded-pill text-text-primary hover:bg-neutral-warm md:hidden"
           >
-            {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+            {open ? <X className="h-5 w-5" aria-hidden /> : <Menu className="h-5 w-5" aria-hidden />}
           </button>
         </div>
       </div>
 
       {/* Mobile panel */}
       {open && (
-        <div className="border-t border-neutral-warm bg-white md:hidden">
+        <div id="mobile-nav" className="border-t border-neutral-warm bg-white md:hidden">
           <nav className="container-content flex flex-col py-3">
             {NAV.map((item) => (
               <Link

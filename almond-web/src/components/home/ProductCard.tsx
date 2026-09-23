@@ -22,7 +22,7 @@ export function ProductCard({ item }: { item: MenuItem }) {
         {item.imageUrl && (
           <Image
             src={item.imageUrl}
-            alt={name}
+            alt="" /* decorative: the name is the link text below */
             fill
             sizes="(max-width: 640px) 176px, 208px"
             className="object-contain p-3"

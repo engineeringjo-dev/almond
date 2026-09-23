@@ -55,7 +55,7 @@ export function WalletView() {
                 >
                   <span className="text-lg font-bold text-primary">{formatJOD(amount, lang)}</span>
                   {bonus > 0 && (
-                    <span className="rounded-pill bg-accent-light px-2 py-0.5 text-xs font-bold text-primary">
+                    <span className="rounded-pill bg-accent-light px-2 py-0.5 text-xs font-bold text-primary-dark">
                       {t('bonusBeans', { beans: bonus })}
                     </span>
                   )}

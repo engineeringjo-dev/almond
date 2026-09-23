@@ -12,26 +12,27 @@ const TABS: { id: OrderType; Icon: typeof Store; key: string }[] = [
   { id: 'delivery', Icon: Bike, key: 'delivery' },
 ];
 
-export function OrderTypeTabs() {
+export function OrderTypeTabs({ labelledBy }: { labelledBy?: string }) {
   const t = useTranslations('Checkout');
   const orderType = useCartStore((s) => s.orderType);
   const setOrderType = useCartStore((s) => s.setOrderType);
 
   return (
-    <div className="grid grid-cols-3 gap-2">
+    <div role="group" aria-labelledby={labelledBy} className="grid grid-cols-3 gap-2">
       {TABS.map(({ id, Icon, key }) => (
         <button
           key={id}
           type="button"
           onClick={() => setOrderType(id)}
+          aria-pressed={orderType === id}
           className={cn(
             'flex flex-col items-center gap-2 rounded-lg border p-4 transition-colors',
             orderType === id
-              ? 'border-primary bg-accent-light text-primary'
+              ? 'border-primary bg-accent-light text-primary-dark'
               : 'border-neutral-warm text-text-secondary hover:border-primary',
           )}
         >
-          <Icon className="h-6 w-6" />
+          <Icon className="h-6 w-6" aria-hidden />
           <span className="text-sm font-bold">{t(key)}</span>
         </button>
       ))}

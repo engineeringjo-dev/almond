@@ -34,7 +34,8 @@ export function CartLine({ line }: { line: CartItem }) {
 
       <div className="min-w-0 flex-1">
         <div className="flex items-start justify-between gap-3">
-          <h3 className="font-bold">{name}</h3>
+          {/* h2: cart lines sit directly under the page h1. */}
+          <h2 className="font-bold">{name}</h2>
           <span className="shrink-0 font-bold text-primary">{formatJOD(lineTotal, lang)}</span>
         </div>
         <p className="mt-0.5 text-sm text-text-secondary">
@@ -51,10 +52,10 @@ export function CartLine({ line }: { line: CartItem }) {
           <button
             type="button"
             onClick={() => removeLine(line.lineId)}
-            aria-label={t('remove')}
+            aria-label={t('removeItem', { name })}
             className="inline-flex items-center gap-1 text-sm text-text-secondary hover:text-error"
           >
-            <Trash2 className="h-4 w-4" />
+            <Trash2 className="h-4 w-4" aria-hidden />
             <span className="hidden sm:inline">{t('remove')}</span>
           </button>
         </div>

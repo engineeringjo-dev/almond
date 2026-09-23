@@ -49,12 +49,17 @@ export function MenuBrowser({ sections }: { sections: Section[] }) {
 
       {/* Search */}
       <div className="relative mt-5">
-        <Search className="pointer-events-none absolute top-1/2 start-4 h-5 w-5 -translate-y-1/2 text-text-secondary" />
+        <Search
+          aria-hidden
+          className="pointer-events-none absolute top-1/2 start-4 h-5 w-5 -translate-y-1/2 text-text-secondary"
+        />
         <input
           type="search"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder={t('searchPlaceholder')}
+          // A placeholder disappears on the first keystroke; the label must not.
+          aria-label={t('searchPlaceholder')}
           className="h-12 w-full rounded-pill border border-neutral-warm bg-card px-12 text-md outline-none transition-colors focus:border-primary"
         />
         {query && (
@@ -64,7 +69,7 @@ export function MenuBrowser({ sections }: { sections: Section[] }) {
             aria-label={t('clearSearch')}
             className="absolute top-1/2 end-3 inline-flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-pill text-text-secondary hover:bg-neutral-warm"
           >
-            <X className="h-4 w-4" />
+            <X className="h-4 w-4" aria-hidden />
           </button>
         )}
       </div>
@@ -72,14 +77,16 @@ export function MenuBrowser({ sections }: { sections: Section[] }) {
       {results ? (
         <div className="mt-6">
           {results.length === 0 ? (
-            <p className="py-12 text-center text-text-secondary">
+            <p role="status" className="py-12 text-center text-text-secondary">
               {t('noResults', { query })}
             </p>
           ) : (
             <>
-              <p className="mb-4 text-sm text-text-secondary">
-                {t('resultsCount', { count: results.length })}
-              </p>
+              {/* A heading (not a <p>) so the result cards' h3s have a parent level;
+                  the live region announces the count as the query changes. */}
+              <h2 className="mb-4 text-sm font-normal text-text-secondary">
+                <span role="status">{t('resultsCount', { count: results.length })}</span>
+              </h2>
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                 {results.map((item) => (
                   <MenuItemCard key={item.id} item={item} />
@@ -90,7 +97,7 @@ export function MenuBrowser({ sections }: { sections: Section[] }) {
         </div>
       ) : (
         <>
-          <CategoryRail items={railItems} />
+          <CategoryRail items={railItems} label={t('categories')} />
           <div className="mt-6 space-y-10">
             {merged.map((section) => (
               <section key={section.category.id} id={`cat-${section.category.id}`} className="scroll-mt-32">

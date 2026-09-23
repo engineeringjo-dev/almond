@@ -135,7 +135,7 @@ export function MenuEditor({ items }: { items: AdminItem[] }) {
         <h1 className="text-xxl">{t('title')}</h1>
         <div className="flex items-center gap-3">
           {editedCount > 0 && (
-            <span className="rounded-pill bg-accent-light px-3 py-1 text-sm font-bold text-primary">
+            <span className="rounded-pill bg-accent-light px-3 py-1 text-sm font-bold text-primary-dark">
               {t('edited', { n: editedCount })}
             </span>
           )}

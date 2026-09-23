@@ -14,7 +14,7 @@ export default function BranchesPage() {
       <h1 className="text-xxl">{t('title')}</h1>
       <p className="mt-1 text-md text-text-secondary">{t('subtitle')}</p>
       <div className="mt-6">
-        <BranchesExplorer branches={branches} />
+        <BranchesExplorer branches={branches} cardHeadingLevel={2} />
       </div>
     </div>
   );

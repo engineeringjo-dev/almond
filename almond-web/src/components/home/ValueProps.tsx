@@ -18,10 +18,11 @@ export function ValueProps() {
           className="flex items-start gap-4 rounded-lg border border-neutral-warm bg-card p-5 shadow-card"
         >
           <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-md bg-neutral-warm text-primary">
-            <Icon className="h-5 w-5" />
+            <Icon className="h-5 w-5" aria-hidden />
           </span>
           <div>
-            <h3 className="text-md font-bold">{title}</h3>
+            {/* h2: these sit directly under the page h1 (no section heading). */}
+            <h2 className="text-md font-bold">{title}</h2>
             <p className="mt-1 text-sm text-text-secondary">{text}</p>
           </div>
         </div>

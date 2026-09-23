@@ -30,10 +30,12 @@ export function ComboBanner() {
         🍽️
       </span>
       <div className="min-w-0 flex-1">
-        <p className="text-sm font-bold text-primary">
+        {/* primary (#6C5CB4) on the light-violet fill is 4.2:1, under AA for
+            small text; primary-dark keeps the brand hue at 10:1. */}
+        <p className="text-sm font-bold text-primary-dark">
           {missing === 'food' ? t('comboAddFood', { points }) : t('comboAddDrink', { points })}
         </p>
-        <p className="truncate text-xs text-text-secondary">{name}</p>
+        <p className="truncate text-xs text-primary-dark">{name}</p>
       </div>
       <button
         type="button"

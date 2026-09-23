@@ -23,8 +23,12 @@ import { PaymentMethods } from './PaymentMethods';
 import { CartSummary } from '@/components/cart/CartSummary';
 import { Button } from '@/components/ui/Button';
 
-function SectionTitle({ children }: { children: React.ReactNode }) {
-  return <h2 className="mb-3 text-lg">{children}</h2>;
+function SectionTitle({ children, id }: { children: React.ReactNode; id?: string }) {
+  return (
+    <h2 id={id} className="mb-3 text-lg">
+      {children}
+    </h2>
+  );
 }
 
 export function CheckoutView() {
@@ -117,15 +121,15 @@ export function CheckoutView() {
       <div className="mt-6 grid gap-8 lg:grid-cols-[1.6fr_1fr]">
         <div className="space-y-8">
           <section>
-            <SectionTitle>{t('orderType')}</SectionTitle>
-            <OrderTypeTabs />
+            <SectionTitle id="co-order-type">{t('orderType')}</SectionTitle>
+            <OrderTypeTabs labelledBy="co-order-type" />
           </section>
 
           {isDelivery && (
             <section>
-              <SectionTitle>{t('deliveryAddress')}</SectionTitle>
+              <SectionTitle id="co-address">{t('deliveryAddress')}</SectionTitle>
               <p className="mb-3 flex items-center gap-2 text-sm text-text-secondary">
-                <Truck className="h-4 w-4 shrink-0 text-primary" />
+                <Truck className="h-4 w-4 shrink-0 text-primary" aria-hidden />
                 {t('deliveryBy')}
               </p>
               <textarea
@@ -133,23 +137,32 @@ export function CheckoutView() {
                 value={deliveryAddress}
                 onChange={(e) => setDeliveryAddress(e.target.value)}
                 placeholder={t('deliveryAddressPlaceholder')}
+                aria-labelledby="co-address"
+                aria-required
+                aria-invalid={(error && !deliveryAddress.trim()) || undefined}
                 className="w-full rounded-md border border-neutral-warm bg-card px-4 py-2 outline-none focus:border-primary"
               />
               {error && !deliveryAddress.trim() && (
-                <p className="mt-2 text-sm text-error">{t('enterAddress')}</p>
+                <p role="alert" className="mt-2 text-sm text-error">
+                  {t('enterAddress')}
+                </p>
               )}
             </section>
           )}
 
           <section>
-            <SectionTitle>{t('branch')}</SectionTitle>
-            <BranchPicker />
-            {error && !branchId && <p className="mt-2 text-sm text-error">{t('selectBranch')}</p>}
+            <SectionTitle id="co-branch">{t('branch')}</SectionTitle>
+            <BranchPicker labelledBy="co-branch" />
+            {error && !branchId && (
+              <p role="alert" className="mt-2 text-sm text-error">
+                {t('selectBranch')}
+              </p>
+            )}
           </section>
 
           <section>
-            <SectionTitle>{t('payment')}</SectionTitle>
-            <PaymentMethods />
+            <SectionTitle id="co-payment">{t('payment')}</SectionTitle>
+            <PaymentMethods labelledBy="co-payment" />
           </section>
 
           {crossSell.length > 0 && (
@@ -182,8 +195,8 @@ export function CheckoutView() {
               <p className="text-xs text-text-secondary">{t('deliveryEta', { min: DELIVERY_ETA })}</p>
             </div>
           )}
-          <div className="flex items-center gap-2 rounded-md bg-accent-light p-3 text-sm font-bold text-primary">
-            <Sparkles className="h-4 w-4 shrink-0" />
+          <div className="flex items-center gap-2 rounded-md bg-accent-light p-3 text-sm font-bold text-primary-dark">
+            <Sparkles className="h-4 w-4 shrink-0" aria-hidden />
             {t('earnBeans', { beans })}
           </div>
           <Button size="lg" className="w-full" onClick={place}>
@@ -191,14 +204,21 @@ export function CheckoutView() {
           </Button>
           <div className="space-y-2 border-t border-neutral-warm pt-4">
               <p className="flex items-center gap-2 text-sm font-bold text-text-secondary">
-                <Lock className="h-4 w-4 text-success" />
+                <Lock className="h-4 w-4 text-success" aria-hidden />
                 {t('secure')}
               </p>
-              <div className="flex items-center gap-3 text-text-secondary" aria-label={t('accepted')}>
-                <Wallet className="h-5 w-5" />
-                <Smartphone className="h-5 w-5" />
-                <Banknote className="h-5 w-5" />
-                <CreditCard className="h-5 w-5" />
+              {/* aria-label on a plain <div> is ignored by assistive tech (and is
+                  a prohibited attribute there); role="img" makes the row one
+                  labelled graphic. */}
+              <div
+                role="img"
+                className="flex items-center gap-3 text-text-secondary"
+                aria-label={t('accepted')}
+              >
+                <Wallet className="h-5 w-5" aria-hidden />
+                <Smartphone className="h-5 w-5" aria-hidden />
+                <Banknote className="h-5 w-5" aria-hidden />
+                <CreditCard className="h-5 w-5" aria-hidden />
               </div>
             </div>
         </aside>

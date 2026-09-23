@@ -10,7 +10,14 @@ import { BranchCard } from '@/components/home/BranchCard';
 
 type GeoStatus = 'idle' | 'loading' | 'denied' | 'unavailable';
 
-export function BranchesExplorer({ branches }: { branches: Branch[] }) {
+export function BranchesExplorer({
+  branches,
+  cardHeadingLevel = 3,
+}: {
+  branches: Branch[];
+  /** 2 when the explorer sits directly under a page h1 (the /branches page). */
+  cardHeadingLevel?: 2 | 3;
+}) {
   const t = useTranslations('Branches');
   const lang = asLang(useLocale());
   const [coords, setCoords] = useState<Coords | null>(null);
@@ -43,7 +50,7 @@ export function BranchesExplorer({ branches }: { branches: Branch[] }) {
           onClick={locate}
           className="inline-flex h-10 items-center gap-2 rounded-pill border border-primary px-4 text-sm font-bold text-primary transition-colors hover:bg-accent-light"
         >
-          <LocateFixed className="h-4 w-4" />
+          <LocateFixed className="h-4 w-4" aria-hidden />
           {status === 'loading' ? t('locating') : t('findNearest')}
         </button>
         {status === 'denied' && <span className="text-sm text-error">{t('denied')}</span>}
@@ -51,11 +58,14 @@ export function BranchesExplorer({ branches }: { branches: Branch[] }) {
       </div>
 
       {nearest && (
-        <div className="mt-4 flex flex-wrap items-center gap-2 rounded-lg bg-accent-light px-4 py-3 text-sm font-bold text-primary">
-          <MapPin className="h-4 w-4 shrink-0" />
+        <div
+          role="status"
+          className="mt-4 flex flex-wrap items-center gap-2 rounded-lg bg-accent-light px-4 py-3 text-sm font-bold text-primary-dark"
+        >
+          <MapPin className="h-4 w-4 shrink-0" aria-hidden />
           {t('nearest')}: {lang === 'ar' ? nearest.branch.nameAr : nearest.branch.nameEn}
           {nearest.distanceKm != null && (
-            <span className="text-text-secondary">
+            <span className="font-normal text-primary-dark">
               · {t('away', { km: formatNumber(Number(nearest.distanceKm.toFixed(1)), lang) })}
             </span>
           )}
@@ -64,7 +74,12 @@ export function BranchesExplorer({ branches }: { branches: Branch[] }) {
 
       <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {list.map(({ branch, distanceKm }) => (
-          <BranchCard key={branch.id} branch={branch} distanceKm={distanceKm} />
+          <BranchCard
+            key={branch.id}
+            branch={branch}
+            distanceKm={distanceKm}
+            headingLevel={cardHeadingLevel}
+          />
         ))}
       </div>
     </div>

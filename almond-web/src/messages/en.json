@@ -2,7 +2,10 @@
   "Common": {
     "appName": "Almond",
     "appFullName": "Almond Coffee House",
-    "comingSoon": "Coming soon"
+    "comingSoon": "Coming soon",
+    "quantity": "Quantity",
+    "increaseQty": "Increase quantity",
+    "decreaseQty": "Decrease quantity"
   },
   "Nav": {
     "home": "Home",
@@ -74,7 +77,9 @@
     "soldOut": "Sold out",
     "from": "from",
     "total": "Total",
-    "upsize": "Go {size} for +{price}"
+    "upsize": "Go {size} for +{price}",
+    "quickAdd": "Add {name} to cart",
+    "categories": "Menu categories"
   },
   "Cart": {
     "title": "Your cart",
@@ -97,7 +102,8 @@
     "comboAddFood": "Add a food item to earn +{points} points 🍽️",
     "comboAddDrink": "Add a drink to earn +{points} points ☕",
     "comboAdd": "Add",
-    "comboEarned": "Combo: +{points} points"
+    "comboEarned": "Combo: +{points} points",
+    "removeItem": "Remove {name}"
   },
   "Checkout": {
     "title": "Checkout",
@@ -243,7 +249,8 @@
     "noPointsNote": "Anyone on a standing discount earns no points at all — the discount is the reward.",
     "odooNote": "Sales, margin and discount per branch × item, and staff consumption, are already in Odoo. Not rebuilt here.",
     "menuNote": "The menu is pulled from Odoo with “npm run menu:pull”. Uploading photos directly needs durable storage — a pending decision.",
-    "loadError": "Could not reach the server: {msg}"
+    "loadError": "Could not reach the server: {msg}",
+    "tooManyAttempts": "Too many sign-in attempts — try again in a little while"
   },
   "Careers": {
     "title": "Join the Almond team",
@@ -305,7 +312,8 @@
     "subtitle": "Order faster, collect your points, and keep all your rewards in one place.",
     "appStore": "App Store",
     "googlePlay": "Google Play",
-    "dismiss": "Dismiss"
+    "dismiss": "Dismiss",
+    "bannerLabel": "Almond app"
   },
   "Branches": {
     "findNearest": "Find my nearest branch",

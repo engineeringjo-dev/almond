@@ -2,7 +2,10 @@
   "Common": {
     "appName": "ألموند",
     "appFullName": "ألموند كوفي هاوس",
-    "comingSoon": "قريبًا"
+    "comingSoon": "قريبًا",
+    "quantity": "الكمية",
+    "increaseQty": "زيادة الكمية",
+    "decreaseQty": "إنقاص الكمية"
   },
   "Nav": {
     "home": "الرئيسية",
@@ -74,7 +77,9 @@
     "soldOut": "غير متوفر حاليًا",
     "from": "يبدأ من",
     "total": "الإجمالي",
-    "upsize": "كبّر إلى {size} مقابل +{price}"
+    "upsize": "كبّر إلى {size} مقابل +{price}",
+    "quickAdd": "أضف {name} إلى السلة",
+    "categories": "أقسام المنيو"
   },
   "Cart": {
     "title": "سلة الطلبات",
@@ -97,7 +102,8 @@
     "comboAddFood": "أضف صنف طعام لتكسب +{points} نقطة 🍽️",
     "comboAddDrink": "أضف مشروبًا لتكسب +{points} نقطة ☕",
     "comboAdd": "إضافة",
-    "comboEarned": "كومبو: +{points} نقطة"
+    "comboEarned": "كومبو: +{points} نقطة",
+    "removeItem": "إزالة {name}"
   },
   "Checkout": {
     "title": "إتمام الطلب",
@@ -243,7 +249,8 @@
     "noPointsNote": "من يحمل خصماً دائماً لا يكسب نقاطاً إطلاقاً — الخصم هو المكافأة.",
     "odooNote": "المبيعات والهوامش والخصم لكل فرع×صنف، واستهلاك الموظفين — كلّها جاهزة في أودو. لا تُبنى هنا.",
     "menuNote": "المنيو يُسحب من أودو بـ«npm run menu:pull». الرفع المباشر للصور يحتاج تخزيناً دائماً — قرار معلّق.",
-    "loadError": "تعذّر الوصول للخادم: {msg}"
+    "loadError": "تعذّر الوصول للخادم: {msg}",
+    "tooManyAttempts": "محاولات دخول كثيرة — حاول مرة أخرى بعد قليل"
   },
   "Careers": {
     "title": "انضمّ إلى فريق ألموند",
@@ -305,7 +312,8 @@
     "subtitle": "اطلب أسرع، واجمع نقاطك، وكل مكافآتك في مكان واحد.",
     "appStore": "App Store",
     "googlePlay": "Google Play",
-    "dismiss": "إغلاق"
+    "dismiss": "إغلاق",
+    "bannerLabel": "تطبيق ألموند"
   },
   "Branches": {
     "findNearest": "اعرف أقرب فرع",

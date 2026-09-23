@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useId, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { useAuthStore } from '@/store/authStore';
 import { useRouter } from '@/i18n/navigation';
@@ -9,6 +9,9 @@ import { fieldClass, labelClass } from '@/components/forms/styles';
 
 export function LoginView() {
   const t = useTranslations('Auth');
+  // Ties every <label> to its control: a sibling label with no htmlFor
+  // names nothing, so each field was announced as an unlabeled edit box.
+  const uid = useId();
   const router = useRouter();
   const user = useAuthStore((s) => s.user);
   const pendingPhone = useAuthStore((s) => s.pendingPhone);
@@ -53,7 +56,7 @@ export function LoginView() {
         {!pendingPhone ? (
           <form onSubmit={submitPhone} className="mt-5 space-y-3">
             <div>
-              <label className={labelClass}>{t('phoneLabel')}</label>
+              <label className={labelClass} htmlFor={`${uid}-1`}>{t('phoneLabel')}</label>
               <div className="flex items-center gap-2">
                 <span
                   dir="ltr"
@@ -61,7 +64,7 @@ export function LoginView() {
                 >
                   +962
                 </span>
-                <input
+                <input id={`${uid}-1`}
                   dir="ltr"
                   type="tel"
                   className={fieldClass}
@@ -74,7 +77,11 @@ export function LoginView() {
                 />
               </div>
             </div>
-            {err === 'phone' && <p className="text-sm text-error">{t('invalidPhone')}</p>}
+            {err === 'phone' && (
+              <p role="alert" className="text-sm text-error">
+                {t('invalidPhone')}
+              </p>
+            )}
             <Button type="submit" className="w-full">
               {t('sendCode')}
             </Button>
@@ -83,8 +90,8 @@ export function LoginView() {
           <form onSubmit={submitOtp} className="mt-5 space-y-3">
             <p className="text-sm text-text-secondary">{t('otpSentTo', { phone: pendingPhone })}</p>
             <div>
-              <label className={labelClass}>{t('otpTitle')}</label>
-              <input
+              <label className={labelClass} htmlFor={`${uid}-2`}>{t('otpTitle')}</label>
+              <input id={`${uid}-2`}
                 dir="ltr"
                 inputMode="numeric"
                 maxLength={4}
@@ -97,7 +104,11 @@ export function LoginView() {
                 placeholder="0000"
               />
             </div>
-            {err === 'code' && <p className="text-sm text-error">{t('invalidCode')}</p>}
+            {err === 'code' && (
+              <p role="alert" className="text-sm text-error">
+                {t('invalidCode')}
+              </p>
+            )}
             <p className="text-xs text-text-secondary">{t('demoHint')}</p>
             <Button type="submit" className="w-full">
               {t('verify')}

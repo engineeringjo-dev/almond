@@ -53,7 +53,7 @@ export function OrderSuccessView() {
 
   return (
     <section className="container-content flex flex-col items-center py-xxl text-center">
-      <CheckCircle2 className="h-16 w-16 text-success" />
+      <CheckCircle2 className="h-16 w-16 text-success" aria-hidden />
       <h1 className="mt-4 text-xxl">{t('title')}</h1>
       <p className="mt-1 text-md text-text-secondary">{t('subtitle')}</p>
 
@@ -64,10 +64,10 @@ export function OrderSuccessView() {
         <div className="my-3 border-t border-neutral-warm" />
         <div className="flex items-center justify-between">
           <span className="flex items-center gap-2 font-bold text-primary">
-            <Sparkles className="h-4 w-4" />
+            <Sparkles className="h-4 w-4" aria-hidden />
             {t('beansEarned', { beans })}
           </span>
-          <span className="rounded-pill bg-accent-light px-3 py-1 text-sm font-bold text-primary">
+          <span className="rounded-pill bg-accent-light px-3 py-1 text-sm font-bold text-primary-dark">
             {t('readyIn', { minutes: order.prepMinutes })}
           </span>
         </div>

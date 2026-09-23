@@ -22,9 +22,7 @@ export function MenuItemCard({ item }: { item: MenuItem }) {
   const price = itemFromPrice(item);
   const soldOut = item.inStock === false;
 
-  const quickAdd = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
+  const quickAdd = () => {
     if (!item.sizes.length) return;
     // Cheapest size, no customizations — the default "quick add".
     const size = item.sizes.reduce((a, b) => (b.price < a.price ? b : a), item.sizes[0]);
@@ -33,23 +31,27 @@ export function MenuItemCard({ item }: { item: MenuItem }) {
     window.setTimeout(() => setAdded(false), 1200);
   };
 
+  // The quick-add button is a SIBLING of the card link, not a child of it: a
+  // <button> inside an <a> is invalid HTML, is announced as one merged control
+  // by screen readers, and needed preventDefault() to stop the click from also
+  // navigating.
   return (
-    <Link
-      href={`/menu/${item.id}`}
-      className="group relative flex gap-4 rounded-lg border border-neutral-warm bg-card p-3 shadow-card transition-transform duration-base hover:-translate-y-0.5"
-    >
-      <div className="product-thumb h-24 w-24 shrink-0">
-        {item.imageUrl && (
-          <Image src={item.imageUrl} alt={name} fill sizes="96px" className="object-contain p-1.5" />
-        )}
-      </div>
-      <div className="min-w-0 flex-1 pe-10">
-        <h3 className="line-clamp-1 font-bold">{name}</h3>
-        {desc && <p className="mt-1 line-clamp-2 text-sm text-text-secondary">{desc}</p>}
-        <p className="mt-2 text-sm font-bold text-primary">
-          {t('from')} {formatJOD(price, lang)}
-        </p>
-      </div>
+    <div className="group relative rounded-lg border border-neutral-warm bg-card shadow-card transition-transform duration-base hover:-translate-y-0.5">
+      <Link href={`/menu/${item.id}`} className="flex gap-4 rounded-lg p-3">
+        <div className="product-thumb h-24 w-24 shrink-0">
+          {item.imageUrl && (
+            // Decorative: the item name is the link text right beside it.
+            <Image src={item.imageUrl} alt="" fill sizes="96px" className="object-contain p-1.5" />
+          )}
+        </div>
+        <div className="min-w-0 flex-1 pe-10">
+          <h3 className="line-clamp-1 font-bold">{name}</h3>
+          {desc && <p className="mt-1 line-clamp-2 text-sm text-text-secondary">{desc}</p>}
+          <p className="mt-2 text-sm font-bold text-primary">
+            {t('from')} {formatJOD(price, lang)}
+          </p>
+        </div>
+      </Link>
 
       {soldOut ? (
         <span className="absolute end-3 top-3 rounded-pill bg-neutral-warm px-2 py-0.5 text-xs text-text-secondary">
@@ -59,15 +61,15 @@ export function MenuItemCard({ item }: { item: MenuItem }) {
         <button
           type="button"
           onClick={quickAdd}
-          aria-label={t('addToCart')}
+          aria-label={t('quickAdd', { name })}
           className={cn(
             'absolute bottom-3 end-3 inline-flex h-9 w-9 items-center justify-center rounded-pill text-white shadow-card transition-colors',
             added ? 'bg-success' : 'bg-primary hover:bg-primary-dark',
           )}
         >
-          {added ? <Check className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
+          {added ? <Check className="h-4 w-4" aria-hidden /> : <Plus className="h-4 w-4" aria-hidden />}
         </button>
       )}
-    </Link>
+    </div>
   );
 }
