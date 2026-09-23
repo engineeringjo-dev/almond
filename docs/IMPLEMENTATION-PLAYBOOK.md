@@ -1,3 +1,10 @@
+> ⚠️ **تاريخيّ / Historical** — أجزاءٌ من هذه الوثيقة لم تعد صحيحة. الحقيقة الحاليّة: [`docs/HANDOVER.md`](HANDOVER.md).
+>
+> Parts of this document are superseded. Current truth: [`docs/HANDOVER.md`](HANDOVER.md). Known outdated here:
+> - "16% VAT" and the `withTax` display helper (§5-ج) — tax is 8 %, already included in Odoo's `list_price`; nothing is added on top.
+> - Checkout as a saga with compensation + outbox — implemented instead as ONE database transaction (commit `1748dae`).
+> - Many P0/P1 items are done (BFF, JWT, idempotency keys, signed POS token); read the current state in `docs/HANDOVER.md`, not the checklists here.
+
 # دليل التنفيذ — ألموند كوفي هاوس (المتبقّي)
 
 هذا الدليل يجمع خمس مساحات عمل متبقّية (الباك-إند المالي الآمن، تكامل Odoo 19، موقع Next.js للـSEO والأداء، UX/الوصولية WCAG 2.2 AA، وآليات الولاء والتحويل) في مرجع تنفيذي واحد للمالك والمهندسين. المبدأ الحاكم عبر كل الأقسام: **مصدر حقيقة واحد للمال والهوية على الخادم، ومصدر توكنات/منطق واحد في `@almond/shared` يشترك فيه التطبيق والموقع.**

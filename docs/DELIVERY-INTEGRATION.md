@@ -1,3 +1,10 @@
+> ⚠️ **تاريخيّ / Historical** — أجزاءٌ من هذه الوثيقة لم تعد صحيحة. الحقيقة الحاليّة: [`docs/HANDOVER.md`](HANDOVER.md).
+>
+> Parts of this document are superseded. Current truth: [`docs/HANDOVER.md`](HANDOVER.md). Known outdated here:
+> - "Auth: `EXPO_PUBLIC_ISHBEK_KEY` / `NEXT_PUBLIC_ISHBEK_KEY`" — the key is server-only `ISHBEK_KEY` (as the Security section below says).
+> - "Odoo asks Ishbek for a quote / calls dispatch" — today the website's route handlers call Ishbek directly, and live dispatch/cancel/status require the admin session; nothing goes through Odoo yet.
+> - "Flip `enabled.delivery`" — the website's `isLive()` reads only `NEXT_PUBLIC_DATA_SOURCE=odoo` + `ISHBEK_KEY`, and that same switch makes the menu and payment throw. See `docs/INTEGRATIONS.md` §4.
+
 # Delivery integration — Ishbek → Careem / Talabat (design)
 
 Goal (owner): customers order on **our** website/app; **Careem & Talabat captains

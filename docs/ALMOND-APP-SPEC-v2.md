@@ -1,3 +1,12 @@
+> ⚠️ **تاريخيّ / Historical** — أجزاءٌ من هذه الوثيقة لم تعد صحيحة. الحقيقة الحاليّة: [`docs/HANDOVER.md`](HANDOVER.md).
+>
+> Parts of this document are superseded. Current truth: [`docs/HANDOVER.md`](HANDOVER.md). Known outdated here:
+> - Expo "SDK 51+" — the app is on Expo SDK 56 (`almond-app/package.json`).
+> - Cart "tax (16%)" added on top of the price — tax is 8 %, already included in Odoo's `list_price` (owner, 2026-09-23; `bff/test/tax.test.ts`).
+> - A separate `admin-panel/` (React + Vite) — never built; the back office is `/admin` inside `almond-web`.
+> - Earn rules (5 points per JOD, Friday ×1.5, spin wheel) — the rules in force are in `packages/shared/src/config/index.ts` (2 points/JOD base; the Friday/bonus-day multipliers were retired on 2026-09-06; no spin-wheel screen exists).
+> - "Missing backend: use the mock data layer" — the API now exists (`bff/`) and production refuses to run without Postgres.
+
 # Almond Coffee House — Mobile App
 ## Master Build Specification for Claude Code (v2.0 — FINAL)
 

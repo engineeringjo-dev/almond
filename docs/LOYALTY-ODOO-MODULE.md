@@ -1,3 +1,11 @@
+> ⚠️ **تاريخيّ / Historical** — أجزاءٌ من هذه الوثيقة لم تعد صحيحة. الحقيقة الحاليّة: [`docs/HANDOVER.md`](HANDOVER.md).
+>
+> Parts of this document are superseded. Current truth: [`docs/HANDOVER.md`](HANDOVER.md). Known outdated here:
+> - "Tax basis 8% vs 16% unresolved" — settled: 8 %, included in `list_price` (owner, 2026-09-23).
+> - Base earn `reward_point_amount=5` — the code's base is 2 points/JOD (`packages/shared/src/config/index.ts`).
+> - Companions `BRIEF.md` / `IMPL-BRIEF.md` do not exist in this repository.
+> - The till connector actually written is `integrations/almond_loyalty_pos/` (see `docs/INTEGRATIONS.md` §2), not this module design.
+
 # Almond Loyalty — Odoo 19 capability boundary and the custom module
 
 **Artifact:** `odoo-module` (Phase-0 kit, 1 of 5)

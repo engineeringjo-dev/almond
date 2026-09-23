@@ -24,7 +24,8 @@ export const config = {
   // almost the same cash (15,133 vs 15,503 JOD/yr), because it concentrates
   // points in the tier that redeems 87% while a flat rate scatters them into a
   // base that redeems 18% and never comes back. The ladders cost the same; only
-  // one of them has a story. See docs/LOYALTY-TIERS-NEW.ar.md.
+  // one of them has a story. (The design note this used to cite,
+  // docs/LOYALTY-TIERS-NEW.ar.md, was never committed — this comment is the record.)
   //
   // WHAT THE RESEARCH SAYS ABOUT THIS NUMBER, so nobody re-derives it: at the
   // measured member basket the entry rung pays 0.123-0.131 JOD a visit, and the

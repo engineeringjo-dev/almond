@@ -1,3 +1,10 @@
+> ⚠️ **تاريخيّ / Historical** — أجزاءٌ من هذه الوثيقة لم تعد صحيحة. الحقيقة الحاليّة: [`docs/HANDOVER.md`](HANDOVER.md).
+>
+> Parts of this document are superseded. Current truth: [`docs/HANDOVER.md`](HANDOVER.md). Known outdated here:
+> - "Tax 16% added at the cart" — tax is 8 %, included in Odoo's `list_price` (owner, 2026-09-23).
+> - The website described as planned — it exists (`almond-web/`).
+> - Client-side money/points and random user ids (§1) — replaced by `bff`: JWT-subject identity, one-transaction checkout (commit `1748dae`), server-side earn.
+
 # مراجعة لجنة الخبراء — ألموند كوفي هاوس (قبل الإطلاق)
 
 > نطاق المراجعة: تطبيق React Native/Expo (الحالي)، الموقع المخطّط (Next.js)، وطبقة ربط أودو (Odoo 19 + POS). الأساس التقني منظّم بشكل لافت لمرحلة ما قبل الإطلاق (فصل نظيف بين mock/live عبر `config.DATA_SOURCE`، خريطة تكامل مركزية `constants/integration.ts`، `ErrorBoundary`، وTypeScript strict)، لكن **مسارات المال والنقاط والهوية غير جاهزة للإنتاج**.

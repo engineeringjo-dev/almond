@@ -1,3 +1,9 @@
+> ⚠️ **تاريخيّ / Historical** — أجزاءٌ من هذه الوثيقة لم تعد صحيحة. الحقيقة الحاليّة: [`docs/HANDOVER.md`](HANDOVER.md).
+>
+> Parts of this document are superseded. Current truth: [`docs/HANDOVER.md`](HANDOVER.md). Known outdated here:
+> - "5 نقاط لكل 1 د.أ", tier multipliers and "+50% every Friday" — earn rules in force are in `packages/shared/src/config/index.ts` (2 points/JOD base).
+> - Spin wheel and an `admin-panel` for it — no spin-wheel screen exists (only leftover types in `packages/shared/src/types`), and the back office is `/admin` in `almond-web`.
+
 # Almond Coffee House — Master Pack (التصميم + كل التفاصيل)
 ## أسلوب ستاربكس الكامل + كل معلومات وشرائح ألموند — ملف واحد نهائي
 

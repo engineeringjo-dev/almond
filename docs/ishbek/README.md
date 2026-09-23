@@ -1,3 +1,8 @@
+> ⚠️ **تاريخيّ / Historical** — أجزاءٌ من هذه الوثيقة لم تعد صحيحة. الحقيقة الحاليّة: [`docs/HANDOVER.md`](../HANDOVER.md).
+>
+> Parts of this document are superseded. Current truth: [`docs/HANDOVER.md`](../HANDOVER.md). Known outdated here:
+> - "الضريبة 16%" (and `tax: 1.120` / "tax 16%" in `3.dispatch.request.json`) — tax is 8 %, already included in Odoo's `list_price` (owner, 2026-09-23); nothing is added on top.
+
 # Almond × Ishbek — عقد التكامل (Careem / Talabat)
 
 عيّنة العقد وملفات JSON لتكامل التوصيل عبر **Ishbek** (يوزّع على أسطولَي **كريم**

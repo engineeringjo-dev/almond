@@ -1,3 +1,8 @@
+> ⚠️ **تاريخيّ / Historical** — أجزاءٌ من هذه الوثيقة لم تعد صحيحة. الحقيقة الحاليّة: [`docs/HANDOVER.md`](HANDOVER.md).
+>
+> Parts of this document are superseded. Current truth: [`docs/HANDOVER.md`](HANDOVER.md). Known outdated here:
+> - "What this baseline does not cover" (end of file): Postgres and the money-moving `/v1/checkout` ARE now measured (section "on a real Postgres 16"), and the idempotency store is no longer a per-process map — it moved to Postgres (commit `1748dae`). Rate limiters, the POS-token replay set and OTP state are still per-process.
+
 # BFF load baseline
 
 **A baseline, not a capacity claim.** One BFF process, memory backend, measured

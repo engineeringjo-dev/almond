@@ -1,3 +1,10 @@
+> ⚠️ **تاريخيّ / Historical** — أجزاءٌ من هذه الوثيقة لم تعد صحيحة. الحقيقة الحاليّة: [`docs/HANDOVER.md`](HANDOVER.md).
+>
+> Parts of this document are superseded. Current truth: [`docs/HANDOVER.md`](HANDOVER.md). Known outdated here:
+> - Tax computed at 16 % — tax is 8 %, included in Odoo's `list_price` (owner, 2026-09-23).
+> - Earn base 5 points/JOD with a 5/6/7 ladder — the code implements the owner's 2026-09-06 design: 2 points/JOD base (`packages/shared/src/config/index.ts`).
+> - Premises replaced by measurement in `docs/LOYALTY-MEASURED-TRUTH.ar.md` (the live programme is a flat 4/6/8/10 per tier).
+
 # 🌰 نظام ولاء ألموند — التصميم النهائيّ الموحَّد
 
 **التاريخ:** 2026-09-03 · **الحالة:** تصميم نهائيّ للاعتماد (النسخة المصحَّحة بعد المراجعة العدائيّة) · **الأساس:** مقترَح المالك + مواصفة التطبيق في المستودع + مراجعتها + المعايير العالميّة المُحقَّقة، مصهورةً في نظامٍ واحد · **المحرّك:** Odoo 19 `loyalty` + تطبيق Expo عبر BFF

@@ -1,3 +1,8 @@
+> ⚠️ **تاريخيّ / Historical** — أجزاءٌ من هذه الوثيقة لم تعد صحيحة. الحقيقة الحاليّة: [`docs/HANDOVER.md`](HANDOVER.md).
+>
+> Parts of this document are superseded. Current truth: [`docs/HANDOVER.md`](HANDOVER.md). Known outdated here:
+> - "All five Vercel projects fail on every push" — measured 2026-09-23 via the Vercel API: project `almond` builds and deploys `main@cb20825` to production (READY); the four extra projects still exist, last updated 2026-09-08. The settled decision (option A, with `outputDirectory`) below is current.
+
 # نشر الموقع (almond-web) — قرار ثابت
 
 > حالة موثّقة بالأدلّة في **2026-08-16**. اقرأ هذا قبل أي «Import Project» جديد على Vercel.

@@ -1,3 +1,9 @@
+> ⚠️ **تاريخيّ / Historical** — أجزاءٌ من هذه الوثيقة لم تعد صحيحة. الحقيقة الحاليّة: [`docs/HANDOVER.md`](HANDOVER.md).
+>
+> Parts of this document are superseded. Current truth: [`docs/HANDOVER.md`](HANDOVER.md). Known outdated here:
+> - "The repository carries `TAX_RATE: 0.16`" — it now carries 0.08 with `PRICES_TAX_INCLUSIVE: true` (owner, 2026-09-23).
+> - Earn-ladder decisions — the code implements the owner's later design (2026-09-06): 2 points/JOD base (`packages/shared/src/config/index.ts`).
+
 # قرارات برنامج الولاء — المخرَج النهائيّ للجنة
 
 **التاريخ:** 2026-09-04 · **إلى:** المالك · **من:** أمانة اللجنة (ثلاثة رؤساء: المال، العضو، القابليّة للتنفيذ)

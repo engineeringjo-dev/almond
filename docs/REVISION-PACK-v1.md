@@ -1,3 +1,9 @@
+> ⚠️ **تاريخيّ / Historical** — أجزاءٌ من هذه الوثيقة لم تعد صحيحة. الحقيقة الحاليّة: [`docs/HANDOVER.md`](HANDOVER.md).
+>
+> Parts of this document are superseded. Current truth: [`docs/HANDOVER.md`](HANDOVER.md). Known outdated here:
+> - Tier ladder (spend thresholds, ×1.25/×1.5/×2 multipliers, rolling 12-month tier window) — superseded by `packages/shared/src/config/index.ts` (2 points/JOD base, tier window `TIER_WINDOW_DAYS`).
+> - Spin wheel and the Friday +50% bonus — no spin-wheel screen exists; the Friday bonus was retired on 2026-09-06 (`packages/shared/src/config/index.ts`).
+
 # Almond Coffee House — Revision Pack v1
 ## تعديلات ما بعد المراجعة الأولى — لـ Claude Code
 

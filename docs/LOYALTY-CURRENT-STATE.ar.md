@@ -1,3 +1,8 @@
+> ⚠️ **تاريخيّ / Historical** — أجزاءٌ من هذه الوثيقة لم تعد صحيحة. الحقيقة الحاليّة: [`docs/HANDOVER.md`](HANDOVER.md).
+>
+> Parts of this document are superseded. Current truth: [`docs/HANDOVER.md`](HANDOVER.md). Known outdated here:
+> - A snapshot of commit `bc704e9` (2026-09-04): `TAX_RATE: 0.16` (now 0.08, included in the price), the earn ladder (changed 2026-09-06), and the app before the `bff` money path — `file:line` references no longer match.
+
 # برنامج الولاء — الحالة الراهنة كما هي اليوم
 
 **التاريخ:** 2026-09-04 · **المستودع على:** `bc704e9` («Make the combo 50 points and withdraw its price discount») · الشجرة نظيفة

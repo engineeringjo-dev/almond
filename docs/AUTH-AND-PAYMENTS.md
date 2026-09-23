@@ -1,3 +1,9 @@
+> ⚠️ **تاريخيّ / Historical** — أجزاءٌ من هذه الوثيقة لم تعد صحيحة. الحقيقة الحاليّة: [`docs/HANDOVER.md`](HANDOVER.md).
+>
+> Parts of this document are superseded. Current truth: [`docs/HANDOVER.md`](HANDOVER.md). Known outdated here:
+> - "Live: the loyalty server issues the token" — the real sign-in is `POST /v1/auth/otp/request|verify` on `bff` (6-digit random codes, attempt- and IP-limited; no SMS provider yet). No front end calls it yet: the website's sign-in is still the client-side mock described here (any 4 digits, `almond-web/src/store/authStore.ts`), and the app's is a mock too (`almond-app/services/auth.service.ts`).
+> - Payment intent created "on the server (Odoo)" — the server is `bff`; its payment-provider seam is described in `docs/INTEGRATIONS.md` §1.
+
 # Auth & payments — secure, shared-account design
 
 Two requirements: (1) **one customer account across web + app** so points/wallet

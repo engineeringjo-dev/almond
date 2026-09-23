@@ -1,3 +1,10 @@
+> ⚠️ **تاريخيّ / Historical** — أجزاءٌ من هذه الوثيقة لم تعد صحيحة. الحقيقة الحاليّة: [`docs/HANDOVER.md`](HANDOVER.md).
+>
+> Parts of this document are superseded. Current truth: [`docs/HANDOVER.md`](HANDOVER.md). Known outdated here:
+> - "How to go live (3 steps)" with `/loyalty/*` paths and a build-time `EXPO_PUBLIC_LOYALTY_TOKEN` — the app's live client still uses them (`almond-app/services/loyalty.service.live.ts`), but that server does not exist: the API is `bff` under `/v1/*` with a per-member JWT, and 18 of the 20 calls return 404 against it (probe recorded in that file). Cutover is an integration project, not a switch.
+> - "The QR encodes a stable member token" (Security notes) — replaced on 2026-09-08 by a signed, single-use, 60-second token, as §1 of this same file says.
+> - Points earned by the server at scan time — till points are earned after payment through the POS earn API and the Odoo addon; see `docs/INTEGRATIONS.md` §2.
+
 # Odoo / Loyalty-Server / POS Integration — Wiring Guide
 
 Everything below is **prepared but inactive**. The app runs entirely on the mock

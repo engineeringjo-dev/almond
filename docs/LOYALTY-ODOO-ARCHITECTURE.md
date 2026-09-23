@@ -1,3 +1,9 @@
+> ⚠️ **تاريخيّ / Historical** — أجزاءٌ من هذه الوثيقة لم تعد صحيحة. الحقيقة الحاليّة: [`docs/HANDOVER.md`](HANDOVER.md).
+>
+> Parts of this document are superseded. Current truth: [`docs/HANDOVER.md`](HANDOVER.md). Known outdated here:
+> - `OTP_DEV_CODE` / `'123456'` described as present — deleted; codes are random, attempt- and IP-limited (`bff/src/auth/otp.ts`).
+> - "Nothing in this round was implemented" — gate 0 and much of the BFF work described here has since been implemented; check `docs/HANDOVER.md`.
+
 # Almond loyalty on Odoo 19 — the architecture and change spec
 
 **Status:** engineering change spec. It names real files and real symbols. It does not modify any

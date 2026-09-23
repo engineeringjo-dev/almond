@@ -1,3 +1,9 @@
+> ⚠️ **تاريخيّ / Historical** — أجزاءٌ من هذه الوثيقة لم تعد صحيحة. الحقيقة الحاليّة: [`docs/HANDOVER.md`](HANDOVER.md).
+>
+> Parts of this document are superseded. Current truth: [`docs/HANDOVER.md`](HANDOVER.md). Known outdated here:
+> - "Points are earned on every payment method" — owner decision 2026-09-23: points only after the payment is confirmed on the server; an unconfirmed cash/card app order earns 0.
+> - Written as build instructions for the app before the API (`bff/`) existed.
+
 # Almond Coffee House — UX Research Refinements
 ## تعديلات مبنية على دراسات UX حقيقية (Baymard + أبحاث مقاهي 2025)
 

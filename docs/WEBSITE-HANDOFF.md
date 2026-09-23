@@ -1,3 +1,11 @@
+> ⚠️ **تاريخيّ / Historical** — أجزاءٌ من هذه الوثيقة لم تعد صحيحة. الحقيقة الحاليّة: [`docs/HANDOVER.md`](HANDOVER.md).
+>
+> Parts of this document are superseded. Current truth: [`docs/HANDOVER.md`](HANDOVER.md). Known outdated here:
+> - `TAX_RATE 0.16` — tax is 8 %, included in Odoo's `list_price` (owner, 2026-09-23).
+> - `POINTS_PER_JOD 5` and the bean/silver/gold/black multiplier ladder — rules in force are in `packages/shared/src/config/index.ts` (2 points/JOD base).
+> - "Admin dashboard out of scope" — the back office exists at `/admin`.
+> - Menu generated from a Talabat export (`almond-app/services/menu.generated.ts`, 267 items, CDN images) — the menu is now pulled from Odoo into `packages/shared/src/menu/menu.generated.ts` (`npm run menu:pull`).
+
 # Almond Coffee House — Website Handoff
 
 Build a **bilingual (AR-RTL / EN-LTR) e-commerce + loyalty website** that mirrors

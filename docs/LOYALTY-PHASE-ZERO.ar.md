@@ -1,3 +1,8 @@
+> ⚠️ **تاريخيّ / Historical** — أجزاءٌ من هذه الوثيقة لم تعد صحيحة. الحقيقة الحاليّة: [`docs/HANDOVER.md`](HANDOVER.md).
+>
+> Parts of this document are superseded. Current truth: [`docs/HANDOVER.md`](HANDOVER.md). Known outdated here:
+> - Tax basis "8% or 16% — open" — settled: 8 %, included in `list_price` (owner, 2026-09-23).
+
 # المرحلة صفر — دليل التشغيل المُبوَّب لبرنامج الولاء
 
 **لمن:** المالك + مدير البيانات. **اللغة:** عربية (وثيقة تشغيل)؛ الكود وتعليقاته بالإنجليزية.

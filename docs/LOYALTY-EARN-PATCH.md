@@ -1,3 +1,10 @@
+> ⚠️ **تاريخيّ / Historical** — أجزاءٌ من هذه الوثيقة لم تعد صحيحة. الحقيقة الحاليّة: [`docs/HANDOVER.md`](HANDOVER.md).
+>
+> Parts of this document are superseded. Current truth: [`docs/HANDOVER.md`](HANDOVER.md). Known outdated here:
+> - Anchored at commit `6a88ca3` (2026-08-18): every `file:line` is stale — do not apply this as a patch.
+> - `TAX_RATE 0.16` and "the 8%/16% question is open" — settled: 8 %, included in `list_price` (owner, 2026-09-23).
+> - Companion `IMPL-BRIEF.md` / `BRIEF.md` do not exist in this repository.
+
 # LOYALTY-EARN-PATCH — the exact patch for the repo's earn path
 
 **Status:** Phase‑0 deliverable. English (code document). Apply without re‑deriving.
