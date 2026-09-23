@@ -23,9 +23,14 @@ from ..models.almond_loyalty_client import (
     AlmondLoyaltyError,
     AuthError,
     BadRequestError,
+    ClientValidationError,
     ConfigError,
-    ConflictError,
     NotFoundError,
+    PosKeyInvalidError,
+    RateLimitedError,
+    TokenExpiredError,
+    TokenInvalidError,
+    TokenReplayError,
     UnavailableError,
 )
 
@@ -60,20 +65,26 @@ class AlmondLoyaltyController(http.Controller):
         return {"ok": False, "error": error, "message": message}
 
     def _api_error(self, exc):
-        """Map a client error to a cashier-facing answer. Keep the wording
-        short: it is read at the counter, with a queue."""
-        if isinstance(exc, ConfigError):
+        """Map a typed client error (the BFF's machine code) to a short,
+        cashier-facing answer — read at the counter, with a queue."""
+        if isinstance(exc, (ConfigError, PosKeyInvalidError)):
+            if isinstance(exc, PosKeyInvalidError):
+                _logger.error("Almond loyalty: the API refused the POS key (pos_key_invalid) — check Settings")
             return self._fail("not_configured", _("Almond loyalty is not configured. Ask the manager."))
-        if isinstance(exc, AuthError):
-            if exc.key_rejected:
-                _logger.error("Almond loyalty: the API refused the POS key (check Settings)")
-                return self._fail("not_configured", _("Almond loyalty is not configured. Ask the manager."))
-            return self._fail("invalid_qr", _("This QR is not valid or has expired. Ask the member to refresh it."))
-        if isinstance(exc, ConflictError):
+        if isinstance(exc, TokenExpiredError):
+            return self._fail("qr_expired", _("This QR has expired. Ask the member to refresh it."))
+        if isinstance(exc, TokenReplayError):
             return self._fail("qr_used", _("This QR was already used. Ask the member to refresh it."))
+        if isinstance(exc, TokenInvalidError):
+            return self._fail("invalid_qr", _("This is not a valid Almond QR."))
+        if isinstance(exc, RateLimitedError):
+            return self._fail("rate_limited", _("Too many attempts. Wait a minute and try again."))
+        if isinstance(exc, AuthError):  # unknown 401 code: treat as configuration
+            _logger.error("Almond loyalty: unexpected 401 %s", exc.api_code)
+            return self._fail("not_configured", _("Almond loyalty is not configured. Ask the manager."))
         if isinstance(exc, NotFoundError):
             return self._fail("refused", _("Refused: the code is used, expired or unknown."))
-        if isinstance(exc, BadRequestError):
+        if isinstance(exc, (BadRequestError, ClientValidationError)):
             return self._fail("refused", exc.api_message or _("The Almond API refused this request."))
         if isinstance(exc, UnavailableError):
             return self._fail("unavailable", _("Almond is not reachable right now. Continue the sale without it."))
@@ -102,8 +113,17 @@ class AlmondLoyaltyController(http.Controller):
             return self._api_error(exc)
 
         Scan = request.env["almond.loyalty.scan"].sudo()
-        # Latest scan wins: archive earlier scans of this order.
-        Scan.search([("order_uuid", "=", order_uuid)]).write({"active": False})
+        # A redeem visit takes TWO scans of the same member: the redeem QR (no
+        # earn ticket, by contract) and a pay QR for the cash part (the only
+        # one that carries a ticket). So a new scan archives: every earlier scan
+        # of ANOTHER member (member replaced), and earlier scans of the SAME
+        # member with the same role (ticket-bearing / redeem).
+        earlier = Scan.search([("order_uuid", "=", order_uuid)])
+        earlier.filtered(lambda s: (
+            s.member_id != res.member_id
+            or (res.earn_ticket and s.earn_ticket)
+            or (res.mode == "redeem" and s.mode == "redeem")
+        )).write({"active": False})
         corporate = res.corporate or {}
         redemption = res.redemption or {}
         Scan.create({
@@ -125,6 +145,9 @@ class AlmondLoyaltyController(http.Controller):
             # Enough to tell members apart on screen, not the whole id.
             "memberRef": res.member_id[-6:],
             "earnsPoints": bool(res.earns_points and res.earn_ticket),
+            # Redeem-mode scans never carry an earn ticket: to earn on the cash
+            # part the member must also show their pay QR.
+            "needsPayScan": bool(res.mode == "redeem" and res.earns_points),
             "corporate": ({
                 "nameAr": corporate.get("nameAr"),
                 "nameEn": corporate.get("nameEn"),

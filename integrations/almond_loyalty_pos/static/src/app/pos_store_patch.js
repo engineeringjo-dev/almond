@@ -79,12 +79,16 @@ patch(PosStore.prototype, {
         if (previous?.corporate) {
             this.almondRemoveCorporateDiscount(order, previous.corporate.percentOff);
         }
+        // Same member scanned twice (redeem QR, then pay QR for the cash part):
+        // keep what the first scan told us; the server keeps both scans too.
+        const sameMember = previous?.memberRef === res.memberRef;
         order.uiState.almondLoyalty = {
             memberRef: res.memberRef,
             mode: res.mode,
-            earnsPoints: res.earnsPoints,
+            earnsPoints: res.earnsPoints || Boolean(sameMember && previous?.earnsPoints),
+            needsPayScan: res.needsPayScan && !(sameMember && previous?.earnsPoints),
             corporate: res.corporate,
-            redemption: res.redemption,
+            redemption: res.redemption || (sameMember ? previous?.redemption : null) || null,
             settled: previous?.settled || [],
         };
         if (res.corporate) {
@@ -93,6 +97,11 @@ patch(PosStore.prototype, {
                 // Keyed _t() does not unescape "%%": the % sign goes in the value.
                 _t("Corporate member: %(pct)s off, no points.", { pct: `${res.corporate.percentOff}%` }),
                 "success"
+            );
+        } else if (res.needsPayScan) {
+            this._almondNotify(
+                _t("Redemption QR read. To earn points on the rest, scan the member's pay QR too."),
+                "info"
             );
         } else if (res.earnsPoints) {
             this._almondNotify(_t("Almond member attached: points after payment."), "success");

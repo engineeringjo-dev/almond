@@ -7,6 +7,11 @@
         <field name="arch" type="xml">
             <list create="0" delete="0" decoration-danger="state == 'failed'"
                   decoration-muted="state in ('done', 'cancelled')" decoration-warning="state == 'pending' and attempts &gt; 0">
+                <header>
+                    <!-- Bulk: after fixing a config failure (pos_key_invalid) every failed row
+                         needs a retry. System administrators only. -->
+                    <button name="action_retry_now" type="object" string="Retry now" groups="base.group_system"/>
+                </header>
                 <field name="create_date"/>
                 <field name="kind"/>
                 <field name="pos_order_ref"/>
@@ -14,6 +19,7 @@
                 <field name="state"/>
                 <field name="attempts"/>
                 <field name="next_try"/>
+                <field name="failure_kind" optional="show"/>
                 <field name="last_error" optional="show"/>
             </list>
         </field>
@@ -44,6 +50,7 @@
                             <field name="attempts"/>
                             <field name="next_try"/>
                             <field name="done_at"/>
+                            <field name="failure_kind" invisible="not failure_kind"/>
                             <field name="last_error"/>
                         </group>
                     </group>
@@ -66,10 +73,13 @@
                 <field name="pos_order_ref"/>
                 <filter name="pending" string="Pending" domain="[('state', '=', 'pending')]"/>
                 <filter name="failed" string="Failed" domain="[('state', '=', 'failed')]"/>
+                <filter name="failed_config" string="Config failures"
+                        domain="[('state', '=', 'failed'), ('failure_kind', '=', 'config')]"/>
                 <separator/>
                 <filter name="earn" string="Earn" domain="[('kind', '=', 'earn')]"/>
                 <filter name="reverse" string="Reverse" domain="[('kind', '=', 'reverse')]"/>
                 <filter name="group_state" string="Status" context="{'group_by': 'state'}"/>
+                <filter name="group_failure_kind" string="Failure reason" context="{'group_by': 'failure_kind'}"/>
             </search>
         </field>
     </record>

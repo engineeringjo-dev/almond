@@ -8,10 +8,20 @@ here (no network), and ``ir_cron_almond_loyalty_outbox`` sends it, retrying
 with backoff (``almond_loyalty_policy.backoff_seconds``). The BFF is idempotent
 on ``posOrderRef``, so a retry after a lost response is safe.
 
-* 409 (same ref, different member/amount) -> ``failed``, never retried.
-* 400 / 404                               -> ``failed`` (same body is refused again).
-* timeout / 5xx / 429 / 401 / config gap  -> retried with backoff, up to
-  ``DEFAULT_MAX_ATTEMPTS``, then ``failed``.
+Failure policy (``almond_loyalty_policy.classify``, keyed on the BFF's
+machine codes), with the reason stored in ``failure_kind``:
+
+* ``pos_key_invalid`` / local URL-key gap -> ``failed`` / config. Logged at
+  ERROR: every till is affected. Fix Settings, then "Retry now" (list header).
+* ``token_*`` / ``ticket_invalid`` / ``ticket_expired`` / ``ticket_used``
+                                           -> ``failed`` / ticket, no retry.
+* ``pos_order_conflict`` (409)             -> ``failed`` / conflict, no retry.
+* ``paid_at_outside_ticket_window`` (400)  -> ``failed`` / window, no retry.
+* other 400 / 404 / refused before sending -> ``failed`` / rejected.
+* ``rate_limited`` (429) / 5xx / timeout  -> retried with backoff, up to
+  ``DEFAULT_MAX_ATTEMPTS``, then ``failed`` / exhausted.
+* a 200 ``replay: true`` is SUCCESS (the BFF already had this sale; it
+  answers it even after the ticket expired or the sale was reversed).
 * a ``reverse`` waits for its ``earn`` to be ``done``; if that earn failed or
   was cancelled there is nothing to reverse and the reverse is cancelled.
 
@@ -52,6 +62,17 @@ class AlmondLoyaltyOutbox(models.Model):
     attempts = fields.Integer(readonly=True, default=0)
     next_try = fields.Datetime(readonly=True, default=fields.Datetime.now, index=True)
     last_error = fields.Char(readonly=True)
+    failure_kind = fields.Selection(
+        [(policy.KIND_CONFIG, "Configuration (POS key / URL)"),
+         (policy.KIND_TICKET, "Member QR / earn ticket refused"),
+         (policy.KIND_CONFLICT, "Order already reported differently"),
+         (policy.KIND_WINDOW, "Paid outside the ticket window"),
+         (policy.KIND_REJECTED, "Rejected (validation / unknown)"),
+         (policy.KIND_EXHAUSTED, "Gave up after retries")],
+        readonly=True, index=True,
+        help="Why the row failed. 'Configuration' means every till is affected: fix the Almond "
+             "settings, then select the failed rows and press 'Retry now'.",
+    )
     response = fields.Text(readonly=True)
     done_at = fields.Datetime(readonly=True)
 
@@ -101,7 +122,8 @@ class AlmondLoyaltyOutbox(models.Model):
         """Back office button: put failed/pending rows back at the front."""
         # No sudo: the ACL (system group writes, POS managers read) decides.
         rows = self.filtered(lambda r: r.state in ("pending", "failed"))
-        rows.write({"state": "pending", "next_try": fields.Datetime.now(), "attempts": 0})
+        rows.write({"state": "pending", "next_try": fields.Datetime.now(), "attempts": 0,
+                    "failure_kind": False})
         self._almond_trigger_cron()
         return True
 
@@ -130,7 +152,7 @@ class AlmondLoyaltyOutbox(models.Model):
                 # writes; the retry is then an idempotent replay at the BFF.
                 with self.env.cr.savepoint():
                     row._almond_process_one(client)
-            except ConfigError as exc:
+            except ConfigError as exc:  # URL/key missing locally -> failed / config
                 row._almond_mark_error(exc)
             except Exception as exc:  # noqa: BLE001 — never let one row kill the batch
                 _logger.exception("Almond loyalty outbox #%s: unexpected error", row.id)
@@ -149,8 +171,11 @@ class AlmondLoyaltyOutbox(models.Model):
                 # the shop and pressing "Retry now" is enough.
                 branch_id=payload.get("branchId") or (self.pos_order_id.config_id.almond_loyalty_branch_id or None),
                 paid_total=payload.get("paidTotal", 0.0),
-                paid_at=payload.get("paidAt"),
+                # The order's PAYMENT time (never the delivery time): the BFF checks
+                # it against [scan − 30 min, scan + 6 h] however late we deliver.
+                paid_at=payload.get("paidAt") or (self.pos_order_id and self.pos_order_id._almond_paid_at()),
             )
+            # 201 new grant and 200 replay are both success.
             self._almond_mark_done({"pointsEarned": res.points_earned, "pointsBalance": res.points_balance,
                                     "replay": res.replay})
             if self.pos_order_id:
@@ -171,7 +196,8 @@ class AlmondLoyaltyOutbox(models.Model):
                                         self.pos_order_ref)})
             return
         res = client.reverse_earn(self.pos_order_ref, payload.get("reason") or "refund")
-        self._almond_mark_done({"reversedPoints": res.reversed_points, "shortfall": res.shortfall})
+        self._almond_mark_done({"reversedPoints": res.reversed_points, "shortfall": res.shortfall,
+                                "pointsBalance": res.points_balance, "replay": res.replay})
         if self.origin_order_id:
             self.origin_order_id.sudo().write({"almond_earn_state": "reversed"})
 
@@ -181,13 +207,14 @@ class AlmondLoyaltyOutbox(models.Model):
             "attempts": self.attempts + 1,
             "response": json.dumps(response),
             "last_error": False,
+            "failure_kind": False,
             "done_at": fields.Datetime.now(),
         })
 
     def _almond_mark_error(self, exc):
         self.ensure_one()
         attempts = self.attempts + 1
-        decision = policy.decide(exc, attempts)
+        decision, kind = policy.classify(exc, attempts)
         # Safe text only: the client's messages never carry the key or bodies.
         if isinstance(exc, AlmondLoyaltyError):
             err = str(exc)
@@ -198,10 +225,14 @@ class AlmondLoyaltyOutbox(models.Model):
         vals = {"attempts": attempts, "last_error": err[:255]}
         if decision == policy.FAIL:
             vals["state"] = "failed"
+            vals["failure_kind"] = kind
             if self.kind == "earn" and self.pos_order_id:
                 self.pos_order_id.sudo().write({"almond_earn_state": "failed"})
         else:
             vals["next_try"] = fields.Datetime.now() + timedelta(seconds=policy.backoff_seconds(attempts))
         self.write(vals)
-        _logger.warning("Almond loyalty outbox #%s (%s %s) attempt %s -> %s: %s",
-                        self.id, self.kind, self.pos_order_ref, attempts, decision, err)
+        # A config failure hits every till: make it loud for operations.
+        level = logging.ERROR if kind == policy.KIND_CONFIG else logging.WARNING
+        _logger.log(level, "Almond loyalty outbox #%s (%s %s) attempt %s -> %s%s: %s",
+                    self.id, self.kind, self.pos_order_ref, attempts, decision,
+                    " [%s]" % kind if kind else "", err)

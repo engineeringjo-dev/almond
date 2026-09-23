@@ -58,6 +58,18 @@ jobs:
       - name: Test — website (admin session, webhooks, money seams, i18n parity)
         run: npm test --workspace almond-web
 
+      # The Odoo POS addon's HTTP client and outbox policy, against a stdlib
+      # mock of the till API: error codes → retry-or-fail, paidAt always sent
+      # with an offset, secrets never logged. The Odoo-side code itself needs a
+      # real Odoo and is not run here (integrations/almond_loyalty_pos/README.md).
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Test — Odoo POS addon client (Python)
+        run: |
+          python -m pip install --quiet requests
+          python -m unittest discover integrations/almond_loyalty_pos/tests
+
       # A real check on its own: it type-checks every page, resolves every
       # import and renders the static routes.
       - name: Build — website

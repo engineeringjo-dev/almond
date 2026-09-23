@@ -13,6 +13,7 @@
                         <strong><t t-esc="info.corporate.percentOff"/>%</strong> off — no points
                     </div>
                     <div t-elif="info.earnsPoints">Points will be earned after payment.</div>
+                    <div t-elif="info.needsPayScan">To earn points on the rest, scan the member's pay QR too.</div>
                     <div t-else="">No points on this order.</div>
                     <div t-if="info.redemption" class="mt-2">
                         Redemption available: <strong><t t-esc="formatJod(info.redemption.valueJod)"/> JOD</strong>

@@ -163,10 +163,11 @@ belong to another system's database (HANDOVER §4.2).
 
 [`.github/workflows/ci.yml`](.github/workflows/ci.yml) runs on every push to
 every branch and on every pull request, in this order: install (`npm ci`) →
-lint → typecheck → bff tests → app tests → website tests → website build →
-Playwright E2E + accessibility + RTL (report uploaded as an artifact). It is
-green on `main`. The last recorded full run (commit `cb20825`): E2E 92 passed,
-4 skipped. CI has no Postgres service, so the real-Postgres suites run only
+lint → typecheck → bff tests → app tests → website tests → the Odoo POS
+addon's Python client tests (40, against a mock of the till API) → website
+build → Playwright E2E + accessibility + RTL (report uploaded as an artifact).
+Full gate before the final merge: lint ✓ · typecheck ✓ · bff 615 · app 109 ·
+web 202 · addon 40 · build ✓ · E2E 92 passed, 4 skipped. CI has no Postgres service, so the real-Postgres suites run only
 where `ALMOND_TEST_PG_URL` is set.
 
 ## Deploying

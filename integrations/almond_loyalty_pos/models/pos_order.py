@@ -138,7 +138,11 @@ class PosOrder(models.Model):
                 ))
             return
 
-        scan = self.env["almond.loyalty.scan"].sudo().search([("order_uuid", "=", self.uuid)], limit=1)
+        scans = self.env["almond.loyalty.scan"].sudo().search([("order_uuid", "=", self.uuid)])  # id desc
+        scan = scans[:1]  # latest = the member on the order
+        # The earn comes from the latest ticket-bearing scan of THAT member (a
+        # redeem-mode scan never carries a ticket; the pay-mode one does).
+        earn_scan = scans.filtered(lambda s: s.member_id == scan.member_id and s.earns_points and s.earn_ticket)[:1]
         redemptions = self.env["almond.loyalty.redemption"].sudo().search([("order_uuid", "=", self.uuid)])
         vals = {}
 
@@ -165,7 +169,7 @@ class PosOrder(models.Model):
         total = policy.paid_total(
             (p.amount, p.payment_method_id.almond_is_redemption) for p in self.payment_ids
         )
-        ticket = scan.earn_ticket if scan and scan.earns_points else False
+        ticket = earn_scan.earn_ticket if earn_scan else False
         if ticket and total > 0 and self.name and self.name != "/":
             vals.update({"almond_earn_ticket": ticket, "almond_earn_state": "pending"})
             self.sudo().write(vals)  # sudo: almond_earn_ticket is system-only
@@ -173,14 +177,24 @@ class PosOrder(models.Model):
                 "earnTicket": ticket,
                 "branchId": self.config_id.almond_loyalty_branch_id or None,
                 "paidTotal": total,
-                "paidAt": self._almond_iso_utc(self.date_order),
+                "paidAt": self._almond_paid_at(),
             }, pos_order=self)
         else:
             vals["almond_earn_state"] = "none"
             self.sudo().write(vals)  # sudo: almond_earn_ticket is system-only
 
-    @staticmethod
-    def _almond_iso_utc(dt):
-        """Odoo stores naive UTC datetimes -> '2026-09-23T07:15:02Z'.
-        TODO(BFF): confirm the paidAt format the API expects."""
-        return fields.Datetime.to_datetime(dt).strftime("%Y-%m-%dT%H:%M:%SZ") if dt else None
+    def _almond_paid_at(self):
+        """The order's PAYMENT time as ISO-8601 UTC with an explicit 'Z'.
+
+        Sent with every earn: the BFF accepts the sale only if it was paid
+        within [scan − 30 min, scan + 6 h] of the member's scan, however late
+        the outbox delivers it — so this must be when the money was taken,
+        never "now". ``date_order`` is re-stamped at validation by the 19.0
+        till; ``payment_date`` covers the back-office payment wizard
+        (see ``almond_loyalty_policy.payment_time``)."""
+        self.ensure_one()
+        paid = policy.payment_time(
+            self.date_order,
+            [p.payment_date for p in self.payment_ids if not p.is_change],
+        )
+        return policy.iso_utc(paid)
