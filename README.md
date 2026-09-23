@@ -26,7 +26,7 @@ what is mocked and what has not been built. Integrations are in
 
 ## Status at a glance
 
-Measured 2026-09-23 on `main` (`cb20825`). Details and evidence:
+Measured 2026-09-23 on branch `claude/almond-loyalty-program-n6h29q` at `e9f6c15` (at the time of writing `main` was still at `cb20825` — make sure the branch is merged before relying on this). Details and evidence:
 [`docs/HANDOVER.md` §3](docs/HANDOVER.md#s3).
 
 | Area | State |
@@ -35,12 +35,12 @@ Measured 2026-09-23 on `main` (`cb20825`). Details and evidence:
 | Menu, prices, photos | **Live** — pulled from Odoo by hand (373 items, 44 categories, 306 photos) |
 | Tax | **Live** — 8 % included in Odoo's `list_price` (owner, 2026-09-23); guarded by `bff/test/tax.test.ts` |
 | Members, points, wallet, idempotency | **Live on Postgres** when `DATABASE_URL` is set (production refuses to boot without it) |
-| Corporate discounts, POS QR token + redemption settle (API side) | **Live** in `bff` |
-| POS till connector (Odoo addon) | **Skeleton** — `integrations/almond_loyalty_pos/`, not installed on any Odoo |
-| POS earn/reverse API, payment provider seam, SMS seam | **In progress** at handover — see [`docs/INTEGRATIONS.md`](docs/INTEGRATIONS.md) |
+| Corporate discounts, POS QR token, redemption settle, till earn/reverse (`/v1/pos/earn`) | **Live** in `bff`, tested |
+| POS till connector (Odoo addon) | **Skeleton** — `integrations/almond_loyalty_pos/`, targets the `bff` contract, not installed on any Odoo |
+| Payment-provider seam, SMS-provider seam | **Built and tested** in `bff` — Ishbek writes one adapter each from a `TEMPLATE.ts`; see [`docs/INTEGRATIONS.md`](docs/INTEGRATIONS.md) |
 | Front ends ↔ `bff` member API | **Not connected** — sign-in on the app and the website is a device-side mock, and the app's "live" client targets a `/loyalty/*` server that does not exist (header of `almond-app/services/loyalty.service.live.ts`). Wiring them is a project, not a switch |
-| SMS (sign-in codes) | **Missing** — nobody can sign in. Showstopper |
-| Payment gateway | **Missing** — web payment is mocked. Showstopper |
+| SMS provider (sign-in codes) | **Missing** — nobody can sign in; production answers 503 `sms_unavailable`. Showstopper |
+| Payment gateway | **Missing** — card orders are refused (402) without a captured payment; web payment is still mocked. Showstopper |
 | Delivery (Careem/Talabat via Ishbek) | **Server routes exist**; request bodies are samples; Odoo status mapping is TODO |
 | Odoo as member store (`DATA_SOURCE=odoo` in `bff`) | **Stub that throws on purpose** |
 | Hosting | Website on Vercel · app (web build) on GitHub Pages · **`bff` not hosted** · no Postgres provisioned · `almond.jo` answers NXDOMAIN from the `.jo` registry |
@@ -56,10 +56,11 @@ almond/
 ├── almond-web/        Next.js 15 website — menu, ordering, back office at /admin.
 ├── almond-app/        Expo SDK 56 member app. Ships as a WEB build today (GitHub
 │                      Pages, base path /almond); no native build pipeline yet.
-├── supabase/migrations/  Loyalty schema (4 files — see HANDOVER §4.2; three older
-│                      2026-08 files belong to a different system's database).
+├── supabase/migrations/  Loyalty schema (6 files, 20260909→20260927 — see HANDOVER §4.2;
+│                      the three 2026-08 files belong to a different system's database).
 ├── integrations/      Odoo 19 addons (POS loyalty connector, MEPS card terminals, …).
-├── scripts/           odoo-menu-pull.ts (menu:pull), load/ (load:baseline).
+├── scripts/           odoo-menu-pull.ts (menu:pull), load/ (load:baseline),
+│                      pos/ (pos:simulate — a till driving one sale through a running bff).
 ├── e2e/               Playwright journeys, WCAG AA and RTL checks.
 ├── tools/             Read-only Odoo audit scripts (Python), branch sales map page.
 ├── docs/              Handover, integrations, decisions, research — see docs/README.md.
@@ -74,20 +75,20 @@ nvm use            # .nvmrc — Node 22.22.2. CI and the deploy workflows read t
 npm ci             # the lockfile exactly; never `npm install` in CI
 
 npm run lint             # ESLint, whole repo, zero warnings allowed
-npm run typecheck        # all four workspaces + e2e/ + scripts/load/
+npm run typecheck        # all four workspaces + e2e/ + scripts/load/ + scripts/pos/
 npm test                 # bff, then app, then website
 npm run web:build        # the website
 npm run test:e2e         # Playwright (needs `npx playwright install chromium` once)
 npm run coverage         # per-suite coverage into each workspace's coverage/
 ```
 
-What those commands printed when this README was written (a snapshot of
-`main@cb20825`):
+What those commands printed when this README was written (on `e9f6c15`, after
+the integration seams landed):
 
 ```
 npm run lint       exit 0, no output (0 errors, 0 warnings)
 npm run typecheck  exit 0
-npm test           bff  — Test Files 23 passed (23) · Tests 516 passed | 3 skipped | 2 todo (521)
+npm test           bff  — Test Files 27 passed (27) · Tests 615 passed | 3 skipped | 2 todo (620)
                    app  — Test Files 5 passed (5)   · Tests 109 passed (109)
                    web  — Test Files 13 passed (13) · Tests 202 passed (202)
 ```
@@ -105,8 +106,8 @@ Run the whole thing in two terminals:
 
 ```bash
 # 1 — the API. No configuration needed in development: it keeps everything in
-#     memory (forgotten on restart) and prints sign-in codes to its log
-#     ("DEV OTP issued"), because no SMS provider exists yet.
+#     memory (forgotten on restart), and with SMS_PROVIDER unset in development
+#     it uses the `log` sender: sign-in codes appear in its log as "DEV OTP issued".
 npm run dev --workspace @almond/bff          # :8080
 
 # 2 — the website.
@@ -145,10 +146,18 @@ in `bff/src/config.ts`) when any of these holds:
 - `POS_SCAN_KEY` or `ADMIN_KEY` is unset or shorter than 32 characters;
 - `CORS_ORIGINS` contains `*` — and unset means `*`;
 - `DATABASE_URL` is unset;
-- `TRUST_PROXY` is unset — say `true` (or a hop count) behind a load balancer/PaaS, `false` if exposed directly.
+- `TRUST_PROXY` is unset — say `true` (or a hop count) behind a load balancer/PaaS, `false` if exposed directly;
+- `PAYMENT_PROVIDER=mock` or `SMS_PROVIDER=log`.
 
-Note: `bff/.env.example` does not list `TRUST_PROXY` yet, and its
-`CORS_ORIGINS=*` is refused in production.
+**In every environment** it refuses to boot when `PAYMENT_PROVIDER` or
+`SMS_PROVIDER` names a provider that is not registered, or when
+`OTP_SMS_TEMPLATE` lacks `{code}` (`bff/src/providers.ts`). Leaving the two
+providers unset is allowed: card payment and sign-in then answer 503, honestly.
+
+Note: `bff/.env.example` ships `CORS_ORIGINS=*` (development only; refused in
+production). Its `DATABASE_URL` comment lists the six loyalty migrations in
+order — **not** every file in `supabase/migrations`: the three August files
+belong to another system's database (HANDOVER §4.2).
 
 ## The gate (CI)
 
