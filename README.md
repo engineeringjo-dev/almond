@@ -1,83 +1,111 @@
 # Almond Coffee House ☕
 
-Mobile app + admin panel for **Almond Coffee House** (Evora for Food & Beverages — Amman, Jordan).
-Menu browsing, smart pickup ordering, delivery hand-off, and a full loyalty/rewards system.
+Loyalty programme, ordering website and member app for a Jordanian coffee-house
+chain, alongside an Odoo 19 ERP that remains the source of truth for the menu,
+sales and stock.
 
-Built per `ALMOND-APP-SPEC-v2.md`. Arabic-first (RTL) with an English toggle. Currency: JOD (`X.XXX د.أ`).
+> **Handing this over, or picking it up?** Read
+> **[`docs/HANDOVER.md`](docs/HANDOVER.md)** first. It states plainly what is
+> live, what is mocked, and what has not been built — including two gaps that
+> prevent going live at all. This file tells you how the code is laid out; that
+> one tells you what is true.
 
-## Monorepo layout
+---
+
+## Layout
+
+Four npm workspaces. All four share one package, and that is the point: the
+loyalty rules are written once and imported everywhere, so the phone, the
+website and the server cannot pay a member three different answers.
 
 ```
 almond/
-├── almond-app/     # React Native + Expo (SDK 51) mobile app — iOS + Android
-└── admin-panel/    # React + Vite admin web app — Spin Wheel + notifications control
+├── packages/shared/   # THE RULES. Points, tiers, expiry, discounts, the menu,
+│                      #   money formatting, types. Pure, no I/O, heavily tested
+│                      #   (through bff/test). Everything else imports this.
+├── bff/               # Fastify API. Members, points, wallet, redemptions, the
+│                      #   corporate register, POS tokens. Holds every secret.
+├── almond-web/        # Next.js 15 website — menu, ordering, and the back
+│                      #   office at /admin. Deploys to Vercel.
+└── almond-app/        # Expo (SDK 56) member app. Ships as a WEB build today
+                       #   (GitHub Pages, base path /almond); no native build
+                       #   pipeline exists yet.
 ```
 
-## Mobile app (`almond-app/`)
+Supporting directories: `docs/` (specifications and decision records),
+`scripts/` (the Odoo menu pull), `supabase/migrations/` (database schema),
+`integrations/` (Odoo add-ons), `tools/` (one-off HTML utilities).
 
-**Stack:** Expo Router · TypeScript (strict) · Zustand · React Query (TanStack v5) ·
-i18next · react-native-svg · expo-location / expo-notifications.
+---
 
-### Run
-```bash
-cd almond-app
-npm install
-npm start          # then press i / a, or scan with Expo Go
-npm run lint       # tsc --noEmit (type-check)
-```
-
-### Switchable theme (one place)
-`constants/theme.ts` → `theme = greenTheme`. Flip to `almondTheme` to switch the entire
-palette to the official espresso+gold launch identity. Green is the active experimental
-(Starbucks-style) comparison theme; every `colors.*` token derives from the active theme.
-
-### Mock vs. real backend — one switch
-`constants/config.ts` → `DATA_SOURCE: 'mock' | 'odoo'`.
-- `mock` (default): everything runs offline from the in-memory mock layer (`services/*.mock.ts`).
-- `odoo`: menu/orders hit Odoo 19 (`services/*.odoo.ts`), loyalty/notifications hit the
-  Node loyalty server (`*.live.ts`). Endpoint paths are stubbed with `// TODO: confirm Odoo endpoint`.
-
-Every domain has a service interface + both implementations selected by the switch:
-`menu`, `branch`, `auth`, `order`, `payment`, `aggregator` (stub), `loyalty`, `notification`.
-
-### What's implemented
-- **Auth:** phone (+962) + 6-digit OTP (60s resend, auto-fill), guest mode.
-- **Home:** GPS nearest-branch, time greeting, My Usual reorder, loyalty card, quick actions,
-  promos, branch list, visit-reward banner.
-- **Menu:** categories, live search, 2-col grid, item bottom sheet (size + milk/sugar/ice/extras),
-  brunch combo logic (−1.000 JOD).
-- **Cart:** smart pickup (nearest open branch, prep-vs-travel ready estimate, `targetReadyAt`),
-  dine-in, delivery → external redirect; promo codes; 16% tax; 6 payment methods.
-- **Orders:** animated confirmation, status timeline + countdown, reorder, branch rating.
-- **Loyalty:** points, filling Cup (head-start), tiers, redeem, vouchers, history,
-  **server-decided weighted Spin Wheel** reading live admin config.
-- **Profile:** history, vouchers, addresses, payments, wallet (top-up), referral, language, help.
-- **Notifications:** inbox + per-category settings, background **geofence** balance nudge
-  (daily cap, opt-in explainer), visit rewards with countdown.
-
-### Loyalty rules (mirrored in `loyalty.service.mock.ts`)
-5 pts/JOD · tiers Bean/Silver/Gold/Black (×1.0/1.25/1.5/2.0) · Friday ×1.5 · Cup fills at 10
-(1 head-start; pay-from-balance = 1.5 beans) · referral + first-rating = 50 pts each, one-time.
-
-## Admin panel (`admin-panel/`)
-
-**Stack:** React + Vite + TypeScript, Arabic RTL.
+## Running it
 
 ```bash
-cd admin-panel
-npm install
-npm run dev        # http://localhost:5174  (login: any username + password in mock mode)
-npm run build
+nvm use            # .nvmrc — Node 22. The workflows read the same file.
+npm ci             # the lockfile exactly; never `npm install` in CI
+
+npm run typecheck                   # all four workspaces
+npm test --workspace @almond/bff    # 397 tests
+npm test --workspace almond-app     # 109 tests
+npm run web:build                   # the website
 ```
 
-Controls (stored via mock store mirroring the loyalty-server `/admin/*` endpoints; flip
-`src/config.ts` `DATA_SOURCE` to `live`):
-- **Spin Wheel:** master switch, visits-per-spin, top-up amount, free-spin days, prize CRUD
-  with reorder + **live odds preview**, scheduled campaigns (start/end).
-- **Campaigns:** compose/schedule promo push, audience-size estimate.
-- **Geofence:** enable, radius (1000m), daily cap, quiet hours.
-- **Visit Reward:** discount vs. spin, value, redemption window.
+Two terminals to run the whole thing:
 
-## Out of scope (MVP stubs, per spec §0.3)
-Real aggregator integration (interface only), live GPS driver map (timeline only),
-real payment processing (mocked `paymentService`).
+```bash
+# 1 — the API. Works with no configuration at all: it keeps everything in
+#     memory, which is right for development and forgets on restart.
+npm run dev --workspace @almond/bff          # :8080
+
+# 2 — the website.
+npm run dev --workspace almond-web           # :3000
+```
+
+The member app: `npm run web --workspace almond-app`.
+
+Copy `bff/.env.example` and `almond-web/.env.example` to `.env` / `.env.local`
+and read the comments — each variable says what breaks without it, and several
+say why a tempting default would be a security hole rather than a convenience.
+
+---
+
+## The two switches that decide what is real
+
+| Variable | Where | Unset means |
+|---|---|---|
+| `DATA_SOURCE` | both | `mock` — the MENU and prices come from the committed export. `odoo` is not wired end to end. |
+| `DATABASE_URL` | `bff` | in-memory — members, points and the corporate register are **forgotten on restart**. Set it to Postgres and the same behaviour persists. |
+
+They answer different questions — one is where the menu comes from, the other
+is where members are kept — and conflating them is how `DATA_SOURCE=odoo` came
+to mean "throw on every call".
+
+---
+
+## The menu comes from Odoo, by hand
+
+```bash
+ODOO_URL=… ODOO_DB=… ODOO_LOGIN=… ODOO_API_KEY=… npm run menu:pull
+```
+
+Read-only. It rewrites `packages/shared/src/menu/menu.generated.ts` and 306
+WebP photographs under `almond-web/public/menu/` and `almond-app/public/menu/`,
+so it produces a **commit**, not a deployment. Deliberately manual: an
+automatic pull that writes to the repository unreviewed would publish an Odoo
+mistake — an item priced at zero, a missing name — straight to customers.
+
+---
+
+## Conventions worth knowing before you change anything
+
+- **One rule, one implementation.** If a number can be computed in two places,
+  it is computed in `packages/shared` and imported. The commit history is a
+  record of what happened when that was violated.
+- **Money is integers where it is stored** (fils), and formatted in one place.
+- **Guards are tested by breaking them.** Several suites exist to fail when a
+  specific safety property is removed; the commit messages name which.
+- **Arabic is the primary language.** Every user-facing string is in both
+  `ar.json` and `en.json`, and RTL is the default layout, not an afterthought.
+- **Commit messages carry the reasoning.** They are long on purpose: most of
+  the "why" for a surprising decision is in the commit that made it, not in a
+  separate document that would have drifted.

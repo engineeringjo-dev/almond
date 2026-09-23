@@ -3,6 +3,11 @@
   "version": "1.0.0",
   "private": true,
   "description": "Almond Coffee House monorepo — mobile app (almond-app), website (almond-web), and the shared single-source-of-truth package (packages/shared).",
+  "engines": {
+    "node": ">=22.0.0 <23",
+    "npm": ">=10"
+  },
+  "packageManager": "npm@10.9.7",
   "workspaces": [
     "packages/*",
     "almond-app",

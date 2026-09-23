@@ -1,0 +1,56 @@
+name: CI
+
+# THE GATE. Until this file existed there were 506 tests and nothing that ran
+# them: both workflows in this directory deploy, neither verifies. A suite
+# nobody runs is documentation with a test runner attached.
+#
+# It runs on every push and every pull request, including to the release branch,
+# because the failure this catches is a merge that was green in isolation and
+# red once combined.
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          # One source for the version — the same file the deploy workflows
+          # read. They used to say 20 and 22, which is where "works on my
+          # machine" begins.
+          node-version-file: '.nvmrc'
+          cache: npm
+
+      # `npm ci` and not `npm install`: it installs exactly the lockfile, so a
+      # transitive bump cannot turn a green CI red (or, worse, a red one green)
+      # without a commit that shows it.
+      - name: Install
+        run: npm ci
+
+      # Types first: it is the fastest check and the one most likely to fail,
+      # so a broken signature costs seconds rather than the whole suite.
+      - name: Typecheck (shared, website, bff, app)
+        run: npm run typecheck
+
+      - name: Test — BFF (loyalty rules, money, security)
+        run: npm test --workspace @almond/bff
+
+      - name: Test — app (earn parity, copy, POS QR)
+        run: npm test --workspace almond-app
+
+      # The website has no test suite yet; a build failure is what stands in
+      # for one, and it is a real check — it type-checks every page, resolves
+      # every import and renders the static routes.
+      - name: Build — website
+        run: npm run web:build
