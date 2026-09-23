@@ -58,7 +58,25 @@ unauthenticated floor):
 - Run-to-run variance on this box is roughly ±20 % (e.g. `/health` 21.9k–28.4k
   req/s across runs). Differences smaller than that are noise.
 
-## Results — the code as shipped
+## Results — current code (after the Intl fix, re-measured 2026-09-23)
+
+The finding below was fixed in commit 5c66a71 (the Amman-clock formatters are
+built once, in `packages/shared/src/lib/ammanWeekday.ts`), and this table is a
+fresh `npm run load:baseline` on the code as handed over — same machine, same
+50 connections, 20 s each. Errors / timeouts / non-2xx: **0** in every row.
+
+| Scenario | req/s | p50 ms | p95 ms | p99 ms |
+|---|---:|---:|---:|---:|
+| GET /health | 31,313 | 1.57 | 2.77 | 3.76 |
+| GET /v1/me/balance (JWT) | **11,954** | 3.89 | 6.15 | 8.21 |
+| POST /v1/pos/token (JWT) | 11,921 | 3.85 | 6.30 | 8.03 |
+
+**Server RSS:** 127 MB at start → **146 MB** at the end (was ~2,870 MB).
+`/v1/me/balance` went from ~1,500 to ~11,950 req/s (×~8) and p99 from ~80 ms to
+~8 ms. Same caveats as below: one process, memory backend, the generator on
+the same 4 vCPU — a baseline, not a capacity claim.
+
+## Results — before the fix (the code as it was)
 
 Two consecutive runs, 50 connections, 20 s each. Errors / timeouts / non-2xx
 were **0** in every row.
