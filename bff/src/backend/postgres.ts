@@ -231,17 +231,30 @@ export function createPostgresBackend(db: Db): Backend {
           evaluatedThrough: evaluationPeriod(todayKey(), WINDOW.evaluation),
           subRenewsAt: 0, subDay: '', subDayCount: 0,
         };
-        await t.query(
+        // 🔴 ON CONFLICT, because the select above is not a lock. Two first
+        // sign-ins for one phone — a double-tapped "verify", or the app and
+        // the website at once — both find nothing and both insert. Measured on
+        // a real Postgres pool (bff/test/resilience-concurrency R1.9): five of
+        // six parallel calls died on members_phone_key (23505), i.e. HTTP 500
+        // at /v1/auth/otp/verify. Under READ COMMITTED `do nothing` waits for
+        // the other insert to commit, so the re-select below then sees it and
+        // every caller gets the ONE member.
+        const inserted = await t.query(
           `insert into members (id, phone, name, birthday, profile_bonus_at, lots,
              expiry_settled_through, wallet_lots, wallet_expiry_settled_through, spend,
              held_tier_id, evaluated_through, sub_renews_at, sub_day, sub_day_count)
-           values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)`,
+           values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)
+           on conflict (phone) do nothing
+           returning id`,
           [m.id, m.phone, m.name, m.birthday, m.profileBonusAt, JSON.stringify(m.lots),
             m.expirySettledThrough, JSON.stringify(m.walletLots), m.walletExpirySettledThrough,
             JSON.stringify(m.spend), m.heldTierId, m.evaluatedThrough,
             m.subRenewsAt, m.subDay, m.subDayCount],
         );
-        return m;
+        if (inserted[0]) return m;
+        const winner = await t.query<MemberRow>('select * from members where phone = $1', [phone]);
+        if (!winner[0]) throw new Error(`findOrCreateByPhone: lost the insert race for ${phone} but found no row`);
+        return toMember(winner[0]);
       });
     },
 

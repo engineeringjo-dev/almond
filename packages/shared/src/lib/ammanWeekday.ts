@@ -6,18 +6,26 @@
 const AMMAN = 'Asia/Amman';
 const WD = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
+// Built ONCE. Constructing an Intl.DateTimeFormat costs ~69µs against ~1.2µs to
+// reuse one, and these run on every balance read: rebuilt per call they capped
+// GET /v1/me/balance at ~1.5k req/s and drove the process to ~2.9 GB under load
+// (docs/LOAD-BASELINE.md). Formatters are immutable, so sharing them is safe.
+const WEEKDAY_FMT = new Intl.DateTimeFormat('en-US', { timeZone: AMMAN, weekday: 'short' });
+const DAY_KEY_FMT = new Intl.DateTimeFormat('en-CA', {
+  timeZone: AMMAN, year: 'numeric', month: '2-digit', day: '2-digit',
+});
+const MINUTE_FMT = new Intl.DateTimeFormat('en-GB', {
+  timeZone: AMMAN, hour: '2-digit', minute: '2-digit', hourCycle: 'h23',
+});
+
 export function ammanWeekday(at: Date = new Date()): number {
-  const short = new Intl.DateTimeFormat('en-US', {
-    timeZone: AMMAN, weekday: 'short',
-  }).format(at);
+  const short = WEEKDAY_FMT.format(at);
   return WD.indexOf(short);
 }
 
 /** 'YYYY-MM-DD' in Amman — replaces the UTC todayKey() at mock:49 and memory.ts:88. */
 export function ammanDayKey(at: Date = new Date()): string {
-  return new Intl.DateTimeFormat('en-CA', {
-    timeZone: AMMAN, year: 'numeric', month: '2-digit', day: '2-digit',
-  }).format(at);
+  return DAY_KEY_FMT.format(at);
 }
 
 /** Minutes since midnight on the Amman wall clock (0–1439). Branch hours are
@@ -26,9 +34,7 @@ export function ammanDayKey(at: Date = new Date()): string {
  *  closed. Intl, not a fixed +3: Jordan was UTC+2 in winter until October 2022,
  *  and a hard-coded offset silently shifts every historical hour. */
 export function ammanMinuteOfDay(at: Date = new Date()): number {
-  const parts = new Intl.DateTimeFormat('en-GB', {
-    timeZone: AMMAN, hour: '2-digit', minute: '2-digit', hourCycle: 'h23',
-  }).formatToParts(at);
+  const parts = MINUTE_FMT.formatToParts(at);
   const n = (t: string) => Number(parts.find((p) => p.type === t)?.value ?? 0);
   return n('hour') * 60 + n('minute');
 }
