@@ -50,6 +50,16 @@ export function toAmmanISO(date: Date | number | string = new Date()): string {
 }
 
 /**
+ * JOD ↔ integer FILS (1 JOD = 1000 fils) — the representation every money
+ * comparison and every till amount is made in, so 0.1 + 0.2 never reaches a
+ * ledger. Moved here from bff/src/money.ts (which now re-exports these) when
+ * the till's refund rule moved into @almond/shared: one money rule, one
+ * implementation, whichever side of the wire does the arithmetic.
+ */
+export const toFils = (jod: number): number => Math.round(jod * 1000);
+export const toJod = (fils: number): number => Math.round(fils) / 1000;
+
+/**
  * Format JOD with 3 decimals (fils). AR: `X.XXX د.أ` | EN: `JOD X.XXX` (section 10).
  */
 export function formatJOD(amount: number, lang: Lang): string {

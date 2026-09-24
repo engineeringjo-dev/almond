@@ -7,7 +7,7 @@ import { createMemoryBackend } from '../src/backend/memory';
 import { createPostgresBackend } from '../src/backend/postgres';
 import { assignHoldout, holdoutSpecFromConfig } from '@almond/shared/loyalty/holdout';
 import type { Backend } from '../src/backend';
-import type { CheckoutInput, TillEarnInput } from '../src/backend/types';
+import type { CheckoutInput, TillEarnInput, TillSpendInput } from '../src/backend/types';
 import { IDEMPOTENCY_TTL_MS } from '../src/backend/idempotency';
 import { pgTestDb } from './lib/pgTestDb';
 
@@ -51,6 +51,16 @@ describe.each(BACKENDS)('T37 backend contract — %s', (_name, make) => {
     expect(b.name).toBe('حمزة');           // Arabic survives the round trip
     expect(a.heldTierId).toBe('base');
     expect(a.profileBonusAt).toBeNull();    // owed the bonus: they told us nothing
+  });
+
+  it('finds a member by canonical phone — a READ: an unknown number is null and creates nobody', async () => {
+    const a = await backend.findOrCreateByPhone('+962791234567', 'حمزة');
+    expect((await backend.findMemberByPhone('+962791234567'))?.id).toBe(a.id);
+    expect(await backend.findMemberByPhone('+962799999999')).toBeNull();
+    expect(await backend.findMemberByPhone('+962799999999')).toBeNull();
+    const b = await backend.findOrCreateByPhone('+962799999999');
+    expect(b.id).not.toBe(a.id);
+    expect(liveBalance(b.lots)).toBe(0);
   });
 
   it('an unknown member is notFound, not an empty object', async () => {
@@ -222,12 +232,6 @@ describe.each(BACKENDS)('T37 backend contract — %s', (_name, make) => {
     expect(await backend.listCorporateUses({ companyId: 'other' })).toHaveLength(0);
   });
 
-  it('the subscription refuses a drink when nobody is subscribed', async () => {
-    const id = await newMember();
-    await expect(backend.redeemSubscriptionDrink(id)).rejects.toThrow();
-    expect((await backend.getSubscription(id)).active).toBe(false);
-  });
-
   // ---- checkout: ONE transaction (was a three-transaction saga) ----
 
   const wallet = async (id: string) => liveBalance((await backend.getMember(id)).walletLots);
@@ -322,19 +326,6 @@ describe.each(BACKENDS)('T37 backend contract — %s', (_name, make) => {
     expect(r.order.earn).toBeUndefined();
     expect((await backend.getHistory(id))[0]).toMatchObject({ deltaPoints: 0, reasonEn: 'Order points' });
     expect((await backend.getStanding(id)).windowSpend).toBe(0);
-  });
-
-  it('🔴 a subscription is bought in one step: debited and active together, or neither', async () => {
-    const id = await newMember();
-    await backend.creditWallet(id, 5_000, 'topup');
-    await expect(backend.purchaseSubscription(id, 18_000)).rejects.toMatchObject({ code: 'insufficient_wallet' });
-    expect(await wallet(id)).toBe(5_000);
-    expect((await backend.getSubscription(id)).active).toBe(false);
-    await backend.creditWallet(id, 15_000, 'topup');
-    const r = await backend.purchaseSubscription(id, 18_000);
-    expect(r.subscription.active).toBe(true);
-    expect(r.walletBalanceFils).toBe(2_000);
-    expect(await wallet(id)).toBe(2_000);
   });
 
   it('a top-up and its reload bonus land together; a zero bonus writes no points line', async () => {
@@ -515,6 +506,199 @@ describe.each(BACKENDS)('T37 backend contract — %s', (_name, make) => {
     expect(r2.sale).toMatchObject({ reversedPoints: 0, shortfall: 25, reverseBalanceAfter: 0 });
     expect(await points(id2)).toBe(0);
     await expect(backend.reverseTillEarn('Shop/unknown', 'x', new Date())).rejects.toMatchObject({ code: 'not_found' });
+  });
+
+  // ---- partial refunds (POST /v1/pos/earn/reverse {refundRef, refundedTotal}) ----
+
+  it('🔴 a PARTIAL refund takes back only its share of the points, and its money out of the window', async () => {
+    const id = await newMember();
+    await backend.addPoints(id, 100, 'منحة', 'Grant');
+    const input = sale(id, { paidFils: 20_000, pointsEarned: 40, spendJod: 20 });
+    await backend.tillEarn(input);                                             // 140
+    const r = await backend.reverseTillEarn(input.posOrderRef, 'one item back', new Date(), { refundRef: 'R/1', refundedFils: 2_000 });
+    expect(r.replay).toBe(false);
+    expect(r.refund).toMatchObject({
+      refundRef: 'R/1', posOrderRef: input.posOrderRef, memberId: id, refundedFils: 2_000,
+      targetPoints: 4, reversedPoints: 4, shortfall: 0, balanceAfter: 136, reason: 'one item back',
+    });
+    // The sale is still 'earned' — part of it stands — with the money refunded so far.
+    expect(r.sale).toMatchObject({ status: 'earned', refundedFils: 2_000, reversedPoints: null });
+    expect(await points(id)).toBe(136);
+    expect((await backend.getStanding(id)).windowSpend).toBe(18);
+    expect((await backend.getHistory(id))[0]).toMatchObject({ deltaPoints: -4, reasonEn: 'Partially refunded purchase points' });
+    expect(await backend.getTillSale(input.posOrderRef)).toEqual(r.sale);
+  });
+
+  it('🔴 a refund is idempotent by its reference: replay returns the stored row; reused for anything else is a conflict', async () => {
+    const id = await newMember();
+    const other = await newMember('+962795555555');
+    const input = sale(id, { paidFils: 20_000, pointsEarned: 40, spendJod: 20 });
+    const theirs = sale(other, { paidFils: 20_000, pointsEarned: 40, spendJod: 20 });
+    await backend.tillEarn(input);
+    await backend.tillEarn(theirs);
+    const first = await backend.reverseTillEarn(input.posOrderRef, 'x', new Date(), { refundRef: 'R/9', refundedFils: 5_000 });
+    const again = await backend.reverseTillEarn(input.posOrderRef, 'x', new Date(), { refundRef: 'R/9', refundedFils: 5_000 });
+    expect(again).toEqual({ sale: first.sale, refund: first.refund, replay: true });
+    expect(await points(id)).toBe(30);
+    await expect(backend.reverseTillEarn(input.posOrderRef, 'x', new Date(), { refundRef: 'R/9', refundedFils: 5_001 }))
+      .rejects.toMatchObject({ code: 'refund_conflict' });
+    await expect(backend.reverseTillEarn(theirs.posOrderRef, 'x', new Date(), { refundRef: 'R/9', refundedFils: 5_000 }))
+      .rejects.toMatchObject({ code: 'refund_conflict' });
+    expect(await points(id)).toBe(30);
+    expect(await points(other)).toBe(40);
+  });
+
+  it('🔴 refunds are cumulative, never past what was paid; the full reversal then takes exactly the rest', async () => {
+    const id = await newMember();
+    const input = sale(id, { paidFils: 3_000, pointsEarned: 7, spendJod: 3 });
+    await backend.tillEarn(input);
+    const t = (ref: string, fils: number) => backend.reverseTillEarn(input.posOrderRef, 'r', new Date(), { refundRef: ref, refundedFils: fils });
+    expect((await t('A', 1_000)).refund.targetPoints).toBe(2);                // round(7/3)
+    expect((await t('B', 1_000)).refund.targetPoints).toBe(3);                // round(14/3) − 2
+    const historyBefore = await backend.getHistory(id);
+    await expect(t('C', 1_001)).rejects.toMatchObject({ statusCode: 409, code: 'refund_exceeds_sale' });
+    expect(await backend.getHistory(id)).toEqual(historyBefore);             // refused having moved nothing
+    const full = await backend.reverseTillEarn(input.posOrderRef, 'the rest', new Date());
+    expect(full.refund).toMatchObject({ refundRef: null, refundedFils: 1_000, targetPoints: 2, reversedPoints: 2 });
+    expect(full.sale).toMatchObject({ status: 'reversed', reversedPoints: 7, shortfall: 0, refundedFils: 2_000 });
+    expect(await points(id)).toBe(0);
+    expect((await backend.getStanding(id)).windowSpend).toBe(0);
+    // Reversed: a new partial refund has nothing left; the full one replays.
+    await expect(t('D', 1)).rejects.toMatchObject({ code: 'sale_already_reversed' });
+    expect(await backend.reverseTillEarn(input.posOrderRef, 'the rest', new Date())).toEqual({ sale: full.sale, refund: full.refund, replay: true });
+    // …and an earlier refund still replays by its reference.
+    expect((await t('A', 1_000)).replay).toBe(true);
+  });
+
+  it('partial refunds that cover every fils reverse the sale; a later full reversal replays its totals', async () => {
+    const id = await newMember();
+    await backend.addPoints(id, 3, 'منحة', 'Grant');
+    const input = sale(id, { paidFils: 10_000, pointsEarned: 20, spendJod: 10 });
+    await backend.tillEarn(input);                                             // 23
+    await backend.spendPoints(id, 20, 'صرف', 'Spend');                          // 3 live
+    await backend.reverseTillEarn(input.posOrderRef, 'r', new Date(), { refundRef: 'P1', refundedFils: 5_000 });   // target 10: 3 taken, 7 short
+    const last = await backend.reverseTillEarn(input.posOrderRef, 'r', new Date(), { refundRef: 'P2', refundedFils: 5_000 });
+    expect(last.refund).toMatchObject({ targetPoints: 10, reversedPoints: 0, shortfall: 10, balanceAfter: 0 });
+    expect(last.sale).toMatchObject({ status: 'reversed', reversedPoints: 3, shortfall: 17, refundedFils: 10_000 });
+    const full = await backend.reverseTillEarn(input.posOrderRef, 'late full', new Date());
+    expect(full.replay).toBe(true);
+    expect(full.refund).toMatchObject({ refundRef: null, reversedPoints: 3, shortfall: 17 });
+    expect(await points(id)).toBe(0);
+    expect((await backend.getHistory(id)).reduce((n, h) => n + h.deltaPoints, 0)).toBe(0);
+  });
+
+  // ---- points as a tender at the till (POST /v1/pos/points/spend → Backend.tillSpend) ----
+
+  let spendSeq = 0;
+  const spendIn = (memberId: string, over: Partial<TillSpendInput> = {}): TillSpendInput => {
+    spendSeq += 1;
+    return {
+      posOrderRef: `Shop/S${spendSeq}`, memberId, ticketJti: `sjti-${spendSeq}`, ticketExpired: false,
+      points: 50, valueJod: 0.5, reasonAr: 'دفع بالنقاط في الفرع', reasonEn: 'Paid with points in store',
+      at: new Date(), ...over,
+    };
+  };
+
+  it('🔴 a till spend takes the points oldest-lot-first, logs them and records the tender — in one call', async () => {
+    const id = await newMember();
+    await backend.addPoints(id, 30, 'أ', 'A');
+    await backend.addPoints(id, 40, 'ب', 'B');
+    const input = spendIn(id, { points: 50 });
+    const r = await backend.tillSpend(input);
+    expect(r.replay).toBe(false);
+    expect(r.spend).toMatchObject({ posOrderRef: input.posOrderRef, memberId: id, points: 50, valueJod: 0.5, pointsBalanceAfter: 20, status: 'spent' });
+    // Both slices recorded, oldest first, with the dates each lot carried.
+    expect(r.spend.slices.map((x) => x.points)).toEqual([30, 20]);
+    expect(r.spend.slices.every((x) => typeof x.expiresOn === 'string')).toBe(true);
+    expect(await points(id)).toBe(20);
+    expect((await backend.getHistory(id))[0]).toMatchObject({ deltaPoints: -50, reasonEn: 'Paid with points in store' });
+    expect(await backend.getTillSpend(input.posOrderRef)).toEqual(r.spend);
+    expect(await backend.getTillSpend('Shop/never')).toBeNull();
+  });
+
+  it('🔴 the same POS order again is a REPLAY; another member or amount is a conflict — nothing moves twice', async () => {
+    const a = await newMember('+962791111111');
+    const b = await newMember('+962792222222');
+    await backend.addPoints(a, 200, 'أ', 'A');
+    await backend.addPoints(b, 200, 'أ', 'A');
+    const input = spendIn(a, { points: 60 });
+    const first = await backend.tillSpend(input);
+    // A retry — with another (even expired) ticket — gets the stored answer.
+    const again = await backend.tillSpend({ ...input, ticketJti: 'retry', ticketExpired: true });
+    expect(again).toEqual({ spend: first.spend, replay: true });
+    expect(await points(a)).toBe(140);
+    for (const over of [{ memberId: b }, { points: 61 }]) {
+      await expect(backend.tillSpend({ ...input, ticketJti: `x-${JSON.stringify(over)}`, ...over }), JSON.stringify(over))
+        .rejects.toMatchObject({ code: 'pos_order_conflict' });
+    }
+    expect(await points(a)).toBe(140);
+    expect(await points(b)).toBe(200);
+  });
+
+  it('🔴 one spend ticket, one sale; an expired ticket and a short balance are refused having moved NOTHING', async () => {
+    const id = await newMember();
+    await backend.addPoints(id, 100, 'أ', 'A');
+    await backend.tillSpend(spendIn(id, { ticketJti: 'T', points: 10 }));
+    const historyBefore = await backend.getHistory(id);
+    await expect(backend.tillSpend(spendIn(id, { ticketJti: 'T', points: 10 }))).rejects.toMatchObject({ code: 'ticket_used' });
+    const expired = spendIn(id, { ticketExpired: true, points: 10 });
+    await expect(backend.tillSpend(expired)).rejects.toMatchObject({ statusCode: 401, code: 'ticket_expired' });
+    const short = spendIn(id, { points: 91 });
+    await expect(backend.tillSpend(short)).rejects.toMatchObject({ statusCode: 409, code: 'insufficient_points' });
+    expect(await backend.getTillSpend(expired.posOrderRef)).toBeNull();
+    expect(await backend.getTillSpend(short.posOrderRef)).toBeNull();
+    expect(await points(id)).toBe(90);
+    expect(await backend.getHistory(id)).toEqual(historyBefore);
+    // …and the refused ticket was not burned by the refusal.
+    expect((await backend.tillSpend(spendIn(id, { ticketJti: short.ticketJti, points: 90 }))).spend.pointsBalanceAfter).toBe(0);
+  });
+
+  it('🔴 a refused spend never loses an expired redemption\'s points: they come back exactly once', async () => {
+    const id = await newMember();
+    await backend.addPoints(id, 100, 'أ', 'A');
+    const code = await backend.createRedemption(id, 60);                       // 40 live, 60 held by the code
+    const after = new Date(Date.parse(code.expiresAt) + 1_000);
+    // The code has lapsed; the spend asks for more than even the refund covers.
+    await expect(backend.tillSpend(spendIn(id, { points: 101, at: after }))).rejects.toMatchObject({ code: 'insufficient_points' });
+    await backend.sweepRedemptions(id, after);
+    expect(await points(id)).toBe(100);                                       // never 40
+    expect((await backend.getHistory(id)).reduce((n, h) => n + h.deltaPoints, 0)).toBe(100);
+    // …and the refund made the points spendable: a spend that needs them lands.
+    expect((await backend.tillSpend(spendIn(id, { points: 100, at: after }))).spend.pointsBalanceAfter).toBe(0);
+  });
+
+  it('🔴 reversing a spend gives the points back ONCE, on the clock they were spent from — never a fresh year', async () => {
+    const id = await newMember();
+    await backend.addPoints(id, 80, 'أ', 'A');
+    const expiryBefore = (await backend.getMember(id)).lots[0].expiresOn;
+    const input = spendIn(id, { points: 50 });
+    await backend.tillSpend(input);
+    const at = new Date();
+    const r = await backend.reverseTillSpend(input.posOrderRef, 'void', at);
+    expect(r.replay).toBe(false);
+    expect(r.spend).toMatchObject({ status: 'reversed', returnedPoints: 50, expiredPoints: 0, reverseBalanceAfter: 80, reverseReason: 'void' });
+    expect(await points(id)).toBe(80);
+    const lots = (await backend.getMember(id)).lots.filter((l) => l.remaining > 0);
+    expect(lots.map((l) => l.expiresOn)).toEqual([expiryBefore, expiryBefore]);
+    expect((await backend.getHistory(id))[0]).toMatchObject({ deltaPoints: 50, reasonEn: 'Points returned: in-store payment voided' });
+    const again = await backend.reverseTillSpend(input.posOrderRef, 'void', at);
+    expect(again).toEqual({ spend: r.spend, replay: true });
+    expect(await points(id)).toBe(80);
+    expect((await backend.getHistory(id)).reduce((n, h) => n + h.deltaPoints, 0)).toBe(80);
+    await expect(backend.reverseTillSpend('Shop/unknown', 'x', at)).rejects.toMatchObject({ code: 'not_found' });
+  });
+
+  it('a slice that expired between the spend and the void is reported, not resurrected', async () => {
+    const id = await newMember();
+    await backend.addPoints(id, 40, 'أ', 'A');
+    const input = spendIn(id, { points: 40 });
+    const r = await backend.tillSpend(input);
+    const diesOn = r.spend.slices[0].expiresOn!;
+    // The void arrives the day AFTER the lot's last live day.
+    const late = new Date(`${diesOn}T12:00:00Z`);
+    late.setUTCDate(late.getUTCDate() + 1);
+    const back = await backend.reverseTillSpend(input.posOrderRef, 'late void', late);
+    expect(back.spend).toMatchObject({ returnedPoints: 0, expiredPoints: 40, reverseBalanceAfter: 0 });
   });
 
   // ---- card payment intents, and the checkout that spends one ----

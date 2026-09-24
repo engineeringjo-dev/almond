@@ -78,15 +78,16 @@ const RULES: EarnRules = {
   bonusDay: { enabled: true, multiplier: 2, weekdays: [2] },
 };
 
-/** The dials as actually shipped, 2026-09-06. This is now a WHOLLY different
- *  offer from RULES, not a one-value variation of it:
+/** The dials as actually shipped. This is a WHOLLY different offer from
+ *  RULES, not a one-value variation of it:
  *
  *    - the ladder is 2 / 4 / 6 points per JOD — a base of 2 with a 1.0/2.0/3.0
  *      ramp — qualifying on 20 and 65 JOD of 90-day spend;
- *    - the wallet multiplier, the bonus day and the Friday bonus are RETIRED,
- *      all three having had zero rows in 171,291 live transactions;
- *    - the ceiling is a safety valve at 3.5×, above the reachable 3.0×, not the
- *      binding 2.5× it briefly was;
+ *    - the bonus day and the Friday bonus are RETIRED (zero rows in 171,291
+ *      live transactions); the wallet multiplier was retired with them on
+ *      2026-09-06 and REINSTATED at 1.5 on 2026-09-08 (the gift-card promise);
+ *    - the ceiling is a safety valve at 4.5× — exactly the reachable stack
+ *      (top rung 3.0 × wallet 1.5), so it trims nothing that can happen;
  *    - the combo is 50 points: the halving to 25 was withdrawn on 2026-09-06
  *      once the owner confirmed the pair carries NO price discount at all.
  *
@@ -211,11 +212,34 @@ describe('earn: the dials the tests are written against', () => {
     expect(throttled.points).toBeLessThan(cash.points);
   });
 
-  it('earn: the subscription is off — it lost money on every existing member', () => {
-    // 18 JOD for up to 60 drinks against a member already worth 34.5 JOD of
-    // monthly contribution. Re-enabling needs a monthly cap and a food
-    // condition, not a flag flip.
-    expect(config.SUBSCRIPTION.enabled).toBe(false);
+  it('earn: the reachable stack is 4.5× base (top rung × wallet) — 9 points per JOD, and the ceiling does not trim it', () => {
+    // Pinned against the SHIPPED config (earnRulesFromConfig), not the SHIPPED
+    // literal above, so a config edit that re-creates the silent rate cut fails
+    // here by name. The wallet multiplier is LIVE; the old earn.ts comment that
+    // called it retired and put the cap at 3.5× was wrong on both counts.
+    const rules = earnRulesFromConfig();
+    const topRung = Math.max(...rules.tierRamp.map((r) => r.multiplier));
+    expect(topRung).toBe(3);
+    expect(rules.walletMultiplier).toBe(1.5);
+    expect(topRung * rules.walletMultiplier).toBe(4.5);
+    expect(rules.maxEarnMultiplier).toBe(4.5);
+    expect(config.MAX_EARN_MULTIPLIER).toBe(4.5);
+
+    const topFromWallet = { total: 100, windowSpend: 65, paidFromBalance: true, at: MON };
+    const r = computeEarn(topFromWallet, rules);
+    expect(r.tierId).toBe('top');
+    expect(r.base).toBe(200);                                 // 2 points/JOD
+    expect(r.effectiveMultiplier).toBe(4.5);                  // 4.5× base…
+    expect(r.points).toBe(900);                               // …= 9 points/JOD = 9%
+    expect(r.cap).toBe(900);
+    expect(r.capApplied).toBe(false);                         // equal is not trimmed
+
+    // Lowering the cap below 4.5 — by even a hundredth — trims the nine
+    // (100 JOD, so a hundredth of a multiplier is two whole points).
+    const trimmed = computeEarn(topFromWallet, { ...rules, maxEarnMultiplier: 4.49 });
+    expect(trimmed.capApplied).toBe(true);
+    expect(trimmed.points).toBeLessThan(900);
+    expect(trimmed.points).toBe(898);
   });
 
   it('earn: the combo is 50 points, and there is no price discount to go with it', () => {
@@ -1191,13 +1215,5 @@ describe('held behind §8', () => {
     + ' NOTE: spinDefaults.ts resolves through the app\'s `@/` alias, so when'
     + ' §8.4 lands this test runs from almond-app/test/, or computeSpinEV moves'
     + ' to @almond/shared.',
-  );
-
-  it.todo(
-    'T12 subscription: the monthly cap binds before the daily cap runs out (D7, §8.5)'
-    + ' — needs config.SUBSCRIPTION.drinksPerMonth, which §8.5 has not set'
-    + ' (the field does not exist yet). With drinksPerMonth: 20, redeem 20'
-    + ' drinks across 10 days (2/day), then the 21st POST /v1/subscription/redeem'
-    + ' returns 409 with error === "monthly_cap".',
   );
 });

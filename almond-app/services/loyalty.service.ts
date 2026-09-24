@@ -9,8 +9,6 @@ import type {
   SpinResult,
   ReferralInfo,
   GiftCard,
-  Subscription,
-  PaymentMethodId,
 } from '@/types';
 import type { PosMode, PosTokenWire } from '@almond/shared/pos/tokenWire';
 import { config } from '@/constants/config';
@@ -157,10 +155,6 @@ export interface LoyaltyService {
   // POS integration: app polls after showing the barcode; the till reports the
   // scan + earn/redeem/charge it performed (Odoo POS → loyalty server).
   getScanStatus(userId: string): Promise<ScanStatus>;
-
-  // "Almond Club" monthly subscription
-  getSubscription(userId: string): Promise<Subscription>;
-  subscribe(userId: string, paymentMethod: PaymentMethodId): Promise<{ subscription: Subscription; walletBalance: number }>;
 
   // Gift cards / eGifts — feed the wallet (Wallet spec §1.1 "gift" source)
   sendGift(input: SendGiftInput): Promise<GiftCard>;

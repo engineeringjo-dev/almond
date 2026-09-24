@@ -1,3 +1,4 @@
-/** JOD is stored as integer fils (1 JOD = 1000 fils) to avoid float drift. */
-export const toFils = (jod: number): number => Math.round(jod * 1000);
-export const toJod = (fils: number): number => Math.round(fils) / 1000;
+/** JOD is stored as integer fils (1 JOD = 1000 fils) to avoid float drift.
+ *  THE conversion lives in @almond/shared/lib/format (one money rule, one
+ *  implementation); re-exported so import paths do not churn. */
+export { toFils, toJod } from '@almond/shared/lib/format';

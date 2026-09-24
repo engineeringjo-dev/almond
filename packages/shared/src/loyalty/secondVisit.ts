@@ -220,8 +220,7 @@ export interface SecondVisitDecision {
  * `issuedAt + windowDays × 86_400_000`, as an ISO instant.
  *
  * Instants, not business days: a 30-day voucher LIFE has no boundary to reset
- * on, unlike memory.ts's `subDay` (the "2 free drinks per day" quota), which
- * genuinely needs `ammanDayKey`. The DISPLAYED date still goes through
+ * on, unlike a per-day quota, which genuinely needs `ammanDayKey`. The DISPLAYED date still goes through
  * ammanDayKey — see toSecondVisitView.
  */
 export function secondVisitExpiresAt(issuedAt: Date, windowDays: number): string {

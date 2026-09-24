@@ -7,7 +7,7 @@ import type { EarnBreakdown } from '@almond/shared/loyalty/earn';
 import type { HoldoutStamp } from '@almond/shared/loyalty/holdout';
 import type { SecondVisitVoucher } from '@almond/shared/loyalty/secondVisit';
 import type { MemberProfile } from '@almond/shared/loyalty/profile';
-import type { PointLot, WalletLot } from '@almond/shared/loyalty/lots';
+import type { PointLot, SpentSlice, WalletLot } from '@almond/shared/loyalty/lots';
 import type { SpendEntry, TierStanding, Evaluation } from '@almond/shared/loyalty/window';
 
 export interface Member {
@@ -102,17 +102,6 @@ export interface Member {
   heldTierId: TierId;
   /** Latest evaluation period already closed, e.g. '2026-Q3'. */
   evaluatedThrough: string;
-  subRenewsAt: number; // "Almond Club" renewal epoch (ms); 0 = not subscribed
-  subDay: string; // 'YYYY-MM-DD' of the last free-drink redemption
-  subDayCount: number; // free drinks redeemed on subDay
-}
-
-export interface SubscriptionState {
-  active: boolean;
-  renewsAt: string | null;
-  drinksPerDay: number;
-  redeemedToday: number;
-  remainingToday: number;
 }
 
 export interface HistoryEntry {
@@ -285,7 +274,13 @@ export interface TillSale {
    *  that had none (never for a real grant). */
   earn: EarnBreakdown | null;
   status: 'earned' | 'reversed';
-  /** Filled only once reversed. `reversedPoints + shortfall === pointsEarned`. */
+  /** Money refunded so far by PARTIAL refunds, in fils (0 until one lands).
+   *  Never more than `paidFils`. A full reversal does not add to it; its
+   *  status says the rest went. */
+  refundedFils: number;
+  /** Filled only once reversed — in full, or by partial refunds that covered
+   *  every fils. TOTALS across every refund of the sale:
+   *  `reversedPoints + shortfall === pointsEarned`. */
   reversedPoints: number | null;
   shortfall: number | null;
   reverseBalanceAfter: number | null;
@@ -323,6 +318,90 @@ export interface TillEarnInput {
 }
 
 export interface TillEarnResult { sale: TillSale; replay: boolean }
+
+/**
+ * ONE REFUND OF A TILL SALE — partial (a `refundRef` and an amount) or the full
+ * reversal (`refundRef: null`, whatever was left). The row behind one call of
+ * POST /v1/pos/earn/reverse; its figures are what that call answers with.
+ */
+export interface TillRefund {
+  /** The refund's own POS reference — its idempotency key — or null for the
+   *  sale's one full reversal. */
+  refundRef: string | null;
+  posOrderRef: string;
+  memberId: string;
+  /** Money this refund covered, in fils (a full reversal: all that was left). */
+  refundedFils: number;
+  /** The refund's share of the sale's points (loyalty/tillRefund.ts). */
+  targetPoints: number;
+  /** What was actually taken back — never more than the member held live. */
+  reversedPoints: number;
+  /** `targetPoints − reversedPoints`: already spent; recorded, not clawed. */
+  shortfall: number;
+  balanceAfter: number;
+  reason: string;
+  createdAt: string;
+}
+
+/** A partial refund's two facts, as the till reports them. */
+export interface TillRefundInput {
+  refundRef: string;
+  refundedFils: number;
+}
+
+export interface TillReverseResult { sale: TillSale; refund: TillRefund; replay: boolean }
+
+/**
+ * POINTS SPENT AS A TENDER AT THE TILL — the row behind POST
+ * /v1/pos/points/spend, keyed by the POS order's own reference, like TillSale.
+ *
+ * One visit, one code, one scan: the member says at the counter whether to use
+ * points, the till takes them off the bill as a TENDER (this row), and the
+ * money part earns through /v1/pos/earn under the SAME posOrderRef. The two
+ * rows live apart because they are two different movements — a spend and a
+ * grant — and either may be reversed without the other.
+ */
+export interface TillSpend {
+  posOrderRef: string;
+  memberId: string;
+  /** Whole points taken off the member's balance, oldest lot first. */
+  points: number;
+  /** What those points took off the bill — jodFromPoints(points), computed
+   *  ONCE and stored, like RedemptionRow.valueJod. */
+  valueJod: number;
+  /** Which lots the points came out of, with their ORIGINAL dates — what a
+   *  reversal puts back (lots.ts restoreSlices). */
+  slices: SpentSlice[];
+  pointsBalanceAfter: number;
+  status: 'spent' | 'reversed';
+  /** Filled only once reversed. `returnedPoints + expiredPoints === points`:
+   *  a slice whose expiry passed before the void is not resurrected. */
+  returnedPoints: number | null;
+  expiredPoints: number | null;
+  reverseBalanceAfter: number | null;
+  reverseReason: string | null;
+  reversedAt: string | null;
+  createdAt: string;
+}
+
+/** A till asking to take `points` off one member's balance for one sale. */
+export interface TillSpendInput {
+  posOrderRef: string;
+  /** From the VERIFIED spend ticket — never from the request body. */
+  memberId: string;
+  /** The ticket's id: single use, enforced by the store (UNIQUE). */
+  ticketJti: string;
+  /** The ticket is past its lifetime: refuses a NEW spend, not a replay. */
+  ticketExpired: boolean;
+  points: number;
+  /** jodFromPoints(points), computed by the route through @almond/shared. */
+  valueJod: number;
+  reasonAr: string;
+  reasonEn: string;
+  at: Date;
+}
+
+export interface TillSpendResult { spend: TillSpend; replay: boolean }
 
 /**
  * A card payment the member started — the row behind POST /v1/payments/intent
@@ -375,6 +454,13 @@ export interface CheckoutResult {
 export interface Backend {
   findOrCreateByPhone(phone: string, name?: string): Promise<Member>;
   getMember(id: string): Promise<Member>;
+  /**
+   * The member holding this CANONICAL phone (+9627XXXXXXXX), or null — a READ
+   * that never creates anyone. The in-store tablet (POST /v1/pos/identify)
+   * looks a typed number up with it; a number nobody has signed in with is not
+   * a member, and an unverified number must never become one.
+   */
+  findMemberByPhone(phone: string): Promise<Member | null>;
   /** Atomic debit; throws conflict('insufficient_wallet') if balance < fils. */
   /** Spend from the wallet, OLDEST LOT FIRST, measured against the LIVE
    *  balance; throws conflict('insufficient_wallet') without touching a lot. */
@@ -553,11 +639,6 @@ export interface Backend {
    * having written nothing.
    */
   checkout(memberId: string, input: CheckoutInput): Promise<CheckoutResult>;
-  /** Debit the wallet (when `walletDebitFils` > 0) and activate the
-   *  subscription in ONE transaction — the same fix as `checkout`. */
-  purchaseSubscription(
-    id: string, walletDebitFils: number,
-  ): Promise<{ subscription: SubscriptionState; walletBalanceFils: number }>;
   /** Credit a top-up lot and grant its reload bonus in ONE transaction. A
    *  bonus of 0 writes no points line, as the route always behaved. */
   topUpWallet(
@@ -578,14 +659,51 @@ export interface Backend {
    */
   tillEarn(input: TillEarnInput): Promise<TillEarnResult>;
   /**
-   * Take back what a refunded or voided POS order granted — once. Never drives
-   * the balance negative: what the member already spent is reported as
-   * `shortfall`, not clawed. A second call returns the stored reversal with
-   * `replay: true`. notFound for an unknown reference.
+   * Take back what a refunded or voided POS order granted.
+   *
+   * With `refund` — a PARTIAL refund: the share of the points that
+   * `refund.refundedFils` of the money carries (cumulative rounding,
+   * loyalty/tillRefund.ts), idempotent by `refund.refundRef` (a replay returns
+   * the stored row; the same ref with another sale or amount is
+   * conflict('refund_conflict')). More money than is left to refund is
+   * conflict('refund_exceeds_sale'); a sale already fully reversed is
+   * conflict('sale_already_reversed').
+   *
+   * Without it — the FULL reversal of whatever is left, once; a second call
+   * replays it.
+   *
+   * Either way: ONE transaction under the member lock, never below zero (what
+   * the member already spent is the `shortfall`, not clawed), and the window
+   * spend is reduced by the money refunded. notFound for an unknown sale.
    */
-  reverseTillEarn(posOrderRef: string, reason: string, at: Date): Promise<TillEarnResult>;
+  reverseTillEarn(posOrderRef: string, reason: string, at: Date, refund?: TillRefundInput): Promise<TillReverseResult>;
   /** The sale a till reported, or null. */
   getTillSale(posOrderRef: string): Promise<TillSale | null>;
+
+  // ---- Points as a tender at the till (POST /v1/pos/points/spend) ----
+  /**
+   * Take `points` off the member's balance, OLDEST LOT FIRST, for one POS
+   * order — ONE transaction under the member lock: the lots, the ledger line
+   * and the pos_point_spends row land together or not at all.
+   *
+   * Idempotent by `posOrderRef`: the same reference, member and points again
+   * returns the stored spend with `replay: true` (even once the ticket has
+   * expired); a different member or amount is conflict('pos_order_conflict').
+   * A ticket already used on another order is conflict('ticket_used'); an
+   * expired one starting a NEW spend is 401 'ticket_expired'; a balance short
+   * of `points` is conflict('insufficient_points') having moved nothing.
+   */
+  tillSpend(input: TillSpendInput): Promise<TillSpendResult>;
+  /**
+   * The till voided the sale: give the points back, ONCE, each slice with the
+   * dates it was spent from (never a fresh twelve months). A slice whose
+   * expiry has since passed is reported as `expiredPoints`, not returned.
+   * A second call returns the stored reversal with `replay: true`; notFound for
+   * an unknown reference.
+   */
+  reverseTillSpend(posOrderRef: string, reason: string, at: Date): Promise<TillSpendResult>;
+  /** The points tender a till recorded for this POS order, or null. */
+  getTillSpend(posOrderRef: string): Promise<TillSpend | null>;
 
   // ---- Card payments (bff/src/payments) ----
   /** Store a new intent (status `pending`). */
@@ -621,10 +739,4 @@ export interface Backend {
   /** Drop a PENDING claim so the request may be retried (a 5xx that moved
    *  nothing). A completed key is never released. */
   releaseIdempotencyKey(memberId: string, key: string, requestHash: string): Promise<void>;
-
-  // "Almond Club" subscription
-  activateSubscription(id: string): Promise<SubscriptionState>;
-  /** Use one of today's free drinks; throws conflict on not_subscribed/daily_cap. */
-  redeemSubscriptionDrink(id: string): Promise<SubscriptionState>;
-  getSubscription(id: string): Promise<SubscriptionState>;
 }

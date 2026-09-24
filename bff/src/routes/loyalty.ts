@@ -149,9 +149,7 @@ export function registerLoyaltyRoutes(app: FastifyInstance, backend: Backend): v
   // ---- The second-visit voucher ----
   //
   // Both routes live HERE and not in routes/me.ts even though the read is a
-  // /v1/me/* path: registerSubscriptionRoutes already owns GET
-  // /v1/me/subscription, so a feature module owning its own /v1/me read is
-  // established — and routes/me.ts is where the rolling window reports, so
+  // /v1/me/* path: routes/me.ts is where the rolling window reports, so
   // keeping the voucher out of it keeps two features out of one file.
   //
   // SINGULAR '/voucher', not '/vouchers': the storage model is one row per

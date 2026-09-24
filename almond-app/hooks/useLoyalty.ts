@@ -6,7 +6,6 @@ import { posQrRefreshMs } from '@/lib/posQr';
 import { useUserId } from '@/stores/authStore';
 import type { MemberProfile } from '@almond/shared/loyalty/profile';
 import type { PosMode } from '@almond/shared/pos/tokenWire';
-import type { PaymentMethodId } from '@/types';
 
 export function useLoyaltyBalance() {
   const userId = useUserId();
@@ -76,25 +75,6 @@ export function useTopUp() {
   const invalidate = useInvalidateLoyalty();
   return useMutation({
     mutationFn: (amount: number) => loyaltyService.topUp(userId, amount),
-    onSuccess: invalidate,
-  });
-}
-
-// ---------- "Almond Club" subscription ----------
-
-export function useSubscription() {
-  const userId = useUserId();
-  return useQuery({
-    queryKey: ['loyalty', 'subscription', userId],
-    queryFn: () => loyaltyService.getSubscription(userId),
-  });
-}
-
-export function useSubscribe() {
-  const userId = useUserId();
-  const invalidate = useInvalidateLoyalty();
-  return useMutation({
-    mutationFn: (paymentMethod: PaymentMethodId) => loyaltyService.subscribe(userId, paymentMethod),
     onSuccess: invalidate,
   });
 }

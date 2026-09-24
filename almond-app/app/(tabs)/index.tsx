@@ -16,7 +16,6 @@ import { FeaturedRow } from '@/components/home/FeaturedRow';
 import { ChallengeBanner } from '@/components/home/ChallengeBanner';
 import { HomeNudge } from '@/components/home/HomeNudge';
 import { PromotionBanner } from '@/components/home/PromotionBanner';
-import { SubscriptionCard } from '@/components/home/SubscriptionCard';
 import { PromoCarousel } from '@/components/home/PromoCarousel';
 import { BranchCard } from '@/components/branch/BranchCard';
 import { BranchPicker } from '@/components/branch/BranchPicker';
@@ -119,11 +118,6 @@ export default function HomeScreen() {
 
         <View style={styles.heroSection}>
           <LoyaltyCard />
-        </View>
-
-        {/* Almond Club subscription — top repeat-visit lever (growth strategy) */}
-        <View style={styles.section}>
-          <SubscriptionCard />
         </View>
 
         <View style={styles.section}>

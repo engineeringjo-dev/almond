@@ -11,8 +11,6 @@ import { config } from '../config';
  *   POST /v1/wallet/topup           credited `amount` from the body, plus the
  *                                   reload bonus in points. `{"amount":5000}`
  *                                   was 5,000 JOD of spendable wallet.
- *   POST /v1/subscription/subscribe activated a month of daily free drinks for
- *                                   `paymentMethod: "cash"`.
  *   POST /v1/checkout               granted points (redeemable at the till via
  *                                   /v1/loyalty/redeem) and window spend (which
  *                                   buys a rung that is never taken away) on an

@@ -31,6 +31,9 @@ const IDEMPOTENCY_MIGRATION = readMigration('20260924_idempotency_keys.sql');
 const RESTRICT_MIGRATION = readMigration('20260925_restrict_financial_history.sql');
 const POS_SALES_MIGRATION = readMigration('20260926_pos_sales.sql');
 const PAYMENT_INTENTS_MIGRATION = readMigration('20260927_payment_intents.sql');
+const DROP_PLAN_COLUMNS_MIGRATION = readMigration('20260928_drop_members_plan_columns.sql');
+const POINT_SPENDS_MIGRATION = readMigration('20260929_pos_point_spends.sql');
+const SALE_REFUNDS_MIGRATION = readMigration('20260930_pos_sale_refunds.sql');
 /** The whole loyalty schema, as a deploy leaves it (minus the Supabase-only RLS file). */
 const SCHEMA = loyaltySchemaSql();
 const POSTGRES_TS = readFileSync(join(HERE, '..', 'src', 'backend', 'postgres.ts'), 'utf8');
@@ -43,7 +46,7 @@ const TABLES = [
 ];
 /** …and what the full schema holds: 20260924 adds the durable Idempotency-Keys,
  *  20260926 the till's sales, 20260927 the card payment intents. */
-const ALL_TABLES = [...TABLES, 'idempotency_keys', 'pos_sales', 'payment_intents'];
+const ALL_TABLES = [...TABLES, 'idempotency_keys', 'pos_sales', 'payment_intents', 'pos_point_spends', 'pos_sale_refunds'];
 
 async function fresh(): Promise<PGlite> {
   const pg = new PGlite();
@@ -260,6 +263,9 @@ describe('R3 migration 20260909_loyalty_backend.sql', () => {
     // member's balance, an intent carries their payments.
     await pg.exec(POS_SALES_MIGRATION);
     await pg.exec(PAYMENT_INTENTS_MIGRATION);
+    await pg.exec(DROP_PLAN_COLUMNS_MIGRATION);
+    await pg.exec(POINT_SPENDS_MIGRATION);
+    await pg.exec(SALE_REFUNDS_MIGRATION);
     const tables = await rows<{ t: string }>(pg,
       `select table_name as t from information_schema.tables where table_schema = 'public' order by 1`);
     expect(tables.map((x) => x.t)).toEqual([...ALL_TABLES].sort());
@@ -312,13 +318,14 @@ describe('R3 migration 20260909_loyalty_backend.sql', () => {
       await pool.query(SCHEMA);
       const { rows: t2 } = await pool.query(
         `select count(*)::int as n from information_schema.tables where table_schema = 'public'`);
-      expect(t2[0].n).toBe(11);
+      expect(t2[0].n).toBe(13);
       // 6 from 20260925, plus pos_sales.member_id, payment_intents.member_id,
-      // payment_intents.order_id and orders.payment_intent_id — every FK that
-      // records money RESTRICTs.
+      // payment_intents.order_id, orders.payment_intent_id,
+      // pos_point_spends.member_id and pos_sale_refunds' pos_order_ref and
+      // member_id — every FK that records money RESTRICTs.
       const { rows: fks } = await pool.query(`select count(*)::int as n from pg_constraint
         where contype = 'f' and confdeltype = 'r'`);
-      expect(fks[0].n).toBe(10);
+      expect(fks[0].n).toBe(13);
     } finally {
       await pool.end();
       await admin.query(`drop database if exists ${name}`);
@@ -553,5 +560,151 @@ describe('R3.10 migrations 20260926_pos_sales.sql + 20260927_payment_intents.sql
   it('R3.10d the till and payment tables are in the full schema the tests and a deploy use', () => {
     expect(SCHEMA).toContain('create table if not exists pos_sales');
     expect(SCHEMA).toContain('create table if not exists payment_intents');
+  });
+});
+
+/**
+ * R3.11 — 20260928_drop_members_plan_columns.sql. The 18 JOD monthly drinks
+ * plan was deleted (owner, 2026-09-24); its three member columns go with it.
+ */
+describe('R3.11 migration 20260928_drop_members_plan_columns.sql', () => {
+  const PLAN_COLUMNS = ['sub_day', 'sub_day_count', 'sub_renews_at'];
+  const memberColumns = async (pg: PGlite) => (await rows<{ c: string }>(pg,
+    `select column_name as c from information_schema.columns where table_name = 'members' order by 1`)).map((r) => r.c);
+
+  it('R3.11a the base migration still creates them (published files are never edited) and this file drops them', async () => {
+    const pg = await fresh();
+    await pg.exec(MIGRATION);
+    expect((await memberColumns(pg)).filter((c) => PLAN_COLUMNS.includes(c))).toEqual(PLAN_COLUMNS);
+    await pg.exec(DROP_PLAN_COLUMNS_MIGRATION);
+    expect((await memberColumns(pg)).filter((c) => PLAN_COLUMNS.includes(c))).toEqual([]);
+  });
+
+  it('R3.11b the full schema has none of them, re-applies unchanged, and the backend still writes members', async () => {
+    const pg = await fresh();
+    await pg.exec(SCHEMA);
+    const once = await memberColumns(pg);
+    expect(once.filter((c) => c.startsWith('sub_'))).toEqual([]);
+    await pg.exec(DROP_PLAN_COLUMNS_MIGRATION);
+    await pg.exec(DROP_PLAN_COLUMNS_MIGRATION);
+    expect(await memberColumns(pg)).toEqual(once);
+    const b = createPostgresBackend(fromPglite(pg));
+    const m = await b.findOrCreateByPhone('+962791234567', 'حمزة');
+    expect(await b.addPoints(m.id, 40, 'منحة', 'Grant')).toBe(40);
+    expect((await b.getMember(m.id)).name).toBe('حمزة');
+  });
+});
+
+/**
+ * R3.12 — 20260929_pos_point_spends.sql: points spent as a tender at the till.
+ */
+describe('R3.12 migration 20260929_pos_point_spends.sql', () => {
+  const code = async (pg: PGlite, sql: string, p: unknown[] = []) => {
+    try { await pg.query(sql, p); return 'ok'; } catch (e) { return (e as { code?: string }).code; }
+  };
+  const shape = (pg: PGlite) => rows(pg, `select column_name, data_type, is_nullable, column_default
+    from information_schema.columns where table_name = 'pos_point_spends' order by 1`);
+
+  it('R3.12a applies on a plain Postgres (no Supabase roles), re-applies unchanged, RLS on, closed to anon', async () => {
+    const pg = await fresh();
+    await pg.exec(SCHEMA);
+    const before = await shape(pg);
+    expect(before.length).toBe(14);
+    await pg.exec(POINT_SPENDS_MIGRATION);
+    await pg.exec(POINT_SPENDS_MIGRATION);
+    expect(await shape(pg)).toEqual(before);
+    const rls = await rows<{ on: boolean }>(pg, `select relrowsecurity as on from pg_class where relname = 'pos_point_spends'`);
+    expect(rls[0].on).toBe(true);
+    const sb = await fresh();
+    await sb.exec(`create role anon nologin; create role authenticated nologin;
+      alter default privileges in schema public grant all on tables to anon, authenticated;`);
+    await sb.exec(SCHEMA);
+    const priv = await rows<{ ok: boolean }>(sb, `select has_table_privilege('anon', 'pos_point_spends', 'select') as ok`);
+    expect(priv[0].ok).toBe(false);
+  });
+
+  it('R3.12b refuses a second row per order or per ticket, a non-positive spend, a half-written void; RESTRICTs the member', async () => {
+    const pg = await fresh();
+    await pg.exec(SCHEMA);
+    await pg.query(`insert into members (id, phone, held_tier_id) values ('m1', '+962791111111', 'base')`);
+    const spend = (ref: string, jti: string, pts = 50, extra = '', vals = '') => code(pg,
+      `insert into pos_point_spends (pos_order_ref, member_id, spend_ticket_jti, points, value_jod, slices,
+         points_balance_after${extra}) values ($1, 'm1', $2, $3, 0.5, '[]', 10${vals})`, [ref, jti, pts]);
+    expect(await spend('Shop/1', 'j1')).toBe('ok');
+    expect(await spend('Shop/1', 'j2')).toBe('23505');                    // one tender per POS order
+    expect(await spend('Shop/2', 'j1')).toBe('23505');                    // one sale per spend ticket
+    expect(await spend('Shop/3', 'j3', 0)).toBe('23514');                 // a spend spends something
+    expect(await spend('x'.repeat(65), 'j4')).toBe('23514');
+    expect(await spend('Shop/5', 'j5', 50, ', status', `, 'maybe'`)).toBe('23514');
+    // A void accounts for every point: returned + expired = spent…
+    expect(await spend('Shop/6', 'j6', 50, ', status, reversed_at, returned_points, expired_points',
+      `, 'reversed', now(), 40, 5`)).toBe('23514');
+    // …and is all of its fields or none.
+    expect(await spend('Shop/7', 'j7', 50, ', status, returned_points, expired_points', `, 'reversed', 45, 5`)).toBe('23514');
+    expect(await spend('Shop/8', 'j8', 50, ', status, reversed_at, returned_points, expired_points',
+      `, 'reversed', now(), 45, 5`)).toBe('ok');
+    expect(await code(pg, `delete from members where id = 'm1'`)).toBe('23001');
+  });
+});
+
+/**
+ * R3.13 — 20260930_pos_sale_refunds.sql: partial refunds of a till sale.
+ */
+describe('R3.13 migration 20260930_pos_sale_refunds.sql', () => {
+  const code = async (pg: PGlite, sql: string, p: unknown[] = []) => {
+    try { await pg.query(sql, p); return 'ok'; } catch (e) { return (e as { code?: string }).code; }
+  };
+  const shape = (pg: PGlite, t: string) => rows(pg, `select column_name, data_type, is_nullable, column_default
+    from information_schema.columns where table_name = $1 order by 1`, [t]);
+
+  it('R3.13a applies on a plain Postgres, re-applies unchanged (constraint included), RLS on, closed to anon', async () => {
+    const pg = await fresh();
+    await pg.exec(SCHEMA);
+    const before = { r: await shape(pg, 'pos_sale_refunds'), s: await shape(pg, 'pos_sales') };
+    expect(before.r.length).toBe(11);
+    expect(before.s.some((c) => (c as { column_name: string }).column_name === 'refunded_total')).toBe(true);
+    const cons = () => rows(pg, `select conname, pg_get_constraintdef(oid) as def from pg_constraint
+      where conrelid in ('pos_sales'::regclass, 'pos_sale_refunds'::regclass) order by 1`);
+    const consBefore = await cons();
+    await pg.exec(SALE_REFUNDS_MIGRATION);
+    await pg.exec(SALE_REFUNDS_MIGRATION);
+    expect({ r: await shape(pg, 'pos_sale_refunds'), s: await shape(pg, 'pos_sales') }).toEqual(before);
+    expect(await cons()).toEqual(consBefore);
+    const rls = await rows<{ on: boolean }>(pg, `select relrowsecurity as on from pg_class where relname = 'pos_sale_refunds'`);
+    expect(rls[0].on).toBe(true);
+    const sb = await fresh();
+    await sb.exec(`create role anon nologin; create role authenticated nologin;
+      alter default privileges in schema public grant all on tables to anon, authenticated;
+      alter default privileges in schema public grant all on sequences to anon, authenticated;`);
+    await sb.exec(SCHEMA);
+    const priv = await rows<{ t: boolean; q: boolean }>(sb, `select has_table_privilege('anon', 'pos_sale_refunds', 'select') as t,
+      has_sequence_privilege('anon', 'pos_sale_refunds_id_seq', 'usage') as q`);
+    expect(priv[0]).toEqual({ t: false, q: false });
+  });
+
+  it('R3.13b one row per refund ref, ONE full reversal per sale, points accounted, refunds within what was paid, RESTRICT', async () => {
+    const pg = await fresh();
+    await pg.exec(SCHEMA);
+    await pg.query(`insert into members (id, phone, held_tier_id) values ('m1', '+962791111111', 'base')`);
+    await pg.query(`insert into pos_sales (pos_order_ref, member_id, branch_id, earn_ticket_jti, paid_total, paid_at,
+      points_earned, points_balance_after) values ('Shop/1', 'm1', 'b1', 'j1', 20, now(), 40, 40)`);
+    const refund = (ref: string | null, target = 4, reversed = 4, shortfall = 0, sale = 'Shop/1') => code(pg,
+      `insert into pos_sale_refunds (refund_ref, pos_order_ref, member_id, refunded_total, target_points,
+         reversed_points, shortfall, balance_after, reason) values ($1, $2, 'm1', 2, $3, $4, $5, 36, 'refund')`,
+      [ref, sale, target, reversed, shortfall]);
+    expect(await refund('R/1')).toBe('ok');
+    expect(await refund('R/1')).toBe('23505');                         // one row per refund reference
+    expect(await refund(null)).toBe('ok');
+    expect(await refund(null)).toBe('23505');                          // one FULL reversal per sale
+    expect(await refund('R/2', 4, 3, 0)).toBe('23514');                // reversed + shortfall = target
+    expect(await refund('R/3', 4, 1, 3)).toBe('ok');
+    expect(await refund('x'.repeat(65))).toBe('23514');
+    expect(await refund('R/4', 4, 4, 0, 'Shop/none')).toBe('23503');   // a refund of a sale that exists
+    // The sale's running refund can never pass what was paid.
+    expect(await code(pg, `update pos_sales set refunded_total = 20.001 where pos_order_ref = 'Shop/1'`)).toBe('23514');
+    expect(await code(pg, `update pos_sales set refunded_total = 20 where pos_order_ref = 'Shop/1'`)).toBe('ok');
+    // Neither the sale nor the member can be deleted out from under its refunds.
+    expect(await code(pg, `delete from pos_sales where pos_order_ref = 'Shop/1'`)).toBe('23001');
+    expect(await code(pg, `delete from members where id = 'm1'`)).toBe('23001');
   });
 });

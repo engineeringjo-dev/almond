@@ -487,6 +487,81 @@ export function consumeFifo(
 }
 
 /**
+ * One slice of a spend: how many points came out of ONE lot, and the dates that
+ * lot carried. What a reversal needs in order to put the points back EXACTLY as
+ * they were — see `restoreSlices`.
+ */
+export interface SpentSlice {
+  grantedOn: string;
+  expiresOn: string | null;
+  points: number;
+  source: LotSource;
+}
+
+/**
+ * The slices a successful `consumeFifo` took, read off the lots as they stood
+ * BEFORE the spend (the `lots` passed to consumeFifo, not the ones it returned).
+ * Stored with the spend, so the day it is reversed the points go back with the
+ * clock they were issued under.
+ */
+export function spentSlices(
+  lotsBefore: readonly PointLot[],
+  consumed: readonly { seq: number; points: number }[],
+): SpentSlice[] {
+  return consumed.map((c) => {
+    const lot = lotsBefore.find((l) => l.seq === c.seq);
+    if (!lot) throw new Error(`spentSlices: no lot with seq ${c.seq}`);
+    return { grantedOn: lot.grantedOn, expiresOn: lot.expiresOn, points: c.points, source: lot.source };
+  });
+}
+
+/**
+ * PUT SPENT POINTS BACK — a void at the till undoes a points tender.
+ *
+ * 🔴 EACH SLICE RETURNS WITH ITS ORIGINAL `grantedOn` AND `expiresOn`, NEVER
+ * TODAY'S. Re-granting through `grantLot` would stamp a fresh twelve months on
+ * points that were already part-way through their life: a member who spends at
+ * the till and has the sale voided would walk out holding points that live
+ * longer than the ones they walked in with — «ولا تتجدد بشراء جديد» broken by the
+ * back door (the same defect as #1 in consumeFifo's list, via a reversal).
+ * Keeping `grantedOn` also puts the points back in their original FIFO place.
+ *
+ * A slice whose expiry day has ALREADY PASSED is not put back — it would be a
+ * dead lot the ledger never books — and is reported as `expired` instead, so
+ * the caller can say so. Those points died on the day they were always going
+ * to; the void does not resurrect them.
+ *
+ * Returns a NEW array; the caller's is never mutated.
+ */
+export function restoreSlices(
+  lots: readonly PointLot[],
+  slices: readonly SpentSlice[],
+  at: Date = new Date(),
+): { lots: PointLot[]; restored: number; expired: number } {
+  const today = ammanDayKey(at);
+  let seq = -1;
+  for (const l of lots) if (l.seq > seq) seq = l.seq;
+  const out = lots.map((l) => ({ ...l }));
+  let restored = 0;
+  let expired = 0;
+  for (const s of slices) {
+    if (!Number.isInteger(s.points) || s.points <= 0) {
+      throw new Error(`restoreSlices: points must be a positive whole number, got ${s.points}`);
+    }
+    assertDayKey(s.grantedOn, 'restoreSlices');
+    if (s.expiresOn !== null) assertDayKey(s.expiresOn, 'restoreSlices');
+    if (s.expiresOn !== null && s.expiresOn < today) { expired += s.points; continue; }
+    seq += 1;
+    out.push({
+      seq, grantedOn: s.grantedOn, expiresOn: s.expiresOn,
+      amount: s.points, remaining: s.points, source: s.source,
+    });
+    restored += s.points;
+  }
+  return { lots: out, restored, expired };
+}
+
+/**
  * Drop rows the ledger can never need again — dead for longer than
  * `retentionDays`.
  *

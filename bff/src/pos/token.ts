@@ -14,9 +14,11 @@ import { HttpError, conflict } from '../http-error';
  *   token_invalid     the member QR is malformed, mis-signed or of an unknown mode
  *   token_expired     the member QR is past its 60 s
  *   pos_token_replay  (409) the member QR was already scanned — unchanged
- *   ticket_invalid    the earn ticket was not signed by this server
- *   ticket_expired    the earn ticket is past its lifetime (and this is a NEW sale)
- *   ticket_used       (409) the earn ticket already paid for another POS order
+ *   ticket_invalid    the earn/spend ticket was not signed by this server AS
+ *                     THAT KIND (an earn ticket offered to /points/spend is this)
+ *   ticket_expired    the earn/spend ticket is past its lifetime (and this is a
+ *                     NEW sale — a retry of a recorded one still answers)
+ *   ticket_used       (409) the ticket already paid for another POS order
  */
 const tokenInvalid = (m: string) => new HttpError(401, 'token_invalid', m);
 
@@ -127,11 +129,22 @@ export function verifyPosToken(token: string): { memberId: string; mode: PosMode
  * says whether it has expired; `Backend.tillEarn` decides whether it is spent.
  */
 const EARN_TICKET_DOMAIN = 'almond.pos.earn-ticket.v1\n';
-const signEarnTicket = (body: string): string =>
-  createHmac('sha256', config.POS_TOKEN_SECRET).update(EARN_TICKET_DOMAIN + body).digest('base64url');
+/**
+ * THE SPEND TICKET's domain — a THIRD HMAC domain under the same secret, so a
+ * spend ticket cannot be presented as an earn ticket, an earn ticket cannot be
+ * presented as a spend ticket, and neither is a QR. The direction that matters
+ * most: POST /v1/pos/identify issues EARN tickets for a phone number typed on a
+ * tablet — proof of nothing — and one of those must never open a spend.
+ */
+const SPEND_TICKET_DOMAIN = 'almond.pos.spend-ticket.v1\n';
 
-interface EarnTicketPayload {
-  typ: 'earn';
+type TicketKind = 'earn' | 'spend';
+const DOMAINS: Record<TicketKind, string> = { earn: EARN_TICKET_DOMAIN, spend: SPEND_TICKET_DOMAIN };
+const signTicket = (kind: TicketKind, body: string): string =>
+  createHmac('sha256', config.POS_TOKEN_SECRET).update(DOMAINS[kind] + body).digest('base64url');
+
+interface TicketPayload {
+  typ: TicketKind;
   sub: string;
   jti: string;
   /** Issued-at (seconds): the moment the member's QR was scanned. The sale the
@@ -142,8 +155,8 @@ interface EarnTicketPayload {
 }
 
 /** What a verified ticket says. `expired` is reported, not thrown: a till that
- *  RETRIES an earn it already reported must get its stored answer back even
- *  after the ticket has lapsed (see routes/pos.ts). */
+ *  RETRIES an earn (or a spend) it already reported must get its stored answer
+ *  back even after the ticket has lapsed (see routes/pos.ts). */
 export interface EarnTicketClaim {
   memberId: string;
   jti: string;
@@ -152,25 +165,27 @@ export interface EarnTicketClaim {
   exp: number;
   expired: boolean;
 }
+/** The spend ticket reads back the same claim. */
+export type SpendTicketClaim = EarnTicketClaim;
 
-export function issueEarnTicket(memberId: string): { ticket: string; expiresIn: number } {
-  const ttl = config.POS_EARN_TICKET_TTL_SECONDS;
+function issueTicket(kind: TicketKind, memberId: string, ttl: number): { ticket: string; expiresIn: number } {
   const iat = Math.floor(Date.now() / 1000);
-  const payload: EarnTicketPayload = { typ: 'earn', sub: memberId, jti: randomUUID(), iat, exp: iat + ttl };
+  const payload: TicketPayload = { typ: kind, sub: memberId, jti: randomUUID(), iat, exp: iat + ttl };
   const body = b64u(JSON.stringify(payload));
-  return { ticket: `${body}.${signEarnTicket(body)}`, expiresIn: ttl };
+  return { ticket: `${body}.${signTicket(kind, body)}`, expiresIn: ttl };
 }
 
-/** Verify the signature and read the claim. Throws 401 `ticket_invalid` for
- *  anything we did not sign; never throws for expiry. */
-export function readEarnTicket(ticket: string, nowMs: number = Date.now()): EarnTicketClaim {
-  const invalid = () => new HttpError(401, 'ticket_invalid', 'this earn ticket was not issued by this server');
+/** Verify the signature (in `kind`'s domain) and read the claim. Throws 401
+ *  `ticket_invalid` for anything we did not sign AS THIS KIND; never throws
+ *  for expiry. */
+function readTicket(kind: TicketKind, ticket: string, nowMs: number): EarnTicketClaim {
+  const invalid = () => new HttpError(401, 'ticket_invalid', `this ${kind} ticket was not issued by this server`);
   const [body, sig, extra] = (ticket ?? '').split('.');
   if (!body || !sig || extra !== undefined) throw invalid();
-  if (!sigMatches(sig, signEarnTicket(body))) throw invalid();
-  let payload: Partial<EarnTicketPayload>;
-  try { payload = JSON.parse(Buffer.from(body, 'base64url').toString()) as Partial<EarnTicketPayload>; } catch { throw invalid(); }
-  if (payload.typ !== 'earn' || typeof payload.sub !== 'string' || !payload.sub
+  if (!sigMatches(sig, signTicket(kind, body))) throw invalid();
+  let payload: Partial<TicketPayload>;
+  try { payload = JSON.parse(Buffer.from(body, 'base64url').toString()) as Partial<TicketPayload>; } catch { throw invalid(); }
+  if (payload.typ !== kind || typeof payload.sub !== 'string' || !payload.sub
     || typeof payload.jti !== 'string' || !payload.jti
     || typeof payload.iat !== 'number' || typeof payload.exp !== 'number') {
     throw invalid();
@@ -179,4 +194,39 @@ export function readEarnTicket(ticket: string, nowMs: number = Date.now()): Earn
     memberId: payload.sub, jti: payload.jti, iat: payload.iat, exp: payload.exp,
     expired: payload.exp < Math.floor(nowMs / 1000),
   };
+}
+
+export function issueEarnTicket(memberId: string): { ticket: string; expiresIn: number } {
+  return issueTicket('earn', memberId, config.POS_EARN_TICKET_TTL_SECONDS);
+}
+
+/** Verify the signature and read the claim. Throws 401 `ticket_invalid` for
+ *  anything we did not sign; never throws for expiry. */
+export function readEarnTicket(ticket: string, nowMs: number = Date.now()): EarnTicketClaim {
+  return readTicket('earn', ticket, nowMs);
+}
+
+// ---------------------------------------------------------------------------
+// THE SPEND TICKET — what lets a till take points off a bill, and whose.
+// ---------------------------------------------------------------------------
+
+/**
+ * Issued by POST /v1/pos/scan ONLY — never by /v1/pos/identify — and spent once
+ * by POST /v1/pos/points/spend.
+ *
+ * 🔴 WHY SPENDING NEEDS ITS OWN TICKET. Earning GIVES a member something, so an
+ * earn ticket from a typed phone number is harmless: the worst a wrong number
+ * does is put points on someone else's account. Spending TAKES their money.
+ * The only proof we accept that the member is standing at this counter and
+ * wants to pay with points is their own app code, scanned a moment ago — so
+ * the spend ticket comes only from a scan, lives only 15 minutes
+ * (config.POS_SPEND_TICKET_TTL_SECONDS: spending must follow a FRESH scan), and
+ * pays for ONE sale (UNIQUE on pos_point_spends, enforced by the store).
+ */
+export function issueSpendTicket(memberId: string): { ticket: string; expiresIn: number } {
+  return issueTicket('spend', memberId, config.POS_SPEND_TICKET_TTL_SECONDS);
+}
+
+export function readSpendTicket(ticket: string, nowMs: number = Date.now()): SpendTicketClaim {
+  return readTicket('spend', ticket, nowMs);
 }

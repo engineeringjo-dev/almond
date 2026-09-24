@@ -249,15 +249,6 @@ export interface LoyaltyBalance {
   nextExpiry: { amount: number; on: string } | null;
 }
 
-/** "Almond Club" monthly subscription state (shared by app, web, BFF). */
-export interface Subscription {
-  active: boolean;
-  renewsAt: string | null;
-  drinksPerDay: number;
-  redeemedToday: number;
-  remainingToday: number;
-}
-
 export type VoucherType = 'credit' | 'free-item' | 'discount';
 
 export interface Voucher {

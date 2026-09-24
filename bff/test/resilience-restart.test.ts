@@ -83,8 +83,6 @@ async function populate(b: Backend): Promise<World> {
     const cancelled = await b.createRedemption(m.id, 50);
     await b.cancelRedemption(m.id, cancelled.id, new Date());
     codes.push(pending.code, settled.code, cancelled.code);
-    await b.activateSubscription(m.id);
-    await b.redeemSubscriptionDrink(m.id);
     if (i === 0) {
       await b.recordCorporateUse({
         memberId: m.id, companyId: 'acme', phone: p, at: new Date().toISOString(), orderId: order.id,
@@ -107,7 +105,6 @@ async function snapshot(b: Backend, w: World) {
       wallet: liveBalance(m.walletLots),
       history: await b.getHistory(id),
       standing: await b.getStanding(id),
-      subscription: await b.getSubscription(id),
       voucher: await b.getSecondVisitVoucher(id),
       entitlement: await b.entitlementFor(id),
     });
@@ -126,7 +123,8 @@ async function snapshot(b: Backend, w: World) {
 async function dump(db: Db) {
   const out: Record<string, unknown[]> = {};
   for (const t of ['members', 'point_history', 'orders', 'second_visit_vouchers', 'redemptions',
-    'companies', 'corporate_roster', 'corporate_uses', 'idempotency_keys', 'pos_sales', 'payment_intents']) {
+    'companies', 'corporate_roster', 'corporate_uses', 'idempotency_keys', 'pos_sales', 'payment_intents',
+    'pos_point_spends', 'pos_sale_refunds']) {
     out[t] = await db.query(`select * from ${t} order by 1`);
   }
   return JSON.parse(JSON.stringify(out));
@@ -139,7 +137,6 @@ function expectPopulated(s: Awaited<ReturnType<typeof snapshot>>) {
     expect(m.points).toBeGreaterThan(600);
     expect(m.wallet).toBe(12_500);
     expect(m.history.length).toBeGreaterThanOrEqual(5);
-    expect(m.subscription.redeemedToday).toBe(1);
   }
   expect(s.members[0].entitlement?.percentOff).toBe(25);
   expect(s.redemptions.map((r) => r && (r.settledAt ? 'settled' : r.cancelledAt ? 'cancelled' : 'pending')))
@@ -425,7 +422,7 @@ describe.each(STORES)('R2.6 🔴 Idempotency-Key across a restart — %s', (_nam
     expect(await points(id)).toBe(700);
     // The same key on ANOTHER route is another request too.
     const onCheckout = await app.inject({
-      method: 'POST', url: '/v1/subscription/subscribe', payload: { paymentMethod: 'wallet' },
+      method: 'POST', url: '/v1/wallet/topup', payload: { amount: 5 },
       headers: { authorization: `Bearer ${app.jwt.sign({ sub: id })}`, 'idempotency-key': key },
     });
     expect(onCheckout.statusCode).toBe(422);
@@ -516,13 +513,13 @@ describe.each(STORES)('R2.8 🔴 a crash mid-checkout moves no money — %s', (_
     expect(d.second_visit_vouchers).toHaveLength(0);
   }, 60_000);
 
-  it('subscribe and top-up are one transaction too: a crash leaves no debit without a subscription, no credit without its bonus', async () => {
+  it('top-up is one transaction too: a crash leaves no credit without its bonus', async () => {
     const ok = createPostgresBackend(store.db);
     const id = (await ok.findOrCreateByPhone(phone())).id;
     await ok.creditWallet(id, 20_000, 'topup');
     const d0 = await dump(store.db);
     const diesAtSave = createPostgresBackend(crashingOn(store.db, /update members set/));
-    await expect(diesAtSave.purchaseSubscription(id, 18_000)).rejects.toThrow(/simulated crash/);
+    await expect(diesAtSave.topUpWallet(id, 20_000, 50, 'مكافأة', 'Bonus')).rejects.toThrow(/simulated crash/);
     // The top-up's credit is in the member row, its bonus in the ledger: the
     // ledger insert runs AFTER the member write, so dying there is the case a
     // two-call route could not survive.
@@ -530,7 +527,6 @@ describe.each(STORES)('R2.8 🔴 a crash mid-checkout moves no money — %s', (_
     await expect(diesAtBonus.topUpWallet(id, 20_000, 50, 'مكافأة', 'Bonus')).rejects.toThrow(/simulated crash/);
     expect(await dump(store.db)).toEqual(d0);
     expect(liveBalance((await ok.getMember(id)).walletLots)).toBe(20_000);
-    expect((await ok.getSubscription(id)).active).toBe(false);
   }, 60_000);
 
   it('over HTTP: the process dies mid-checkout, restarts, and the retry with the same key charges ONCE', async () => {
@@ -609,7 +605,7 @@ describe.each(STORES)('R2.9 🔴 a crash mid till-earn, mid reversal or mid card
     const id = (await ok.findOrCreateByPhone(phone())).id;
     await ok.tillEarn(sale(id, 'Shop/10'));
     const d0 = await dump(store.db);
-    for (const at of [/update pos_sales set/, /insert into point_history/, /update members set/]) {
+    for (const at of [/insert into pos_sale_refunds/, /update pos_sales set/, /insert into point_history/, /update members set/]) {
       const dying = createPostgresBackend(crashingOn(store.db, at));
       await expect(dying.reverseTillEarn('Shop/10', 'refund', new Date()), String(at)).rejects.toThrow(/simulated crash/);
       expect(await dump(store.db), String(at)).toEqual(d0);
@@ -617,6 +613,65 @@ describe.each(STORES)('R2.9 🔴 a crash mid till-earn, mid reversal or mid card
     const r = await ok.reverseTillEarn('Shop/10', 'refund', new Date());
     expect(r.sale).toMatchObject({ status: 'reversed', reversedPoints: 30, shortfall: 0 });
     expect(liveBalance((await ok.getMember(id)).lots)).toBe(0);
+  }, 60_000);
+
+  it('a PARTIAL refund dies at its refund insert, the sale update, the ledger line or the member write: nothing lands', async () => {
+    const ok = createPostgresBackend(store.db);
+    const id = (await ok.findOrCreateByPhone(phone())).id;
+    await ok.tillEarn(sale(id, 'Shop/11'));                                   // 15 JOD, 30 points
+    const d0 = await dump(store.db);
+    const refund = { refundRef: 'Shop/11/R', refundedFils: 5_000 };
+    for (const at of [/insert into pos_sale_refunds/, /update pos_sales set/, /insert into point_history/, /update members set/]) {
+      const dying = createPostgresBackend(crashingOn(store.db, at));
+      await expect(dying.reverseTillEarn('Shop/11', 'refund', new Date(), refund), String(at)).rejects.toThrow(/simulated crash/);
+      expect(await dump(store.db), String(at)).toEqual(d0);
+    }
+    const r = await ok.reverseTillEarn('Shop/11', 'refund', new Date(), refund);
+    expect(r.refund).toMatchObject({ targetPoints: 10, reversedPoints: 10 });
+    // A restarted process answers the till's retry from the row.
+    const retry = await createPostgresBackend(store.db).reverseTillEarn('Shop/11', 'refund', new Date(), refund);
+    expect(retry).toEqual({ sale: r.sale, refund: r.refund, replay: true });
+    expect(liveBalance((await ok.getMember(id)).lots)).toBe(20);
+    expect((await dump(store.db)).pos_sale_refunds).toHaveLength(1);
+  }, 60_000);
+
+  const spendInput = (memberId: string, ref: string) => ({
+    posOrderRef: ref, memberId, ticketJti: `s-${ref}`, ticketExpired: false, points: 40, valueJod: 0.4,
+    reasonAr: 'دفع بالنقاط في الفرع', reasonEn: 'Paid with points in store', at: new Date(),
+  });
+
+  it('tillSpend dies at the spend insert, the ledger line or the member write: nothing lands; the retry debits once', async () => {
+    const ok = createPostgresBackend(store.db);
+    const id = (await ok.findOrCreateByPhone(phone())).id;
+    await ok.addPoints(id, 100, 'منحة', 'Grant');
+    const d0 = await dump(store.db);
+    for (const at of [/insert into pos_point_spends/, /insert into point_history/, /update members set/]) {
+      const dying = createPostgresBackend(crashingOn(store.db, at));
+      await expect(dying.tillSpend(spendInput(id, 'Shop/S9')), String(at)).rejects.toThrow(/simulated crash/);
+      expect(await dump(store.db), String(at)).toEqual(d0);
+    }
+    const first = await ok.tillSpend(spendInput(id, 'Shop/S9'));
+    const restarted = createPostgresBackend(store.db);
+    const retry = await restarted.tillSpend({ ...spendInput(id, 'Shop/S9'), ticketExpired: true });
+    expect(retry).toEqual({ spend: first.spend, replay: true });
+    expect(liveBalance((await restarted.getMember(id)).lots)).toBe(60);
+    expect((await dump(store.db)).pos_point_spends).toHaveLength(1);
+  }, 60_000);
+
+  it('reverseTillSpend dies at the spend update, the ledger line or the member write: nothing lands', async () => {
+    const ok = createPostgresBackend(store.db);
+    const id = (await ok.findOrCreateByPhone(phone())).id;
+    await ok.addPoints(id, 100, 'منحة', 'Grant');
+    await ok.tillSpend(spendInput(id, 'Shop/S10'));
+    const d0 = await dump(store.db);
+    for (const at of [/update pos_point_spends set/, /insert into point_history/, /update members set/]) {
+      const dying = createPostgresBackend(crashingOn(store.db, at));
+      await expect(dying.reverseTillSpend('Shop/S10', 'void', new Date()), String(at)).rejects.toThrow(/simulated crash/);
+      expect(await dump(store.db), String(at)).toEqual(d0);
+    }
+    const r = await ok.reverseTillSpend('Shop/S10', 'void', new Date());
+    expect(r.spend).toMatchObject({ status: 'reversed', returnedPoints: 40, expiredPoints: 0 });
+    expect(liveBalance((await ok.getMember(id)).lots)).toBe(100);
   }, 60_000);
 
   it('a card checkout that dies while binding its payment leaves the payment unspent and no order', async () => {

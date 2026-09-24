@@ -57,24 +57,6 @@ describe('S13 money is created only against money that moved', () => {
   const wallet = async (token: string) =>
     (await app.inject({ method: 'GET', url: '/v1/me/wallet', headers: { authorization: `Bearer ${token}` } })).json().balance as number;
 
-  it('🔴 a failed wallet subscription does not "refund" money that never left (was +18 JOD per request)', async () => {
-    // EXPLOIT (before): an empty wallet, POST /v1/subscription/subscribe
-    // {paymentMethod:"wallet"} with a fresh Idempotency-Key. debitWallet threw
-    // insufficient_wallet, but `debited` had been set BEFORE the await, so the
-    // catch credited 18 JOD. Measured: 409, 201, 409 → an active subscription
-    // AND 18 JOD left over. This is the production path — no config needed.
-    const token = await signIn(app, freshPhone());
-    for (let i = 0; i < 3; i++) {
-      const r = await app.inject({
-        method: 'POST', url: '/v1/subscription/subscribe',
-        headers: headers(token), payload: { paymentMethod: 'wallet' },
-      });
-      expect(r.statusCode).toBe(409);
-      expect(r.json().error).toBe('insufficient_wallet');
-    }
-    expect(await wallet(token)).toBe(0);
-  });
-
   it('🔴 production refuses an unfunded wallet top-up (was: credit whatever the body said)', async () => {
     // EXPLOIT (before): POST /v1/wallet/topup {"amount":5000} → 201,
     // walletBalance 5000, +120 bonus points. No payment reference of any kind.
@@ -97,17 +79,6 @@ describe('S13 money is created only against money that moved', () => {
       method: 'POST', url: '/v1/wallet/topup', headers: headers(token), payload: { amount: 20 },
     });
     expect(r.statusCode).toBe(403);
-  });
-
-  it('🔴 production refuses a "cash" subscription (was: a free month of daily drinks)', async () => {
-    const token = await signIn(app, freshPhone());
-    asProduction();
-    const r = await app.inject({
-      method: 'POST', url: '/v1/subscription/subscribe', headers: headers(token), payload: { paymentMethod: 'cash' },
-    });
-    expect(r.statusCode).toBe(403);
-    const sub = await app.inject({ method: 'GET', url: '/v1/me/subscription', headers: { authorization: `Bearer ${token}` } });
-    expect(sub.json().active).toBe(false);
   });
 
   it('🔴 production pays no points and no window spend on an unpaid order — and still pays on a funded one', async () => {
@@ -422,15 +393,15 @@ const ROUTES: Record<string, Guard> = {
   'POST /v1/pos/redemption/settle': 'pos',
   'POST /v1/pos/earn': 'pos',
   'POST /v1/pos/earn/reverse': 'pos',
+  'POST /v1/pos/points/spend': 'pos',
+  'POST /v1/pos/identify': 'pos',
+  'POST /v1/pos/points/spend/reverse': 'pos',
   'POST /v1/payments/intent': 'member',
   'POST /v1/payments/webhook/:provider': 'signed',
   'POST /v1/me/profile': 'member',
   'GET /v1/me/balance': 'member',
   'GET /v1/me/wallet': 'member',
   'GET /v1/me/history': 'member',
-  'POST /v1/subscription/subscribe': 'member',
-  'POST /v1/subscription/redeem': 'member',
-  'GET /v1/me/subscription': 'member',
   'GET /v1/analytics/order-lines': 'admin',
   'POST /v1/analytics/stockout': 'member',
   'GET /v1/forecast/prep-sheet': 'admin',

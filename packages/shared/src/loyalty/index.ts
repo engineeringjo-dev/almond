@@ -10,3 +10,4 @@ export * from './redeem';
 export * from './secondVisit';
 export * from './corporate';
 export * from './redemption';
+export * from './tillRefund';

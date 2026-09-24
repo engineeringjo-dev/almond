@@ -259,6 +259,52 @@ python3 integrations/almond_loyalty_pos/mock/almond_bff_mock.py --port 8898 --ke
 
 </div>
 
+
+### ما تغيّر في عقد الكاشير — 2026-09-24 (قرارات المالك)
+
+<div dir="rtl">
+
+**(١) رمزٌ واحد، قراءةٌ واحدة لكلّ زيارة — الكسب والصرف بنفس الباركود.** العضو لا يختار وضعاً؛ يقول عند الكاونتر
+إن كان يريد الدفع بنقاطه. `POST /v1/pos/scan` يُرجِع الآن **إضافةً** إلى ما سبق:
+`pointsBalance` (الرصيد الحيّ) · `spendableJod` (ما يخصمه الرصيد من الفاتورة، مقرَّباً للأسفل إلى الفلس) ·
+`spendTicket` + `spendTicketExpiresIn` (تذكرة صرف موقَّعة، **لبيعٍ واحد**، عمرها **١٥ دقيقة** — الصرف يلي قراءةً حديثة).
+التذكرتان (`earnTicket` و`spendTicket`) تصدران لكلّ رمز عضو (`pay`/`earn`/`corporate` — كلّها الآن «رمز العضو»)؛
+رمز `redeem` القديم قراءةٌ لكود استبدال فلا تذاكر معه. عضو الشركة: `earnTicket: null` (يكسب ٠) لكن `spendTicket` موجودة (يصرف ما عنده).
+
+| المسار | الطلب ← الجواب |
+|---|---|
+| `POST /v1/pos/points/spend` | `{spendTicket, posOrderRef, points}` (نقاط صحيحة ≥ ١) ← **201** `{posOrderRef, pointsSpent, valueJod, pointsBalance, replay:false}`؛ **200** `replay:true` لنفس المرجع والعضو والنقاط؛ **409** `pos_order_conflict` (نقاط/عضو مختلف) · `ticket_used` · `insufficient_points`؛ **400** `points_over_sale_cap` (أكثر من `POS_SPEND_MAX_POINTS_PER_SALE`، افتراضاً ١٠٬٠٠٠ = ١٠٠ د.أ)؛ **401** `ticket_invalid` (تذكرة كسب أو QR بدل تذكرة صرف) · `ticket_expired` |
+| `POST /v1/pos/points/spend/reverse` | `{posOrderRef, reason}` ← **201** `{posOrderRef, pointsReturned, pointsExpired, pointsBalance, replay}`؛ ‏200 إعادة؛ ‏404 مجهول. النقاط تعود **بتاريخ انتهائها الأصليّ** (لا سنة جديدة)؛ ما انتهى أثناءها يُذكر في `pointsExpired` ولا يعود |
+| `POST /v1/pos/identify` | `{phone}` (أيّ صيغة أردنيّة) ← `{memberFound, earnTicket\|null, displayName, earnsPoints}` — **للكسب فقط**: لا تذكرة صرف ولا رصيد أبداً (كتابة رقمٍ لا تُثبت هويّة). `displayName` = الاسم الأوّل + أوّل حرفٍ من العائلة («حمزة ع.»). رقمٌ غير مسجَّل ← `memberFound:false` **ولا يُنشأ عضو** (التابلت يدعوه لتنزيل التطبيق). ‏400 `phone_invalid` |
+
+**على الكاشير (الموديول):** قراءة رمز العضو **مرّة** · إن طلب العضو الدفع بالنقاط: `points/spend` ووضع `valueJod` على
+الفاتورة **كطريقة دفع** (tender) قبل إغلاقها · ثمّ `earn` بنفس `posOrderRef` و**`paidTotal` = المال المقبوض فقط، بدون
+مبلغ النقاط** — 🔴 **الخادم لا يستطيع التحقّق من هذا** (يرى صفّ الصرف لا الفاتورة)؛ كاشيرٌ يرسل الفاتورة كاملة يجعل النقاط
+تكسب نقاطاً («لا يكسب نقاط على الجزء المدفوع بالنقاط») — مثبَّت باختبار (`bff/test/pos-spend.test.ts` P2.4) · عند
+إلغاء البيع: `points/spend/reverse` **و**`earn/reverse`. مسار كود الاستبدال (`redemption/settle`) باقٍ كبديلٍ حين يُكتب الكود.
+
+**(٢) المرتجع الجزئيّ يلغي نقاط الجزء المرتجع فقط.** `POST /v1/pos/earn/reverse` يقبل اختياريّاً
+`{refundRef (1–64), refundedTotal}` — **معاً أو لا شيء** (400):
+
+- `refundRef` = مرجع **أمر المرتجع** نفسه في أودو (`name` لطلب المرتجع) — هو مفتاح منع التكرار للمرتجع.
+- `refundedTotal` = **المال** المُرجَع بالدينار، شاملاً الضريبة، بخانات فلس، > ٠، وعلى أساس `paidTotal` نفسه (الجزء الذي كسب؛ لا مبلغ نقاط).
+- النقاط المسترجعة = `round(pointsEarned × refundedTotal ÷ paidTotal)` **تراكميّاً** عبر المرتجعات (مجموع الأجزاء لا يتجاوز ما كُسب أبداً)،
+  ولا ينزل الرصيد تحت الصفر (`shortfall`)، ويُنقص إنفاق النافذة بـ`refundedTotal`.
+- الجواب: `{posOrderRef, refundRef, reversedPoints, shortfall, pointsBalance, refundedTotal, fullyReversed, replay}` — أرقام **هذا** المرتجع،
+  و`refundedTotal`/`fullyReversed` للبيع كلّه. ‏200 `replay` لنفس `refundRef`؛ **409** `refund_conflict` (نفس المرجع بمبلغٍ/بيعٍ آخر) ·
+  `refund_exceeds_sale` (أكثر ممّا بقي) · `sale_already_reversed`.
+- **بلا الحقلين** يبقى الإلغاء الكامل كما كان، ويسترجع **ما تبقّى** بعد أيّ مرتجعات جزئيّة؛ واستدعاؤه مرّةً ثانية إعادة.
+- (تغيّر شكل جواب الإلغاء الكامل بإضافة `refundRef: null` و`refundedTotal` و`fullyReversed`؛ الحقول القديمة كما هي.)
+
+**(٣)** أُزيل اشتراك «١٨ ديناراً» كلّياً (مساراته في الخادم لم تعد موجودة) — لا أثر له على الكاشير.
+
+**متغيّرات جديدة (`bff`):** `POS_SPEND_TICKET_TTL_SECONDS` (٩٠٠) · `POS_SPEND_MAX_POINTS_PER_SALE` (١٠٠٠٠) ·
+`RATE_POS_SPEND_PER_TILL`/`_PER_KEY` (٦٠/٦٠٠ في الدقيقة) · `RATE_POS_IDENTIFY_PER_TILL`/`_PER_KEY` (٣٠/٣٠٠).
+**هجرات جديدة:** `20260928` ← `20260929` ← `20260930` (HANDOVER §٤.٢). محاكي الكاشير (`npm run pos:simulate`) يقود الآن هذا
+التدفّق: قراءة ← كسب ← (زيارة ثانية) قراءة واحدة ← صرف ٥٠ ← كسب على المال ← إلغاء الاثنين ← مرتجع جزئيّ.
+
+</div>
+
 ---
 
 <a id="sms"></a>

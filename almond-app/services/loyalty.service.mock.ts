@@ -5,7 +5,7 @@ import type {
   SpinConfig,
   SpinEligibility,
 } from '@/types';
-import type { GiftCard, Subscription, PaymentMethodId, TierId } from '@/types';
+import type { GiftCard, TierId } from '@/types';
 import type { LoyaltyService, EarnInput } from './loyalty.service';
 import { config } from '@/constants/config';
 import { computeEarn } from '@almond/shared/loyalty/earn';
@@ -83,10 +83,6 @@ export interface LoyaltyUser {
   hasReferralRewardEver: boolean;
   referralCode: string;
   phone: string;
-  /** "Almond Club" subscription. */
-  subRenewsAt: number; // epoch ms; 0 = not subscribed
-  subDay: string; // 'YYYY-MM-DD' of last free-drink redemption
-  subDayCount: number;
 }
 
 /** The 90-day window, read once from config — the same object the BFF reads. */
@@ -94,23 +90,6 @@ const WINDOW = windowRulesFromConfig();
 /** The lot life, read once from config — the mirror of WINDOW, and the same
  *  object bff/src/backend/memory.ts reads. */
 const LOTS = lotRulesFromConfig();
-
-/** One business day for the whole system (§3.6) — Amman, not UTC; the mirror of
- *  bff/src/backend/memory.ts's todayKey. It moves the daily free-drink
- *  counter's reset from 03:00 Amman to 00:00 Amman. The day BOUNDARY only:
- *  `drinksPerDay` is untouched, and the cap's VALUE is §8.5 (D7). */
-const todayKey = (): string => ammanDayKey();
-function subStateOf(u: LoyaltyUser): Subscription {
-  const active = u.subRenewsAt > Date.now();
-  const redeemedToday = active && u.subDay === todayKey() ? u.subDayCount : 0;
-  return {
-    active,
-    renewsAt: active ? new Date(u.subRenewsAt).toISOString() : null,
-    drinksPerDay: config.SUBSCRIPTION.drinksPerDay,
-    redeemedToday,
-    remainingToday: Math.max(0, config.SUBSCRIPTION.drinksPerDay - redeemedToday),
-  };
-}
 
 /** The member's rung, window spend and visit days — the shared computation,
  *  never a local one. Pure: it mutates nothing (D11). */
@@ -209,7 +188,6 @@ function ensureUser(userId: string): LoyaltyUser {
       hasReferralRewardEver: false,
       referralCode: `ALM${Math.floor(1000 + Math.random() * 9000)}`,
       phone: '',
-      subRenewsAt: 0, subDay: '', subDayCount: 0,
     };
     store.set(userId, u);
   }
@@ -517,24 +495,6 @@ export const mockLoyaltyService: LoyaltyService = {
   },
 
   getWallet: (userId) => delay(ensureUser(userId).walletBalance),
-
-  getSubscription: (userId) => delay(subStateOf(ensureUser(userId))),
-
-  subscribe: (userId, paymentMethod: PaymentMethodId) => {
-    const u = ensureUser(userId);
-    const price = config.SUBSCRIPTION.priceJod;
-    if (paymentMethod === 'wallet') {
-      if (u.walletBalance < price) return Promise.reject(new Error('insufficient_wallet'));
-      u.walletBalance -= price;
-    }
-    u.subRenewsAt = Date.now() + config.SUBSCRIPTION.periodDays * 86400000;
-    u.history.unshift({
-      id: genId('log'), deltaPoints: 0,
-      reasonAr: 'اشتراك نادي ألموند', reasonEn: 'Almond Club subscription',
-      createdAt: new Date().toISOString(),
-    });
-    return delay({ subscription: subStateOf(u), walletBalance: u.walletBalance });
-  },
 
   topUp: (userId, amount) => {
     const u = ensureUser(userId);

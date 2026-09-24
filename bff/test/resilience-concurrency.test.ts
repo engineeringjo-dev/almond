@@ -9,7 +9,7 @@ import { createMemoryBackend } from '../src/backend/memory';
 import { createPostgresBackend } from '../src/backend/postgres';
 import { fromPool, type Db } from '../src/backend/db';
 import type { Backend } from '../src/backend';
-import type { CheckoutInput, TillEarnInput } from '../src/backend/types';
+import type { CheckoutInput, TillEarnInput, TillSpendInput } from '../src/backend/types';
 import { build } from '../src/server';
 import { config } from '../src/config';
 import { pgTestDb } from './lib/pgTestDb';
@@ -357,6 +357,87 @@ describe.each(HARNESSES)('R1 concurrency — %s', (_name, make) => {
     }
   }, 60_000);
 
+  const tillSpendIn = (memberId: string, over: Partial<TillSpendInput> = {}): TillSpendInput => ({
+    posOrderRef: `Shop/${randomUUID()}`, memberId, ticketJti: randomUUID(), ticketExpired: false,
+    points: 30, valueJod: 0.3, reasonAr: 'دفع بالنقاط في الفرع', reasonEn: 'Paid with points in store',
+    at: new Date(), ...over,
+  });
+
+  it('R1.20 🔴 N parallel points tenders exceeding the balance: exactly the affordable ones spend', async () => {
+    const id = await member();
+    await h.backend.addPoints(id, 100, 'منحة', 'Grant');
+    const { ok, errs } = await burst(10, () => h.backend.tillSpend(tillSpendIn(id)));
+    expect(ok).toHaveLength(3);                                // floor(100 / 30)
+    expect(new Set(errs)).toEqual(new Set(['insufficient_points']));
+    expect(new Set(ok.map((r) => r.spend.pointsBalanceAfter))).toEqual(new Set([70, 40, 10]));
+    expect(await balance(id)).toBe(10);
+    expect(await ledgerSum(id)).toBe(10);
+  }, 60_000);
+
+  it('R1.21 🔴 one points tender reported N times in parallel (a retrying till): ONE debit, the rest replays', async () => {
+    const id = await member();
+    await h.backend.addPoints(id, 100, 'منحة', 'Grant');
+    const input = tillSpendIn(id);
+    const { ok, errs } = await burst(8, () => h.backend.tillSpend(input));
+    expect(errs).toEqual([]);
+    expect(ok.filter((r) => !r.replay)).toHaveLength(1);
+    expect(await balance(id)).toBe(70);
+    expect(await ledgerSum(id)).toBe(70);
+  }, 60_000);
+
+  it('R1.22 🔴 one spend ticket presented for N different POS orders at once: exactly ONE tender', async () => {
+    const id = await member();
+    await h.backend.addPoints(id, 300, 'منحة', 'Grant');
+    const jti = randomUUID();
+    const { ok, errs } = await burst(6, () => h.backend.tillSpend(tillSpendIn(id, { ticketJti: jti })));
+    expect(ok).toHaveLength(1);
+    expect(errs).toEqual(Array(5).fill('ticket_used'));
+    expect(await balance(id)).toBe(270);
+  }, 60_000);
+
+  it('R1.23 🔴 parallel voids of one tender racing parallel spends: returned once, ledger reconciles', async () => {
+    const id = await member();
+    await h.backend.addPoints(id, 60, 'منحة', 'Grant');
+    const input = tillSpendIn(id, { points: 60 });
+    await h.backend.tillSpend(input);                          // 0 left
+    const [voids, spends] = await Promise.all([
+      burst(6, () => h.backend.reverseTillSpend(input.posOrderRef, 'void', new Date())),
+      burst(6, () => h.backend.spendPoints(id, 20, 'صرف', 'Spend')),
+    ]);
+    expect(voids.errs).toEqual([]);
+    expect(voids.ok.filter((r) => !r.replay)).toHaveLength(1);
+    expect(voids.ok.find((r) => !r.replay)!.spend.returnedPoints).toBe(60);
+    const bal = await balance(id);
+    expect(bal).toBe(60 - spends.ok.length * 20);
+    expect(await ledgerSum(id)).toBe(bal);
+    expect((await h.backend.getHistory(id)).filter((e) => e.reasonEn === 'Points returned: in-store payment voided')).toHaveLength(1);
+  }, 60_000);
+
+  it('R1.24 🔴 one refund reported N times in parallel: ONE reversal, the rest replays', async () => {
+    const id = await member();
+    const input = tillSale(id, { paidFils: 10_000, pointsEarned: 20, spendJod: 10 });
+    await h.backend.tillEarn(input);
+    const { ok, errs } = await burst(8, () => h.backend.reverseTillEarn(input.posOrderRef, 'r', new Date(), { refundRef: `${input.posOrderRef}/R`, refundedFils: 5_000 }));
+    expect(errs).toEqual([]);
+    expect(ok.filter((r) => !r.replay)).toHaveLength(1);
+    expect(await balance(id)).toBe(10);
+    expect(await ledgerSum(id)).toBe(10);
+    expect((await h.backend.getStanding(id)).windowSpend).toBe(5);
+  }, 60_000);
+
+  it('R1.25 🔴 N different partial refunds racing past what was paid: only those that fit land, never more than earned', async () => {
+    const id = await member();
+    const input = tillSale(id, { paidFils: 10_000, pointsEarned: 20, spendJod: 10 });
+    await h.backend.tillEarn(input);
+    const { ok, errs } = await burst(6, (i) => h.backend.reverseTillEarn(input.posOrderRef, 'r', new Date(), { refundRef: `${input.posOrderRef}/R${i}`, refundedFils: 3_000 }));
+    expect(ok).toHaveLength(3);                                // 3 × 3 JOD fit in 10; a fourth would not
+    expect(new Set(errs)).toEqual(new Set(['refund_exceeds_sale']));
+    expect(ok.reduce((n, r) => n + r.refund.targetPoints, 0)).toBe(18);   // round(20 × 9 / 10)
+    expect(await balance(id)).toBe(2);
+    expect(await ledgerSum(id)).toBe(2);
+    expect((await h.backend.getTillSale(input.posOrderRef))?.refundedFils).toBe(9_000);
+  }, 60_000);
+
   it('R1.9 two parallel first sign-ins with one phone create ONE member', async () => {
     const p = newPhone().canonical;
     const { ok, errs } = await burst(6, () => h.backend.findOrCreateByPhone(p));
@@ -500,7 +581,7 @@ function recording(inner: Db, groups: Group[]): Db {
 }
 
 describe('R1.8 🔴 postgres.ts takes a row lock (FOR NO KEY UPDATE on members) before every read-modify-write (SQL capture)', () => {
-  const MUTABLE = ['members', 'redemptions', 'second_visit_vouchers', 'pos_sales', 'payment_intents'];
+  const MUTABLE = ['members', 'redemptions', 'second_visit_vouchers', 'pos_sales', 'payment_intents', 'pos_point_spends'];
   let groups: Group[];
   let b: Backend;
   beforeAll(async () => { groups = []; b = createPostgresBackend(recording(await pgTestDb(), groups)); }, 60_000);
@@ -539,12 +620,9 @@ describe('R1.8 🔴 postgres.ts takes a row lock (FOR NO KEY UPDATE on members) 
       ['recordSpend', () => b.recordSpend(id, 12)],
       ['createRedemption', () => b.createRedemption(id, 100)],
       ['sweepRedemptions', () => b.sweepRedemptions(id, new Date())],
-      ['activateSubscription', () => b.activateSubscription(id)],
-      ['redeemSubscriptionDrink', () => b.redeemSubscriptionDrink(id)],
       // The composite movements that replaced multi-transaction sagas: ONE
       // transaction each, and it is the member lock that opens it.
       ['topUpWallet', () => b.topUpWallet(id, 20_000, 50, 'أ', 'A')],
-      ['purchaseSubscription', () => b.purchaseSubscription(id, 1_000)],
       ['checkout', () => b.checkout(id, {
         order: { branchId: 'b1', type: 'pickup', paymentMethod: 'wallet', subtotal: 3, tax: 0.24, total: 3.24 },
         walletDebitFils: 3_240, pointsEarned: 16, pointsReasonAr: 'نقاط طلب', pointsReasonEn: 'Order points',
@@ -559,7 +637,17 @@ describe('R1.8 🔴 postgres.ts takes a row lock (FOR NO KEY UPDATE on members) 
         paidFils: 8_000, paidAt: new Date(), pointsEarned: 16, earn: { points: 16 } as never,
         spendJod: 8, spendDay: null, reasonAr: 'أ', reasonEn: 'A', at: new Date(),
       })],
+      // A PARTIAL refund first (inserts its refund row, updates the sale under
+      // its lock), then the full reversal of the rest.
+      ['reverseTillEarn(partial)', () => b.reverseTillEarn('Shop/R18', 'refund', new Date(), { refundRef: 'Shop/R18/R', refundedFils: 2_000 })],
       ['reverseTillEarn', () => b.reverseTillEarn('Shop/R18', 'refund', new Date())],
+      // The points tender and its void: the member lock opens the one
+      // transaction; pos_point_spends is only UPDATEd after SELECT … FOR UPDATE.
+      ['tillSpend', () => b.tillSpend({
+        posOrderRef: 'Shop/R18S', memberId: id, ticketJti: 'r18-spend', ticketExpired: false,
+        points: 20, valueJod: 0.2, reasonAr: 'أ', reasonEn: 'A', at: new Date(),
+      })],
+      ['reverseTillSpend', () => b.reverseTillSpend('Shop/R18S', 'void', new Date())],
       // A card checkout locks the payment it spends, inside the member's transaction.
       ['checkout(card)', async () => {
         const pi = await b.createPaymentIntent({
@@ -586,6 +674,7 @@ describe('R1.8 🔴 postgres.ts takes a row lock (FOR NO KEY UPDATE on members) 
     // The new paths really ran their writes (not a vacuous pass).
     const sale = await b.getTillSale('Shop/R18');
     expect(sale?.status).toBe('reversed');
+    expect((await b.getTillSpend('Shop/R18S'))?.status).toBe('reversed');
     expect((await b.getPaymentIntent('pi_r18'))?.orderId).not.toBeNull();
   });
 

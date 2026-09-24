@@ -8,7 +8,6 @@ import type {
   SpinResult,
   ReferralInfo,
   GiftCard,
-  Subscription,
 } from '@/types';
 import type { LoyaltyService, EarnInput, ScanStatus, ProfileSaveResult } from './loyalty.service';
 import { integration, loyaltyAuthHeaders } from '@/constants/integration';
@@ -117,11 +116,6 @@ export const liveLoyaltyService: LoyaltyService = {
 
   // ---- POS scan confirmation ----
   getScanStatus: (userId) => get<ScanStatus>(E.scanStatus(userId)),
-
-  // ---- "Almond Club" subscription ----
-  getSubscription: (userId) => get<Subscription>(`/v1/me/subscription?userId=${userId}`),
-  subscribe: (_userId, paymentMethod) =>
-    post<{ subscription: Subscription; walletBalance: number }>(`/v1/subscription/subscribe`, { paymentMethod }),
 
   getReferralCode: (userId) => get<ReferralInfo>(`/loyalty/referral/code/${userId}`),
   claimReferral: (referrerId, referredPhone) =>

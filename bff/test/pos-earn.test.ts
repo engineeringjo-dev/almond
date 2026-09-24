@@ -82,13 +82,17 @@ describe.each([
     }
   });
 
-  it('P1.2 no ticket on a redeem or corporate-mode QR, nor for a member on a corporate roster', async () => {
+  it('P1.2 no ticket on a redeem-mode QR, nor for a member on a corporate roster', async () => {
+    // Since the one-code change (2026-09-24) a 'corporate'-mode QR is just the
+    // member code: the ROSTER decides who earns, not a mode the phone chose. A
+    // member who is on no roster earns whatever their app minted.
     const token = await signIn(app, freshPhone());
-    for (const mode of ['redeem', 'corporate'] as const) {
-      const scan = (await till.scan(await till.qr(token, mode))).json();
-      expect(scan.earnTicket, mode).toBeNull();
-      expect(scan.earnTicketExpiresIn, mode).toBeNull();
-    }
+    const redeem = (await till.scan(await till.qr(token, 'redeem'))).json();
+    expect(redeem.earnTicket).toBeNull();
+    expect(redeem.earnTicketExpiresIn).toBeNull();
+    const notOnARoster = (await till.scan(await till.qr(token, 'corporate'))).json();
+    expect(notOnARoster.earnsPoints).toBe(true);
+    expect(typeof notOnARoster.earnTicket).toBe('string');
     const phone = freshPhone();
     await backend.saveCompany({ id: `co${phone}`, nameAr: 'شركة', nameEn: 'Co', percentOff: 50, active: true });
     await backend.replaceRoster(`co${phone}`, [{ phone, companyId: `co${phone}` }]);
@@ -310,7 +314,10 @@ describe.each([
     expect((await till.reverse({ posOrderRef: ref, reason: 'refund' }, null)).statusCode).toBe(401);
     const r = await till.reverse({ posOrderRef: ref, reason: 'refund' });
     expect(r.statusCode).toBe(201);
-    expect(r.json()).toEqual({ posOrderRef: ref, reversedPoints: earned.pointsEarned, shortfall: 0, pointsBalance: 0, replay: false });
+    expect(r.json()).toEqual({
+      posOrderRef: ref, refundRef: null, reversedPoints: earned.pointsEarned, shortfall: 0, pointsBalance: 0,
+      refundedTotal: 25, fullyReversed: true, replay: false,
+    });
     const again = await till.reverse({ posOrderRef: ref, reason: 'refund' });
     expect(again.statusCode).toBe(200);
     expect(again.json()).toEqual({ ...r.json(), replay: true });
@@ -323,6 +330,46 @@ describe.each([
     const earnAgain = await till.earn({ earnTicket: ticket, posOrderRef: ref, branchId: 'b1', paidTotal: 25 });
     expect(earnAgain.json()).toEqual({ ...earned, replay: true });
     expect(await points(id)).toBe(0);
+  });
+
+  it('P1.14 🔴 a PARTIAL refund takes back only the refunded part, by its own reference; the full reversal takes the rest', async () => {
+    const { id, ticket } = await memberAtTill();
+    const ref = `Shop/${randomUUID()}`;
+    const earned = (await till.earn({ earnTicket: ticket, posOrderRef: ref, branchId: 'b1', paidTotal: 20 })).json();
+    expect(earned.pointsEarned).toBe(40);                                      // 20 JOD, entry rung
+    const part = { posOrderRef: ref, reason: 'croissant returned', refundRef: `${ref}/R1`, refundedTotal: 2.5 };
+    const r = await till.reverse(part);
+    expect(r.statusCode).toBe(201);
+    expect(r.json()).toEqual({
+      posOrderRef: ref, refundRef: `${ref}/R1`, reversedPoints: 5, shortfall: 0, pointsBalance: 35,
+      refundedTotal: 2.5, fullyReversed: false, replay: false,
+    });
+    expect((await backend.getStanding(id)).windowSpend).toBe(17.5);
+    const again = await till.reverse(part);
+    expect([again.statusCode, again.json()]).toEqual([200, { ...r.json(), replay: true }]);
+    const reused = await till.reverse({ ...part, refundedTotal: 3 });
+    expect([reused.statusCode, reused.json().error]).toEqual([409, 'refund_conflict']);
+    const tooMuch = await till.reverse({ ...part, refundRef: `${ref}/R2`, refundedTotal: 17.501 });
+    expect([tooMuch.statusCode, tooMuch.json().error]).toEqual([409, 'refund_exceeds_sale']);
+    // Both or neither; money in whole fils, and more than nothing.
+    for (const bad of [
+      { refundRef: `${ref}/R3` }, { refundedTotal: 1 }, { refundRef: `${ref}/R3`, refundedTotal: 0 },
+      { refundRef: `${ref}/R3`, refundedTotal: 1.0001 }, { refundRef: `${ref}/R3`, refundedTotal: -1 },
+      { refundRef: '', refundedTotal: 1 }, { refundRef: 'x'.repeat(65), refundedTotal: 1 },
+    ]) {
+      const b = await till.reverse({ posOrderRef: ref, reason: 'x', ...bad });
+      expect(b.statusCode, JSON.stringify(bad)).toBe(400);
+    }
+    expect(await points(id)).toBe(35);
+    const full = await till.reverse({ posOrderRef: ref, reason: 'rest' });
+    expect(full.json()).toEqual({
+      posOrderRef: ref, refundRef: null, reversedPoints: 35, shortfall: 0, pointsBalance: 0,
+      refundedTotal: 20, fullyReversed: true, replay: false,
+    });
+    const after = await till.reverse({ ...part, refundRef: `${ref}/R4` });
+    expect([after.statusCode, after.json().error]).toEqual([409, 'sale_already_reversed']);
+    expect(await points(id)).toBe(0);
+    expect((await backend.getStanding(id)).windowSpend).toBe(0);
   });
 
   it('P1.13 the till routes are rate-limited per till AND per POS key — earning and settling apart', async () => {

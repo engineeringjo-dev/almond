@@ -34,14 +34,9 @@ export const config = {
   // asked to be. That job belongs to SECOND_VISIT_VOUCHER below.
   POINTS_PER_JOD: 2,
   POINTS_PER_JOD_REDEEM: 100, // 100 beans = 1 JOD
-  // RETIRED 2026-09-06. Was 1.5 (pay from the wallet, earn +50%).
-  //
-  // Zero rows in 171,291 live transactions — it was never used by anyone. It
-  // also collides head-on with the ladder's narrative: the only multiplier the
-  // customer is shown must be the ×2 at promotion, and a second, invisible
-  // multiplier both muddies that and pays twice on a dinar the customer already
-  // handed over. Kept at 1.0 rather than deleted so earn.ts keeps its shape and
-  // the decision stays attached to the number.
+  // HISTORY: retired to 1.0 on 2026-09-06 (zero rows in 171,291 live
+  // transactions, and a second invisible multiplier muddied the ladder's ×2),
+  // then REINSTATED at 1.5 on 2026-09-08 — see the block below. It is LIVE.
   /**
    * 🔴 EARN MULTIPLIER ON ANYTHING PAID FROM THE WALLET. Reinstated 2026-09-08
    * at the owner's instruction: gift cards «تعطي ٥٠٪ رصيد نقاط اضافي عند
@@ -313,30 +308,15 @@ export const config = {
    * JOD), plus the combo, which sits outside every ceiling.
    */
   MAX_EARNING_INVOICE_JOD: 100,
-  // "Almond Club" monthly subscription — CANCELLED before launch (owner,
-  // 2026-09-03). It converts a member's own revenue into a smaller number:
-  // a member buying 12 drinks/month brings 39.7 JOD against 5.2 JOD of material
-  // cost (contribution 34.5). On 18 JOD for 30 drinks that becomes 18 against
-  // 12.9 (contribution 5.1) — a loss of 29.4 JOD/month per EXISTING member, and
-  // −7.8 contribution if they use the full 60-drink allowance.
-  //
-  // The daily cap does not protect it: 2/day permits 60/month, and the binding
-  // cap would have to be monthly — Pret's cap was 5/day and it still failed.
-  // It only wins on NEW members who attach food, and the basket says otherwise:
-  // 1.8 items, drink as the anchor, 85% of revenue from drinks at 87% material
-  // margin. Panera's version works because there the drink is the attachment to
-  // a food business; here the drink IS the business.
-  //
-  // Kept configured rather than deleted so the numbers above stay attached to
-  // the decision. Re-enabling needs a monthly cap and a food condition.
-  SUBSCRIPTION: {
-    enabled: false,
-    priceJod: 18,
-    drinksPerDay: 2, // hard cap per day
-    periodDays: 30,
-    labelAr: 'نادي ألموند',
-    labelEn: 'Almond Club',
-  },
+  // 🪦 THE 18 JOD MONTHLY DRINKS PLAN — DELETED 2026-09-24, not switched off.
+  // Owner: «الغي اشتراك الموند ١٨ دينار تماما». It had been dormant since
+  // 2026-09-03 behind a flag because it converted a member's own revenue into a
+  // smaller number (a 12-drinks-a-month member brings 39.7 JOD against 5.2 JOD
+  // of material; on 18 JOD for 30 drinks the contribution fell from 34.5 to
+  // 5.1). The dial, its route, its Backend methods, the member columns
+  // (dropped by supabase/migrations/20260928_drop_members_plan_columns.sql)
+  // and the app card are gone together; bringing it back is a new design with
+  // a monthly cap and a food condition, not a flag.
   // ---- Tier qualification (loyalty/constants.ts holds the ramp itself) ----
   //
   // Qualifying spend is measured over a ROLLING 90-DAY WINDOW and re-evaluated
@@ -497,6 +477,31 @@ export const config = {
   // burned on the first successful scan, so 60 seconds is the ceiling on a
   // window that normally closes in under a second.
   POS_TOKEN_TTL_SECONDS: 60,
+
+  /**
+   * 🔴 THE MOST POINTS ONE TILL SALE MAY SPEND (POST /v1/pos/points/spend).
+   * Points are money (1 point = 1 qirsh), so this is 100.00 JOD of tender.
+   *
+   * The same reasoning as MAX_EARNING_INVOICE_JOD, pointed the other way: that
+   * ceiling bounds what a fat finger can GRANT, this one bounds what a fat
+   * finger — or a till holding a leaked POS key and a fresh scan — can SPEND
+   * off one member in one sale. 100 JOD is ~12× the average paid invoice
+   * (8.31), so no real basket meets it; a member with more than that on their
+   * balance splits it across visits, which is what a café balance is for.
+   *
+   * The BFF reads this as its default and still honours
+   * POS_SPEND_MAX_POINTS_PER_SALE from the environment.
+   */
+  POS_SPEND_MAX_POINTS_PER_SALE: 10_000,
+  /**
+   * How long the SPEND TICKET a scan hands the till stays usable, in seconds.
+   * 15 minutes: spending must follow a FRESH scan — the member holding up their
+   * code at this counter is the consent — and a quarter of an hour covers a
+   * queue and a slow order without letting a ticket be held for later. Unlike
+   * the earn ticket it is not stretched for an outbox: a points tender is taken
+   * while the member stands there, before the bill is closed.
+   */
+  POS_SPEND_TICKET_TTL_SECONDS: 15 * 60,
 
   // 🪦 FIRST_REWARD_POINTS: 138 — DELETED 2026-09-08. There is no first reward.
   //

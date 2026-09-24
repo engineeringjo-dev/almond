@@ -68,6 +68,12 @@ export const config = {
   /** …and no EARLIER than this long before the scan: a member who paid and
    *  then remembered their QR, plus till-clock skew. */
   POS_EARN_PAID_BEFORE_SCAN_SECONDS: envInt('POS_EARN_PAID_BEFORE_SCAN_SECONDS', 30 * 60),
+  /** How long the SPEND ticket /v1/pos/scan hands the till lives (pos/token.ts).
+   *  Default: the shared 15 minutes — spending must follow a fresh scan. */
+  POS_SPEND_TICKET_TTL_SECONDS: envInt('POS_SPEND_TICKET_TTL_SECONDS', shared.POS_SPEND_TICKET_TTL_SECONDS),
+  /** The most points POST /v1/pos/points/spend takes in one sale. Default: the
+   *  shared 10,000 (100.00 JOD). */
+  POS_SPEND_MAX_POINTS_PER_SALE: envInt('POS_SPEND_MAX_POINTS_PER_SALE', shared.POS_SPEND_MAX_POINTS_PER_SALE),
 
   /**
    * Which card gateway takes payments (bff/src/payments/index.ts).
@@ -168,6 +174,17 @@ export const config = {
     posEarnPerKey: { max: envInt('RATE_POS_EARN_PER_KEY', 1200), windowSeconds: 60 },
     posSettlePerTill: { max: envInt('RATE_POS_SETTLE_PER_TILL', 60), windowSeconds: 60 },
     posSettlePerKey: { max: envInt('RATE_POS_SETTLE_PER_KEY', 300), windowSeconds: 60 },
+    /** POST /v1/pos/points/spend (+ its reverse). A budget of its own: a
+     *  spend moves a member's money, so a flood of it must not share (or
+     *  starve) the earn budget. */
+    posSpendPerTill: { max: envInt('RATE_POS_SPEND_PER_TILL', 60), windowSeconds: 60 },
+    posSpendPerKey: { max: envInt('RATE_POS_SPEND_PER_KEY', 600), windowSeconds: 60 },
+    /** POST /v1/pos/identify — a phone number typed on the in-store tablet.
+     *  Tighter than earning: every call answers "is this number a member, and
+     *  what is their first name", so the per-KEY ceiling is what stops a leaked
+     *  key from walking the number space as a reverse phone book. */
+    posIdentifyPerTill: { max: envInt('RATE_POS_IDENTIFY_PER_TILL', 30), windowSeconds: 60 },
+    posIdentifyPerKey: { max: envInt('RATE_POS_IDENTIFY_PER_KEY', 300), windowSeconds: 60 },
     /** POST /v1/payments/intent, per member. Each one is a call to the card
      *  gateway, which bills and rate-limits US. */
     paymentIntentPerMember: { max: envInt('RATE_PAYMENT_INTENT_PER_MEMBER', 20), windowSeconds: 60 },

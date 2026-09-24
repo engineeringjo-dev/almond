@@ -3,7 +3,7 @@ import { config as loyalty } from '@almond/shared/config';
 import { ammanDayKey } from '@almond/shared/lib/ammanWeekday';
 import {
   consumeFifo, expiredBetween, grantLot, liveBalance, lotRulesFromConfig,
-  pruneLots, walletLotRulesFromConfig,
+  pruneLots, restoreSlices, spentSlices, walletLotRulesFromConfig, type SpentSlice,
 } from '@almond/shared/loyalty/lots';
 import { jodFromPoints } from '@almond/shared/loyalty/earn';
 import { normalizeName, profileBonusFor } from '@almond/shared/loyalty/profile';
@@ -27,12 +27,17 @@ import { conflict, notFound } from '../http-error';
 import type { Db } from './db';
 import type { HoldoutStamp } from '@almond/shared/loyalty/holdout';
 import type {
-  Backend, Member, HistoryEntry, NewOrder, OrderRecord, SubscriptionState, CorporateUse,
-  PaymentIntent, TillSale,
+  Backend, Member, HistoryEntry, NewOrder, OrderRecord, CorporateUse,
+  PaymentIntent, TillRefund, TillSale, TillSpend,
 } from './types';
 import type { EarnBreakdown } from '@almond/shared/loyalty/earn';
 import { IDEMPOTENCY_SWEEP_EVERY_MS, IDEMPOTENCY_TTL_MS } from './idempotency';
-import { assertSameSale, earnTicketUsed, posOrderConflict, reverseGrant, ticketRefusalError } from '../pos/sales';
+import {
+  assertSameRefund, assertSameSale, assertSameSpend, earnTicketUsed, planOrRefuse, posOrderConflict,
+  posSpendConflict, refundConflict, refundable, refundReasons, saleAlreadyReversed, spendTicketExpired,
+  spendTicketUsed, syntheticFullRefund, ticketRefusalError,
+} from '../pos/sales';
+import { applyTillRefund } from '@almond/shared/loyalty';
 import { assertIntentSpendable, nextIntentStatus } from '../payments/intent';
 import { toFils, toJod } from '../money';
 
@@ -78,7 +83,6 @@ interface MemberRow {
   lots: unknown; expiry_settled_through: string;
   wallet_lots: unknown; wallet_expiry_settled_through: string;
   spend: unknown; held_tier_id: string; evaluated_through: string;
-  sub_renews_at: string | number; sub_day: string; sub_day_count: number;
 }
 
 function toMember(r: MemberRow): Member {
@@ -92,8 +96,6 @@ function toMember(r: MemberRow): Member {
     spend: (r.spend ?? []) as Member['spend'],
     heldTierId: r.held_tier_id as TierId,
     evaluatedThrough: r.evaluated_through,
-    subRenewsAt: Number(r.sub_renews_at ?? 0),
-    subDay: r.sub_day, subDayCount: r.sub_day_count,
   };
 }
 
@@ -112,8 +114,45 @@ function toTillSale(row: Record<string, unknown>): TillSale {
     pointsBalanceAfter: Number(row.points_balance_after),
     earn: (row.earn_breakdown ?? null) as EarnBreakdown | null,
     status: row.status as TillSale['status'],
+    refundedFils: toFils(num(row.refunded_total)),
     reversedPoints: intOrNull(row.reversed_points),
     shortfall: intOrNull(row.shortfall),
+    reverseBalanceAfter: intOrNull(row.reverse_balance_after),
+    reverseReason: (row.reverse_reason ?? null) as string | null,
+    reversedAt: iso(row.reversed_at),
+    createdAt: iso(row.created_at)!,
+  };
+}
+
+/** A pos_sale_refunds row → TillRefund. `refunded_total` is numeric (a string). */
+function toTillRefund(row: Record<string, unknown>): TillRefund {
+  return {
+    refundRef: (row.refund_ref ?? null) as string | null,
+    posOrderRef: row.pos_order_ref as string,
+    memberId: row.member_id as string,
+    refundedFils: toFils(num(row.refunded_total)),
+    targetPoints: Number(row.target_points),
+    reversedPoints: Number(row.reversed_points),
+    shortfall: Number(row.shortfall),
+    balanceAfter: Number(row.balance_after),
+    reason: row.reason as string,
+    createdAt: iso(row.created_at)!,
+  };
+}
+
+/** A pos_point_spends row → TillSpend. `value_jod` is numeric (a string). */
+function toTillSpend(row: Record<string, unknown>): TillSpend {
+  const intOrNull = (v: unknown) => (v == null ? null : Number(v));
+  return {
+    posOrderRef: row.pos_order_ref as string,
+    memberId: row.member_id as string,
+    points: Number(row.points),
+    valueJod: num(row.value_jod),
+    slices: (row.slices ?? []) as SpentSlice[],
+    pointsBalanceAfter: Number(row.points_balance_after),
+    status: row.status as TillSpend['status'],
+    returnedPoints: intOrNull(row.returned_points),
+    expiredPoints: intOrNull(row.expired_points),
     reverseBalanceAfter: intOrNull(row.reverse_balance_after),
     reverseReason: (row.reverse_reason ?? null) as string | null,
     reversedAt: iso(row.reversed_at),
@@ -179,14 +218,12 @@ export function createPostgresBackend(db: Db): Backend {
     await t.query(
       `update members set name=$2, birthday=$3, profile_bonus_at=$4, lots=$5,
          expiry_settled_through=$6, wallet_lots=$7, wallet_expiry_settled_through=$8,
-         spend=$9, held_tier_id=$10, evaluated_through=$11,
-         sub_renews_at=$12, sub_day=$13, sub_day_count=$14
+         spend=$9, held_tier_id=$10, evaluated_through=$11
        where id=$1`,
       [
         m.id, m.name, m.birthday, m.profileBonusAt, JSON.stringify(m.lots),
         m.expirySettledThrough, JSON.stringify(m.walletLots), m.walletExpirySettledThrough,
         JSON.stringify(m.spend), m.heldTierId, m.evaluatedThrough,
-        m.subRenewsAt, m.subDay, m.subDayCount,
       ],
     );
   }
@@ -367,7 +404,6 @@ export function createPostgresBackend(db: Db): Backend {
           walletLots: [], walletExpirySettledThrough: todayKey(),
           spend: [], heldTierId: 'base',
           evaluatedThrough: evaluationPeriod(todayKey(), WINDOW.evaluation),
-          subRenewsAt: 0, subDay: '', subDayCount: 0,
         };
         // 🔴 ON CONFLICT, because the select above is not a lock. Two first
         // sign-ins for one phone — a double-tapped "verify", or the app and
@@ -380,14 +416,13 @@ export function createPostgresBackend(db: Db): Backend {
         const inserted = await t.query(
           `insert into members (id, phone, name, birthday, profile_bonus_at, lots,
              expiry_settled_through, wallet_lots, wallet_expiry_settled_through, spend,
-             held_tier_id, evaluated_through, sub_renews_at, sub_day, sub_day_count)
-           values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)
+             held_tier_id, evaluated_through)
+           values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
            on conflict (phone) do nothing
            returning id`,
           [m.id, m.phone, m.name, m.birthday, m.profileBonusAt, JSON.stringify(m.lots),
             m.expirySettledThrough, JSON.stringify(m.walletLots), m.walletExpirySettledThrough,
-            JSON.stringify(m.spend), m.heldTierId, m.evaluatedThrough,
-            m.subRenewsAt, m.subDay, m.subDayCount],
+            JSON.stringify(m.spend), m.heldTierId, m.evaluatedThrough],
         );
         if (inserted[0]) return m;
         const winner = await t.query<MemberRow>('select * from members where phone = $1', [phone]);
@@ -400,6 +435,11 @@ export function createPostgresBackend(db: Db): Backend {
       const rows = await db.query<MemberRow>('select * from members where id = $1', [id]);
       if (!rows[0]) throw notFound('member not found');
       return toMember(rows[0]);
+    },
+
+    async findMemberByPhone(phone) {
+      const rows = await db.query<MemberRow>('select * from members where phone = $1', [phone]);
+      return rows[0] ? toMember(rows[0]) : null;
     },
 
     async debitWallet(id, fils) {
@@ -834,20 +874,6 @@ export function createPostgresBackend(db: Db): Backend {
       });
     },
 
-    async purchaseSubscription(id, walletDebitFils) {
-      return withMember(id, (m, log) => {
-        const at = new Date();
-        if (walletDebitFils > 0) {
-          settleWalletExpiry(m, at, log);
-          const res = consumeFifo(m.walletLots, walletDebitFils, at);
-          if (!res.ok) throw conflict('insufficient_wallet', 'Wallet balance is not enough');
-          m.walletLots = res.lots;
-        }
-        m.subRenewsAt = Date.now() + loyalty.SUBSCRIPTION.periodDays * 86400000;
-        return { subscription: subState(m), walletBalanceFils: liveBalance(m.walletLots, at) };
-      });
-    },
-
     async topUpWallet(id, fils, bonusPoints, reasonAr, reasonEn) {
       if (bonusPoints < 0) throw conflict('negative_grant', 'A grant cannot be negative');
       return withMember(id, (m, log) => {
@@ -895,7 +921,7 @@ export function createPostgresBackend(db: Db): Backend {
           posOrderRef: input.posOrderRef, memberId: m.id, branchId: input.branchId,
           paidFils: input.paidFils, paidAt: input.paidAt.toISOString(), spendDay,
           pointsEarned: input.pointsEarned, pointsBalanceAfter: liveBalance(m.lots, at),
-          earn: input.earn, status: 'earned',
+          earn: input.earn, status: 'earned', refundedFils: 0,
           reversedPoints: null, shortfall: null, reverseBalanceAfter: null,
           reverseReason: null, reversedAt: null, createdAt: at.toISOString(),
         };
@@ -919,7 +945,7 @@ export function createPostgresBackend(db: Db): Backend {
       });
     },
 
-    async reverseTillEarn(posOrderRef, reason, at) {
+    async reverseTillEarn(posOrderRef, reason, at, refund) {
       // Whose sale it is, read BEFORE the transaction — the member lock must be
       // the first statement of it (R1.8), and a sale's member never changes.
       const owner = await db.query<{ member_id: string }>(
@@ -929,33 +955,156 @@ export function createPostgresBackend(db: Db): Backend {
       return withMember(owner[0].member_id, async (m, log, t) => {
         const rows = await t.query('select * from pos_sales where pos_order_ref = $1 for update', [posOrderRef]);
         const sale = toTillSale(rows[0]);
-        if (sale.status === 'reversed') return { sale, replay: true };
+        // A replay first — even of a sale reversed since — then the refusals.
+        const found = refund
+          ? await t.query('select * from pos_sale_refunds where refund_ref = $1', [refund.refundRef])
+          : await t.query('select * from pos_sale_refunds where pos_order_ref = $1 and refund_ref is null', [posOrderRef]);
+        if (found[0]) {
+          const stored = toTillRefund(found[0]);
+          if (refund) assertSameRefund(stored, posOrderRef, refund);
+          return { sale, refund: stored, replay: true };
+        }
+        if (sale.status === 'reversed') {
+          if (refund) throw saleAlreadyReversed();
+          return { sale, refund: syntheticFullRefund(sale), replay: true };
+        }
+        const plan = planOrRefuse(sale, refund);
         settleExpiry(m, at, log);
-        const back = reverseGrant(m.lots, m.spend, sale, at);
+        const back = applyTillRefund(m.lots, m.spend, refundable(sale), plan, at);
         m.lots = back.lots;
         m.spend = back.spend;
-        log({
-          deltaPoints: -back.reversedPoints, reasonAr: 'استرجاع نقاط طلب مُسترد',
-          reasonEn: 'Refunded purchase points', createdAt: at.toISOString(),
-        });
-        const reversed: TillSale = {
-          ...sale, status: 'reversed', reversedPoints: back.reversedPoints, shortfall: back.shortfall,
-          reverseBalanceAfter: liveBalance(m.lots, at), reverseReason: reason, reversedAt: at.toISOString(),
+        const { reasonAr, reasonEn } = refundReasons(!!refund);
+        log({ deltaPoints: -back.reversedPoints, reasonAr, reasonEn, createdAt: at.toISOString() });
+        const balanceAfter = liveBalance(m.lots, at);
+        const row: TillRefund = {
+          refundRef: refund ? refund.refundRef : null, posOrderRef, memberId: m.id,
+          refundedFils: plan.refundFils, targetPoints: plan.targetPoints,
+          reversedPoints: back.reversedPoints, shortfall: back.shortfall,
+          balanceAfter, reason, createdAt: at.toISOString(),
         };
-        await t.query(
-          `update pos_sales set status = $2, reversed_points = $3, shortfall = $4,
-             reverse_balance_after = $5, reverse_reason = $6, reversed_at = $7
-           where pos_order_ref = $1`,
-          [posOrderRef, reversed.status, reversed.reversedPoints, reversed.shortfall,
-            reversed.reverseBalanceAfter, reversed.reverseReason, reversed.reversedAt],
+        // ON CONFLICT DO NOTHING: the same refund reference reported for
+        // ANOTHER sale — another member's, so not serialised by this lock — is
+        // refused here and this refund rolled back whole.
+        const inserted = await t.query(
+          `insert into pos_sale_refunds (refund_ref, pos_order_ref, member_id, refunded_total, target_points,
+             reversed_points, shortfall, balance_after, reason, created_at)
+           values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
+           on conflict do nothing
+           returning id`,
+          [row.refundRef, posOrderRef, m.id, toJod(row.refundedFils), row.targetPoints,
+            row.reversedPoints, row.shortfall, row.balanceAfter, row.reason, row.createdAt],
         );
-        return { sale: reversed, replay: false };
+        if (!inserted[0]) throw refundConflict();
+        let next: TillSale = { ...sale, refundedFils: plan.refundedFilsAfter };
+        if (plan.completes) {
+          // Totals across EVERY refund of the sale, this one included.
+          const all = await t.query('select reversed_points, shortfall from pos_sale_refunds where pos_order_ref = $1', [posOrderRef]);
+          next = {
+            ...next, status: 'reversed',
+            reversedPoints: all.reduce((n, r) => n + Number(r.reversed_points), 0),
+            shortfall: all.reduce((n, r) => n + Number(r.shortfall), 0),
+            reverseBalanceAfter: balanceAfter, reverseReason: reason, reversedAt: at.toISOString(),
+          };
+        }
+        await t.query(
+          `update pos_sales set refunded_total = $2, status = $3, reversed_points = $4, shortfall = $5,
+             reverse_balance_after = $6, reverse_reason = $7, reversed_at = $8
+           where pos_order_ref = $1`,
+          [posOrderRef, toJod(next.refundedFils), next.status, next.reversedPoints, next.shortfall,
+            next.reverseBalanceAfter, next.reverseReason, next.reversedAt],
+        );
+        return { sale: next, refund: row, replay: false };
       });
     },
 
     async getTillSale(posOrderRef) {
       const rows = await db.query('select * from pos_sales where pos_order_ref = $1', [posOrderRef]);
       return rows[0] ? toTillSale(rows[0]) : null;
+    },
+
+    // ---- points as a tender at the till (pos_point_spends) ----
+    async tillSpend(input) {
+      // ONE withMember: the member lock opens it, and the debit, its ledger
+      // line and the spend row commit together or not at all.
+      return withMember(input.memberId, async (m, log, t) => {
+        const { at } = input;
+        const found = await t.query('select * from pos_point_spends where pos_order_ref = $1 for update', [input.posOrderRef]);
+        if (found[0]) {
+          const spend = toTillSpend(found[0]);
+          assertSameSpend(spend, input);
+          return { spend, replay: true };
+        }
+        // The ticket names ONE member, so a second spend on it is serialised
+        // behind this lock and found here; UNIQUE(spend_ticket_jti) beneath.
+        const used = await t.query('select pos_order_ref from pos_point_spends where spend_ticket_jti = $1', [input.ticketJti]);
+        if (used[0]) throw spendTicketUsed();
+        if (input.ticketExpired) throw spendTicketExpired();
+        await sweep(t, m, at, log);
+        settleExpiry(m, at, log);
+        const res = consumeFifo(m.lots, input.points, at);
+        if (!res.ok) throw conflict('insufficient_points', 'Not enough points');
+        const slices = spentSlices(m.lots, res.consumed);
+        m.lots = res.lots;
+        log({ deltaPoints: -input.points, reasonAr: input.reasonAr, reasonEn: input.reasonEn, createdAt: at.toISOString() });
+        const spend: TillSpend = {
+          posOrderRef: input.posOrderRef, memberId: m.id, points: input.points, valueJod: input.valueJod,
+          slices, pointsBalanceAfter: liveBalance(m.lots, at), status: 'spent',
+          returnedPoints: null, expiredPoints: null, reverseBalanceAfter: null,
+          reverseReason: null, reversedAt: null, createdAt: at.toISOString(),
+        };
+        // ON CONFLICT DO NOTHING: the same reference reported for a DIFFERENT
+        // member is not serialised by this member's lock (same shape as
+        // tillEarn) — the loser is refused and its debit rolled back.
+        const inserted = await t.query(
+          `insert into pos_point_spends (pos_order_ref, member_id, spend_ticket_jti, points, value_jod,
+             slices, points_balance_after, status, created_at)
+           values ($1,$2,$3,$4,$5,$6,$7,$8,$9)
+           on conflict do nothing
+           returning pos_order_ref`,
+          [spend.posOrderRef, spend.memberId, input.ticketJti, spend.points, spend.valueJod,
+            JSON.stringify(spend.slices), spend.pointsBalanceAfter, spend.status, spend.createdAt],
+        );
+        if (!inserted[0]) throw posSpendConflict();
+        return { spend, replay: false };
+      });
+    },
+
+    async reverseTillSpend(posOrderRef, reason, at) {
+      // Whose spend it is, read BEFORE the transaction — the member lock must
+      // be the first statement of it (R1.8), and a spend's member never changes.
+      const owner = await db.query<{ member_id: string }>(
+        'select member_id from pos_point_spends where pos_order_ref = $1', [posOrderRef],
+      );
+      if (!owner[0]) throw notFound('pos points spend not found');
+      return withMember(owner[0].member_id, async (m, log, t) => {
+        const rows = await t.query('select * from pos_point_spends where pos_order_ref = $1 for update', [posOrderRef]);
+        const spend = toTillSpend(rows[0]);
+        if (spend.status === 'reversed') return { spend, replay: true };
+        settleExpiry(m, at, log);
+        const back = restoreSlices(m.lots, spend.slices, at);
+        m.lots = back.lots;
+        log({
+          deltaPoints: back.restored, reasonAr: 'إرجاع نقاط دفعة ملغاة في الفرع',
+          reasonEn: 'Points returned: in-store payment voided', createdAt: at.toISOString(),
+        });
+        const reversed: TillSpend = {
+          ...spend, status: 'reversed', returnedPoints: back.restored, expiredPoints: back.expired,
+          reverseBalanceAfter: liveBalance(m.lots, at), reverseReason: reason, reversedAt: at.toISOString(),
+        };
+        await t.query(
+          `update pos_point_spends set status = $2, returned_points = $3, expired_points = $4,
+             reverse_balance_after = $5, reverse_reason = $6, reversed_at = $7
+           where pos_order_ref = $1`,
+          [posOrderRef, reversed.status, reversed.returnedPoints, reversed.expiredPoints,
+            reversed.reverseBalanceAfter, reversed.reverseReason, reversed.reversedAt],
+        );
+        return { spend: reversed, replay: false };
+      });
+    },
+
+    async getTillSpend(posOrderRef) {
+      const rows = await db.query('select * from pos_point_spends where pos_order_ref = $1', [posOrderRef]);
+      return rows[0] ? toTillSpend(rows[0]) : null;
     },
 
     // ---- card payment intents ----
@@ -1061,42 +1210,7 @@ export function createPostgresBackend(db: Db): Backend {
         [memberId, key, requestHash, 'pending'],
       );
     },
-
-    // ---- subscription ----
-    async activateSubscription(id) {
-      return withMember(id, (m) => {
-        m.subRenewsAt = Date.now() + loyalty.SUBSCRIPTION.periodDays * 86400000;
-        return subState(m);
-      });
-    },
-
-    async redeemSubscriptionDrink(id) {
-      return withMember(id, (m) => {
-        if (m.subRenewsAt <= Date.now()) throw conflict('not_subscribed', 'No active subscription');
-        const today = todayKey();
-        if (m.subDay !== today) { m.subDay = today; m.subDayCount = 0; }
-        if (m.subDayCount >= loyalty.SUBSCRIPTION.drinksPerDay) {
-          throw conflict('daily_cap', "Today's free drinks are used up");
-        }
-        m.subDayCount += 1;
-        return subState(m);
-      });
-    },
-
-    async getSubscription(id) { return subState(await api.getMember(id)); },
   };
-
-  function subState(m: Member): SubscriptionState {
-    const active = m.subRenewsAt > Date.now();
-    const redeemedToday = active && m.subDay === todayKey() ? m.subDayCount : 0;
-    return {
-      active,
-      renewsAt: active ? new Date(m.subRenewsAt).toISOString() : null,
-      drinksPerDay: loyalty.SUBSCRIPTION.drinksPerDay,
-      redeemedToday,
-      remainingToday: Math.max(0, loyalty.SUBSCRIPTION.drinksPerDay - redeemedToday),
-    };
-  }
 
   return api;
 }

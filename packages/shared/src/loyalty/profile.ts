@@ -136,3 +136,33 @@ export function migratedProfileBonusAt(
 ): string | null {
   return isProfileComplete(profile) ? cutoverAt : null;
 }
+
+/**
+ * WHAT THE IN-STORE TABLET MAY SHOW ABOUT A PHONE NUMBER SOMEONE TYPED: the
+ * first name and the INITIAL of the last — «حمزة العموش» → «حمزة ع.».
+ *
+ * 🔴 THE TABLET IS A PUBLIC SCREEN AND THE NUMBER PROVES NOTHING. Anyone can
+ * type anyone's number, so what comes back must be enough for the right person
+ * to recognise themselves ("yes, that's me") and not enough to learn who a
+ * stranger's number belongs to. A full name would turn the tablet into a
+ * reverse phone book; a first name and an initial is what a barista would say
+ * out loud anyway.
+ *
+ * The Arabic definite article is skipped before taking the initial: the family
+ * name «العموش» is known as «ع», not «ا» — every «ال…» name would otherwise
+ * mask to the same letter and the initial would tell nobody anything.
+ *
+ * `null` when the member has told us no name (a new member is nameless on
+ * purpose — see normalizeName): the tablet then shows no name at all, never an
+ * invented one.
+ */
+export function maskedDisplayName(raw: string | null | undefined): string | null {
+  const words = normalizeName(raw).split(' ').filter(Boolean);
+  if (words.length === 0) return null;
+  const first = words[0];
+  if (words.length === 1) return first;
+  const last = words[words.length - 1];
+  const core = /^ال./u.test(last) ? last.slice(2) : last;
+  const initial = [...core][0]?.toLocaleUpperCase() ?? '';
+  return `${first} ${initial}.`;
+}

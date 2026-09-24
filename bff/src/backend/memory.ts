@@ -3,7 +3,7 @@ import { config as loyalty } from '@almond/shared/config';
 import { ammanDayKey } from '@almond/shared/lib/ammanWeekday';
 import {
   consumeFifo, expiredBetween, grantLot, liveBalance, lotRulesFromConfig, migrateBalance,
-  pruneLots, walletLotRulesFromConfig,
+  pruneLots, restoreSlices, spentSlices, walletLotRulesFromConfig,
 } from '@almond/shared/loyalty/lots';
 import { jodFromPoints } from '@almond/shared/loyalty/earn';
 import { normalizeName, profileBonusFor } from '@almond/shared/loyalty/profile';
@@ -30,18 +30,18 @@ import { conflict, notFound } from '../http-error';
 import { toFils } from '../money';
 import type { HoldoutStamp } from '@almond/shared/loyalty/holdout';
 import type {
-  Backend, Member, HistoryEntry, NewOrder, OrderRecord, SubscriptionState, CorporateUse,
-  PaymentIntent, TillSale,
+  Backend, Member, HistoryEntry, NewOrder, OrderRecord, CorporateUse,
+  PaymentIntent, TillRefund, TillSale, TillSpend,
 } from './types';
 import { IDEMPOTENCY_SWEEP_EVERY_MS, idempotencyExpired } from './idempotency';
-import { assertSameSale, earnTicketUsed, reverseGrant, ticketRefusalError } from '../pos/sales';
+import {
+  assertSameRefund, assertSameSale, assertSameSpend, earnTicketUsed, planOrRefuse, refundable, refundReasons,
+  saleAlreadyReversed, spendTicketExpired, spendTicketUsed, syntheticFullRefund, ticketRefusalError,
+} from '../pos/sales';
+import { applyTillRefund } from '@almond/shared/loyalty';
 import { assertIntentSpendable, nextIntentStatus } from '../payments/intent';
 
-/** One business day for the whole system (§3.6) — Amman, not the host's UTC.
- *  This is the §5 step 1 repoint. It moves the daily free-drink counter's reset
- *  from 03:00 Amman (the UTC rollover) to 00:00 Amman. That is the day
- *  BOUNDARY, not the cap: `drinksPerDay` is untouched, and the cap's VALUE is
- *  the product decision held in §8.5 (D7). */
+/** One business day for the whole system (§3.6) — Amman, not the host's UTC. */
 const todayKey = (): string => ammanDayKey();
 
 /** One window definition for the whole process, read once. */
@@ -129,6 +129,15 @@ export function createMemoryBackend(): Backend {
    *  pos_sales. `saleTickets` is its UNIQUE(earn_ticket_jti). */
   const posSales = new Map<string, TillSale>();
   const saleTickets = new Map<string, string>();
+  /** Points tendered at the till, by POS order reference — the twin of
+   *  pos_point_spends. `spendTickets` is its UNIQUE(spend_ticket_jti). */
+  const posSpends = new Map<string, TillSpend>();
+  const spendTickets = new Map<string, string>();
+  /** Refunds of till sales — the twin of pos_sale_refunds: partial refunds by
+   *  their reference (UNIQUE(refund_ref)), and each sale's one full reversal by
+   *  its POS order (the partial unique index). */
+  const partialRefunds = new Map<string, TillRefund>();
+  const fullRefunds = new Map<string, TillRefund>();
   /** Card payment intents — the twin of payment_intents. */
   const paymentIntents = new Map<string, PaymentIntent>();
 
@@ -180,7 +189,6 @@ export function createMemoryBackend(): Backend {
     ],
     heldTierId: 'top',
     evaluatedThrough: evaluationPeriod(todayKey(), WINDOW.evaluation),
-    subRenewsAt: 0, subDay: '', subDayCount: 0,
   };
   members.set(demo.id, demo);
   byPhone.set(demo.phone, demo.id);
@@ -433,7 +441,6 @@ export function createMemoryBackend(): Backend {
         // period already closed (nothing happened in it to requalify for).
         spend: [], heldTierId: 'base',
         evaluatedThrough: evaluationPeriod(todayKey(), WINDOW.evaluation),
-        subRenewsAt: 0, subDay: '', subDayCount: 0,
       };
       members.set(m.id, m);
       byPhone.set(phone, m.id);
@@ -441,6 +448,10 @@ export function createMemoryBackend(): Backend {
       return m;
     },
     async getMember(id) { return must(id); },
+    async findMemberByPhone(phone) {
+      const id = byPhone.get(phone);
+      return id ? members.get(id) ?? null : null;
+    },
     async debitWallet(id, fils) {
       const m = must(id);
       const at = new Date();
@@ -649,20 +660,6 @@ export function createMemoryBackend(): Backend {
         throw e;
       }
     },
-    async purchaseSubscription(id, walletDebitFils) {
-      const m = must(id);
-      const at = new Date();
-      // No await, and nothing after the balance check can throw: the debit
-      // and the activation happen together or not at all.
-      if (walletDebitFils > 0) {
-        settleWalletExpiry(m, at);
-        const res = consumeFifo(m.walletLots, walletDebitFils, at);
-        if (!res.ok) throw conflict('insufficient_wallet', 'Wallet balance is not enough');
-        m.walletLots = res.lots;
-      }
-      m.subRenewsAt = Date.now() + loyalty.SUBSCRIPTION.periodDays * 86400000;
-      return { subscription: subState(m), walletBalanceFils: liveBalance(m.walletLots, at) };
-    },
     async topUpWallet(id, fils, bonusPoints, reasonAr, reasonEn) {
       const m = must(id);
       const at = new Date();
@@ -712,7 +709,7 @@ export function createMemoryBackend(): Backend {
           posOrderRef: input.posOrderRef, memberId: m.id, branchId: input.branchId,
           paidFils: input.paidFils, paidAt: input.paidAt.toISOString(), spendDay,
           pointsEarned: input.pointsEarned, pointsBalanceAfter: liveBalance(m.lots, at),
-          earn: input.earn, status: 'earned',
+          earn: input.earn, status: 'earned', refundedFils: 0,
           reversedPoints: null, shortfall: null, reverseBalanceAfter: null,
           reverseReason: null, reversedAt: null, createdAt: at.toISOString(),
         };
@@ -724,26 +721,52 @@ export function createMemoryBackend(): Backend {
         throw e;
       }
     },
-    async reverseTillEarn(posOrderRef, reason, at) {
+    async reverseTillEarn(posOrderRef, reason, at, refund) {
       const sale = posSales.get(posOrderRef);
       if (!sale) throw notFound('pos sale not found');
-      if (sale.status === 'reversed') return { sale: { ...sale }, replay: true };
+      // 🔴 NO `await` IN THIS BODY: the replay check, the plan and the write
+      // are one step, so two retries of one refund cannot both take points.
+      const found = refund ? partialRefunds.get(refund.refundRef) : fullRefunds.get(posOrderRef);
+      if (found) {
+        if (refund) assertSameRefund(found, posOrderRef, refund);
+        return { sale: { ...sale }, refund: { ...found }, replay: true };
+      }
+      if (sale.status === 'reversed') {
+        if (refund) throw saleAlreadyReversed();
+        return { sale: { ...sale }, refund: syntheticFullRefund(sale), replay: true };
+      }
+      const plan = planOrRefuse(sale, refund);
       const m = must(sale.memberId);
       const rollback = begin(m);
       try {
         settleExpiry(m, at);
-        const back = reverseGrant(m.lots, m.spend, sale, at);
+        const back = applyTillRefund(m.lots, m.spend, refundable(sale), plan, at);
         m.lots = back.lots;
         m.spend = back.spend;
-        log(m.id, {
-          deltaPoints: -back.reversedPoints, reasonAr: 'استرجاع نقاط طلب مُسترد',
-          reasonEn: 'Refunded purchase points', createdAt: at.toISOString(),
-        });
-        Object.assign(sale, {
-          status: 'reversed', reversedPoints: back.reversedPoints, shortfall: back.shortfall,
-          reverseBalanceAfter: liveBalance(m.lots, at), reverseReason: reason, reversedAt: at.toISOString(),
-        });
-        return { sale: { ...sale }, replay: false };
+        const { reasonAr, reasonEn } = refundReasons(!!refund);
+        log(m.id, { deltaPoints: -back.reversedPoints, reasonAr, reasonEn, createdAt: at.toISOString() });
+        const balanceAfter = liveBalance(m.lots, at);
+        const row: TillRefund = {
+          refundRef: refund ? refund.refundRef : null, posOrderRef, memberId: m.id,
+          refundedFils: plan.refundFils, targetPoints: plan.targetPoints,
+          reversedPoints: back.reversedPoints, shortfall: back.shortfall,
+          balanceAfter, reason, createdAt: at.toISOString(),
+        };
+        // Totals across EVERY refund of the sale, this one included — what the
+        // sale row carries once nothing is left to refund.
+        const all = [...partialRefunds.values(), ...fullRefunds.values()]
+          .filter((x) => x.posOrderRef === posOrderRef).concat(row);
+        Object.assign(sale, { refundedFils: plan.refundedFilsAfter });
+        if (plan.completes) {
+          Object.assign(sale, {
+            status: 'reversed',
+            reversedPoints: all.reduce((n, x) => n + x.reversedPoints, 0),
+            shortfall: all.reduce((n, x) => n + x.shortfall, 0),
+            reverseBalanceAfter: balanceAfter, reverseReason: reason, reversedAt: at.toISOString(),
+          });
+        }
+        if (refund) partialRefunds.set(refund.refundRef, row); else fullRefunds.set(posOrderRef, row);
+        return { sale: { ...sale }, refund: { ...row }, replay: false };
       } catch (e) {
         rollback();
         throw e;
@@ -752,6 +775,77 @@ export function createMemoryBackend(): Backend {
     async getTillSale(posOrderRef) {
       const sale = posSales.get(posOrderRef);
       return sale ? { ...sale } : null;
+    },
+
+    // ---- Points as a tender at the till: the twin of pos_point_spends ----
+    async tillSpend(input) {
+      const m = must(input.memberId);
+      const { at } = input;
+      // 🔴 NO `await` IN THIS BODY: the replay check, the ticket check, the
+      // balance check and the debit are one step, so two tills (or two retries)
+      // cannot both spend the same points.
+      const found = posSpends.get(input.posOrderRef);
+      if (found) {
+        assertSameSpend(found, input);
+        return { spend: structuredClone(found), replay: true };
+      }
+      if (spendTickets.has(input.ticketJti)) throw spendTicketUsed();
+      if (input.ticketExpired) throw spendTicketExpired();
+      // An expired, unused redemption gives its points back BEFORE the balance
+      // is measured — the same order createRedemption uses — and OUTSIDE the
+      // rollback: the sweep flips the redemption row (not part of `begin`'s
+      // undo log) and credits the member together, so undoing only the credit
+      // on a refused spend would cancel the code AND keep its points.
+      sweep(m, at);
+      const rollback = begin(m);
+      try {
+        settleExpiry(m, at);
+        const res = consumeFifo(m.lots, input.points, at);
+        if (!res.ok) throw conflict('insufficient_points', 'Not enough points');
+        const slices = spentSlices(m.lots, res.consumed);
+        m.lots = res.lots;
+        log(m.id, { deltaPoints: -input.points, reasonAr: input.reasonAr, reasonEn: input.reasonEn, createdAt: at.toISOString() });
+        const spend: TillSpend = {
+          posOrderRef: input.posOrderRef, memberId: m.id, points: input.points, valueJod: input.valueJod,
+          slices, pointsBalanceAfter: liveBalance(m.lots, at), status: 'spent',
+          returnedPoints: null, expiredPoints: null, reverseBalanceAfter: null,
+          reverseReason: null, reversedAt: null, createdAt: at.toISOString(),
+        };
+        posSpends.set(spend.posOrderRef, spend);
+        spendTickets.set(input.ticketJti, spend.posOrderRef);
+        return { spend: structuredClone(spend), replay: false };
+      } catch (e) {
+        rollback();
+        throw e;
+      }
+    },
+    async reverseTillSpend(posOrderRef, reason, at) {
+      const spend = posSpends.get(posOrderRef);
+      if (!spend) throw notFound('pos points spend not found');
+      if (spend.status === 'reversed') return { spend: structuredClone(spend), replay: true };
+      const m = must(spend.memberId);
+      const rollback = begin(m);
+      try {
+        settleExpiry(m, at);
+        const back = restoreSlices(m.lots, spend.slices, at);
+        m.lots = back.lots;
+        log(m.id, {
+          deltaPoints: back.restored, reasonAr: 'إرجاع نقاط دفعة ملغاة في الفرع',
+          reasonEn: 'Points returned: in-store payment voided', createdAt: at.toISOString(),
+        });
+        Object.assign(spend, {
+          status: 'reversed', returnedPoints: back.restored, expiredPoints: back.expired,
+          reverseBalanceAfter: liveBalance(m.lots, at), reverseReason: reason, reversedAt: at.toISOString(),
+        });
+        return { spend: structuredClone(spend), replay: false };
+      } catch (e) {
+        rollback();
+        throw e;
+      }
+    },
+    async getTillSpend(posOrderRef) {
+      const spend = posSpends.get(posOrderRef);
+      return spend ? structuredClone(spend) : null;
     },
 
     // ---- Card payment intents: the twin of payment_intents ----
@@ -811,24 +905,6 @@ export function createMemoryBackend(): Backend {
       const found = idem.get(slot);
       if (found?.status === 'pending' && found.hash === requestHash) idem.delete(slot);
     },
-
-    async activateSubscription(id) {
-      const m = must(id);
-      m.subRenewsAt = Date.now() + loyalty.SUBSCRIPTION.periodDays * 86400000;
-      return subState(m);
-    },
-    async redeemSubscriptionDrink(id) {
-      const m = must(id);
-      if (m.subRenewsAt <= Date.now()) throw conflict('not_subscribed', 'No active subscription');
-      const today = todayKey();
-      if (m.subDay !== today) { m.subDay = today; m.subDayCount = 0; }
-      if (m.subDayCount >= loyalty.SUBSCRIPTION.drinksPerDay) {
-        throw conflict('daily_cap', 'Daily free-drink limit reached');
-      }
-      m.subDayCount += 1;
-      return subState(m);
-    },
-    async getSubscription(id) { return subState(must(id)); },
 
     // ---- Redemptions ----
     async createRedemption(id, points) {
@@ -946,16 +1022,4 @@ export function createMemoryBackend(): Backend {
   };
 
   return api;
-
-  function subState(m: Member): SubscriptionState {
-    const active = m.subRenewsAt > Date.now();
-    const redeemedToday = active && m.subDay === todayKey() ? m.subDayCount : 0;
-    return {
-      active,
-      renewsAt: active ? new Date(m.subRenewsAt).toISOString() : null,
-      drinksPerDay: loyalty.SUBSCRIPTION.drinksPerDay,
-      redeemedToday,
-      remainingToday: Math.max(0, loyalty.SUBSCRIPTION.drinksPerDay - redeemedToday),
-    };
-  }
 }

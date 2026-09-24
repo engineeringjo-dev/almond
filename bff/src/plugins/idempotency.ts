@@ -101,8 +101,8 @@ export function idempotency(backend: Backend) {
         // A server error: allow the retry, as this plugin always has. Every
         // money-moving Backend method is one transaction, so a 5xx thrown BY
         // one moved nothing. ⚠ A 5xx from a read AFTER such a method committed
-        // would be re-run on retry — which is why checkout, subscribe and
-        // top-up build their reply from the transaction's own result.
+        // would be re-run on retry — which is why checkout and top-up
+        // build their reply from the transaction's own result.
         await backend.releaseIdempotencyKey(claim.memberId, claim.key, claim.hash);
       }
     } catch (err) {

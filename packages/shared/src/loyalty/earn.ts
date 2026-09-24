@@ -120,6 +120,25 @@ export function jodFromPoints(
 }
 
 /**
+ * What a points balance can take off a bill AT THE TILL, in JOD, FLOORED TO THE
+ * FILS — the most the member can be handed without ever being handed a fraction
+ * of a fils the till cannot ring.
+ *
+ * The same rate as jodFromPoints (it reads `pointsPerJodRedeem`, never a
+ * literal), computed in integer fils so the floor cannot be fooled by binary
+ * floating point: `0.57 * 1000` is 570.0000000000001 and some neighbours land
+ * just BELOW the integer, where a float floor would drop a whole fils.
+ */
+export function spendableJod(
+  points: number,
+  rules: EarnRules = earnRulesFromConfig(),
+): number {
+  assertRedeemRate(rules);
+  const whole = Math.max(0, Math.floor(points || 0));
+  return Math.floor((whole * 1000) / rules.pointsPerJodRedeem) / 1000;
+}
+
+/**
  * How many points buy N JOD off the bill. The inverse of jodFromPoints, and the
  * ONLY JOD→points conversion in the repo.
  *
@@ -415,15 +434,21 @@ export function computeEarn(
   const comboPairsPaid = comboSuppressedByRedemption ? 0 : comboPairsCounted;
   const comboBonus = comboPairsPaid * rules.comboBonusPoints;
 
-  // THE CEILING (D1). Since 2026-09-06 it is a SAFETY VALVE, not an offer dial.
-  // The wallet multiplier, the bonus day and the weekday bonus are all retired,
-  // so the only thing that stacks is the ramp itself and the reachable maximum
-  // is exactly the top rung — 3.0× base. The cap sits above it at 3.5× and does
-  // not bind on any reachable input.
+  // THE CEILING (D1). A SAFETY VALVE, not an offer dial.
+  // The bonus day and the weekday bonus are retired, but the WALLET MULTIPLIER
+  // IS LIVE (1.5 since 2026-09-08 — the gift-card promise), so two things stack:
+  // the top rung (×3.0, i.e. 6%) and paying from the wallet (×1.5). The highest
+  // reachable stack is therefore 3.0 × 1.5 = 4.5× base: a top-rung member
+  // paying from the wallet earns 9 points per JOD, i.e. 9% back. The shipped
+  // MAX_EARN_MULTIPLIER is exactly 4.5, and `capApplied` is `cappable > cap`
+  // (strict), so it binds on no reachable input — it only bounds a stack that
+  // does not exist yet.
   //
-  // 🔴 Lowering maxEarnMultiplier below the top rung's multiplier silently trims
-  // the top rung back toward the one below it: the member is shown 6% and paid
-  // less, with no error raised anywhere. That is what T6 exists to catch.
+  // 🔴 Lowering maxEarnMultiplier below 4.5 silently trims the top-rung wallet
+  // payer from the 9% both dials promise; below 3.0 it trims the plain 6% rung
+  // too. Either way the member is shown one rate and paid a smaller one, with
+  // no error raised anywhere. bff/test/earn.test.ts ("the reachable stack is
+  // 4.5× …") and T6 exist to catch it.
   //
   // The combo bonus sits OUTSIDE the ceiling, which is what the pre-patch
   // server did (bff/src/earn.ts:21 — `Math.round(Math.min(...)) + comboBonus`)

@@ -27,8 +27,9 @@ import {
 import {
   addDaysToDayKey, addMonthsToDayKey, consumeFifo, daysUntilDayKey, expiredBetween, grantLot,
   isLotLive, liveBalance, liveLots, lotExpiresOn, lotRulesFromConfig, migrateBalance,
-  migrationLot, nextExpiry, pruneLots, type PointLot,
+  migrationLot, nextExpiry, pruneLots, restoreSlices, spentSlices, type PointLot,
 } from '@almond/shared/loyalty/lots';
+import { earnRulesFromConfig, jodFromPoints, spendableJod } from '@almond/shared/loyalty/earn';
 import { decideSecondVisit, secondVisitRulesFromConfig } from '@almond/shared/loyalty/secondVisit';
 import { assignHoldout, holdoutSpecFromConfig } from '@almond/shared/loyalty/holdout';
 import { shiftDayKey } from '@almond/shared/loyalty/window';
@@ -750,5 +751,75 @@ describe('L14 no string promises what the ledger does not do', () => {
       });
     }
     expect(offenders, `a day key must go through formatDayKey: ${offenders.join(' | ')}`).toEqual([]);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// L15 — points as a tender at the till: spend, and the void that undoes it.
+// ---------------------------------------------------------------------------
+describe('L15 spentSlices / restoreSlices — a voided points tender comes back on its ORIGINAL clock', () => {
+  const at = new Date('2026-09-24T09:00:00Z');
+  const lot = (seq: number, grantedOn: string, amount: number): PointLot => ({
+    seq, grantedOn, expiresOn: addMonthsToDayKey(grantedOn, 12), amount, remaining: amount, source: 'earn',
+  });
+
+  it('L15a the slices name the lots consumed, oldest first, with their own dates', () => {
+    const lots = [lot(0, '2026-01-10', 30), lot(1, '2026-05-02', 40), lot(2, '2026-09-01', 50)];
+    const res = consumeFifo(lots, 55, at);
+    if (!res.ok) throw new Error('unreachable');
+    expect(spentSlices(lots, res.consumed)).toEqual([
+      { grantedOn: '2026-01-10', expiresOn: '2027-01-10', points: 30, source: 'earn' },
+      { grantedOn: '2026-05-02', expiresOn: '2027-05-02', points: 25, source: 'earn' },
+    ]);
+    expect(() => spentSlices(lots, [{ seq: 9, points: 1 }])).toThrow(/no lot with seq 9/);
+  });
+
+  it('L15b 🔴 restored points keep their grant AND expiry day — a void never renews the clock', () => {
+    const lots = [lot(0, '2026-01-10', 30), lot(1, '2026-05-02', 40)];
+    const res = consumeFifo(lots, 55, at);
+    if (!res.ok) throw new Error('unreachable');
+    const slices = spentSlices(lots, res.consumed);
+    const back = restoreSlices(res.lots, slices, at);
+    expect(back).toMatchObject({ restored: 55, expired: 0 });
+    expect(liveBalance(back.lots, at)).toBe(70);
+    const added = back.lots.slice(res.lots.length);
+    expect(added.map((l) => [l.grantedOn, l.expiresOn, l.remaining])).toEqual([
+      ['2026-01-10', '2027-01-10', 30], ['2026-05-02', '2027-05-02', 25],
+    ]);
+    // Not today + 12 months — the defect this function exists to prevent.
+    expect(added.every((l) => l.expiresOn !== lotExpiresOn(ammanDayKey(at)))).toBe(true);
+    // New seqs, so FIFO still has a tie-break; the input array is untouched.
+    expect(new Set(back.lots.map((l) => l.seq)).size).toBe(back.lots.length);
+    expect(res.lots).toHaveLength(2);
+    // …and FIFO walks the restored oldest slice FIRST again.
+    const again = consumeFifo(back.lots, 30, at);
+    if (!again.ok) throw new Error('unreachable');
+    expect(spentSlices(back.lots, again.consumed)[0].grantedOn).toBe('2026-01-10');
+  });
+
+  it('L15c a slice past its expiry day is not resurrected; one expiring TODAY is still returned', () => {
+    const slices = [
+      { grantedOn: '2025-09-23', expiresOn: '2026-09-23', points: 10, source: 'earn' as const },
+      { grantedOn: '2025-09-24', expiresOn: '2026-09-24', points: 7, source: 'earn' as const },
+    ];
+    const back = restoreSlices([], slices, at);
+    expect(back).toMatchObject({ restored: 7, expired: 10 });
+    expect(liveBalance(back.lots, at)).toBe(7);
+    expect(() => restoreSlices([], [{ ...slices[0], points: 0 }], at)).toThrow(/positive whole number/);
+    expect(() => restoreSlices([], [{ ...slices[0], points: 1.5 }], at)).toThrow(/positive whole number/);
+  });
+
+  it('L15d spendableJod floors to the fils in integer arithmetic, at the shipped rate and any other', () => {
+    const rules = earnRulesFromConfig();
+    expect(spendableJod(0, rules)).toBe(0);
+    expect(spendableJod(57, rules)).toBe(0.57);
+    expect(spendableJod(12_345, rules)).toBe(123.45);
+    // Every balance up to 100 JOD agrees with the one conversion to the fils.
+    for (let p = 0; p <= 10_000; p += 1) {
+      expect(spendableJod(p, rules)).toBe(Math.round(jodFromPoints(p, rules) * 1000) / 1000);
+    }
+    // At a rate that does not divide 1000, the fils is floored — never rounded up.
+    expect(spendableJod(1, { ...rules, pointsPerJodRedeem: 3 })).toBe(0.333);
+    expect(spendableJod(2, { ...rules, pointsPerJodRedeem: 3 })).toBe(0.666);
   });
 });

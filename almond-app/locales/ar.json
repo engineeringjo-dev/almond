@@ -121,15 +121,6 @@
     "comboExample": "مثلاً {{drink}} + {{food}}",
     "comboCta": "أضف الاثنين"
   },
-  "club": {
-    "pitch": "{{count}} مشروب يومياً مقابل {{price}} شهرياً",
-    "subscribe": "اشترك الآن",
-    "payFromWallet": "يُخصم من رصيد محفظتك",
-    "needWallet": "رصيد المحفظة لا يكفي — اشحن محفظتك أولاً",
-    "active": "مشترك ✓",
-    "remaining": "يتبقّى لك {{count}} مشروب مجاني اليوم",
-    "renews": "يتجدّد في {{date}}"
-  },
   "menu": {
     "title": "القائمة",
     "searchPlaceholder": "ابحث عن مشروب أو طبق",

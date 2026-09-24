@@ -1,6 +1,7 @@
 /**
- * TILL SIMULATOR — drive one in-store sale through a RUNNING BFF, the way the
- * Odoo POS addon does. Starts nothing itself.
+ * TILL SIMULATOR — drive two in-store visits through a RUNNING BFF, the way the
+ * Odoo POS addon does: one member code scanned once per visit, points spent as
+ * a tender, the money part earned, then a void (see flow.ts). Starts nothing.
  *
  *   BFF_URL=http://127.0.0.1:8095 POS_SCAN_KEY=… MEMBER_JWT=… npx tsx scripts/pos/till-simulator.ts
  *
@@ -12,7 +13,9 @@
  *   BFF_URL=… POS_SCAN_KEY=… MEMBER_PHONE=0791234567 BFF_LOG_FILE=/tmp/bff.log \
  *     npx tsx scripts/pos/till-simulator.ts
  *
- * Optional: BRANCH_ID (default b1), PAID_TOTAL (JOD, default 25).
+ * Optional: BRANCH_ID (default b1), PAID_TOTAL (visit A's money, JOD, default
+ * 25), BILL_TOTAL (visit B's bill, default 6), SPEND_POINTS (default 50),
+ * REFUNDED_TOTAL (money later refunded from visit A, default 5).
  * Exits non-zero on the first step that does not answer as documented.
  */
 import { readFileSync } from 'node:fs';
@@ -70,9 +73,15 @@ async function main(): Promise<void> {
     http, posKey, memberJwt: jwt, posOrderRef,
     branchId: process.env.BRANCH_ID ?? 'b1',
     paidTotal: process.env.PAID_TOTAL ? Number(process.env.PAID_TOTAL) : 25,
+    billTotal: process.env.BILL_TOTAL ? Number(process.env.BILL_TOTAL) : 6,
+    spendPoints: process.env.SPEND_POINTS ? Number(process.env.SPEND_POINTS) : 50,
+    refundedTotal: process.env.REFUNDED_TOTAL ? Number(process.env.REFUNDED_TOTAL) : 5,
     log: (line) => console.log(line),
   });
-  console.log(`\nOK — ${posOrderRef}: earned ${r.pointsEarned}, redeemed ${r.redeemedPoints}, reversed ${String(r.reversal.reversedPoints)} with shortfall ${String(r.reversal.shortfall)}`);
+  console.log(`\nOK — ${posOrderRef}: earned ${r.pointsEarned}; ${posOrderRef}-B: spent ${String(r.spent.pointsSpent)} points `
+    + `(${String(r.spent.valueJod)} JOD tender), earned ${String(r.earnedB.pointsEarned)} on the money, `
+    + `voided (+${String(r.unspent.pointsReturned)} back, −${String(r.reversal.reversedPoints)} reversed); `
+    + `${posOrderRef} partly refunded (−${String(r.partialRefund.reversedPoints)})`);
 }
 
 main().catch((e: unknown) => { console.error(`FAILED: ${e instanceof Error ? e.message : String(e)}`); process.exit(1); });

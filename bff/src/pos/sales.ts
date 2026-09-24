@@ -1,16 +1,15 @@
-import { consumeFifo, liveBalance, type PointLot } from '@almond/shared/loyalty/lots';
-import type { SpendEntry } from '@almond/shared/loyalty/window';
+import { planTillRefund, type RefundableSale } from '@almond/shared/loyalty';
 import { HttpError, conflict } from '../http-error';
-import { toFils } from '../money';
-import type { TillEarnInput, TillSale } from '../backend/types';
+import type { TillEarnInput, TillRefund, TillRefundInput, TillSale, TillSpend, TillSpendInput } from '../backend/types';
 
 /**
  * The rules BOTH stores apply to a till's sale — written once, here, so
  * memory.ts and postgres.ts cannot answer a retrying till differently.
  *
- * ⚠ `reverseGrant` is a money rule and belongs in @almond/shared/loyalty/lots.ts
- * beside consumeFifo (it is one caller of it). It lives in the BFF only because
- * packages/ was out of scope for this change; moving it is a pure relocation.
+ * The refund ARITHMETIC (what a full or partial refund takes back, and out of
+ * the window) is a money rule and lives in @almond/shared/loyalty/tillRefund.ts
+ * — it replaced `reverseGrant`, which used to sit here. What stays here is the
+ * wording and the replay/conflict decisions both stores must make alike.
  */
 
 /** The errors a till can meet, with ONE wording for both stores. */
@@ -27,6 +26,21 @@ export type TicketRefusal = 'expired' | 'paid_outside_window';
 export function ticketRefusalError(r: TicketRefusal): HttpError {
   return r === 'expired' ? earnTicketExpired() : paidOutsideTicketWindow();
 }
+/** The spend ticket's own wording — same machine codes as the earn ticket, so
+ *  the till's handling ("scan the member again") is one rule. */
+export const spendTicketUsed = () =>
+  conflict('ticket_used', 'this spend ticket was already used on another POS order — scan the member again');
+export const spendTicketExpired = () =>
+  new HttpError(401, 'ticket_expired', 'this spend ticket has expired — spending points needs a fresh scan of the member');
+export const posSpendConflict = () =>
+  conflict('pos_order_conflict', 'this POS order reference already spent points for a different member or amount');
+
+/** A second spend report for a POS order that already has one: a REPLAY when
+ *  it is the same spend, a CONFLICT otherwise — never a second debit. */
+export function assertSameSpend(spend: Pick<TillSpend, 'memberId' | 'points'>, input: Pick<TillSpendInput, 'memberId' | 'points'>): void {
+  if (spend.memberId !== input.memberId || spend.points !== input.points) throw posSpendConflict();
+}
+
 export const posOrderConflict = () =>
   conflict('pos_order_conflict', 'this POS order reference was already reported with a different member, branch or amount');
 
@@ -42,51 +56,53 @@ export function assertSameSale(sale: TillSale, input: Pick<TillEarnInput, 'membe
   }
 }
 
-export interface GrantReversal {
-  lots: PointLot[];
-  spend: SpendEntry[];
-  /** Points actually taken back — never more than the member holds live. */
-  reversedPoints: number;
-  /** Points the sale granted that were already spent: `earned - reversed`. */
-  shortfall: number;
+// ---- refunds (POST /v1/pos/earn/reverse) ----
+
+export const refundConflict = () =>
+  conflict('refund_conflict', 'this refund reference was already reported for a different sale or amount');
+export const refundExceedsSale = () =>
+  conflict('refund_exceeds_sale', 'this refund is larger than what is left to refund on the sale');
+export const saleAlreadyReversed = () =>
+  conflict('sale_already_reversed', 'this sale was already reversed in full — nothing is left to refund');
+
+/** The sale as the shared refund rule reads it. */
+export const refundable = (sale: TillSale): RefundableSale => ({
+  pointsEarned: sale.pointsEarned, paidFils: sale.paidFils, refundedFils: sale.refundedFils, spendDay: sale.spendDay,
+});
+
+/** A stored refund found again: a REPLAY when it is the same refund, a
+ *  CONFLICT when the till reused its reference for anything else. */
+export function assertSameRefund(found: TillRefund, posOrderRef: string, input: TillRefundInput): void {
+  if (found.posOrderRef !== posOrderRef || found.refundedFils !== input.refundedFils) throw refundConflict();
+}
+
+/** The plan for this call, or the refusal both stores give. */
+export function planOrRefuse(sale: TillSale, input: TillRefundInput | undefined) {
+  const plan = planTillRefund(refundable(sale), input ? input.refundedFils : null);
+  if (!plan.ok) throw refundExceedsSale();
+  return plan;
 }
 
 /**
- * Take back what one sale granted, WITHOUT EVER GOING BELOW ZERO.
- *
- * A member who earned 40 on a sale, spent 30 of them, and then had the sale
- * refunded holds 10: the reversal takes those 10 and reports a shortfall of
- * 30. It does not overdraw the ledger (a negative lot poisons every sum — see
- * addPoints' sign guard) and it does not invent a debt the member never agreed
- * to. Whether the shortfall is pursued is a back-office decision; it is
- * recorded on the sale row so that decision can be made.
- *
- * Consumed through the SHARED FIFO rule (oldest lot first) — the same one a
- * redemption uses. The window spend the sale recorded is removed too (one
- * entry of that amount on that day), so a refunded sale stops counting toward
- * the member's rung. The HELD rung is a floor that never falls (loyalty/window
- * holdRung); a promotion the sale already caused is not taken back — see the
- * hand-over note.
+ * The answer to a FULL reversal of a sale that is already 'reversed' but has
+ * no full-reversal row: reversed before refunds had rows (20260930), or
+ * reversed by partial refunds that covered every fils. Nothing is left, so it
+ * is a replay, and it reports the sale's own totals.
  */
-export function reverseGrant(
-  lots: readonly PointLot[],
-  spend: readonly SpendEntry[],
-  sale: Pick<TillSale, 'pointsEarned' | 'paidFils' | 'spendDay'>,
-  at: Date,
-): GrantReversal {
-  const take = Math.min(liveBalance(lots, at), sale.pointsEarned);
-  let nextLots: PointLot[] = lots.map((l) => ({ ...l }));
-  if (take > 0) {
-    const res = consumeFifo(lots, take, at);
-    // Unreachable — `take` never exceeds the live balance — but a refusal here
-    // must never be mistaken for success.
-    if (!res.ok) throw conflict('insufficient_points', 'Not enough points');
-    nextLots = res.lots;
-  }
-  const nextSpend = [...spend];
-  if (sale.spendDay) {
-    const i = nextSpend.findIndex((e) => e.day === sale.spendDay && toFils(e.jod) === sale.paidFils);
-    if (i >= 0) nextSpend.splice(i, 1);
-  }
-  return { lots: nextLots, spend: nextSpend, reversedPoints: take, shortfall: sale.pointsEarned - take };
+export function syntheticFullRefund(sale: TillSale): TillRefund {
+  return {
+    refundRef: null, posOrderRef: sale.posOrderRef, memberId: sale.memberId,
+    refundedFils: sale.paidFils - sale.refundedFils,
+    targetPoints: (sale.reversedPoints ?? 0) + (sale.shortfall ?? 0),
+    reversedPoints: sale.reversedPoints ?? 0, shortfall: sale.shortfall ?? 0,
+    balanceAfter: sale.reverseBalanceAfter ?? 0, reason: sale.reverseReason ?? '',
+    createdAt: sale.reversedAt ?? sale.createdAt,
+  };
+}
+
+/** The ledger wording for a refund, full or partial. */
+export function refundReasons(partial: boolean): { reasonAr: string; reasonEn: string } {
+  return partial
+    ? { reasonAr: 'استرجاع نقاط جزء مُسترد', reasonEn: 'Partially refunded purchase points' }
+    : { reasonAr: 'استرجاع نقاط طلب مُسترد', reasonEn: 'Refunded purchase points' };
 }

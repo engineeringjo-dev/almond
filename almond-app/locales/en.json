@@ -121,15 +121,6 @@
     "comboExample": "Like {{drink}} + {{food}}",
     "comboCta": "Add both"
   },
-  "club": {
-    "pitch": "Drinks a day: {{count}} — {{price}} a month",
-    "subscribe": "Subscribe now",
-    "payFromWallet": "Paid from your wallet balance",
-    "needWallet": "Wallet balance is not enough — top up first",
-    "active": "Member ✓",
-    "remaining": "Free drinks left today: {{count}}",
-    "renews": "Renews {{date}}"
-  },
   "menu": {
     "title": "Menu",
     "searchPlaceholder": "Search for a drink or dish",

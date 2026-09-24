@@ -1,7 +1,6 @@
 /** THE definition of "which business day is this" for the whole system.
  *  Asia/Amman, not the host clock. Every weekday-sensitive rule — the earn
- *  weekday bonus, the bonus day, the daily subscription cap, the free-spin day
- *  — must go through this module or its ammanDayKey() sibling.
+ *  weekday bonus, the bonus day, the free-spin day — must go through this module or its ammanDayKey() sibling.
  *  See docs/LOYALTY-EARN-PATCH.md §3.6. */
 const AMMAN = 'Asia/Amman';
 const WD = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];

@@ -20,6 +20,7 @@ export function createOdooBackend(): Backend {
   return {
     findOrCreateByPhone: () => todo('findOrCreateByPhone'),
     getMember: () => todo('getMember'),
+    findMemberByPhone: () => todo('findMemberByPhone'),
     debitWallet: () => todo('debitWallet'),
     creditWallet: () => todo('creditWallet'),
     // 🔴 THE POINT LEDGER IS A TABLE, NOT A COLUMN, for the same reason the
@@ -99,15 +100,18 @@ export function createOdooBackend(): Backend {
     evaluateSecondVisitVoucher: () => todo('evaluateSecondVisitVoucher'),
     getSecondVisitVoucher: () => todo('getSecondVisitVoucher'),
     redeemSecondVisitVoucher: () => todo('redeemSecondVisitVoucher'),
-    // Subscription → a recurring loyalty.program membership + sale.subscription.
-    activateSubscription: () => todo('activateSubscription'),
-    redeemSubscriptionDrink: () => todo('redeemSubscriptionDrink'),
-    getSubscription: () => todo('getSubscription'),
     // The composite movements must be ONE Odoo transaction each (one RPC that
     // writes the wallet move, the order and the loyalty lines together) — not
     // a chain of RPCs, which is the saga these methods replaced.
     checkout: () => todo('checkout'),
-    purchaseSubscription: () => todo('purchaseSubscription'),
+    // The till's earn and points tender: pos_sales / pos_point_spends — one
+    // Odoo transaction each, keyed by pos.order.name, as the BFF's own are.
+    tillEarn: () => todo('tillEarn'),
+    reverseTillEarn: () => todo('reverseTillEarn'),
+    getTillSale: () => todo('getTillSale'),
+    tillSpend: () => todo('tillSpend'),
+    reverseTillSpend: () => todo('reverseTillSpend'),
+    getTillSpend: () => todo('getTillSpend'),
     topUpWallet: () => todo('topUpWallet'),
     // Idempotency-Keys must be durable wherever the ledger is — a key held
     // only in process memory is the R2.6 double-spend. Listed so the stub

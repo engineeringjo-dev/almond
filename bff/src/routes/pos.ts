@@ -6,8 +6,14 @@ import { ammanDayKey } from '@almond/shared/lib/ammanWeekday';
 import { config } from '../config';
 import { parse } from '../validate';
 import { requireMember, memberId } from '../plugins/auth';
-import { issueEarnTicket, issuePosToken, readEarnTicket, verifyPosToken } from '../pos/token';
+import {
+  issueEarnTicket, issuePosToken, issueSpendTicket, readEarnTicket, readSpendTicket, verifyPosToken,
+} from '../pos/token';
 import { toRedemptionView } from '@almond/shared/loyalty/redemption';
+import { liveBalance } from '@almond/shared/loyalty/lots';
+import { jodFromPoints, spendableJod } from '@almond/shared/loyalty/earn';
+import { maskedDisplayName } from '@almond/shared/loyalty/profile';
+import { normalizeJordanPhone } from '@almond/shared/lib/phone';
 import { HttpError, badRequest, notFound } from '../http-error';
 import { computeEarn } from '../earn';
 import { toFils, toJod } from '../money';
@@ -40,6 +46,10 @@ const tillEarns = limiter('pos-earn-till', () => config.RATE_LIMITS.posEarnPerTi
 const keyEarns = limiter('pos-earn-key', () => config.RATE_LIMITS.posEarnPerKey);
 const tillSettles = limiter('pos-settle-till', () => config.RATE_LIMITS.posSettlePerTill);
 const keySettles = limiter('pos-settle-key', () => config.RATE_LIMITS.posSettlePerKey);
+const tillSpends = limiter('pos-spend-till', () => config.RATE_LIMITS.posSpendPerTill);
+const keySpends = limiter('pos-spend-key', () => config.RATE_LIMITS.posSpendPerKey);
+const tillIdentifies = limiter('pos-identify-till', () => config.RATE_LIMITS.posIdentifyPerTill);
+const keyIdentifies = limiter('pos-identify-key', () => config.RATE_LIMITS.posIdentifyPerKey);
 const KEY_BUCKET = 'pos-key';
 function limitTill(req: FastifyRequest, till: typeof tillEarns, key: typeof keyEarns): void {
   // Both checked before either is counted, so a refusal by one does not
@@ -55,6 +65,10 @@ function limitTill(req: FastifyRequest, till: typeof tillEarns, key: typeof keyE
  *  future days — a lost visit for the member). */
 const PAID_AT_MAX_SKEW_MS = 5 * 60 * 1000;
 
+/** JOD in whole fils: a till never holds a fraction of one. */
+const jodAmount = z.number().finite().nonnegative().max(100_000)
+  .refine((v) => Math.abs(v * 1000 - Math.round(v * 1000)) < 1e-6, 'more than 3 decimals (fils)');
+
 const earnBody = z.object({
   earnTicket: z.string().min(1).max(1024),
   // The POS order's own unique reference (Odoo pos.order `name`, e.g.
@@ -64,10 +78,16 @@ const earnBody = z.object({
   // "…+03:00"). A naive timestamp is refused: "10:15" is two different
   // instants in Amman and in UTC, and the day it lands on dates the spend.
   branchId: z.string().min(1).max(64),
-  // JOD the till collected in MONEY, tax-inclusive — NOT the part paid with an
-  // Almond redemption. Whole fils: a till never holds a fraction of one.
-  paidTotal: z.number().finite().nonnegative().max(100_000)
-    .refine((v) => Math.abs(v * 1000 - Math.round(v * 1000)) < 1e-6, 'paidTotal has more than 3 decimals (fils)'),
+  // JOD the till collected in MONEY, tax-inclusive — NOT the part paid with
+  // points (the /v1/pos/points/spend tender, same posOrderRef) and NOT an Almond
+  // redemption. 🔴 THE SERVER CANNOT CHECK THIS: it sees the spend row but not
+  // the bill, so it has no way to know whether 5.000 is "the bill" or "the bill
+  // minus the points". The till must subtract the points tender before it
+  // reports; a till that sends the whole bill makes points earn points, which
+  // is exactly what the owner ruled out («لا يكسب نقاط على الجزء المدفوع
+  // بالنقاط»). bff/test/pos-spend.test.ts pins the documented behaviour.
+  // Whole fils: a till never holds a fraction of one.
+  paidTotal: jodAmount,
   paidAt: z.string().datetime({ offset: true }).optional(),
 });
 
@@ -75,6 +95,30 @@ const reverseBody = z.object({
   posOrderRef: z.string().min(1).max(64),
   reason: z.string().trim().min(1).max(200),
 });
+
+/**
+ * POST /v1/pos/earn/reverse. Without the two refund fields it is the FULL
+ * reversal it always was (of whatever is left). With them it is a PARTIAL
+ * refund: `refundRef` is the refund's own POS reference (Odoo's refund
+ * pos.order `name`) — its idempotency key — and `refundedTotal` the MONEY
+ * refunded, tax-inclusive JOD, on the same basis as the sale's paidTotal (the
+ * part that earned; never a points tender). Both or neither.
+ */
+const earnReverseBody = reverseBody.extend({
+  refundRef: z.string().min(1).max(64).optional(),
+  refundedTotal: jodAmount.refine((v) => v > 0, 'refundedTotal must be more than 0').optional(),
+}).refine((b) => (b.refundRef === undefined) === (b.refundedTotal === undefined),
+  'refundRef and refundedTotal come together — a partial refund needs both, a full reversal neither');
+
+/** POST /v1/pos/points/spend. `points` are WHOLE points (1 point = 1 qirsh):
+ *  the till converts the tender the member asked for with the scan's
+ *  `spendableJod` / 100, never the other way round. */
+const spendBody = z.object({
+  spendTicket: z.string().min(1).max(1024),
+  posOrderRef: z.string().min(1).max(64),
+  points: z.number().int().positive(),
+});
+const spendReverseBody = reverseBody;
 
 /** The member's stated intent. Optional and defaulted, so a client that has not
  *  been updated still gets a usable token rather than a 400 in front of a
@@ -137,14 +181,36 @@ export function registerPosRoutes(app: FastifyInstance, backend: Backend): void 
     await backend.sweepRedemptions(id, new Date());
     const redemption = mode === 'redeem' ? await backend.activeRedemption(id) : null;
     /**
-     * 🔴 THE EARN TICKET — the only way a till can grant this member points.
-     * Issued on an EARNING scan (pay/earn QR, a member who earns: not a
-     * corporate one) and spent once by POST /v1/pos/earn when the till has
-     * taken the money. It names the member the phone proved, so a till holding
-     * the POS key still cannot grant points to a member id of its choosing.
+     * 🔴 ONE CODE, ONE SCAN, BOTH TICKETS (owner, 2026-09-24: «كسب وصرف النقاط
+     * بدي يكون باركود مباشر نفسه»). The member no longer picks a mode on the
+     * phone; they say at the counter whether to use their points. So a scan of
+     * the member code hands the till everything the visit can need:
+     *
+     *   earnTicket   the only way a till can GRANT this member points — spent
+     *                once by POST /v1/pos/earn after the money is taken. Null
+     *                for a corporate member, who earns 0 (the discount IS the
+     *                reward) but may still SPEND points they hold.
+     *   spendTicket  the only way a till can TAKE points off this member's
+     *                balance as a tender — POST /v1/pos/points/spend, within
+     *                config.POS_SPEND_TICKET_TTL_SECONDS (15 min) of this scan.
+     *                The member presenting their own code is the consent.
+     *
+     * Both name the member the phone proved, so a till holding the POS key
+     * still cannot choose whose points to grant or spend.
+     *
+     * `mode` is still read, for backward compatibility with apps that mint
+     * 'pay'/'earn'/'corporate' codes — all three are the member code now. The
+     * one exception is a legacy 'redeem' QR: that is a READ of a redemption
+     * code the member already paid for (the typed/web fallback), not the
+     * member code, and it carries no tickets.
      */
     const earnsPoints = !entitlement;
-    const ticket = earnsPoints && (mode === 'pay' || mode === 'earn') ? issueEarnTicket(id) : null;
+    const memberCode = mode !== 'redeem';
+    const ticket = earnsPoints && memberCode ? issueEarnTicket(id) : null;
+    const spend = memberCode ? issueSpendTicket(id) : null;
+    // The balance AFTER the sweep above, so an expired redemption's refund is
+    // already in it. Read-only: the till shows it, the spend route re-checks.
+    const pointsBalance = liveBalance((await backend.getMember(id)).lots);
     return reply.send({
       memberId: id,
       mode,
@@ -158,6 +224,119 @@ export function registerPosRoutes(app: FastifyInstance, backend: Backend): void 
       earnsPoints,
       earnTicket: ticket?.ticket ?? null,
       earnTicketExpiresIn: ticket?.expiresIn ?? null,
+      pointsBalance,
+      // What the balance can take off THIS bill, floored to the fils — the
+      // points tender the till may offer.
+      spendableJod: spendableJod(pointsBalance),
+      spendTicket: spend?.ticket ?? null,
+      spendTicketExpiresIn: spend?.expiresIn ?? null,
+    });
+  });
+
+  /**
+   * EARN BY PHONE NUMBER, ON THE IN-STORE TABLET.
+   *
+   * Owner, 2026-09-24: «اذا بدك تكسب نقاط يا بتحط رقمك عالتابلت بالمحل يا يتفتح
+   * من كبسة باركود» — to earn, either type your number on the tablet or open
+   * the code. This is the first door.
+   *
+   * 🔴 EARN ONLY — BY CONSTRUCTION. Typing a number proves nothing about who is
+   * standing at the counter; it could be anyone's number. So this route hands
+   * back an EARN ticket (the worst a wrong number does is credit someone else)
+   * and NEVER a spend ticket, a balance or anything that lets points be spent —
+   * spending needs the member's own app code (the scan). The reply's key set is
+   * fixed and tested so a future field cannot leak a balance through here.
+   *
+   * An unknown number is `memberFound: false` — the tablet invites them to
+   * download the app. It does NOT create a member: an unverified number that
+   * became an account would let anyone open one in someone else's name, and
+   * OTP sign-in is the only door into the member table.
+   */
+  app.post('/v1/pos/identify', async (req, reply) => {
+    requirePosKey(req);
+    limitTill(req, tillIdentifies, keyIdentifies);
+    const body = parse(z.object({ phone: z.string().min(1).max(32) }), req.body);
+    // THE shared Jordan normaliser — the same one OTP sign-in stored the
+    // member's phone with, so «0791234567», «+962 79 123 4567» and «٠٧٩…»
+    // all find the one member.
+    const phone = normalizeJordanPhone(body.phone);
+    if (!phone) throw new HttpError(400, 'phone_invalid', 'not a Jordanian mobile number');
+    const m = await backend.findMemberByPhone(phone);
+    if (!m) {
+      return reply.send({ memberFound: false, earnTicket: null, displayName: null, earnsPoints: false });
+    }
+    // The same rule as the scan: a standing-discount holder earns nothing.
+    const earnsPoints = !(await backend.entitlementFor(m.id));
+    const ticket = earnsPoints ? issueEarnTicket(m.id) : null;
+    return reply.send({
+      memberFound: true,
+      earnTicket: ticket?.ticket ?? null,
+      displayName: maskedDisplayName(m.name),
+      earnsPoints,
+    });
+  });
+
+  /**
+   * THE MEMBER PAYS WITH POINTS — take them off the bill as a TENDER.
+   *
+   * One visit, one scan: the till got a spend ticket from /v1/pos/scan, the
+   * member said "use my points", and the till asks for exactly `points`. They
+   * come off the balance oldest lot first (the shared consumeFifo), in ONE
+   * transaction with the ledger line and the pos_point_spends row
+   * (Backend.tillSpend). The till puts `valueJod` on the bill as the points
+   * tender, and reports only the MONEY part to /v1/pos/earn under the same
+   * posOrderRef — «لا يكسب نقاط على الجزء المدفوع بالنقاط».
+   *
+   * Idempotent by posOrderRef: a retry gets the stored answer (`replay`), a
+   * different member or amount is 409. More than the balance is 409
+   * insufficient_points; more than config.POS_SPEND_MAX_POINTS_PER_SALE is 400
+   * points_over_sale_cap. Neither moves anything.
+   */
+  app.post('/v1/pos/points/spend', async (req, reply) => {
+    requirePosKey(req);
+    limitTill(req, tillSpends, keySpends);
+    const body = parse(spendBody, req.body);
+    // Signature first: a ticket we did not sign — an EARN ticket included,
+    // which is all /v1/pos/identify ever hands out — is not even looked up.
+    const ticket = readSpendTicket(body.spendTicket);
+    if (body.points > config.POS_SPEND_MAX_POINTS_PER_SALE) {
+      throw new HttpError(400, 'points_over_sale_cap',
+        `at most ${config.POS_SPEND_MAX_POINTS_PER_SALE} points may be spent on one sale`);
+    }
+    const { spend, replay } = await backend.tillSpend({
+      posOrderRef: body.posOrderRef, memberId: ticket.memberId, ticketJti: ticket.jti,
+      ticketExpired: ticket.expired, points: body.points,
+      // THE shared conversion, once; stored on the row so a later rate change
+      // cannot revalue a tender already on a receipt.
+      valueJod: jodFromPoints(body.points),
+      reasonAr: 'دفع بالنقاط في الفرع', reasonEn: 'Paid with points in store',
+      at: new Date(),
+    });
+    return reply.code(replay ? 200 : 201).send({
+      posOrderRef: spend.posOrderRef,
+      pointsSpent: spend.points,
+      valueJod: spend.valueJod,
+      pointsBalance: spend.pointsBalanceAfter,
+      replay,
+    });
+  });
+
+  /**
+   * THE TILL VOIDED A SALE PAID (PARTLY) WITH POINTS — give them back, once.
+   * Each slice returns with the expiry it was spent from, never a fresh year;
+   * a slice that died in the meantime is reported as `pointsExpired`.
+   */
+  app.post('/v1/pos/points/spend/reverse', async (req, reply) => {
+    requirePosKey(req);
+    limitTill(req, tillSpends, keySpends);
+    const body = parse(spendReverseBody, req.body);
+    const { spend, replay } = await backend.reverseTillSpend(body.posOrderRef, body.reason, new Date());
+    return reply.code(replay ? 200 : 201).send({
+      posOrderRef: spend.posOrderRef,
+      pointsReturned: spend.returnedPoints ?? 0,
+      pointsExpired: spend.expiredPoints ?? 0,
+      pointsBalance: spend.reverseBalanceAfter ?? 0,
+      replay,
     });
   });
 
@@ -260,7 +439,8 @@ export function registerPosRoutes(app: FastifyInstance, backend: Backend): void 
     const standing = await backend.getStanding(ticket.memberId);
     const entitlement = await backend.entitlementFor(ticket.memberId);
     // pointsRedeemed is 0 because paidTotal is ALREADY the money part only —
-    // the till takes an Almond redemption off the bill before it collects.
+    // the till takes the points tender (and any Almond redemption) off the
+    // bill before it reports what it collected.
     const earn = computeEarn({
       total: paidJod, corporate: entitlement !== null, pointsRedeemed: 0,
       windowSpend: standing.windowSpend, heldRungId: standing.held.id,
@@ -286,20 +466,38 @@ export function registerPosRoutes(app: FastifyInstance, backend: Backend): void 
   });
 
   /**
-   * THE POS ORDER WAS REFUNDED OR VOIDED — take back what it granted, once.
+   * THE POS ORDER WAS REFUNDED OR VOIDED — take back what it granted.
+   *
+   * Owner, 2026-09-24: «المرتجع يلغي نقاط الجزء المرتجع». With {refundRef,
+   * refundedTotal} this is a PARTIAL refund and takes back only that part's
+   * share of the points — round(pointsEarned × refundedTotal / paidTotal),
+   * cumulative across refunds so the parts never add up to more than was
+   * earned (@almond/shared loyalty/tillRefund.ts) — and takes refundedTotal out
+   * of the member's rolling window. Idempotent by refundRef. Without them it
+   * is the FULL reversal of whatever is left, idempotent by posOrderRef.
+   *
    * Never below zero: points the member already spent come back as
-   * `shortfall`, recorded on the sale for the back-office, not clawed.
+   * `shortfall`, recorded for the back-office, not clawed. The figures in the
+   * reply are THIS refund's; `refundedTotal` and `fullyReversed` are the sale's.
    */
   app.post('/v1/pos/earn/reverse', async (req, reply) => {
     requirePosKey(req);
     limitTill(req, tillEarns, keyEarns);
-    const body = parse(reverseBody, req.body);
-    const { sale, replay } = await backend.reverseTillEarn(body.posOrderRef, body.reason, new Date());
+    const body = parse(earnReverseBody, req.body);
+    const partial = body.refundRef !== undefined && body.refundedTotal !== undefined
+      ? { refundRef: body.refundRef, refundedFils: toFils(body.refundedTotal) }
+      : undefined;
+    const { sale, refund, replay } = await backend.reverseTillEarn(body.posOrderRef, body.reason, new Date(), partial);
+    const fullyReversed = sale.status === 'reversed';
     return reply.code(replay ? 200 : 201).send({
       posOrderRef: sale.posOrderRef,
-      reversedPoints: sale.reversedPoints ?? 0,
-      shortfall: sale.shortfall ?? 0,
-      pointsBalance: sale.reverseBalanceAfter ?? 0,
+      refundRef: refund.refundRef,
+      reversedPoints: refund.reversedPoints,
+      shortfall: refund.shortfall,
+      pointsBalance: refund.balanceAfter,
+      // Money refunded on this sale so far — all of it once fully reversed.
+      refundedTotal: toJod(fullyReversed ? sale.paidFils : sale.refundedFils),
+      fullyReversed,
       replay,
     });
   });
