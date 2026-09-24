@@ -129,7 +129,7 @@ describe.each([
     const paidAt = new Date();
     const expected = computeEarn({
       total: 12.75, corporate: false, pointsRedeemed: 0, windowSpend: standing.windowSpend,
-      heldRungId: standing.held.id, paidFromBalance: false, comboPairs: 0, bonusDayActivated: false, at: paidAt,
+      heldRungId: standing.held.id, paidFromBalance: false, bonusDayActivated: false, at: paidAt,
     }).points;
     expect(expected).toBeGreaterThan(0);                     // otherwise "exactly" proves nothing
     const ref = `Shop/${randomUUID()}`;

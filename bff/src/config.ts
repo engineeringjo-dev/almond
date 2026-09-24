@@ -188,6 +188,17 @@ export const config = {
     /** POST /v1/payments/intent, per member. Each one is a call to the card
      *  gateway, which bills and rate-limits US. */
     paymentIntentPerMember: { max: envInt('RATE_PAYMENT_INTENT_PER_MEMBER', 20), windowSeconds: 60 },
+    /** POST /v1/me/transfers/preview, per member. Each call answers "is this
+     *  phone a member, and what is their first name" — the same question the
+     *  tablet's /identify answers — so it is bounded like one: a stolen session
+     *  must not become a reverse phone book. */
+    transferPreviewPerMember: { max: envInt('RATE_TRANSFER_PREVIEW_PER_MEMBER', 10), windowSeconds: 60 },
+    /** POST /v1/me/transfers, per member. The daily cap bounds the MONEY; this
+     *  bounds the request rate (every transfer takes two row locks). */
+    transferPerMember: { max: envInt('RATE_TRANSFER_PER_MEMBER', 10), windowSeconds: 60 },
+    /** POST /v1/me/referral/attach, per member — a code is 6 characters, and
+     *  this is what makes guessing one pointless. */
+    referralAttachPerMember: { max: envInt('RATE_REFERRAL_ATTACH_PER_MEMBER', 10), windowSeconds: 60 },
   },
 
   ODOO_BASE_URL: process.env.ODOO_BASE_URL ?? '',

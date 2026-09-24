@@ -5,11 +5,11 @@ import { randomUUID } from 'node:crypto';
 import type { FastifyInstance } from 'fastify';
 import { config } from '@almond/shared/config';
 import {
-  computeEarn, earnedPoints, earnRulesFromConfig, jodFromPoints, type EarnRules,
+  computeEarn, earnedPoints, earnRulesFromConfig, jodFromPoints, type ComboBasket, type EarnRules,
 } from '@almond/shared/loyalty/earn';
 import { ammanWeekday } from '@almond/shared/lib/ammanWeekday';
 import { computeTotals } from '@almond/shared/cart';
-import { comboPairs } from '@almond/shared/lib/combo';
+import { comboBasket, comboPairs } from '@almond/shared/lib/combo';
 import { menuItems } from '@almond/shared/menu';
 import { itemKind } from '@almond/shared/lib/categoryKind';
 import type { CartItem } from '@almond/shared/types';
@@ -124,6 +124,17 @@ const SHIPPED: EarnRules = {
  */
 const COMBO_DRINK = menuItems.find((m) => itemKind(m.id) === 'drink')!;
 const COMBO_FOOD = menuItems.find((m) => itemKind(m.id) === 'food')!;
+
+/**
+ * `n` drinks at `drink` JOD and `n` foods at `food` JOD, as the engine takes
+ * them (EarnContext.combo). The bare pair COUNT the engine used to take was
+ * deleted on 2026-09-24, when the pair started REPLACING its own regular points
+ * — the engine now needs the pair's price to take it out of the base. The
+ * defaults are the 2.50 drink + 1.90 cookie used throughout this file.
+ */
+const pairBasket = (n: number, drink = 2.5, food = 1.9): ComboBasket | undefined => (n > 0
+  ? { drinks: [{ unitJod: drink, qty: n }], foods: [{ unitJod: food, qty: n }] }
+  : undefined);
 
 function cartLine(itemId: string, unitBasePrice: number, qty: number, isDrink: boolean): CartItem {
   return {
@@ -262,11 +273,15 @@ describe('earn: the dials the tests are written against', () => {
     // 2026-09-08, «ما بدي طلب مكتب ولا اجتماع». Uncapped, this basket paid 150
     // and a fifteen-pair order paid 750 (7.50 JOD) on a single invoice.
     expect(config.COMBO_MAX_PAIRS_PER_INVOICE).toBe(1);
-    const three = computeEarn({ total: 10, comboPairs: 3, at: MON }, SHIPPED);
+    const three = computeEarn({ total: 13.2, combo: pairBasket(3), at: MON }, SHIPPED);
     expect(three.comboBonus).toBe(50);
     expect(three.comboPairsPaid).toBe(1);
+    // ONE pair's units leave the regular base — the other two pairs' units
+    // earn like any other line (owner, 2026-09-24).
+    expect(three.comboExcludedJod).toBeCloseTo(4.4, 9);
+    expect(three.earningTotal).toBeCloseTo(8.8, 9);
     // The counter is untouched — the cap lives in earn.ts, not in comboPairs().
-    expect(computeEarn({ total: 10, comboPairs: 0, at: MON }, SHIPPED).comboBonus).toBe(0);
+    expect(computeEarn({ total: 10, combo: pairBasket(0), at: MON }, SHIPPED).comboBonus).toBe(0);
   });
 
   it('earn: the invoice ceiling bounds a mis-key at the till', () => {
@@ -350,9 +365,11 @@ describe('earn: the dials the tests are written against', () => {
     // offer change. This test exists so the escape is visible and measured
     // rather than discovered later. A 2.50 drink + a 1.90 cookie is 4.40 JOD.
     //
-    // The escape is back to its full size: 50 points on a 4.40 JOD pair is
-    // 11.4% of the bill on top of everything else, and nothing bounds it.
-    const r = computeEarn({ total: 4.4, comboPairs: 1, at: MON }, SHIPPED);
+    // 50 points on a 4.40 JOD pair is 11.4% of the bill and nothing bounds it —
+    // since 2026-09-24 INSTEAD of the pair's regular points (here: the whole
+    // bill, so the regular grant and the cap are both 0).
+    const r = computeEarn({ total: 4.4, combo: pairBasket(1), at: MON }, SHIPPED);
+    expect(r.points).toBe(50);
     expect(r.points).toBeGreaterThan(Math.round(r.cap));
     expect(r.points - r.comboBonus).toBeLessThanOrEqual(Math.round(r.cap));
     expect(r.comboBonus / (4.4 * 100)).toBeCloseTo(0.1136, 3); // 11.4% of the bill
@@ -487,7 +504,7 @@ describe('T33 earn: the redeemed portion of a bill earns nothing', () => {
     // The rate needs no rule here — a percentage of zero cash is zero — but
     // COMBO_BONUS_POINTS is 50 FLAT and sits outside every ceiling, so a pair
     // bought with points alone would still collect it.
-    const ctx = { total: 4.4, comboPairs: 1, pointsRedeemed: 440, at: MON };
+    const ctx = { total: 4.4, combo: pairBasket(1), pointsRedeemed: 440, at: MON };
     const withheld = computeEarn(ctx, SHIPPED);
     expect(withheld.cashTotal).toBe(0);
     expect(withheld.comboSuppressedByRedemption).toBe(true);
@@ -503,15 +520,20 @@ describe('T33 earn: the redeemed portion of a bill earns nothing', () => {
     expect(generous.comboSuppressedByRedemption).toBe(false);
     expect(generous.comboBonus).toBe(50);
     expect(generous.points).toBe(50);
+    // …and a withheld bonus takes nothing out of the base: a pair that is not
+    // paid the combo keeps earning like any other line.
+    expect(withheld.comboExcludedJod).toBe(0);
     expect(generous.comboBonus / (4.4 * config.POINTS_PER_JOD_REDEEM)).toBeCloseTo(0.1136, 3);
   });
 
   it('T33h a partly-paid bill still pays the combo — the rule is about a FREE bill', () => {
     // 4.40 JOD with 4.00 of points: 0.40 of cash is still cash.
-    const r = computeEarn({ total: 4.4, comboPairs: 1, pointsRedeemed: 400, at: MON }, SHIPPED);
+    const r = computeEarn({ total: 4.4, combo: pairBasket(1), pointsRedeemed: 400, at: MON }, SHIPPED);
     expect(r.comboSuppressedByRedemption).toBe(false);
     expect(r.comboBonus).toBe(50);
-    expect(r.points).toBe(51);
+    // The pair IS the whole bill, so it earns its 50 and nothing regular —
+    // the 0.40 of cash paid for the pair (it was 51 while the combo sat on top).
+    expect(r.points).toBe(50);
   });
 
   it('T33i a genuinely free invoice is unchanged — the test is the REDEMPTION', () => {
@@ -519,7 +541,7 @@ describe('T33 earn: the redeemed portion of a bill earns nothing', () => {
     // behind it. Its behaviour is deliberately untouched, which is why the
     // suppression tests `redeemedJod > 0 && cashTotal === 0` and not
     // `cashTotal === 0`. T6's grid asserts this case at every weekday.
-    const free = computeEarn({ total: 0, comboPairs: 1, at: MON }, SHIPPED);
+    const free = computeEarn({ total: 0, combo: pairBasket(1, 0, 0), at: MON }, SHIPPED);
     expect(free.comboSuppressedByRedemption).toBe(false);
     expect(free.comboBonus).toBe(50);
     expect(free.points).toBe(50);
@@ -539,15 +561,16 @@ describe('T33 earn: the redeemed portion of a bill earns nothing', () => {
 
   it('T33k an absent redemption means zero — every existing call site is unmoved', () => {
     // The field is optional and defaults to nothing, exactly as heldRungId did.
-    const omitted = computeEarn({ total: 10, windowSpend: 65, comboPairs: 1, at: MON }, SHIPPED);
+    const omitted = computeEarn({ total: 10, windowSpend: 65, combo: pairBasket(1), at: MON }, SHIPPED);
     const explicitZero = computeEarn(
-      { total: 10, windowSpend: 65, comboPairs: 1, pointsRedeemed: 0, at: MON }, SHIPPED,
+      { total: 10, windowSpend: 65, combo: pairBasket(1), pointsRedeemed: 0, at: MON }, SHIPPED,
     );
     expect(omitted).toEqual(explicitZero);
     expect(omitted.pointsRedeemed).toBe(0);
     expect(omitted.redeemedJod).toBe(0);
     expect(omitted.cashTotal).toBe(omitted.total);
-    expect(omitted.earningTotal).toBe(omitted.total);
+    // Everything but the combo pair — which earns its 50 instead.
+    expect(omitted.earningTotal).toBeCloseTo(omitted.total - omitted.comboExcludedJod, 9);
   });
 
   it('T33l no redemption can ever RAISE a grant, and none escapes the ceiling', () => {
@@ -560,7 +583,7 @@ describe('T33 earn: the redeemed portion of a bill earns nothing', () => {
           let previous = Number.POSITIVE_INFINITY;
           for (const pointsRedeemed of REDEEMED) {
             const r = computeEarn(
-              { total, pointsRedeemed, comboPairs: pairs, windowSpend, at: MON }, SHIPPED,
+              { total, pointsRedeemed, combo: pairBasket(pairs), windowSpend, at: MON }, SHIPPED,
             );
             const where = JSON.stringify({ total, pointsRedeemed, pairs, windowSpend });
             expect(r.points, where).toBeGreaterThanOrEqual(0);
@@ -616,13 +639,90 @@ describe('earn: the arithmetic (T1-T4)', () => {
   });
 
   it('earn: earnedPoints() is computeEarn().points and nothing else', () => {
-    const ctx = { total: 7.2, windowSpend: 300, paidFromBalance: true, comboPairs: 2, at: FRI };
+    const ctx = { total: 7.2, windowSpend: 300, paidFromBalance: true, combo: pairBasket(2, 1, 1), at: FRI };
     expect(earnedPoints(ctx, RULES)).toBe(computeEarn(ctx, RULES).points);
   });
 });
 
+describe('earn: the combo REPLACES the pair\'s regular points (owner, 2026-09-24) — TC', () => {
+  it('TC1 🔴 the pair\'s two lines contribute NO regular points; every other line earns exactly as before', () => {
+    // A 2.50 latte, a 1.90 cookie — the pair — and a 6.00 cake on the side.
+    const withPair = computeEarn({
+      total: 10.4,
+      combo: { drinks: [{ unitJod: 2.5, qty: 1 }], foods: [{ unitJod: 1.9, qty: 1 }, { unitJod: 6, qty: 1 }] },
+      at: MON,
+    }, SHIPPED);
+    // The same invoice WITHOUT the pair's two lines, and no combo at all.
+    const restAlone = computeEarn({ total: 6, at: MON }, SHIPPED);
+    expect(withPair.comboExcludedJod).toBeCloseTo(4.4, 9);
+    expect(withPair.earningTotal).toBeCloseTo(6, 9);
+    // Regular points = the cake's, to the point — the latte and the cookie add
+    // nothing on top of the flat 50.
+    expect(withPair.points - withPair.comboBonus).toBe(restAlone.points);
+    expect(withPair.points).toBe(restAlone.points + SHIPPED.comboBonusPoints);
+    // And at every rung and wallet stack — the multipliers apply to the rest only.
+    for (const windowSpend of [0, 20, 65]) {
+      for (const paidFromBalance of [false, true]) {
+        const ctx = { windowSpend, paidFromBalance, at: MON };
+        const a = computeEarn({ ...ctx, total: 10.4, combo: { drinks: [{ unitJod: 2.5, qty: 1 }], foods: [{ unitJod: 1.9, qty: 1 }, { unitJod: 6, qty: 1 }] } }, SHIPPED);
+        const b = computeEarn({ ...ctx, total: 6 }, SHIPPED);
+        expect(a.points, JSON.stringify(ctx)).toBe(b.points + 50);
+      }
+    }
+  });
+
+  it('TC2 🔴 the pair is the CHEAPEST drink unit + the CHEAPEST food unit — the fewest regular points removed', () => {
+    // Two drinks (4.00, 2.00) and two foods (3.00, 1.00), in a deliberately
+    // unhelpful order. The customer-favourable pair is 2.00 + 1.00.
+    const r = computeEarn({
+      total: 10,
+      combo: {
+        drinks: [{ unitJod: 4, qty: 1 }, { unitJod: 2, qty: 1 }],
+        foods: [{ unitJod: 3, qty: 1 }, { unitJod: 1, qty: 1 }],
+      },
+      windowSpend: 65, at: MON,
+    }, SHIPPED);
+    expect(r.comboExcludedJod).toBe(3);
+    expect(r.earningTotal).toBe(7);
+    // …which is the best the member could have been given: every other pairing
+    // leaves fewer regular points.
+    for (const [d, f] of [[4, 3], [4, 1], [2, 3]]) {
+      const alt = computeEarn({ total: 10 - d - f, windowSpend: 65, at: MON }, SHIPPED).points + 50;
+      expect(r.points, `${d}+${f}`).toBeGreaterThanOrEqual(alt);
+    }
+    // A line of two units is one unit of the pair plus one ordinary unit.
+    const two = computeEarn({
+      total: 6.9, combo: { drinks: [{ unitJod: 2.5, qty: 2 }], foods: [{ unitJod: 1.9, qty: 1 }] }, at: MON,
+    }, SHIPPED);
+    expect(two.comboExcludedJod).toBeCloseTo(4.4, 9);
+    expect(two.points).toBe(computeEarn({ total: 2.5, at: MON }, SHIPPED).points + 50);
+  });
+
+  it('TC3 no pair, or a retired offer, removes nothing — the pair then earns like any line', () => {
+    const drinksOnly = computeEarn({ total: 5, combo: { drinks: [{ unitJod: 2.5, qty: 2 }], foods: [] }, at: MON }, SHIPPED);
+    expect(drinksOnly.comboExcludedJod).toBe(0);
+    expect(drinksOnly.points).toBe(computeEarn({ total: 5, at: MON }, SHIPPED).points);
+    // COMBO_BONUS_POINTS = 0 is how the offer is retired: then the pair must
+    // keep its regular points, or retiring it would cut everyone's cashback.
+    const retired = computeEarn({ total: 4.4, combo: pairBasket(1), at: MON }, { ...SHIPPED, comboBonusPoints: 0 });
+    expect(retired.comboPairsPaid).toBe(0);
+    expect(retired.comboExcludedJod).toBe(0);
+    expect(retired.points).toBe(computeEarn({ total: 4.4, at: MON }, SHIPPED).points);
+  });
+
+  it('TC4 a discounted invoice takes the pair out at its DISCOUNTED share (comboBasket scales by total/subtotal)', () => {
+    const cart = [cartLine(COMBO_DRINK.id, 2.5, 1, true), cartLine(COMBO_FOOD.id, 1.5, 1, false), cartLine(COMBO_FOOD.id, 6, 1, false)];
+    const half = computeTotals(cart, computeTotals(cart, 0).subtotal / 2).total;   // a 50% standing discount
+    const combo = comboBasket(cart, half);
+    expect(combo.drinks[0].unitJod).toBeCloseTo(1.25, 9);
+    const r = computeEarn({ total: half, combo, at: MON }, SHIPPED);
+    expect(r.comboExcludedJod).toBeCloseTo(2, 9);          // (2.50 + 1.50) / 2
+    expect(r.earningTotal).toBeCloseTo(3, 9);              // the cake's half
+  });
+});
+
 describe('earn: the ceiling (D1) and where the combo sits (D4) — T5, T5b', () => {
-  it('T5 earn: the combo bonus and the cap on the priced-pair basket', () => {
+  it('T5 earn: the combo REPLACES the pair\'s regular points; the rest earns, capped as ever', () => {
     // §4 D4 secondary example, priced through computeTotals so the tax basis
     // (§1.1) cannot drift. Prices INCLUDE the 8% tax, as at the till, so a
     // 17.50 basket is a 17.50 invoice (it was 20.30 while 16% was added on top).
@@ -633,27 +733,36 @@ describe('earn: the ceiling (D1) and where the combo sits (D4) — T5, T5b', () 
     const invoice = computeTotals(cart, 0).total;
     expect(invoice).toBeCloseTo(17.5, 6);
     expect(comboPairs(cart)).toBe(10);
+    const combo = comboBasket(cart, invoice);
 
-    const r = computeEarn({ total: invoice, comboPairs: 10, at: MON }, RULES);
+    // 🔴 OWNER, 2026-09-24: the pair's units earn NO regular points; the
+    // invoice gets the combo instead. Under RULES (pairs uncapped) all twenty
+    // units are paired, so there is nothing left to earn a rate on: 10 × 50.
+    // Before the change this was 588 — the 500 ON TOP of 88 regular points.
+    const r = computeEarn({ total: invoice, combo, at: MON }, RULES);
     expect(r.comboBonus).toBe(500);
-    expect(r.subtotal).toBeCloseTo(587.5, 6);
-    expect(r.cap).toBeCloseTo(437.5, 6);
-
-    // SHIPPED SEMANTICS (D4 not in — §8.7). The combo is added after the
-    // ceiling, so the grant is the uncapped sum.
-    expect(r.points).toBe(588);
-    // ... and the ceiling is not what limits it: the sum is over the cap, but
-    // only the non-combo part is trimmed (here: nothing to trim).
-    expect(r.subtotal).toBeGreaterThan(r.cap);
-    expect(r.capApplied).toBe(false);
+    expect(r.comboExcludedJod).toBeCloseTo(17.5, 9);
+    expect(r.earningTotal).toBe(0);
+    expect(r.cap).toBe(0);
+    expect(r.points).toBe(500);
+    // The combo is still OUTSIDE the ceiling (D4 not in — §8.7).
     expect(r.points).toBeGreaterThan(r.cap);
-    // WHEN §8.7 SHIPS D4 this becomes: capApplied true, points 508.
+    expect(r.capApplied).toBe(false);
+
+    // SHIPPED: ONE pair per invoice — the cheapest drink (0.75) and the
+    // cheapest food (1.00) leave the base; the other 18 units earn the entry
+    // rate: 15.75 × 2 = 31.5 → 32, plus 50.
+    const shipped = computeEarn({ total: invoice, combo, at: MON }, SHIPPED);
+    expect(shipped.comboPairsPaid).toBe(1);
+    expect(shipped.comboExcludedJod).toBeCloseTo(1.75, 9);
+    expect(shipped.earningTotal).toBeCloseTo(15.75, 9);
+    expect(shipped.points).toBe(32 + 50);
+    // WHEN §8.7 SHIPS D4 the combo moves inside the cap; the exclusion stays.
   });
 
-  it('T5b earn: a zero-priced food item still mints uncapped combo points (§2.1, §8.7)', () => {
+  it('T5b earn: a zero-priced food item still pays the full combo — and removes only what it cost', () => {
     // §4 D4 primary example: 10 x mineral water + 10 x a ZERO-priced Mother's
-    // Day cake ⇒ subtotal 7.50, invoice 7.50 (tax is inside the price; the spec's
-    // example predates that and says 8.70).
+    // Day cake ⇒ subtotal 7.50, invoice 7.50 (tax is inside the price).
     const cart = [
       cartLine(COMBO_DRINK.id, 0.75, 10, true),
       // The zero price is supplied HERE, by the fixture — it is the point of the
@@ -664,31 +773,30 @@ describe('earn: the ceiling (D1) and where the combo sits (D4) — T5, T5b', () 
       // staff item) and still mints combo points, which is what §8.7 is about.
       cartLine(COMBO_FOOD.id, 0, 10, false),
     ];
-    expect(computeTotals(cart, 0).total).toBeCloseTo(7.5, 6);
+    const invoice = computeTotals(cart, 0).total;
+    expect(invoice).toBeCloseTo(7.5, 6);
     expect(comboPairs(cart)).toBe(10);
 
-    // The earn function is exercised on the SPEC's literal 8.70 invoice, not on
-    // this cart's total: the IEEE-754 point below is about 8.7 specifically,
-    // and what this test pins — a zero-priced food line still mints the full,
-    // uncapped combo bonus — does not depend on how the invoice was taxed.
-    const r = computeEarn({ total: 8.7, comboPairs: 10, at: MON }, RULES);
+    // Every pair's drink leaves the base (the food cost nothing), so the bill
+    // earns only its combo: 500 points on a 7.50 JOD invoice = 66.7% of it.
+    const r = computeEarn({ total: invoice, combo: comboBasket(cart, invoice), at: MON }, RULES);
     expect(r.comboBonus).toBe(500);
-    expect(r.points).toBe(544);
-    // 5.440 JOD of points on an 8.700 JOD invoice = 62.5% of the invoice.
-    expect(r.points / config.POINTS_PER_JOD_REDEEM / r.total).toBeCloseTo(0.625, 3);
+    expect(r.comboExcludedJod).toBeCloseTo(7.5, 9);
+    expect(r.points).toBe(500);
+    expect(r.points / config.POINTS_PER_JOD_REDEEM / r.total).toBeCloseTo(0.667, 3);
+    // THE EXPOSURE, stated as an assertion so it cannot be forgotten: the flat
+    // 50-points-per-pair combo is outside the ceiling by all 500 points here.
+    expect(r.points - Math.round(r.cap)).toBe(500);
 
     // Assert against r.cap, never a hand-computed literal. §7 T5b predicts 217
     // because it evaluates `8.7 * 25`, which IS 217.49999999999997 in IEEE-754.
     // computeEarn does not associate it that way: base = 8.7 * 5 = 43.5 (exact
-    // in binary), then cap = 43.5 * 5 = 217.5 (exact), which rounds to 218. The
-    // spec's own instruction is what saves it; its literal is what would not.
+    // in binary), then cap = 43.5 * 5 = 217.5 (exact), which rounds to 218.
+    const plain = computeEarn({ total: 8.7, at: MON }, RULES);
     expect(8.7 * 25).toBe(217.49999999999997);
-    expect(r.cap).toBe(217.5);
-    expect(Math.round(r.cap)).toBe(218);
-    // THE EXPOSURE, stated as an assertion so it cannot be forgotten: the flat
-    // 50-points-per-pair combo is outside the ceiling by 326 points here.
-    expect(r.points - Math.round(r.cap)).toBe(326);
-    // WHEN §8.7 SHIPS D4 this becomes: capApplied true, points === Math.round(r.cap).
+    expect(plain.cap).toBe(217.5);
+    expect(Math.round(plain.cap)).toBe(218);
+    // WHEN §8.7 SHIPS D4 the combo becomes capped too.
   });
 
   it('D1 earn: the ceiling is LIVE — it binds on an activated bonus day', () => {
@@ -750,8 +858,14 @@ describe('T6 earn: total giveback ceiling — no input can exceed MAX_EARN_MULTI
           for (const bonusDayActivated of [false, true]) {
             for (const pairs of PAIRS) {
               for (const at of DAYS) {
+                // Cheap units (0.10 + 0.05 a pair) so most cells keep a
+                // regular base beside the combo; the dearer cells exercise a
+                // base the pairs consume entirely.
                 const r = computeEarn(
-                  { total, windowSpend, paidFromBalance, bonusDayActivated, comboPairs: pairs, at },
+                  {
+                    total, windowSpend, paidFromBalance, bonusDayActivated,
+                    combo: pairBasket(pairs, 0.1, 0.05), at,
+                  },
                   RULES,
                 );
                 const where = JSON.stringify({
@@ -772,7 +886,7 @@ describe('T6 earn: total giveback ceiling — no input can exceed MAX_EARN_MULTI
                 // The total bound on what may ever be granted, for any input.
                 expect(r.points, where).toBeLessThanOrEqual(Math.round(r.cap) + r.comboBonus);
 
-                if (total > 0) {
+                if (r.base > 0) {
                   // The ratio form. The tolerance is 0.5/base, not 1e-9: the
                   // grant is rounded to whole points while the ceiling is not,
                   // so at total = 0.75 (base 3.75, cap 18.75) a capped grant of
@@ -782,6 +896,8 @@ describe('T6 earn: total giveback ceiling — no input can exceed MAX_EARN_MULTI
                     .toBeLessThanOrEqual(RULES.maxEarnMultiplier + slack);
                   expect(r.effectiveMultiplier, where).toBe(r.points / r.base);
                 } else {
+                  // No regular base — a free bill, or one the pairs used up
+                  // entirely: the combo is all that is paid.
                   expect(r.effectiveMultiplier, where).toBe(0);
                   expect(r.points, where).toBe(pairs * RULES.comboBonusPoints);
                 }
@@ -1102,10 +1218,11 @@ describe('T10 checkout: the points the route grants equal computeEarn on the sam
     token = await signIn(app, '0790000000');
   });
 
-  it('grants exactly computeEarn({ total, windowSpend, paidFromBalance, comboPairs }).points', async () => {
+  it('grants exactly computeEarn({ total, windowSpend, paidFromBalance, combo }).points', async () => {
     // A single line is one kind of item, so it can never make a pair. Pinned,
-    // because the route feeds comboPairs into the grant.
-    expect(reprice([line]).comboPairs).toBe(0);
+    // because the route feeds the priced combo lines into the grant.
+    const { combo } = reprice([line]);
+    expect(Math.min(combo.drinks.length, combo.foods.length)).toBe(0);
 
     const auth = { authorization: `Bearer ${token}` };
     const before = (await app.inject({ method: 'GET', url: '/v1/me/balance', headers: auth })).json();
@@ -1129,7 +1246,7 @@ describe('T10 checkout: the points the route grants equal computeEarn on the sam
       total: body.total,
       windowSpend: before.windowSpend,
       paidFromBalance: true,
-      comboPairs: 0,
+      combo,
       bonusDayActivated: false,
       at,
     };

@@ -140,7 +140,7 @@ describe.each([
     const paidAt = new Date();
     const expected = computeEarn({
       total: paidTotal, corporate: false, pointsRedeemed: 0, windowSpend: standing.windowSpend,
-      heldRungId: standing.held.id, paidFromBalance: false, comboPairs: 0, bonusDayActivated: false, at: paidAt,
+      heldRungId: standing.held.id, paidFromBalance: false, bonusDayActivated: false, at: paidAt,
     }).points;
     const earned = await pos('/v1/pos/earn', { earnTicket: scan.earnTicket, posOrderRef: ref, branchId: 'b1', paidTotal, paidAt: paidAt.toISOString() });
     expect(earned.statusCode).toBe(201);

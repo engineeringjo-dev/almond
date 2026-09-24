@@ -23,12 +23,15 @@ import {
   REDEMPTION_ALPHABET, REDEMPTION_CODE_LENGTH, type RedemptionRow,
 } from '@almond/shared/loyalty/redemption';
 import type { TierId } from '@almond/shared/types';
+import type { Gender } from '@almond/shared/loyalty/profile';
+import { referralAttachError, referralRewardFor } from '@almond/shared/loyalty/referral';
+import { transferRefusal, type TransferKind } from '@almond/shared/loyalty/transfer';
 import { conflict, notFound } from '../http-error';
 import type { Db } from './db';
 import type { HoldoutStamp } from '@almond/shared/loyalty/holdout';
 import type {
   Backend, Member, HistoryEntry, NewOrder, OrderRecord, CorporateUse,
-  PaymentIntent, TillRefund, TillSale, TillSpend,
+  MemberTransfer, PaymentIntent, ReferralRow, TillRefund, TillSale, TillSpend,
 } from './types';
 import type { EarnBreakdown } from '@almond/shared/loyalty/earn';
 import { IDEMPOTENCY_SWEEP_EVERY_MS, IDEMPOTENCY_TTL_MS } from './idempotency';
@@ -40,6 +43,10 @@ import {
 import { applyTillRefund } from '@almond/shared/loyalty';
 import { assertIntentSpendable, nextIntentStatus } from '../payments/intent';
 import { toFils, toJod } from '../money';
+import {
+  attachRefused, insufficientFor, newReferralCode, referralCodeNotFound, referralRewardLine,
+  transferLines, transferRefused,
+} from '../memberMoves';
 
 /**
  * THE DURABLE BACKEND. Same behaviour as the in-memory one, on Postgres.
@@ -79,6 +86,7 @@ const iso = (v: unknown): string | null =>
 
 interface MemberRow {
   id: string; phone: string; name: string; birthday: string | null;
+  gender: string | null; first_paid_at: Date | string | null;
   profile_bonus_at: Date | string | null;
   lots: unknown; expiry_settled_through: string;
   wallet_lots: unknown; wallet_expiry_settled_through: string;
@@ -88,6 +96,8 @@ interface MemberRow {
 function toMember(r: MemberRow): Member {
   return {
     id: r.id, phone: r.phone, name: r.name, birthday: r.birthday,
+    gender: (r.gender ?? null) as Gender | null,
+    firstPaidAt: iso(r.first_paid_at),
     profileBonusAt: iso(r.profile_bonus_at),
     lots: (r.lots ?? []) as Member['lots'],
     expirySettledThrough: r.expiry_settled_through,
@@ -178,6 +188,18 @@ function toPaymentIntent(row: Record<string, unknown>): PaymentIntent {
   };
 }
 
+/** A referrals row → ReferralRow. */
+function toReferral(row: Record<string, unknown>): ReferralRow {
+  return {
+    referredId: row.referred_id as string,
+    referrerId: row.referrer_id as string,
+    code: row.code as string,
+    attachedAt: iso(row.attached_at)!,
+    rewardedAt: iso(row.rewarded_at),
+    rewardPoints: row.reward_points == null ? null : Number(row.reward_points),
+  };
+}
+
 export function createPostgresBackend(db: Db): Backend {
   /** Load a member, mutate it with the shared rules, write it back — all inside
    *  one transaction holding a row lock, so two concurrent checkouts cannot
@@ -214,16 +236,101 @@ export function createPostgresBackend(db: Db): Backend {
     });
   }
 
+  /**
+   * Lock a SECOND member inside a transaction that already holds one — the
+   * referral grant (friend, then referrer) and the transfer (both parties, in
+   * id order). The same `FOR NO KEY UPDATE` withMember takes, so every writer
+   * of a member row is still serialised on it.
+   */
+  async function lockMember(t: Db, id: string): Promise<Member> {
+    const rows = await t.query<MemberRow>('select * from members where id = $1 for no key update', [id]);
+    if (!rows[0]) throw notFound('member not found');
+    return toMember(rows[0]);
+  }
+
+  async function insertHistory(t: Db, memberId: string, e: HistoryEntry): Promise<void> {
+    await t.query(
+      `insert into point_history (member_id, delta_points, reason_ar, reason_en, created_at)
+       values ($1,$2,$3,$4,$5)`,
+      [memberId, e.deltaPoints, e.reasonAr, e.reasonEn, e.createdAt],
+    );
+  }
+
+  /** Is this phone on an ACTIVE company's roster right now? Read on the
+   *  caller's transaction handle (a top-level query from inside one is refused
+   *  — db.ts), by the SHARED predicate, from one roster row. */
+  async function isCorporateIn(t: Db, phone: string): Promise<boolean> {
+    const roster = await t.query('select * from corporate_roster where phone = $1', [phone]);
+    if (!roster[0]) return false;
+    const companies = await t.query('select * from companies where id = $1', [roster[0].company_id]);
+    return resolveEntitlement(
+      phone,
+      companies.map((r) => ({
+        id: r.id as string, nameAr: r.name_ar as string, nameEn: r.name_en as string,
+        percentOff: num(r.percent_off), active: r.active as boolean,
+      })),
+      buildRosterIndex([{ phone, companyId: roster[0].company_id as string }]),
+    ) !== null;
+  }
+
+  /**
+   * THE MEMBER'S ORDER WAS PAID — the referral rail's one trigger, inside the
+   * transaction that confirmed the order (checkout, tillEarn), on the member
+   * that transaction already locked.
+   *
+   * Stamps `firstPaidAt` the first time (saved by withMember with the rest of
+   * the member), and if a referral is pending, locks the REFERRER after the
+   * member, grants them the reward as one lot with its ledger line, and stamps
+   * the referral — once per friend. Everything commits with the order or not
+   * at all.
+   *
+   * ⚠ LOCK ORDER. This takes friend → referrer, while a transfer takes its two
+   * members in id order. A friend's FIRST paid order racing a transfer between
+   * that same friend and their referrer can therefore deadlock; Postgres
+   * detects it and aborts one of the two (40P01 → 500, the idempotency key is
+   * released and the client's retry succeeds). Nothing half-commits. Rare by
+   * construction — it needs the one order that pays the referral — and noted
+   * in docs/HANDOVER.md §8.
+   */
+  async function settlePaidOrderIn(t: Db, m: Member, at: Date): Promise<void> {
+    if (m.firstPaidAt === null) m.firstPaidAt = at.toISOString();
+    const rows = await t.query('select * from referrals where referred_id = $1 for update', [m.id]);
+    const ref = rows[0] ? toReferral(rows[0]) : null;
+    if (!ref || ref.rewardedAt !== null) return;
+    const referrer = await lockMember(t, ref.referrerId);
+    const points = referralRewardFor(await isCorporateIn(t, referrer.phone));
+    const lines: HistoryEntry[] = [];
+    settleExpiry(referrer, at, (e) => lines.push(e));
+    referrer.lots = grantLot(referrer.lots, points, 'bonus', at, LOTS).lots;
+    if (points > 0) lines.push(referralRewardLine(points, at));
+    await saveMember(t, referrer);
+    for (const e of lines) await insertHistory(t, referrer.id, e);
+    await t.query(
+      'update referrals set rewarded_at = $2, reward_points = $3 where referred_id = $1',
+      [m.id, at.toISOString(), points],
+    );
+  }
+
+  /** What `memberId` sent on the Amman `day`, of `kind` — the cap's input. */
+  async function sentOnIn(t: Db, memberId: string, kind: TransferKind, day: string): Promise<number> {
+    const rows = await t.query<{ n: string }>(
+      `select coalesce(sum(amount),0)::text as n from member_transfers
+       where sender_id = $1 and kind = $2 and amman_day = $3`,
+      [memberId, kind, day],
+    );
+    return Number(rows[0]?.n ?? 0);
+  }
+
   async function saveMember(t: Db, m: Member): Promise<void> {
     await t.query(
       `update members set name=$2, birthday=$3, profile_bonus_at=$4, lots=$5,
          expiry_settled_through=$6, wallet_lots=$7, wallet_expiry_settled_through=$8,
-         spend=$9, held_tier_id=$10, evaluated_through=$11
+         spend=$9, held_tier_id=$10, evaluated_through=$11, gender=$12, first_paid_at=$13
        where id=$1`,
       [
         m.id, m.name, m.birthday, m.profileBonusAt, JSON.stringify(m.lots),
         m.expirySettledThrough, JSON.stringify(m.walletLots), m.walletExpirySettledThrough,
-        JSON.stringify(m.spend), m.heldTierId, m.evaluatedThrough,
+        JSON.stringify(m.spend), m.heldTierId, m.evaluatedThrough, m.gender, m.firstPaidAt,
       ],
     );
   }
@@ -399,6 +506,7 @@ export function createPostgresBackend(db: Db): Backend {
         if (found[0]) return toMember(found[0]);
         const m: Member = {
           id: `m_${randomUUID()}`, phone, name: normalizeName(name), birthday: null,
+          gender: null, firstPaidAt: null,
           profileBonusAt: null,
           lots: [], expirySettledThrough: todayKey(),
           walletLots: [], walletExpirySettledThrough: todayKey(),
@@ -488,9 +596,14 @@ export function createPostgresBackend(db: Db): Backend {
     async setProfile(id, profile) {
       return withMember(id, (m, log) => {
         const name = normalizeName(profile.name);
-        const bonus = profileBonusFor({ name, birthday: profile.birthday }, m.profileBonusAt !== null);
+        // The STORED phone — a server fact, one of the four the bonus needs.
+        const bonus = profileBonusFor(
+          { name, birthday: profile.birthday, gender: profile.gender, phone: m.phone },
+          m.profileBonusAt !== null,
+        );
         m.name = name;
         m.birthday = profile.birthday;
+        m.gender = profile.gender;
         const at = new Date();
         let pointsBalance = liveBalance(m.lots, at);
         if (bonus > 0) {
@@ -505,7 +618,7 @@ export function createPostgresBackend(db: Db): Backend {
           });
           pointsBalance = liveBalance(m.lots, at);
         }
-        return { profile: { name, birthday: m.birthday }, bonusGranted: bonus, pointsBalance };
+        return { profile: { name, birthday: m.birthday, gender: m.gender }, bonusGranted: bonus, pointsBalance };
       });
     },
 
@@ -864,6 +977,8 @@ export function createPostgresBackend(db: Db): Backend {
           reasonEn: input.pointsReasonEn, createdAt: at.toISOString(),
         });
         if (input.spendJod !== null) applySpend(m, input.spendJod, at, log);
+        // A PAID order is the referral rail's trigger — in this transaction.
+        if (input.spendJod !== null) await settlePaidOrderIn(t, m, at);
         return {
           order,
           pointsBalance: liveBalance(m.lots, at),
@@ -941,6 +1056,9 @@ export function createPostgresBackend(db: Db): Backend {
             sale.earn ? JSON.stringify(sale.earn) : null, sale.status, sale.createdAt],
         );
         if (!inserted[0]) throw posOrderConflict();
+        // Money was collected: a PAID order for the referral rail, exactly as
+        // a funded checkout is. A replay returned above, before it.
+        if (input.paidFils > 0) await settlePaidOrderIn(t, m, at);
         return { sale, replay: false };
       });
     },
@@ -1209,6 +1327,153 @@ export function createPostgresBackend(db: Db): Backend {
          where member_id = $1 and idem_key = $2 and request_hash = $3 and status = $4`,
         [memberId, key, requestHash, 'pending'],
       );
+    },
+
+    // ---- Referrals: referral_codes + referrals ----
+    async getReferral(memberId) {
+      await api.getMember(memberId);                 // notFound, as memory does
+      const read = async () => (await db.query<{ code: string }>(
+        'select code from referral_codes where member_id = $1', [memberId],
+      ))[0]?.code;
+      let code = await read();
+      // Minted once, never rotated. ON CONFLICT covers both races at once: a
+      // parallel first read for this member (member_id is the key) and the
+      // ≈1-in-8.9e8 clash with someone else's code (code is UNIQUE) — either
+      // way nothing is written and the re-read decides.
+      while (!code) {
+        await db.query(
+          'insert into referral_codes (member_id, code) values ($1,$2) on conflict do nothing',
+          [memberId, newReferralCode()],
+        );
+        code = await read();
+      }
+      const rows = await db.query(
+        'select rewarded_at, reward_points from referrals where referrer_id = $1', [memberId],
+      );
+      const rewarded = rows.filter((r) => r.rewarded_at != null);
+      return {
+        code,
+        referredCount: rows.length,
+        rewardedCount: rewarded.length,
+        pointsEarned: rewarded.reduce((n, r) => n + Number(r.reward_points ?? 0), 0),
+      };
+    },
+
+    async attachReferral(memberId, code, at) {
+      // Under the MEMBER's lock: the first paid order takes the same lock, so
+      // "no paid order yet" cannot change between the check and the insert.
+      return withMember(memberId, async (m, _log, t) => {
+        const owner = await t.query<{ member_id: string }>(
+          'select member_id from referral_codes where code = $1', [code],
+        );
+        if (!owner[0]) throw referralCodeNotFound();
+        const found = await t.query('select * from referrals where referred_id = $1', [m.id]);
+        const existing = found[0] ? toReferral(found[0]) : null;
+        if (existing && existing.code === code) return { referral: existing, replay: true };
+        const ref = await t.query<{ id: string; phone: string }>(
+          'select id, phone from members where id = $1', [owner[0].member_id],
+        );
+        if (!ref[0]) throw referralCodeNotFound();
+        const refusal = referralAttachError({
+          memberId: m.id, memberPhone: m.phone, memberFirstPaidAt: m.firstPaidAt,
+          alreadyAttached: existing !== null, referrer: { id: ref[0].id, phone: ref[0].phone },
+        });
+        if (refusal) throw attachRefused(refusal);
+        const row: ReferralRow = {
+          referredId: m.id, referrerId: ref[0].id, code,
+          attachedAt: at.toISOString(), rewardedAt: null, rewardPoints: null,
+        };
+        // referred_id is the PRIMARY KEY: one referral per referred account,
+        // enforced by the database beneath the check above.
+        await t.query(
+          'insert into referrals (referred_id, referrer_id, code, attached_at) values ($1,$2,$3,$4)',
+          [row.referredId, row.referrerId, row.code, row.attachedAt],
+        );
+        return { referral: row, replay: false };
+      });
+    },
+
+    async getReferralOf(memberId) {
+      await api.getMember(memberId);
+      const rows = await db.query('select * from referrals where referred_id = $1', [memberId]);
+      return rows[0] ? toReferral(rows[0]) : null;
+    },
+
+    // ---- Transfers to a friend: member_transfers ----
+    async transfer(input) {
+      const { senderId, recipientId, kind, amount, at } = input;
+      // Before any lock: locking one row twice would hand back two copies of
+      // one member and the second save would overwrite the first.
+      if (senderId === recipientId) throw transferRefused('transfer_to_self');
+      // 🔴 BOTH LOCKS, IN ID ORDER. A→B and B→A at the same moment each take
+      // the lower id first, so neither can hold one row while waiting on the
+      // other — no deadlock between two transfers.
+      const [first, second] = [senderId, recipientId].sort();
+      return db.tx(async (t) => {
+        const a = await lockMember(t, first);
+        const b = await lockMember(t, second);
+        const from = a.id === senderId ? a : b;
+        const to = a.id === senderId ? b : a;
+        const day = ammanDayKey(at);
+        // Read UNDER the sender's lock, so two parallel transfers from one
+        // member are serial here and the second sees the first's amount.
+        const sentToday = await sentOnIn(t, senderId, kind, day);
+        const refusal = transferRefusal({ kind, amount, sentToday, senderId, recipientId });
+        if (refusal) throw transferRefused(refusal);
+        const sLines: HistoryEntry[] = [];
+        const rLines: HistoryEntry[] = [];
+        let slices: SpentSlice[];
+        if (kind === 'points') {
+          settleExpiry(from, at, (e) => sLines.push(e));
+          const res = consumeFifo(from.lots, amount, at);
+          if (!res.ok) throw insufficientFor(kind);
+          slices = spentSlices(from.lots, res.consumed);
+          from.lots = res.lots;
+          settleExpiry(to, at, (e) => rLines.push(e));
+          to.lots = restoreSlices(to.lots, slices, at).lots;
+        } else {
+          settleWalletExpiry(from, at, (e) => sLines.push(e));
+          const res = consumeFifo(from.walletLots, amount, at);
+          if (!res.ok) throw insufficientFor(kind);
+          slices = spentSlices(from.walletLots, res.consumed);
+          from.walletLots = res.lots;
+          settleWalletExpiry(to, at, (e) => rLines.push(e));
+          to.walletLots = restoreSlices(to.walletLots, slices, at).lots;
+        }
+        // No applySpend for either member: a transfer buys no rung.
+        const lines = transferLines(kind, amount, at);
+        sLines.push(lines.sender);
+        rLines.push(lines.recipient);
+        await saveMember(t, from);
+        await saveMember(t, to);
+        for (const e of sLines) await insertHistory(t, from.id, e);
+        for (const e of rLines) await insertHistory(t, to.id, e);
+        const row: MemberTransfer = {
+          id: `trf_${randomUUID()}`, senderId, recipientId, kind, amount, slices,
+          ammanDay: day, createdAt: at.toISOString(),
+        };
+        await t.query(
+          `insert into member_transfers (id, sender_id, recipient_id, kind, amount, slices, amman_day, created_at)
+           values ($1,$2,$3,$4,$5,$6,$7,$8)`,
+          [row.id, senderId, recipientId, kind, amount, JSON.stringify(slices), day, row.createdAt],
+        );
+        return {
+          transfer: row,
+          senderPointsBalance: liveBalance(from.lots, at),
+          senderWalletFils: liveBalance(from.walletLots, at),
+          sentToday: sentToday + amount,
+        };
+      });
+    },
+
+    async transferredOn(memberId, kind, ammanDay) {
+      await api.getMember(memberId);
+      const rows = await db.query<{ n: string }>(
+        `select coalesce(sum(amount),0)::text as n from member_transfers
+         where sender_id = $1 and kind = $2 and amman_day = $3`,
+        [memberId, kind, ammanDay],
+      );
+      return Number(rows[0]?.n ?? 0);
     },
   };
 

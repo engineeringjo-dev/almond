@@ -173,6 +173,54 @@ function assertRedeemRate(rules: EarnRules): void {
   }
 }
 
+/**
+ * One drink or food LINE of an invoice, as the combo sees it: the price ONE UNIT
+ * was billed at and how many units the line holds.
+ *
+ * `unitJod` is on the SAME basis as `EarnContext.total` — tax-inclusive, and
+ * after the unit's share of any invoice-level discount — because the pair's
+ * value is taken out of that total. lib/combo.ts `comboBasket(items, total)` is
+ * the one producer; nothing else should build these by hand.
+ */
+export interface ComboUnit {
+  unitJod: number;
+  qty: number;
+}
+
+/**
+ * The drink and food lines of an invoice — what the combo pair is chosen from.
+ * Replaced the bare `comboPairs: number` on EarnContext (2026-09-24): a COUNT
+ * cannot say which lines are the pair, and since the owner's rule changed the
+ * pair's lines must stop earning regular points, the engine has to know their
+ * price. The count field was DELETED rather than kept beside this one so that
+ * every caller still passing only a count became a typecheck failure instead
+ * of a silent "the pair earns twice".
+ */
+export interface ComboBasket {
+  drinks: readonly ComboUnit[];
+  foods: readonly ComboUnit[];
+}
+
+/** Whole, non-negative units — a NaN/negative/fractional qty counts as what it
+ *  safely can, never as a mint. */
+const unitsOf = (u: ComboUnit): number => (Number.isFinite(u.qty) && u.qty > 0 ? Math.floor(u.qty) : 0);
+/** A price that is not a finite positive number is worth 0 — the pair then
+ *  takes nothing out of the regular base, which is the customer-safe side. */
+const priceOf = (u: ComboUnit): number => (Number.isFinite(u.unitJod) && u.unitJod > 0 ? u.unitJod : 0);
+
+/** The sum of the `n` CHEAPEST units across `lines`. */
+function cheapestUnits(lines: readonly ComboUnit[], n: number): number {
+  let need = n;
+  let sum = 0;
+  for (const l of [...lines].sort((a, b) => priceOf(a) - priceOf(b))) {
+    if (need <= 0) break;
+    const take = Math.min(unitsOf(l), need);
+    sum += take * priceOf(l);
+    need -= take;
+  }
+  return sum;
+}
+
 export interface EarnContext {
   /** Invoice total in JOD, after discounts, INCLUDING TAX — i.e. exactly
    *  `computeTotals(...).total` (cart/totals.ts:52). See §1.1. */
@@ -218,8 +266,17 @@ export interface EarnContext {
    */
   pointsRedeemed?: number;
   paidFromBalance?: boolean;
-  /** Drink+food pairs, from comboPairs(items) in @almond/shared/lib/combo. */
-  comboPairs?: number;
+  /**
+   * The invoice's drink and food lines — `comboBasket(items, total)` from
+   * @almond/shared/lib/combo. Absent means no combo (the till: it reports only
+   * `paidTotal`, never lines — see bff/src/routes/pos.ts).
+   *
+   * 🔴 THE PAIR REPLACES ITS OWN REGULAR POINTS (owner, 2026-09-24). The pair's
+   * two units earn NO regular points and the invoice gets `comboBonusPoints`
+   * instead; every other line earns exactly as before. See the combo block in
+   * computeEarn for which pair is chosen and why.
+   */
+  combo?: ComboBasket;
   /** True only when the member ACTIVATED today's bonus day (server-verified).
    *  Defaults to false: no caller may grant the bonus day by asserting it from
    *  the device — that was D2. See docs/LOYALTY-EARN-PATCH.md §3.2 / §8.1. */
@@ -266,8 +323,10 @@ export interface EarnBreakdown {
    *  the invoice ceiling. This is the number the whole grant is built on, and
    *  it is 0 on a bill the member paid for entirely with points. */
   cashTotal: number;
-  /** The part of `cashTotal` points were actually earned on: `min(cashTotal,
-   *  maxEarningInvoiceJod)`. Equal to `total` on every real unredeemed invoice. */
+  /** The part of `cashTotal` REGULAR points were actually earned on:
+   *  `min(cashTotal, total − comboExcludedJod)`, then clamped to
+   *  `maxEarningInvoiceJod`. Equal to `total` on every real unredeemed invoice
+   *  that holds no paid combo pair. */
   earningTotal: number;
   /** True when the invoice ceiling bound — i.e. the CASH portion was more than
    *  `maxEarningInvoiceJod`. On a 8.31 JOD average invoice this should be
@@ -276,6 +335,14 @@ export interface EarnBreakdown {
   /** Pairs actually PAID, after `comboMaxPairsPerInvoice` and after the
    *  points-paid rule below — 0 when the bonus was withheld. */
   comboPairsPaid: number;
+  /**
+   * JOD taken OUT of the regular base because it paid for the combo pair —
+   * the cheapest drink unit plus the cheapest food unit (per pair paid). The
+   * pair earns `comboBonus` INSTEAD of regular points (owner, 2026-09-24), so
+   * this is 0 whenever `comboPairsPaid` is 0: a pair that is not paid the bonus
+   * keeps earning like any other line.
+   */
+  comboExcludedJod: number;
   /** True when a combo bonus the basket had earned was withheld because the
    *  invoice was settled entirely with points and
    *  `comboBonusOnPointsPaidInvoice` is off. Recorded rather than inferred: a
@@ -365,8 +432,65 @@ export function computeEarn(
   const redeemedJod = pointsRedeemed / rules.pointsPerJodRedeem;
   const cashTotal = Math.max(0, total - redeemedJod);
 
-  const earningTotal = Math.min(cashTotal, rules.maxEarningInvoiceJod);
-  const invoiceCapApplied = cashTotal > rules.maxEarningInvoiceJod;
+  // ── THE COMBO PAIR — decided BEFORE the rate, because it now changes the base.
+  //
+  // 🔴 OWNER, 2026-09-24: THE 50 REPLACES THE PAIR'S REGULAR POINTS. It used to
+  // be added ON TOP of them. Now, when the invoice holds a drink+food pair, the
+  // pair's two units earn NO regular points and the invoice gets
+  // `comboBonusPoints` instead; every OTHER line earns exactly as before, with
+  // the tier ramp, the wallet multiplier and the ceiling. Still at most
+  // `comboMaxPairsPerInvoice` pairs (1 shipped) however many the basket holds.
+  //
+  // WHICH PAIR, DETERMINISTICALLY: the CHEAPEST drink unit and the CHEAPEST
+  // food unit. The regular points a unit would have earned rise with its price,
+  // so the cheapest pair is the one whose removal costs the member the fewest
+  // regular points — the customer-favourable choice, and a unique one (ties
+  // are equal prices, so the member's number is the same whichever unit is
+  // "picked"). The pair is a UNIT of each, not a whole line: two lattes and a
+  // croissant are one pair plus one latte, and the second latte earns normally.
+  const drinkUnits = (ctx.combo?.drinks ?? []).reduce((n, u) => n + unitsOf(u), 0);
+  const foodUnits = (ctx.combo?.foods ?? []).reduce((n, u) => n + unitsOf(u), 0);
+  const comboPairsCounted = Math.min(
+    drinkUnits,
+    foodUnits,
+    Math.max(0, Math.floor(rules.comboMaxPairsPerInvoice)),
+  );
+  // ... and this is where the flat bonus is made to obey the same principle as
+  // the rate. The rate needs no rule — it is a percentage of a cash portion
+  // that is zero — but the flat points sit outside every ceiling, so a pair
+  // paid for entirely out of a points balance would collect them. Not a mint
+  // (the balance falls to 11.4% of itself each cycle) but it inflates what an
+  // existing balance eventually grants by ≈12.9%; the dial and its arithmetic
+  // are in config/index.ts, and flipping it is this one boolean.
+  //
+  // The test is `redeemedJod > 0 && cashTotal === 0`, NOT `cashTotal === 0`: a
+  // genuinely free invoice (total 0 — a comped basket, a staff order) has no
+  // redemption behind it and its behaviour is deliberately unchanged.
+  const comboSuppressedByRedemption =
+    !rules.comboBonusOnPointsPaidInvoice
+    && comboPairsCounted > 0
+    && redeemedJod > 0
+    && cashTotal === 0;
+  // A dial of 0 (the offer retired) pays no pair — and then the pair must keep
+  // earning its regular points, or retiring the offer would quietly cut
+  // everybody's cashback on every drink+food basket.
+  const comboPays = Number.isFinite(rules.comboBonusPoints) && rules.comboBonusPoints > 0;
+  const comboPairsPaid = comboSuppressedByRedemption || !comboPays ? 0 : comboPairsCounted;
+  const comboBonus = comboPairsPaid * rules.comboBonusPoints;
+  const comboExcludedJod = comboPairsPaid > 0
+    ? Math.min(total, cheapestUnits(ctx.combo?.drinks ?? [], comboPairsPaid)
+      + cheapestUnits(ctx.combo?.foods ?? [], comboPairsPaid))
+    : 0;
+  // The REGULAR base: the cash the member handed over, minus the pair. Points
+  // redeemed against the bill are taken to have paid for the pair FIRST — the
+  // pair earns nothing either way, so this is the reading that leaves the most
+  // cash on the lines that DO earn (customer-favourable, and never more than
+  // the cash: «لا يكسب نقاط على الجزء المدفوع بالنقاط» still holds, because
+  // regularTotal ≤ cashTotal).
+  const regularTotal = Math.max(0, Math.min(cashTotal, total - comboExcludedJod));
+
+  const earningTotal = Math.min(regularTotal, rules.maxEarningInvoiceJod);
+  const invoiceCapApplied = regularTotal > rules.maxEarningInvoiceJod;
   // NOT Date#getDay(): that is host-local, and the BFF, the phone and the till
   // are not on the same clock. One business day, defined once — see §3.6.
   const weekday = ammanWeekday(ctx.at ?? new Date());
@@ -408,31 +532,6 @@ export function computeEarn(
   const tierBonus = scaled * (tier.multiplier - 1);
   const rate = rules.weekdayBonus.find((w) => w.weekday === weekday)?.rate ?? 0;
   const weekdayBonus = scaled * rate;
-  // The combo pays once per invoice: `comboPairs()` counts min(drinks, foods)
-  // and is uncapped on purpose, and this is where that count is bounded. A
-  // basket of 15 drinks and 15 foods used to mint 750 points on one invoice.
-  const comboPairsCounted = Math.min(
-    Math.max(0, Math.floor(ctx.comboPairs ?? 0)),
-    Math.max(0, Math.floor(rules.comboMaxPairsPerInvoice)),
-  );
-  // ... and this is where the flat bonus is made to obey the same principle as
-  // the rate. The rate needs no rule — it is a percentage of a cash portion
-  // that is zero — but 50 flat points sit outside every ceiling, so a pair paid
-  // for entirely out of a points balance would collect them. Not a mint (the
-  // balance falls to 11.4% of itself each cycle) but it inflates what an
-  // existing balance eventually grants by ≈12.9%; the dial and its arithmetic
-  // are in config/index.ts, and flipping it is this one boolean.
-  //
-  // The test is `redeemedJod > 0 && cashTotal === 0`, NOT `cashTotal === 0`: a
-  // genuinely free invoice (total 0 — a comped basket, a staff order) has no
-  // redemption behind it and its behaviour is deliberately unchanged.
-  const comboSuppressedByRedemption =
-    !rules.comboBonusOnPointsPaidInvoice
-    && comboPairsCounted > 0
-    && redeemedJod > 0
-    && cashTotal === 0;
-  const comboPairsPaid = comboSuppressedByRedemption ? 0 : comboPairsCounted;
-  const comboBonus = comboPairsPaid * rules.comboBonusPoints;
 
   // THE CEILING (D1). A SAFETY VALVE, not an offer dial.
   // The bonus day and the weekday bonus are retired, but the WALLET MULTIPLIER
@@ -473,7 +572,7 @@ export function computeEarn(
   return {
     total,
     pointsRedeemed, redeemedJod, cashTotal,
-    earningTotal, invoiceCapApplied, comboPairsPaid, comboSuppressedByRedemption,
+    earningTotal, invoiceCapApplied, comboPairsPaid, comboExcludedJod, comboSuppressedByRedemption,
     base, walletBonus, bonusDayBonus, tierBonus, weekdayBonus, comboBonus,
     subtotal: cappable + comboBonus, cap, capApplied, points,
     effectiveMultiplier: base > 0 ? points / base : 0,

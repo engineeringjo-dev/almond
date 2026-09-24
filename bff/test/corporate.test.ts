@@ -185,7 +185,12 @@ describe('T35e 🔴 a standing-discount holder never earns points', () => {
     // §8.7 puts comboBonus OUTSIDE the earn ceiling on purpose. That makes it
     // the one grant a corporate zero applied at the cap would have missed, so
     // the zero is applied after both.
-    const withCombo = { total: 20.3, comboPairs: 10, at: new Date('2026-09-07T10:00:00Z') };
+    const withCombo = {
+      total: 20.3,
+      combo: { drinks: [{ unitJod: 1, qty: 10 }], foods: [{ unitJod: 1, qty: 10 }] },
+      at: new Date('2026-09-07T10:00:00Z'),
+    };
+    expect(computeEarn(withCombo, RULES).comboBonus).toBeGreaterThan(0);   // the pair really is there
     expect(computeEarn(withCombo, RULES).points).toBeGreaterThan(0);
     expect(computeEarn({ ...withCombo, corporate: true }, RULES).points).toBe(0);
   });

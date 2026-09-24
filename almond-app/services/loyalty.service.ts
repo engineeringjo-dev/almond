@@ -10,7 +10,9 @@ import type {
   ReferralInfo,
   GiftCard,
 } from '@/types';
-import type { PosMode, PosTokenWire } from '@almond/shared/pos/tokenWire';
+import type { PosTokenWire } from '@almond/shared/pos/tokenWire';
+import type { ComboBasket } from '@almond/shared/loyalty/earn';
+import type { TransferKind } from '@almond/shared/loyalty/transfer';
 import { config } from '@/constants/config';
 import { mockLoyaltyService } from './loyalty.service.mock';
 import { liveLoyaltyService } from './loyalty.service.live';
@@ -31,9 +33,10 @@ export interface EarnInput {
    * cannot convert at one rate while the server charges at another.
    */
   pointsRedeemed?: number;
-  /** Drink+food pairs from comboPairs(items). The POINTS per pair are the
-   *  shared earn function's business, never the caller's. */
-  comboPairs?: number;
+  /** The basket's priced drink and food lines — comboBasket(items, total).
+   *  Which pair, and that it earns the combo INSTEAD of its regular points
+   *  (owner, 2026-09-24), is the shared earn function's business. */
+  combo?: ComboBasket;
   /** True only when the member activated today's bonus day. */
   bonusDayActivated?: boolean;
   /** Decision clock (tests / deterministic estimates). */
@@ -59,7 +62,46 @@ export interface SendGiftInput {
  * `MEMBER|<userId>|MODE=…` string that anyone who learned a member id could
  * render and anyone with a photograph could replay).
  */
-export type { PosMode, PosTokenWire } from '@almond/shared/pos/tokenWire';
+export type { PosTokenWire } from '@almond/shared/pos/tokenWire';
+
+/** What the member attaching a friend's code is told back. */
+export interface ReferralAttachResult {
+  attached: true;
+  code: string;
+  /** The referrer's first name + initial, or null when they gave no name. */
+  referrerDisplayName: string | null;
+  replay: boolean;
+}
+
+/** POST /v1/me/transfers/preview — who that phone belongs to, masked. */
+export interface TransferPreview {
+  recipientFound: true;
+  /** First name + initial (maskedDisplayName), or null when they gave none. */
+  displayName: string | null;
+  /** What the member may still send today: whole points, and JOD. */
+  remainingToday: { points: number; walletJod: number };
+}
+
+export interface SendTransferInput {
+  phone: string;
+  kind: TransferKind;
+  /** Whole points, or JOD for the wallet (to the fils). */
+  amount: number;
+  /** One per confirmation (lib/apiClient newIdempotencyKey), reused on retry:
+   *  the server replays the first answer instead of moving the money twice. */
+  idempotencyKey: string;
+}
+
+/** POST /v1/me/transfers — what moved, and where the sender now stands. */
+export interface TransferReceipt {
+  transferId: string;
+  kind: TransferKind;
+  amount: number;
+  recipientDisplayName: string | null;
+  pointsBalance: number;
+  walletBalance: number;
+  remainingToday: { kind: TransferKind; amount: number };
+}
 
 /** What the server did with a profile save. */
 export interface ProfileSaveResult {
@@ -114,7 +156,8 @@ export interface LoyaltyService {
   /**
    * Save the member's own details, and collect the one-time completion bonus.
    *
-   * 🔴 THE CLIENT SENDS A NAME AND NOTHING ELSE. `bonusGranted` in the reply is
+   * 🔴 THE CLIENT SENDS NAME, BIRTH DATE AND GENDER — never points, never a
+   * phone, never "I am owed the bonus". `bonusGranted` in the reply is
    * what the SERVER decided and paid — the phone may predict it with
    * @almond/shared/loyalty/profile to render an honest "+50" on the button, but
    * it never asserts it. A client that could would be a mint.
@@ -138,19 +181,19 @@ export interface LoyaltyService {
    * Mint the code the member shows at the till. Called on the Pay screen and by
    * nothing else.
    *
-   * `mode` is the member's stated intent (pay with the wallet vs earn only). It
-   * is a parameter of the REQUEST — not something the client writes into the
-   * code — so the server can sign it into the token and `POST /v1/pos/scan` can
-   * hand it to the till alongside the member id. That is the whole reason it
-   * travels here: after this change the barcode is opaque, so a mode the token
-   * does not carry cannot reach the counter at all.
+   * 🔴 ONE CODE FOR EARN AND SPEND (owner, 2026-09-24: «كسب وصرف النقاط بدي
+   * يكون باركود مباشر نفسه»). There is no mode any more: the request body is
+   * `{}`, the server defaults the token to the member code, and one scan hands
+   * the till both an earn ticket and a spend ticket — the member says at the
+   * counter whether to use their points. The pay/earn toggle this parameter
+   * used to carry is gone from the screen.
    *
    * Never returns a locally-constructed value, in ANY data source. The mock
    * returns an obviously unsigned token of the same shape; it does not return
    * the retired static string, and @almond/shared/pos/tokenWire refuses that
    * format at the seam even if something upstream tries.
    */
-  getPosToken(userId: string, mode: PosMode): Promise<PosTokenWire>;
+  getPosToken(userId: string): Promise<PosTokenWire>;
 
   // POS integration: app polls after showing the barcode; the till reports the
   // scan + earn/redeem/charge it performed (Odoo POS → loyalty server).
@@ -163,8 +206,18 @@ export interface LoyaltyService {
   redeemGiftCode(userId: string, code: string): Promise<{ amount: number; walletBalance: number }>;
 
   // Growth rewards (section 2.4.1)
-  getReferralCode(userId: string): Promise<ReferralInfo>;
-  claimReferral(referrerId: string, referredPhone: string): Promise<{ rewarded: boolean }>;
+  /** GET /v1/me/referral — my code, my link, what it has earned. The REFERRER
+   *  is paid once per friend, on that friend's FIRST PAID order (owner,
+   *  2026-09-24) — never by anything this client calls. */
+  getReferral(userId: string): Promise<ReferralInfo>;
+  /** POST /v1/me/referral/attach — I am the friend: attach the code I was
+   *  given. Once, before my first paid order. */
+  attachReferral(userId: string, code: string): Promise<ReferralAttachResult>;
+
+  // Transfers to a friend (owner, 2026-09-24) — points or wallet balance, to a
+  // REGISTERED member found by phone, within a daily cap.
+  previewTransfer(userId: string, phone: string): Promise<TransferPreview>;
+  sendTransfer(userId: string, input: SendTransferInput): Promise<TransferReceipt>;
   rateBranch(input: {
     userId: string;
     branchId: string;

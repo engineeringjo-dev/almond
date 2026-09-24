@@ -7,7 +7,8 @@ import {
 import {
   qualifyingSpend, qualifyingVisitDays, spendEntry, windowRulesFromConfig,
 } from '@almond/shared/loyalty/window';
-import { comboPairs } from '@almond/shared/lib/combo';
+import { comboBasket, comboPairs } from '@almond/shared/lib/combo';
+import type { ComboBasket } from '@almond/shared/loyalty/earn';
 import { itemKind } from '@almond/shared/lib/categoryKind';
 import { menuItems } from '@almond/shared/menu';
 import type { CartItem } from '@almond/shared/types';
@@ -19,6 +20,7 @@ import {
   type LoyaltyUser,
 } from '@/services/loyalty.service.mock';
 import { estimateEarnedPoints, ESTIMATE_RULES } from '@/lib/earnEstimate';
+import { config } from '@/constants/config';
 import { defaultSpinConfig } from '@/services/spinDefaults';
 
 /**
@@ -146,16 +148,21 @@ describe('D2 — one earn calculation: the app grants what computeEarn returns',
                   total, windowSpend, paidFromBalance, pairs, bonusDayActivated,
                   at: at.toISOString(),
                 });
+                // `pairs` drink+food pairs at 1.00 + 0.50 — priced, because the
+                // pair now earns the combo INSTEAD of its regular points.
+                const combo: ComboBasket | undefined = pairs > 0
+                  ? { drinks: [{ unitJod: 1, qty: pairs }], foods: [{ unitJod: 0.5, qty: pairs }] }
+                  : undefined;
                 const res = await mockLoyaltyService.earn({
                   userId: id,
                   invoiceAmount: total,
                   paidFromBalance,
-                  comboPairs: pairs,
+                  combo,
                   bonusDayActivated,
                   at,
                 });
                 const expected = computeEarn({
-                  total, windowSpend, paidFromBalance, comboPairs: pairs,
+                  total, windowSpend, paidFromBalance, combo,
                   bonusDayActivated, at,
                 }).points;
                 expect(res.pointsEarned, where).toBe(expected);
@@ -251,7 +258,7 @@ describe('D2 — one earn calculation: the app grants what computeEarn returns',
       for (const paidFromBalance of [false, true]) {
         const shown = estimateEarnedPoints({ total: 20.3, items, windowSpend, paidFromBalance });
         const expected = computeEarn(
-          { total: 20.3, windowSpend, paidFromBalance, comboPairs: comboPairs(items) },
+          { total: 20.3, windowSpend, paidFromBalance, combo: comboBasket(items, 20.3) },
           ESTIMATE_RULES,
         ).points;
         expect(shown, JSON.stringify({ windowSpend, paidFromBalance })).toBe(expected);
@@ -584,5 +591,49 @@ describe('L — per-lot expiry, through the mock the app really runs on', () => 
     // FIFO: the oldest grant is the one closest to death.
     const oldest = [...u.lots].sort((a, b) => a.grantedOn.localeCompare(b.grantedOn))[0];
     expect(bal.nextExpiry!.on).toBe(oldest.expiresOn);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// The mock's referral rail and transfers: the SAME shared rules the BFF runs
+// (loyalty/referral.ts, loyalty/transfer.ts), so the app build that ships on
+// the mock teaches the member what the server will actually do.
+// ---------------------------------------------------------------------------
+describe('R/X — referrals and transfers in the mock (owner, 2026-09-24)', () => {
+  it('R1 a friend attaches a code; the REFERRER is paid once, on the friend\'s first paid order', async () => {
+    const referrer = newUserId();
+    const friend = newUserId();
+    const { code, canAttach } = await mockLoyaltyService.getReferral(referrer);
+    expect(code).toMatch(/^[A-Z2-9]{6}$/);
+    expect(canAttach).toBe(true);
+    const before = liveBalance(__getMockUser(referrer).lots);
+    await expect(mockLoyaltyService.attachReferral(referrer, code)).rejects.toMatchObject({ code: 'referral_self' });
+    expect((await mockLoyaltyService.attachReferral(friend, code.toLowerCase())).replay).toBe(false);
+    expect(liveBalance(__getMockUser(referrer).lots)).toBe(before);               // attaching pays nothing
+    await mockLoyaltyService.earn({ userId: friend, invoiceAmount: 5, paidFromBalance: false });
+    await mockLoyaltyService.earn({ userId: friend, invoiceAmount: 5, paidFromBalance: false });
+    expect(liveBalance(__getMockUser(referrer).lots)).toBe(before + config.REFERRAL_REWARD_POINTS);
+    expect(await mockLoyaltyService.getReferral(referrer)).toMatchObject({ referredCount: 1, rewardedCount: 1 });
+    expect((await mockLoyaltyService.getReferral(friend)).canAttach).toBe(false);
+  });
+
+  it('X1 the preview masks the name; a transfer moves points and respects the daily cap', async () => {
+    const sender = newUserId();
+    const u = __getMockUser(sender);
+    const preview = await mockLoyaltyService.previewTransfer(sender, '0791112233');
+    expect(preview.displayName).toBe('Sara K.');
+    await expect(mockLoyaltyService.previewTransfer(sender, '0799999999')).rejects.toMatchObject({ code: 'recipient_not_found' });
+    const start = liveBalance(u.lots);
+    const r = await mockLoyaltyService.sendTransfer(sender, {
+      phone: '0791112233', kind: 'points', amount: 100, idempotencyKey: 'k1',
+    });
+    expect(r.pointsBalance).toBe(start - 100);
+    expect(r.remainingToday).toEqual({ kind: 'points', amount: config.TRANSFER_POINTS_DAILY_MAX - 100 });
+    await expect(mockLoyaltyService.sendTransfer(sender, {
+      phone: '0791112233', kind: 'points', amount: config.TRANSFER_POINTS_DAILY_MAX, idempotencyKey: 'k2',
+    })).rejects.toMatchObject({ code: 'transfer_daily_cap' });
+    await expect(mockLoyaltyService.sendTransfer(sender, {
+      phone: '0791112233', kind: 'wallet', amount: 1000, idempotencyKey: 'k3',
+    })).rejects.toMatchObject({ code: 'transfer_daily_cap' });
   });
 });

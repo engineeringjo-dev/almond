@@ -617,7 +617,7 @@ describe('SMOKE: one member, one server, sign-in to the top rung', () => {
      * the first surface that states the combo to a member with no basket, and
      * its one tap ADDS A SPECIFIC PAIR — `getComboStarter()` — and sends them to
      * the cart. That pair is chosen on the phone by `categoryKind`; the grant is
-     * priced on the server by `comboPairs`, through `reprice` in
+     * priced on the server by `comboBasket`, through `reprice` in
      * bff/src/pricing.ts, from an itemId and a sizeId over HTTP.
      *
      * Nothing else in this repo joins those two halves. The app tests assert the
@@ -649,15 +649,16 @@ describe('SMOKE: one member, one server, sign-in to the top rung', () => {
     expect(res.statusCode, res.body).toBe(201);
     const body = res.json();
 
-    // The offer written out: the rung's rate on the invoice, PLUS the flat
-    // combo grant. Stated against config, not re-derived with computeEarn.
-    expect(body.pointsEarned).toBe(
-      expectedPoints(body.total, before.tier.id) + config.COMBO_BONUS_POINTS,
-    );
+    // 🔴 THE OFFER WRITTEN OUT (owner, 2026-09-24): the pair earns the flat
+    // combo grant INSTEAD of its regular points. This basket IS the pair, so
+    // there is nothing left to earn a rate on — the whole grant is the combo,
+    // and not one regular point comes from either line. (Until 2026-09-24 this
+    // was the rung's rate on the invoice PLUS the 50.)
+    expect(body.pointsEarned).toBe(config.COMBO_BONUS_POINTS);
+    expect(expectedPoints(body.total, before.tier.id)).toBeGreaterThan(0);   // there WERE regular points to replace
 
-    // ... and the bonus really is the pair, not something the basket size
-    // bought: the same drink alone, at the same rung, earns exactly
-    // COMBO_BONUS_POINTS fewer per JOD-matched invoice.
+    // ... and the bonus really is the pair: the same drink alone, at the same
+    // rung, earns its ordinary rate and no combo.
     const solo = await enrol();
     const soloRes = await app.inject({
       method: 'POST',
@@ -671,10 +672,6 @@ describe('SMOKE: one member, one server, sign-in to the top rung', () => {
     expect(soloRes.statusCode, soloRes.body).toBe(201);
     const soloBody = soloRes.json();
     expect(soloBody.pointsEarned).toBe(expectedPoints(soloBody.total, 'base'));
-    expect(body.pointsEarned - soloBody.pointsEarned).toBe(
-      expectedPoints(body.total, 'base') - expectedPoints(soloBody.total, 'base')
-      + config.COMBO_BONUS_POINTS,
-    );
 
     // 🔴 THE PAIR CAP, asserted end to end through the real route.
     //
@@ -707,12 +704,12 @@ describe('SMOKE: one member, one server, sign-in to the top rung', () => {
     expect(bulkRes.statusCode, bulkRes.body).toBe(201);
     const bulkBody = bulkRes.json();
     expect(config.COMBO_MAX_PAIRS_PER_INVOICE).toBe(1);
+    // ONE pair (one drink unit + one food unit — here, exactly the one-pair
+    // basket above) leaves the regular base and earns the combo; the other
+    // three drinks and three foods earn the ordinary rate.
     expect(bulkBody.pointsEarned).toBe(
-      expectedPoints(bulkBody.total, 'base') + config.COMBO_MAX_PAIRS_PER_INVOICE * config.COMBO_BONUS_POINTS,
+      expectedPoints(bulkBody.total - body.total, 'base')
+      + config.COMBO_MAX_PAIRS_PER_INVOICE * config.COMBO_BONUS_POINTS,
     );
-    // ...and the four-pair basket pays exactly what the one-pair basket paid,
-    // on the combo component. Only the rate component grew with the basket.
-    expect(bulkBody.pointsEarned - expectedPoints(bulkBody.total, 'base'))
-      .toBe(body.pointsEarned - expectedPoints(body.total, 'base'));
   });
 });

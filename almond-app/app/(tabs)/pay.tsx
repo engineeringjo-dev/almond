@@ -22,7 +22,6 @@ import { posQrExpiresAt, posQrMsUntilExpiry, posQrStatus } from '@/lib/posQr';
 import { useLoyaltyBalance, usePosToken, useScanStatus } from '@/hooks/useLoyalty';
 import { tiers } from '@/services/seed';
 import { tierName } from '@almond/shared/loyalty';
-import type { PosMode } from '@almond/shared/pos/tokenWire';
 import { useUserId } from '@/stores/authStore';
 
 /**
@@ -49,10 +48,11 @@ import { useUserId } from '@/stores/authStore';
  *     and the member gets something they can act on — a retry, and the account
  *     number the cashier can look them up by. Rendering a locally-built code
  *     instead would restore the exact hole this replaced;
- *   - the PAY/EARN mode is part of the REQUEST, not part of the barcode. The
- *     server signs it into the token and hands it to the till with the member
- *     id (`POST /v1/pos/scan` → `{memberId, mode}`), which is the only channel
- *     between this screen and the counter that cannot be tampered with.
+ *   - there is ONE code, for earning AND spending (owner, 2026-09-24: «كسب
+ *     وصرف النقاط بدي يكون باركود مباشر نفسه»). The pay/earn toggle that used
+ *     to sit above the QR is gone: the code is minted with `{}` and the till's
+ *     single scan (`POST /v1/pos/scan`) hands back both an earn ticket and a
+ *     spend ticket — the member says at the counter whether to use points.
  *
  * Still outstanding, on the till side: Odoo POS has to call `/v1/pos/scan` with
  * the shared POS key. Nothing in this repo can do that half.
@@ -63,12 +63,6 @@ export default function PayScreen() {
   const { width } = useWindowDimensions();
   const { data: balance } = useLoyaltyBalance();
 
-  // Scan & Pay (earn + pay) vs Scan only (earn without paying). The mode is
-  // sent with the token request and signed into the token; it is not written
-  // into the barcode by this screen, and switching it asks for a new code
-  // (the mode is part of the query key) so the QR can never disagree with the
-  // toggle sitting above it.
-  const [mode, setMode] = useState<PosMode>('pay');
   const qrSize = Math.min(width - spacing.lg * 2 - spacing.xl * 2, 300);
 
   // Focus drives BOTH the brightness override and the token refresh. A member
@@ -82,7 +76,7 @@ export default function PayScreen() {
     }, []),
   );
 
-  const { data: posToken, dataUpdatedAt, isFetching, isPending, refetch } = usePosToken({ mode, focused });
+  const { data: posToken, dataUpdatedAt, isFetching, isPending, refetch } = usePosToken({ focused });
   // `expiresIn` is relative to the RESPONSE, so the clock starts at
   // dataUpdatedAt — not at render, which would extend a token's life on every
   // re-render and eventually show a dead code as live.
@@ -177,26 +171,6 @@ export default function PayScreen() {
       <Text variant="body" color={colors.warmGray} center style={styles.instruction}>
         {t('pay.instruction')}
       </Text>
-
-      {/* Scan & Pay vs Scan only */}
-      <View style={styles.modeRow}>
-        {(['pay', 'earn'] as const).map((m) => {
-          const active = mode === m;
-          return (
-            <Pressable
-              key={m}
-              style={[styles.modeChip, active && styles.modeActive]}
-              onPress={() => setMode(m)}
-              accessibilityRole="button"
-              accessibilityState={{ selected: active }}
-            >
-              <Text variant="bodyBold" color={active ? colors.white : colors.warmGray}>
-                {m === 'pay' ? t('pay.scanAndPay') : t('pay.scanOnly')}
-              </Text>
-            </Pressable>
-          );
-        })}
-      </View>
 
       {/* Hero: the server-minted code, black on white. The `value` prop reads
           the fetched token and nothing else — there is no locally-assembled
@@ -306,21 +280,7 @@ export default function PayScreen() {
 const styles = StyleSheet.create({
   content: { alignItems: 'center', paddingTop: spacing.md },
   titleRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginBottom: spacing.sm },
-  instruction: { marginBottom: spacing.md, maxWidth: 300 },
-  modeRow: {
-    flexDirection: 'row',
-    gap: spacing.xs,
-    backgroundColor: colors.neutralWarm,
-    borderRadius: radius.pill,
-    padding: 3,
-    marginBottom: spacing.lg,
-  },
-  modeChip: {
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.lg,
-    borderRadius: radius.pill,
-  },
-  modeActive: { backgroundColor: colors.primary },
+  instruction: { marginBottom: spacing.lg, maxWidth: 300 },
   earnRate: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs, marginTop: spacing.xs },
   qrCard: {
     backgroundColor: '#FFFFFF',

@@ -532,7 +532,7 @@ describe('W1-10 the window reaches the wire', () => {
     const r1 = await checkout();
     expect(r1.pointsEarned).toBe(computeEarn({
       total: r1.total, windowSpend: b0.windowSpend, heldRungId: b0.tier.id,
-      paidFromBalance: false, comboPairs: 0, bonusDayActivated: false, at,
+      paidFromBalance: false, bonusDayActivated: false, at,
     }).points);
 
     const b1 = await balance();
@@ -542,7 +542,7 @@ describe('W1-10 the window reaches the wire', () => {
     const r2 = await checkout();
     expect(r2.pointsEarned).toBe(computeEarn({
       total: r2.total, windowSpend: b1.windowSpend, heldRungId: b1.tier.id,
-      paidFromBalance: false, comboPairs: 0, bonusDayActivated: false, at,
+      paidFromBalance: false, bonusDayActivated: false, at,
     }).points);
 
     const b2 = await balance();

@@ -1,6 +1,7 @@
 import { menuItems } from '@almond/shared/menu';
 import { computeTotals, buildLineId, type CartTotals } from '@almond/shared/cart';
-import { basketHasDrink, comboPairs } from '@almond/shared/lib/combo';
+import { basketHasDrink, comboBasket } from '@almond/shared/lib/combo';
+import type { ComboBasket } from '@almond/shared/loyalty/earn';
 import type { CartItem, CartCustomization } from '@almond/shared/types';
 import { badRequest } from './http-error';
 import type { CheckoutLine } from './backend/types';
@@ -18,8 +19,11 @@ function subtotalOf(items: CartItem[]): number {
 export function reprice(lines: CheckoutLine[], discountFor?: (subtotal: number) => number): {
   items: CartItem[];
   totals: CartTotals;
-  /** Drink+food pairs. Pricing counts pairs; loyalty/earn.ts prices them. */
-  comboPairs: number;
+  /** The priced drink and food lines, on the invoice total's basis — what
+   *  loyalty/earn.ts picks the combo pair from. Pricing LISTS the candidates;
+   *  the engine decides the pair, and that the pair earns the combo INSTEAD of
+   *  its regular points (owner, 2026-09-24). */
+  combo: ComboBasket;
   /** Does the basket contain a drink? The second-visit voucher's condition —
    *  classified by itemKind, so a 250 g retail bag of beans is not a drink even
    *  though it carries `isDrink: true` (lib/combo.ts). Computed here so the
@@ -48,6 +52,7 @@ export function reprice(lines: CheckoutLine[], discountFor?: (subtotal: number) 
       isBrunch: item.isBrunch, isDrink: item.isDrink,
     };
   });
+  const totals = computeTotals(items, discountFor ? discountFor(subtotalOf(items)) : 0);
   return {
     items,
     /**
@@ -59,8 +64,11 @@ export function reprice(lines: CheckoutLine[], discountFor?: (subtotal: number) 
      * It is a callback because the amount depends on the subtotal, which is
      * computed here — the caller knows the PERCENTAGE, this knows the base.
      */
-    totals: computeTotals(items, discountFor ? discountFor(subtotalOf(items)) : 0),
-    comboPairs: comboPairs(items),
+    totals,
+    // On the DISCOUNTED, tax-inclusive total — the same basis computeEarn's
+    // `total` is on — so a corporate or promo discount shrinks the pair's
+    // value exactly as it shrank the bill.
+    combo: comboBasket(items, totals.total),
     hasDrink: basketHasDrink(items),
   };
 }

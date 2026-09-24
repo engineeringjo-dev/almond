@@ -3,7 +3,7 @@ import { config as loyalty } from '@almond/shared/config';
 import { ammanDayKey } from '@almond/shared/lib/ammanWeekday';
 import {
   consumeFifo, expiredBetween, grantLot, liveBalance, lotRulesFromConfig, migrateBalance,
-  pruneLots, restoreSlices, spentSlices, walletLotRulesFromConfig,
+  pruneLots, restoreSlices, spentSlices, walletLotRulesFromConfig, type SpentSlice,
 } from '@almond/shared/loyalty/lots';
 import { jodFromPoints } from '@almond/shared/loyalty/earn';
 import { normalizeName, profileBonusFor } from '@almond/shared/loyalty/profile';
@@ -26,12 +26,14 @@ import {
   type RedemptionRow,
 } from '@almond/shared/loyalty/redemption';
 import type { TierId } from '@almond/shared/types';
+import { referralAttachError, referralRewardFor } from '@almond/shared/loyalty/referral';
+import { transferRefusal } from '@almond/shared/loyalty/transfer';
 import { conflict, notFound } from '../http-error';
 import { toFils } from '../money';
 import type { HoldoutStamp } from '@almond/shared/loyalty/holdout';
 import type {
   Backend, Member, HistoryEntry, NewOrder, OrderRecord, CorporateUse,
-  PaymentIntent, TillRefund, TillSale, TillSpend,
+  MemberTransfer, PaymentIntent, ReferralRow, TillRefund, TillSale, TillSpend,
 } from './types';
 import { IDEMPOTENCY_SWEEP_EVERY_MS, idempotencyExpired } from './idempotency';
 import {
@@ -40,6 +42,10 @@ import {
 } from '../pos/sales';
 import { applyTillRefund } from '@almond/shared/loyalty';
 import { assertIntentSpendable, nextIntentStatus } from '../payments/intent';
+import {
+  attachRefused, insufficientFor, newReferralCode, referralCodeNotFound, referralRewardLine,
+  transferLines, transferRefused,
+} from '../memberMoves';
 
 /** One business day for the whole system (§3.6) — Amman, not the host's UTC. */
 const todayKey = (): string => ammanDayKey();
@@ -140,6 +146,20 @@ export function createMemoryBackend(): Backend {
   const fullRefunds = new Map<string, TillRefund>();
   /** Card payment intents — the twin of payment_intents. */
   const paymentIntents = new Map<string, PaymentIntent>();
+  /** Referral codes — the twin of referral_codes: member → code, and the
+   *  UNIQUE(code) index the other way. */
+  const referralCodes = new Map<string, string>();
+  const codeOwners = new Map<string, string>();
+  /** The twin of `referrals`, keyed by the REFERRED member — the key IS
+   *  "one referral per referred account". */
+  const referrals = new Map<string, ReferralRow>();
+  /** The twin of member_transfers. */
+  const transfers: MemberTransfer[] = [];
+  /** What `memberId` sent on the Amman `day`, of `kind` — the cap's input. */
+  const sentOn = (memberId: string, kind: MemberTransfer['kind'], day: string): number =>
+    transfers
+      .filter((t) => t.senderId === memberId && t.kind === kind && t.ammanDay === day)
+      .reduce((n, t) => n + t.amount, 0);
 
   // Seed a demo member so a freshly-issued token has data.
   //
@@ -167,7 +187,10 @@ export function createMemoryBackend(): Backend {
   // second-visit voucher's 19,040 JOD guard armed for this fixture.
   const demo: Member = {
     id: 'demo', phone: '+962790000000', name: 'Almond Member',
-    birthday: null,
+    birthday: null, gender: null,
+    // A mature member: they have paid before, so no referral code can be
+    // attached to them now (loyalty/referral.ts).
+    firstPaidAt: new Date(Date.now() - 86_400_000 * 200).toISOString(),
     // The demo member already has a name, so the bonus is settled for them —
     // otherwise the fixture would hand out 50 points the first time anyone
     // opened the profile screen against it.
@@ -405,6 +428,36 @@ export function createMemoryBackend(): Backend {
     };
   };
 
+  /**
+   * THE MEMBER'S ORDER WAS PAID — the referral rail's one trigger.
+   *
+   * Stamps `firstPaidAt` the first time, and if this member attached a code
+   * whose reward is still pending, pays the REFERRER now: config
+   * .REFERRAL_REWARD_POINTS as one ordinary lot (0 for a corporate referrer —
+   * loyalty/referral.ts), with its ledger line, and stamps the referral so it
+   * is paid ONCE per friend whatever happens later.
+   *
+   * Synchronous, and called by checkout and tillEarn inside their own
+   * critical section, AFTER every step that can refuse — so a refused order
+   * never pays anyone. Returns the undo for the part `begin(m)` does not cover
+   * (the referrer and the referral row), for the caller's catch.
+   */
+  const settlePaidOrder = (m: Member, at: Date): (() => void) => {
+    if (m.firstPaidAt === null) m.firstPaidAt = at.toISOString();   // m is covered by the caller's begin()
+    const ref = referrals.get(m.id);
+    if (!ref || ref.rewardedAt !== null) return () => {};
+    const referrer = must(ref.referrerId);
+    const undoReferrer = begin(referrer);
+    const refBefore = { ...ref };
+    const points = referralRewardFor(entitlementFor(referrer.phone, companies, roster) !== null);
+    settleExpiry(referrer, at);
+    referrer.lots = grantLot(referrer.lots, points, 'bonus', at, LOTS).lots;
+    if (points > 0) log(referrer.id, referralRewardLine(points, at));
+    ref.rewardedAt = at.toISOString();
+    ref.rewardPoints = points;
+    return () => { undoReferrer(); Object.assign(ref, refBefore); };
+  };
+
   // ---- Idempotency-Key store ----
   type IdemEntry =
     | { hash: string; at: number; status: 'pending' }
@@ -428,7 +481,9 @@ export function createMemoryBackend(): Backend {
         // either theirs or empty. Empty is what makes them eligible for the
         // profile bonus, which is correct — they have told us nothing yet.
         id: `m_${randomUUID()}`, phone, name: normalizeName(name),
-        birthday: null,
+        birthday: null, gender: null,
+        // Never paid for anything yet — the referral rail's clock starts here.
+        firstPaidAt: null,
         profileBonusAt: null,
         // A genuinely NEW member gets an empty ledger — never a migration lot.
         // Minting one would make every new member look migrated to
@@ -507,9 +562,15 @@ export function createMemoryBackend(): Backend {
       // The stamp is read BEFORE anything is written, and it is the backend's
       // own — a client cannot assert it. profileBonusFor returns 0 when it is
       // set, so re-saving a name succeeds and pays nothing.
-      const bonus = profileBonusFor({ name, birthday: profile.birthday }, m.profileBonusAt !== null);
+      // The PHONE is the stored one — a server fact, never a form field. It is
+      // one of the four things the bonus needs (loyalty/profile.ts).
+      const bonus = profileBonusFor(
+        { name, birthday: profile.birthday, gender: profile.gender, phone: m.phone },
+        m.profileBonusAt !== null,
+      );
       m.name = name;
       m.birthday = profile.birthday;
+      m.gender = profile.gender;
 
       let pointsBalance = liveBalance(m.lots, new Date());
       if (bonus > 0) {
@@ -519,7 +580,7 @@ export function createMemoryBackend(): Backend {
         m.profileBonusAt = new Date().toISOString();
         pointsBalance = await this.addPoints(id, bonus, 'إكمال الملف الشخصي', 'Profile completed');
       }
-      return { profile: { name, birthday: m.birthday }, bonusGranted: bonus, pointsBalance };
+      return { profile: { name, birthday: m.birthday, gender: m.gender }, bonusGranted: bonus, pointsBalance };
     },
     async recordSpend(id, jod, occurredOn) {
       applySpend(must(id), jod, new Date(), occurredOn);
@@ -593,6 +654,7 @@ export function createMemoryBackend(): Backend {
       // the member, the order list, the ledger and the voucher back exactly as
       // they were, so a refusal half-way cannot leave a debit without an order.
       const rollback = begin(m);
+      let undoReferral = (): void => {};
       // The payment intent is outside the member, so it is put back by hand.
       const intentBefore = input.payment ? paymentIntents.get(input.payment.intentId) : undefined;
       const intentCopy = intentBefore ? { ...intentBefore } : undefined;
@@ -647,6 +709,9 @@ export function createMemoryBackend(): Backend {
           reasonEn: input.pointsReasonEn, createdAt: at.toISOString(),
         });
         if (input.spendJod !== null) applySpend(m, input.spendJod, at);
+        // LAST, after every step that can refuse: a paid order is the
+        // referral rail's trigger (settlePaidOrder).
+        if (input.spendJod !== null) undoReferral = settlePaidOrder(m, at);
         return {
           order,
           pointsBalance: liveBalance(m.lots, at),
@@ -655,6 +720,7 @@ export function createMemoryBackend(): Backend {
           secondVisitError,
         };
       } catch (e) {
+        undoReferral();
         rollback();
         if (intentBefore && intentCopy) Object.assign(intentBefore, intentCopy);
         throw e;
@@ -695,6 +761,7 @@ export function createMemoryBackend(): Backend {
       if (input.ticketRefusal) throw ticketRefusalError(input.ticketRefusal);
       if (input.pointsEarned < 0) throw conflict('negative_grant', 'A grant cannot be negative');
       const rollback = begin(m);
+      let undoReferral = (): void => {};
       try {
         settleExpiry(m, at);
         m.lots = grantLot(m.lots, input.pointsEarned, 'earn', at, LOTS).lots;
@@ -713,10 +780,14 @@ export function createMemoryBackend(): Backend {
           reversedPoints: null, shortfall: null, reverseBalanceAfter: null,
           reverseReason: null, reversedAt: null, createdAt: at.toISOString(),
         };
+        // Money was collected: this sale is a PAID order for the referral rail,
+        // exactly as a funded checkout is. A replay returned above, before it.
+        if (input.paidFils > 0) undoReferral = settlePaidOrder(m, at);
         posSales.set(sale.posOrderRef, sale);
         saleTickets.set(input.ticketJti, sale.posOrderRef);
         return { sale: { ...sale }, replay: false };
       } catch (e) {
+        undoReferral();
         rollback();
         throw e;
       }
@@ -1018,6 +1089,123 @@ export function createMemoryBackend(): Backend {
         .filter((u) => !filter?.from || u.at >= filter.from)
         .filter((u) => !filter?.to || u.at <= filter.to)
         .map((u) => ({ ...u }));
+    },
+
+    // ---- Referrals: the twin of referral_codes + referrals ----
+    async getReferral(memberId) {
+      must(memberId);
+      let code = referralCodes.get(memberId);
+      if (!code) {
+        // Minted once and never rotated: a code already shared must keep
+        // paying its owner. A collision (≈1 in 8.9e8) just draws again.
+        do { code = newReferralCode(); } while (codeOwners.has(code));
+        referralCodes.set(memberId, code);
+        codeOwners.set(code, memberId);
+      }
+      const mine = [...referrals.values()].filter((r) => r.referrerId === memberId);
+      const rewarded = mine.filter((r) => r.rewardedAt !== null);
+      return {
+        code,
+        referredCount: mine.length,
+        rewardedCount: rewarded.length,
+        pointsEarned: rewarded.reduce((n, r) => n + (r.rewardPoints ?? 0), 0),
+      };
+    },
+
+    async attachReferral(memberId, code, at) {
+      const m = must(memberId);
+      // 🔴 NO `await` IN THIS BODY: the check and the insert are one step, so
+      // two attaches (or an attach racing the first paid order, which runs
+      // synchronously too) cannot both see "nothing attached yet".
+      const ownerId = codeOwners.get(code);
+      if (!ownerId) throw referralCodeNotFound();
+      const existing = referrals.get(m.id);
+      if (existing && existing.code === code) return { referral: { ...existing }, replay: true };
+      const referrer = must(ownerId);
+      const refusal = referralAttachError({
+        memberId: m.id, memberPhone: m.phone, memberFirstPaidAt: m.firstPaidAt,
+        alreadyAttached: existing !== undefined, referrer: { id: referrer.id, phone: referrer.phone },
+      });
+      if (refusal) throw attachRefused(refusal);
+      const row: ReferralRow = {
+        referredId: m.id, referrerId: referrer.id, code,
+        attachedAt: at.toISOString(), rewardedAt: null, rewardPoints: null,
+      };
+      referrals.set(m.id, row);
+      return { referral: { ...row }, replay: false };
+    },
+
+    async getReferralOf(memberId) {
+      must(memberId);
+      const r = referrals.get(memberId);
+      return r ? { ...r } : null;
+    },
+
+    // ---- Transfers to a friend: the twin of member_transfers ----
+    async transfer(input) {
+      const { senderId, recipientId, kind, amount, at } = input;
+      // 🔴 NO `await` IN THIS BODY — the memory store's "both locks": the cap
+      // read, the balance check, the debit and the credit are one step, so two
+      // parallel transfers cannot both spend the same balance or the same cap.
+      // Self first, as Postgres checks it (before taking any lock).
+      if (senderId === recipientId) throw transferRefused('transfer_to_self');
+      const s = must(senderId);
+      const r = must(recipientId);
+      const day = ammanDayKey(at);
+      const sentToday = sentOn(senderId, kind, day);
+      const refusal = transferRefusal({ kind, amount, sentToday, senderId, recipientId });
+      if (refusal) throw transferRefused(refusal);
+      const undoS = begin(s);
+      const undoR = begin(r);
+      const transfersLen = transfers.length;
+      try {
+        let slices: SpentSlice[];
+        if (kind === 'points') {
+          settleExpiry(s, at);
+          const res = consumeFifo(s.lots, amount, at);
+          if (!res.ok) throw insufficientFor(kind);
+          slices = spentSlices(s.lots, res.consumed);
+          s.lots = res.lots;
+          settleExpiry(r, at);
+          // The points arrive with the dates they left with — never a fresh
+          // twelve months (restoreSlices; loyalty/transfer.ts).
+          r.lots = restoreSlices(r.lots, slices, at).lots;
+        } else {
+          settleWalletExpiry(s, at);
+          const res = consumeFifo(s.walletLots, amount, at);
+          if (!res.ok) throw insufficientFor(kind);
+          slices = spentSlices(s.walletLots, res.consumed);
+          s.walletLots = res.lots;
+          settleWalletExpiry(r, at);
+          r.walletLots = restoreSlices(r.walletLots, slices, at).lots;
+        }
+        // Nothing is written to either member's spend window: a transfer is
+        // not a purchase and buys no rung.
+        const lines = transferLines(kind, amount, at);
+        log(s.id, lines.sender);
+        log(r.id, lines.recipient);
+        const row: MemberTransfer = {
+          id: `trf_${randomUUID()}`, senderId, recipientId, kind, amount, slices,
+          ammanDay: day, createdAt: at.toISOString(),
+        };
+        transfers.push(row);
+        return {
+          transfer: structuredClone(row),
+          senderPointsBalance: liveBalance(s.lots, at),
+          senderWalletFils: liveBalance(s.walletLots, at),
+          sentToday: sentToday + amount,
+        };
+      } catch (e) {
+        transfers.length = transfersLen;
+        undoR();
+        undoS();
+        throw e;
+      }
+    },
+
+    async transferredOn(memberId, kind, ammanDay) {
+      must(memberId);
+      return sentOn(memberId, kind, ammanDay);
     },
   };
 

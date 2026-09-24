@@ -407,7 +407,7 @@ describe('C15 no single-language display string outside the locale files', () =>
 });
 
 // ---------------------------------------------------------------------------
-// C16 — the onboarding ladder: one challenge, in order, and gone when spent.
+// C16 — the onboarding ladder: one challenge, in order.
 // ---------------------------------------------------------------------------
 /**
  * Owner, 2026-09-08: «اول دخول بطلعله اول challenge: عبي معلومات وخذ ٥٠ نقطة …
@@ -418,7 +418,9 @@ describe('C15 no single-language display string outside the locale files', () =>
  */
 describe('C16 nextChallenge', () => {
   const RULES = { profilePoints: 50, referralPoints: 50 };
-  const noName = { profile: { name: '' }, referralRewarded: false };
+  const noName = { profile: { name: '' } };
+  /** The four facts the profile bonus is paid on (owner, 2026-09-24). */
+  const done = { profile: { name: 'حمزة', birthday: '1990-04-20', gender: 'male' as const, phone: '+962791234567' } };
 
   it('C16a first entry asks for the name, not for friends', () => {
     // «بعد اول استخدام» — a member who has told us nothing about themselves is
@@ -426,28 +428,27 @@ describe('C16 nextChallenge', () => {
     expect(nextChallenge(noName, RULES)).toEqual({ id: 'profile', points: 50 });
   });
 
-  it('C16b once the name is in, the referral is offered', () => {
-    expect(nextChallenge({ profile: { name: 'حمزة' }, referralRewarded: false }, RULES))
-      .toEqual({ id: 'referral', points: 50 });
+  it('C16b once the profile is COMPLETE — all four facts — the referral is offered', () => {
+    expect(nextChallenge(done, RULES)).toEqual({ id: 'referral', points: 50 });
+    // A name alone no longer finishes the first rung (owner, 2026-09-24).
+    expect(nextChallenge({ profile: { name: 'حمزة' } }, RULES)).toEqual({ id: 'profile', points: 50 });
+    expect(nextChallenge({ profile: { ...done.profile, phone: '' } }, RULES)).toEqual({ id: 'profile', points: 50 });
   });
 
-  it('C16c a spent referral removes the offer — it is never re-pitched', () => {
-    // 🔴 THE ONE THAT KEEPS THE UNADVERTISED LIMIT HONEST. The pitch does not
-    // say "once", by instruction. What must never happen is the offer being
-    // shown again to an account that can no longer be paid for it: not
-    // advertising a limit is one thing, repeating a promise you will not honour
-    // is another. Sharing stays possible from the referral screen — the member
-    // may invite as many people as they like; the ACCOUNT is paid once.
-    expect(nextChallenge({ profile: { name: 'حمزة' }, referralRewarded: true }, RULES)).toBeNull();
+  it('C16c the referral pitch STAYS: each friend\'s first paid order pays again', () => {
+    // It used to vanish once the account's single reward was paid. Since
+    // 2026-09-24 the referrer is paid once PER FRIEND, so the offer is
+    // honoured every time it is taken up — there is no spent state to hide it
+    // on, and ChallengeState no longer carries one.
+    expect(nextChallenge(done, RULES)).toEqual({ id: 'referral', points: 50 });
+    expect(Object.keys(done)).toEqual(['profile']);
   });
 
   it('C16d the banner never shows two things at once', () => {
-    for (const name of ['', 'حمزة']) {
-      for (const referralRewarded of [false, true]) {
-        const c = nextChallenge({ profile: { name }, referralRewarded }, RULES);
-        // Either exactly one challenge or none — never an array, never a pair.
-        expect(c === null || typeof c.id === 'string').toBe(true);
-      }
+    for (const state of [noName, { profile: { name: 'حمزة' } }, done]) {
+      const c = nextChallenge(state, RULES);
+      // Either exactly one challenge or none — never an array, never a pair.
+      expect(c === null || typeof c.id === 'string').toBe(true);
     }
   });
 
@@ -483,7 +484,7 @@ describe('C16 nextChallenge', () => {
     expect(nextChallenge(noName)).toEqual({
       id: 'profile', points: config.PROFILE_COMPLETION_BONUS,
     });
-    expect(nextChallenge({ profile: { name: 'x' }, referralRewarded: false })).toEqual({
+    expect(nextChallenge(done)).toEqual({
       id: 'referral', points: config.REFERRAL_REWARD_POINTS,
     });
   });

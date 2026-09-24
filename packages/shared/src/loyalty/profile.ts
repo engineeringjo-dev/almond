@@ -26,28 +26,53 @@
  */
 
 import { config } from '../config';
+import { ammanDayKey } from '../lib/ammanWeekday';
+import { normalizeJordanPhone } from '../lib/phone';
+
+/** The two answers the profile form offers. Stored as these ids and never as
+ *  display text, so the Arabic and English screens cannot store two spellings
+ *  of one fact. */
+export const GENDERS = ['male', 'female'] as const;
+export type Gender = (typeof GENDERS)[number];
 
 /** The fields a member fills in. `phone` is NOT here: OTP already proved it,
- *  and it is not something the member types into a profile form. */
+ *  and it is not something the member types into a profile form — but it IS
+ *  part of what makes a profile complete (see `ProfileFacts`). */
 export interface MemberProfile {
   /** Display name. Trimmed and bounded by `normalizeName` before storage. */
   name: string;
   /**
    * Amman day key ('YYYY-MM-DD'), or null.
    *
-   * OPTIONAL, and deliberately not part of `isProfileComplete`. The tier cards
-   * already promise a birthday benefit (`tierBenefits.birthday`), so there has
-   * to be somewhere to put it — but gating 50 points on a birthdate would make
-   * the bonus refusable by anyone unwilling to hand one over, which is not what
-   * was asked for and is a worse trade for a coffee shop than simply having the
-   * name.
+   * 🔴 PART OF `isProfileComplete` SINCE 2026-09-24. It used to be optional on
+   * the argument that gating 50 points on a birthdate makes the bonus refusable;
+   * the owner decided the other way — «الاسم وتاريخ الميلاد والجنس» — because a
+   * profile without it cannot carry the birthday benefit the tier cards promise.
+   * The member may still save without it; they simply are not paid yet.
    *
    * A DAY KEY, never an ISO instant: `new Date('1990-04-20')` parses as UTC
    * midnight and renders as 19 April west of Greenwich. Same rule as
    * `LoyaltyBalance.nextExpiry.on`.
    */
   birthday: string | null;
+  /** 'male' | 'female', or null — never display text (see GENDERS). Part of
+   *  `isProfileComplete` since 2026-09-24. */
+  gender: Gender | null;
 }
+
+/**
+ * Everything `isProfileComplete` reads: the member's own profile fields PLUS
+ * the phone the server holds for them.
+ *
+ * 🔴 THE PHONE IS A SERVER FACT, NEVER A FORM FIELD. Owner, 2026-09-24: the
+ * bonus needs name + birth date + gender + PHONE. OTP sign-in is the only door
+ * into the member table, so every member SHOULD have one — which is exactly why
+ * it is an explicit condition rather than an assumption: a record that arrives
+ * without one (a migration row, a future admin-created member) must not be paid
+ * for a profile we cannot tie to a person. The backend passes the STORED phone;
+ * a client never supplies it here.
+ */
+export type ProfileFacts = Partial<MemberProfile> & { phone?: string | null };
 
 /** Longest name the greeting can render without becoming a paragraph. Arabic
  *  and Latin full names both sit far inside this; it exists to bound a paste,
@@ -68,14 +93,38 @@ export function normalizeName(raw: string | null | undefined): string {
     .slice(0, MAX_NAME_LENGTH);
 }
 
+/** Is this a real calendar day, in 'YYYY-MM-DD', no later than today in Amman?
+ *  `2026-02-31` is a shape, not a birthday; a date in the future is a typo. */
+export function isValidBirthday(day: string | null | undefined, at: Date = new Date()): boolean {
+  if (typeof day !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(day)) return false;
+  const [y, m, d] = day.split('-').map(Number);
+  const probe = new Date(Date.UTC(y, m - 1, d));
+  const roundTrips = probe.getUTCFullYear() === y && probe.getUTCMonth() === m - 1 && probe.getUTCDate() === d;
+  return roundTrips && y >= 1900 && day <= ammanDayKey(at);
+}
+
+export function isGender(v: unknown): v is Gender {
+  return typeof v === 'string' && (GENDERS as readonly string[]).includes(v);
+}
+
 /**
- * Has this member told us who they are?
+ * Has this member told us who they are — enough to be paid the bonus?
  *
- * A NAME, and only a name. See the `birthday` comment for why that field is not
- * part of the test.
+ * 🔴 FOUR FACTS, ALL REQUIRED (owner, 2026-09-24): a NAME, a real BIRTH DATE,
+ * a GENDER, and a PHONE on record. It used to be the name alone. Each one is a
+ * separate condition below so that removing any of them fails a named test
+ * (bff/test/profile.test.ts T33p).
+ *
+ * The phone is judged by the SAME Jordanian normaliser OTP sign-in stores it
+ * with — a record whose phone is missing or not a Jordanian mobile is not
+ * complete, whatever else it holds.
  */
-export function isProfileComplete(profile: Partial<MemberProfile> | null | undefined): boolean {
-  return normalizeName(profile?.name) !== '';
+export function isProfileComplete(profile: ProfileFacts | null | undefined): boolean {
+  if (normalizeName(profile?.name) === '') return false;
+  if (!isValidBirthday(profile?.birthday)) return false;
+  if (!isGender(profile?.gender)) return false;
+  if (normalizeJordanPhone(profile?.phone ?? null) === null) return false;
+  return true;
 }
 
 /**
@@ -89,7 +138,7 @@ export function isProfileComplete(profile: Partial<MemberProfile> | null | undef
  * `alreadyGranted` is the backend's stamp, not a client claim.
  */
 export function profileBonusFor(
-  profile: Partial<MemberProfile> | null | undefined,
+  profile: ProfileFacts | null | undefined,
   alreadyGranted: boolean,
   bonusPoints: number = config.PROFILE_COMPLETION_BONUS,
 ): number {
@@ -123,7 +172,14 @@ export function profileBonusFor(
  * defer the 23,860 JOD to the first time each member edits their name.
  *
  * A record WITHOUT a usable name returns `null` — correctly. We do not own that
- * fact, so the member is still owed the bonus if they choose to tell us. The
+ * fact, so the member is still owed the bonus if they choose to tell us.
+ *
+ * ⚠ SINCE 2026-09-24 "COMPLETE" IS FOUR FACTS (name, birth date, gender,
+ * phone). A Wafii row carrying a name but no birth date or gender is therefore
+ * NOT complete and is NOT stamped — so that member IS paid when they later add
+ * the two missing facts. Whether that is right ("we own the name, not the
+ * birthday") or should be stamped anyway is an OWNER decision recorded in
+ * docs/HANDOVER.md §7; this function applies the predicate as written. The
  * predicate is `isProfileComplete`, the same one the save handler pays on, so
  * the import and the app can never disagree about what counts as "we have it".
  *
@@ -131,7 +187,7 @@ export function profileBonusFor(
  * @param cutoverAt ISO instant of the migration — the same value for the batch
  */
 export function migratedProfileBonusAt(
-  profile: Partial<MemberProfile> | null | undefined,
+  profile: ProfileFacts | null | undefined,
   cutoverAt: string,
 ): string | null {
   return isProfileComplete(profile) ? cutoverAt : null;

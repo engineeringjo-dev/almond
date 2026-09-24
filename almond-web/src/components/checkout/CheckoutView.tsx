@@ -5,7 +5,7 @@ import { useLocale, useTranslations } from 'next-intl';
 import { Banknote, CreditCard, Lock, Smartphone, Sparkles, Truck, Wallet } from 'lucide-react';
 import { computeTotals } from '@almond/shared/cart';
 import { getCartCrossSell } from '@almond/shared/lib/recommendations';
-import { comboPairs } from '@almond/shared/lib/combo';
+import { comboBasket } from '@almond/shared/lib/combo';
 import { earnedPoints } from '@almond/shared/loyalty/earn';
 import { getBranches } from '@/data/branches';
 import { MenuItemCard } from '@/components/menu/MenuItemCard';
@@ -68,7 +68,9 @@ export function CheckoutView() {
   // under-states, which is the safe direction, but it means a 4% member is
   // shown 8 points on a basket that pays 16.
   const beans = earnedPoints(
-    { total: totals.total, windowSpend, comboPairs: comboPairs(items) },
+    // The priced drink+food lines: the pair earns the combo INSTEAD of its
+    // regular points (owner, 2026-09-24), so the quote needs its price.
+    { total: totals.total, windowSpend, combo: comboBasket(items, totals.total) },
     DISPLAY_EARN_RULES,
   );
   const isDelivery = orderType === 'delivery';

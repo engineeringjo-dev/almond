@@ -18,31 +18,31 @@
  * friends' attention. So `nextChallenge` returns AT MOST ONE, and the order is
  * the owner's order.
  *
- * ── WHY IT DISAPPEARS RATHER THAN ANNOUNCING ITS LIMIT ──────────────────────
+ * ── WHY THE REFERRAL PITCH NO LONGER DISAPPEARS ─────────────────────────────
  *
- * The referral reward is once per account. The owner asked for that not to be
- * advertised — «بكون لمرة ١ دون ذكر ذلك» — so the pitch does not carry a
- * "once only" line, and a member is free to invite as many people as they like.
- *
- * What this module does NOT do is keep making an offer it will not honour: the
- * moment `referralRewarded` is true the challenge is gone from the banner. That
- * is the difference between not advertising a limit and misleading someone into
- * a fifth invitation expecting a fifth 50 points. The referral SCREEN, which a
- * member reaches deliberately, still states the position plainly — a person who
- * goes looking for the terms finds them.
+ * Until 2026-09-24 the referral reward was once per ACCOUNT and the pitch
+ * vanished the moment it was paid — never re-show an offer the account can no
+ * longer be paid for. The owner then made it once per REFERRED FRIEND, paid on
+ * that friend's first paid order (config.REFERRAL_REWARD_POINTS): every new
+ * friend who pays pays the referrer again. The offer is therefore honoured as
+ * often as it is taken up, so there is no spent state to hide it on, and
+ * `referralRewarded` was DELETED from ChallengeState rather than left as a
+ * field nothing should read. The rule that survives is the general one: a rung
+ * whose dial pays nothing is skipped.
  */
 
 import { config } from '../config';
-import { isProfileComplete, type MemberProfile } from './profile';
+import { isProfileComplete, type ProfileFacts } from './profile';
 
 export type ChallengeId = 'profile' | 'referral';
 
 /** What the member has already done. Facts from the SERVER — a challenge whose
  *  completion the client decides is a challenge the client can re-award. */
 export interface ChallengeState {
-  profile: Pick<MemberProfile, 'name'> | null;
-  /** Has the referral reward already been paid to this account? */
-  referralRewarded: boolean;
+  /** What `isProfileComplete` reads — name, birth date, gender AND the phone on
+   *  record (four facts since 2026-09-24). A name alone no longer finishes the
+   *  first rung. */
+  profile: ProfileFacts | null;
 }
 
 export interface Challenge {
@@ -69,9 +69,7 @@ export function challengeRulesFromConfig(): ChallengeRules {
  * The one challenge to put on the banner, or `null` when there is nothing left
  * to ask for.
  *
- * `null` is the ordinary end state, not an error: a member who has filled in
- * their details and referred someone has finished the ladder, and the banner
- * renders nothing rather than inventing a third thing to ask.
+ * `null` when no rung pays anything — the ordinary way to retire the banner.
  *
  * A challenge whose points dial is 0 or nonsense is SKIPPED rather than shown
  * paying nothing — switching `PROFILE_COMPLETION_BONUS` to 0 turns that
@@ -91,8 +89,9 @@ export function nextChallenge(
   }
 
   // 2) After that: bring a friend. Deliberately not offered to someone who has
-  //    not finished (1) — «بعد اول استخدام».
-  if (!state.referralRewarded && pays(rules.referralPoints)) {
+  //    not finished (1) — «بعد اول استخدام». Shown for as long as it pays:
+  //    each friend's first paid order pays again (see the header).
+  if (pays(rules.referralPoints)) {
     return { id: 'referral', points: Math.floor(rules.referralPoints) };
   }
 

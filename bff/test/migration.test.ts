@@ -7,7 +7,7 @@ import { PGlite } from '@electric-sql/pglite';
 import { Pool } from 'pg';
 import { createPostgresBackend } from '../src/backend/postgres';
 import { fromPglite } from '../src/backend/db';
-import { loyaltySchemaSql, readMigration } from './lib/schema';
+import { LOYALTY_MIGRATIONS, loyaltySchemaSql, readMigration } from './lib/schema';
 
 /**
  * R3 — THE MIGRATION supabase/migrations/20260909_loyalty_backend.sql.
@@ -34,6 +34,9 @@ const PAYMENT_INTENTS_MIGRATION = readMigration('20260927_payment_intents.sql');
 const DROP_PLAN_COLUMNS_MIGRATION = readMigration('20260928_drop_members_plan_columns.sql');
 const POINT_SPENDS_MIGRATION = readMigration('20260929_pos_point_spends.sql');
 const SALE_REFUNDS_MIGRATION = readMigration('20260930_pos_sale_refunds.sql');
+const REFERRALS_MIGRATION = readMigration('20261001_referrals.sql');
+const TRANSFERS_MIGRATION = readMigration('20261002_member_transfers.sql');
+const PROFILE_FIELDS_MIGRATION = readMigration('20261003_member_profile_fields.sql');
 /** The whole loyalty schema, as a deploy leaves it (minus the Supabase-only RLS file). */
 const SCHEMA = loyaltySchemaSql();
 const POSTGRES_TS = readFileSync(join(HERE, '..', 'src', 'backend', 'postgres.ts'), 'utf8');
@@ -46,7 +49,11 @@ const TABLES = [
 ];
 /** …and what the full schema holds: 20260924 adds the durable Idempotency-Keys,
  *  20260926 the till's sales, 20260927 the card payment intents. */
-const ALL_TABLES = [...TABLES, 'idempotency_keys', 'pos_sales', 'payment_intents', 'pos_point_spends', 'pos_sale_refunds'];
+const ALL_TABLES = [
+  ...TABLES, 'idempotency_keys', 'pos_sales', 'payment_intents', 'pos_point_spends', 'pos_sale_refunds',
+  // 20261001 the referral rail, 20261002 transfers to a friend.
+  'referral_codes', 'referrals', 'member_transfers',
+];
 
 async function fresh(): Promise<PGlite> {
   const pg = new PGlite();
@@ -107,8 +114,12 @@ describe('R3 migration 20260909_loyalty_backend.sql', () => {
     for (const s of creates) expect(s, s.slice(0, 60)).toMatch(/^create (table|index) if not exists /i);
     expect(statements(MIGRATION).every((s) => /^create /i.test(s)), 'only CREATEs — no ALTER/DROP/INSERT').toBe(true);
 
+    // The BACKEND runs on the full schema — it writes columns later files add
+    // (members.gender, members.first_paid_at) — and it is the BASE file that is
+    // then re-applied on top of that live data: a retried deploy of 20260909
+    // must change nothing whatever came after it.
     const pg = await fresh();
-    await pg.exec(MIGRATION);
+    await pg.exec(SCHEMA);
     const b = createPostgresBackend(fromPglite(pg));
     const m = await b.findOrCreateByPhone('+962791234567', 'حمزة');
     await b.addPoints(m.id, 250, 'منحة', 'Grant');
@@ -266,6 +277,11 @@ describe('R3 migration 20260909_loyalty_backend.sql', () => {
     await pg.exec(DROP_PLAN_COLUMNS_MIGRATION);
     await pg.exec(POINT_SPENDS_MIGRATION);
     await pg.exec(SALE_REFUNDS_MIGRATION);
+    // 20261001-03 close their own tables the same way: a referral names who
+    // brought whom, a transfer moves a member's money.
+    await pg.exec(REFERRALS_MIGRATION);
+    await pg.exec(TRANSFERS_MIGRATION);
+    await pg.exec(PROFILE_FIELDS_MIGRATION);
     const tables = await rows<{ t: string }>(pg,
       `select table_name as t from information_schema.tables where table_schema = 'public' order by 1`);
     expect(tables.map((x) => x.t)).toEqual([...ALL_TABLES].sort());
@@ -318,14 +334,16 @@ describe('R3 migration 20260909_loyalty_backend.sql', () => {
       await pool.query(SCHEMA);
       const { rows: t2 } = await pool.query(
         `select count(*)::int as n from information_schema.tables where table_schema = 'public'`);
-      expect(t2[0].n).toBe(13);
+      expect(t2[0].n).toBe(16);
       // 6 from 20260925, plus pos_sales.member_id, payment_intents.member_id,
       // payment_intents.order_id, orders.payment_intent_id,
       // pos_point_spends.member_id and pos_sale_refunds' pos_order_ref and
-      // member_id — every FK that records money RESTRICTs.
+      // member_id, referral_codes.member_id, referrals' referred_id,
+      // referrer_id and code, member_transfers' sender_id and recipient_id —
+      // every FK that records money RESTRICTs.
       const { rows: fks } = await pool.query(`select count(*)::int as n from pg_constraint
         where contype = 'f' and confdeltype = 'r'`);
-      expect(fks[0].n).toBe(13);
+      expect(fks[0].n).toBe(19);
     } finally {
       await pool.end();
       await admin.query(`drop database if exists ${name}`);
@@ -706,5 +724,168 @@ describe('R3.13 migration 20260930_pos_sale_refunds.sql', () => {
     // Neither the sale nor the member can be deleted out from under its refunds.
     expect(await code(pg, `delete from pos_sales where pos_order_ref = 'Shop/1'`)).toBe('23001');
     expect(await code(pg, `delete from members where id = 'm1'`)).toBe('23001');
+  });
+});
+
+/**
+ * R3.14 — 20261001_referrals.sql: the referral rail (owner, 2026-09-24).
+ */
+describe('R3.14 migration 20261001_referrals.sql', () => {
+  const code = async (pg: PGlite, sql: string, p: unknown[] = []) => {
+    try { await pg.query(sql, p); return 'ok'; } catch (e) { return (e as { code?: string }).code; }
+  };
+  const shape = (pg: PGlite, t: string) => rows(pg, `select column_name, data_type, is_nullable, column_default
+    from information_schema.columns where table_name = $1 order by 1`, [t]);
+
+  it('R3.14a applies on a plain Postgres, re-applies unchanged, RLS on, closed to anon', async () => {
+    const pg = await fresh();
+    await pg.exec(SCHEMA);
+    const before = { c: await shape(pg, 'referral_codes'), r: await shape(pg, 'referrals'), m: await shape(pg, 'members') };
+    expect(before.c.length).toBe(3);
+    expect(before.r.length).toBe(6);
+    expect(before.m.some((c) => (c as { column_name: string }).column_name === 'first_paid_at')).toBe(true);
+    await pg.exec(REFERRALS_MIGRATION);
+    await pg.exec(REFERRALS_MIGRATION);
+    expect({ c: await shape(pg, 'referral_codes'), r: await shape(pg, 'referrals'), m: await shape(pg, 'members') })
+      .toEqual(before);
+    const rls = await rows<{ t: string; on: boolean }>(pg, `select relname as t, relrowsecurity as on from pg_class
+      where relname in ('referral_codes', 'referrals') order by 1`);
+    expect(rls).toEqual([{ t: 'referral_codes', on: true }, { t: 'referrals', on: true }]);
+    const sb = await fresh();
+    await sb.exec(`create role anon nologin; create role authenticated nologin;
+      alter default privileges in schema public grant all on tables to anon, authenticated;`);
+    await sb.exec(SCHEMA);
+    const priv = await rows<{ a: boolean; b: boolean }>(sb, `select has_table_privilege('anon', 'referral_codes', 'select') as a,
+      has_table_privilege('authenticated', 'referrals', 'select') as b`);
+    expect(priv[0]).toEqual({ a: false, b: false });
+  });
+
+  it('R3.14b one referral per referred account, never self, a reward stamped whole, codes unique and well-formed, RESTRICT', async () => {
+    const pg = await fresh();
+    await pg.exec(SCHEMA);
+    for (const [id, phone] of [['m1', '+962791111111'], ['m2', '+962792222222'], ['m3', '+962793333333']]) {
+      await pg.query(`insert into members (id, phone, held_tier_id) values ($1, $2, 'base')`, [id, phone]);
+    }
+    expect(await code(pg, `insert into referral_codes (member_id, code) values ('m1', 'ABC234')`)).toBe('ok');
+    expect(await code(pg, `insert into referral_codes (member_id, code) values ('m1', 'XYZ234')`)).toBe('23505'); // one code per member
+    expect(await code(pg, `insert into referral_codes (member_id, code) values ('m2', 'ABC234')`)).toBe('23505'); // one member per code
+    expect(await code(pg, `insert into referral_codes (member_id, code) values ('m2', 'abc234')`)).toBe('23514'); // the alphabet
+    expect(await code(pg, `insert into referral_codes (member_id, code) values ('m2', 'ABC2345')`)).toBe('23514'); // the length
+    const attach = (referred: string, referrer = 'm1', c = 'ABC234') => code(pg,
+      'insert into referrals (referred_id, referrer_id, code) values ($1, $2, $3)', [referred, referrer, c]);
+    expect(await attach('m1')).toBe('23514');                               // never your own code
+    expect(await attach('m2')).toBe('ok');
+    expect(await attach('m2')).toBe('23505');                               // once per referred account
+    expect(await attach('m3', 'm1', 'NOPE22')).toBe('23503');                // a code that exists
+    // The reward is its stamp AND its amount, or neither.
+    expect(await code(pg, `update referrals set rewarded_at = now() where referred_id = 'm2'`)).toBe('23514');
+    expect(await code(pg, `update referrals set reward_points = -1, rewarded_at = now() where referred_id = 'm2'`)).toBe('23514');
+    expect(await code(pg, `update referrals set reward_points = 50, rewarded_at = now() where referred_id = 'm2'`)).toBe('ok');
+    // Deleting either member, or the code, never deletes the record of the reward.
+    expect(await code(pg, `delete from members where id = 'm1'`)).toBe('23001');
+    expect(await code(pg, `delete from members where id = 'm2'`)).toBe('23001');
+    expect(await code(pg, `delete from referral_codes where member_id = 'm1'`)).toBe('23001');
+  });
+
+  it('R3.14c 🔴 the backfill stamps first_paid_at from what already proves payment — and only that', async () => {
+    // A customer who already paid must not be able to attach a code after the
+    // fact. The two proofs: an order with an earn breakdown (only a FUNDED
+    // checkout records one) and a till sale that collected money.
+    const pg = await fresh();
+    // The schema as it stood BEFORE 20261001 — the database the backfill meets.
+    await pg.exec(LOYALTY_MIGRATIONS.filter((f) => f < '20261001').map(readMigration).join('\n;\n'));
+    for (const [id, phone] of [['app', '+962791111111'], ['till', '+962792222222'], ['cash', '+962793333333'], ['zero', '+962794444444']]) {
+      await pg.query(`insert into members (id, phone, held_tier_id) values ($1, $2, 'base')`, [id, phone]);
+    }
+    await pg.query(`insert into orders (id, member_id, branch_id, order_type, payment_method, total, earn_breakdown, created_at)
+      values ('o1', 'app', 'b1', 'pickup', 'wallet', 5, '{"points":10}', '2026-09-01T10:00:00Z'),
+             ('o2', 'app', 'b1', 'pickup', 'wallet', 5, '{"points":10}', '2026-09-05T10:00:00Z'),
+             ('o3', 'cash', 'b1', 'pickup', 'cash', 5, null, '2026-09-02T10:00:00Z')`);
+    await pg.query(`insert into pos_sales (pos_order_ref, member_id, branch_id, earn_ticket_jti, paid_total, paid_at,
+      points_earned, points_balance_after) values ('S/1', 'till', 'b1', 'j1', 7.5, '2026-09-03T10:00:00Z', 15, 15),
+      ('S/2', 'zero', 'b1', 'j2', 0, '2026-09-04T10:00:00Z', 0, 0)`);
+    await pg.exec(REFERRALS_MIGRATION);
+    await pg.exec(REFERRALS_MIGRATION);                                     // re-run: fills only NULLs
+    const got = await rows<{ id: string; at: string | null }>(pg,
+      `select id, to_char(first_paid_at at time zone 'UTC', 'YYYY-MM-DD') as at from members order by id`);
+    expect(got).toEqual([
+      { id: 'app', at: '2026-09-01' },          // the EARLIEST funded order
+      { id: 'cash', at: null },                 // an unfunded cash order proves nothing
+      { id: 'till', at: '2026-09-03' },
+      { id: 'zero', at: null },                 // a 0 JOD till sale collected no money
+    ]);
+  });
+});
+
+/**
+ * R3.15 — 20261002_member_transfers.sql: transfers to a friend.
+ */
+describe('R3.15 migration 20261002_member_transfers.sql', () => {
+  const code = async (pg: PGlite, sql: string, p: unknown[] = []) => {
+    try { await pg.query(sql, p); return 'ok'; } catch (e) { return (e as { code?: string }).code; }
+  };
+  const shape = (pg: PGlite) => rows(pg, `select column_name, data_type, is_nullable, column_default
+    from information_schema.columns where table_name = 'member_transfers' order by 1`);
+
+  it('R3.15a applies on a plain Postgres, re-applies unchanged, RLS on, closed to anon', async () => {
+    const pg = await fresh();
+    await pg.exec(SCHEMA);
+    const before = await shape(pg);
+    expect(before.length).toBe(8);
+    await pg.exec(TRANSFERS_MIGRATION);
+    await pg.exec(TRANSFERS_MIGRATION);
+    expect(await shape(pg)).toEqual(before);
+    const rls = await rows<{ on: boolean }>(pg, `select relrowsecurity as on from pg_class where relname = 'member_transfers'`);
+    expect(rls[0].on).toBe(true);
+    const sb = await fresh();
+    await sb.exec(`create role anon nologin; create role authenticated nologin;
+      alter default privileges in schema public grant all on tables to anon, authenticated;`);
+    await sb.exec(SCHEMA);
+    const priv = await rows<{ ok: boolean }>(sb, `select has_table_privilege('anon', 'member_transfers', 'select') as ok`);
+    expect(priv[0].ok).toBe(false);
+  });
+
+  it('R3.15b never to yourself, a known kind, a positive whole amount, an Amman day key; RESTRICT both members', async () => {
+    const pg = await fresh();
+    await pg.exec(SCHEMA);
+    await pg.query(`insert into members (id, phone, held_tier_id) values ('a', '+962791111111', 'base'), ('b', '+962792222222', 'base')`);
+    const send = (id: string, from = 'a', to = 'b', kind = 'points', amount = 50, day = '2026-09-24') => code(pg,
+      `insert into member_transfers (id, sender_id, recipient_id, kind, amount, amman_day) values ($1,$2,$3,$4,$5,$6)`,
+      [id, from, to, kind, amount, day]);
+    expect(await send('t1')).toBe('ok');
+    expect(await send('t1')).toBe('23505');
+    expect(await send('t2', 'a', 'a')).toBe('23514');
+    expect(await send('t3', 'a', 'b', 'gift')).toBe('23514');
+    expect(await send('t4', 'a', 'b', 'wallet', 0)).toBe('23514');
+    expect(await send('t5', 'a', 'b', 'points', 50, '24/09/2026')).toBe('23514');
+    expect(await send('t6', 'a', 'nobody')).toBe('23503');
+    expect(await send('t7', 'b', 'a', 'wallet', 2_000)).toBe('ok');
+    expect(await code(pg, `delete from members where id = 'a'`)).toBe('23001');
+    expect(await code(pg, `delete from members where id = 'b'`)).toBe('23001');
+  });
+});
+
+/**
+ * R3.16 — 20261003_member_profile_fields.sql: the profile's gender.
+ */
+describe('R3.16 migration 20261003_member_profile_fields.sql', () => {
+  it('R3.16 adds members.gender, re-applies unchanged (constraint included), and accepts only the shared ids', async () => {
+    const pg = await fresh();
+    await pg.exec(SCHEMA);
+    const cons = () => rows(pg, `select conname, pg_get_constraintdef(oid) as def from pg_constraint
+      where conrelid = 'members'::regclass order by 1`);
+    const col = () => rows(pg, `select data_type, is_nullable from information_schema.columns
+      where table_name = 'members' and column_name = 'gender'`);
+    const before = { cons: await cons(), col: await col() };
+    expect(before.col).toEqual([{ data_type: 'text', is_nullable: 'YES' }]);
+    await pg.exec(PROFILE_FIELDS_MIGRATION);
+    await pg.exec(PROFILE_FIELDS_MIGRATION);
+    expect({ cons: await cons(), col: await col() }).toEqual(before);
+    await pg.query(`insert into members (id, phone, held_tier_id) values ('m1', '+962791111111', 'base')`);
+    for (const [g, want] of [['male', 'ok'], ['female', 'ok'], [null, 'ok'], ['ذكر', '23514'], ['other', '23514']] as const) {
+      let got = 'ok';
+      try { await pg.query(`update members set gender = $1 where id = 'm1'`, [g]); } catch (e) { got = (e as { code?: string }).code ?? 'err'; }
+      expect(got, String(g)).toBe(want);
+    }
   });
 });

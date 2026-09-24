@@ -99,10 +99,10 @@
     "promoApplied": "Code “{code}” applied",
     "promoInvalid": "Invalid code",
     "removePromo": "Remove code",
-    "comboAddFood": "Add a food item to earn +{points} points 🍽️",
-    "comboAddDrink": "Add a drink to earn +{points} points ☕",
+    "comboAddFood": "Add a food item — the pair earns {points} points in place of its cashback 🍽️",
+    "comboAddDrink": "Add a drink — the pair earns {points} points in place of its cashback ☕",
     "comboAdd": "Add",
-    "comboEarned": "Combo: +{points} points",
+    "comboEarned": "Combo: {points} points",
     "removeItem": "Remove {name}"
   },
   "Checkout": {

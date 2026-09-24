@@ -35,7 +35,7 @@ import { paymentService } from '@/services/payment.service';
 import { loyaltyService } from '@/services/loyalty.service';
 import { integration } from '@/constants/integration';
 import { usePromoStore } from '@/stores/promoStore';
-import { comboPairs } from '@/lib/combo';
+import { comboBasket } from '@/lib/combo';
 import { aggregatorService } from '@/services/aggregator.service';
 
 export default function CartScreen() {
@@ -170,7 +170,9 @@ export default function CartScreen() {
         invoiceAmount: totals.total,
         paidFromBalance: paymentMethod === 'wallet',
         bonusDayActivated: usePromoStore.getState().isActivatedToday(),
-        comboPairs: comboPairs(items),
+        // The priced drink+food lines: the pair earns the combo INSTEAD of its
+        // regular points (owner, 2026-09-24) — the shared engine decides which.
+        combo: comboBasket(items, totals.total),
       });
       invalidateLoyalty();
 

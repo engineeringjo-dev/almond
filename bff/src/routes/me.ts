@@ -7,6 +7,7 @@ import { z } from 'zod';
 import { parse } from '../validate';
 import { requireMember, memberId } from '../plugins/auth';
 import { toJod } from '../money';
+import { GENDERS } from '@almond/shared/loyalty/profile';
 import type { Backend } from '../backend';
 
 /** The ramp's rung ids are plain strings inside loyalty/window.ts; the wire
@@ -50,13 +51,19 @@ export function registerMeRoutes(app: FastifyInstance, backend: Backend): void {
         // day early west of Greenwich. The regex is the shape; a nonsense date
         // like 2026-02-31 is the client's to avoid and costs nothing here.
         birthday: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable().default(null),
+        // One of the shared ids or null — never display text, so Arabic and
+        // English screens cannot store two spellings of one fact. Optional on
+        // the wire, so an app that predates the field still saves a name.
+        gender: z.enum(GENDERS).nullable().default(null),
       }),
       req.body,
     );
     // `birthday` is `.default(null)`, so zod always produces it — but the
     // inferred type keeps it optional and MemberProfile does not. Naming the
     // field rather than casting keeps the wire and the domain type honest.
-    const result = await backend.setProfile(id, { name: body.name, birthday: body.birthday ?? null });
+    const result = await backend.setProfile(id, {
+      name: body.name, birthday: body.birthday ?? null, gender: body.gender ?? null,
+    });
     return reply.code(200).send(result);
   });
 

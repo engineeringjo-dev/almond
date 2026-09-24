@@ -1,5 +1,5 @@
 import { createElement, useState } from 'react';
-import { StyleSheet, TextInput, Alert, Platform } from 'react-native';
+import { StyleSheet, TextInput, Alert, Platform, Pressable, View } from 'react-native';
 import { Stack, router } from 'expo-router';
 
 import { Screen } from '@/components/ui/Screen';
@@ -12,7 +12,9 @@ import { useI18n } from '@/hooks/useI18n';
 import { formatNumber } from '@/lib/format';
 import { useUpdateProfile } from '@/hooks/useLoyalty';
 import { useAuthStore, useUser } from '@/stores/authStore';
-import { MAX_NAME_LENGTH, isProfileComplete, normalizeName } from '@almond/shared/loyalty/profile';
+import {
+  GENDERS, MAX_NAME_LENGTH, isProfileComplete, isValidBirthday, normalizeName, type Gender,
+} from '@almond/shared/loyalty/profile';
 
 /**
  * "Your details" — the member tells us who they are, and is paid once for it.
@@ -26,10 +28,10 @@ import { MAX_NAME_LENGTH, isProfileComplete, normalizeName } from '@almond/share
  * reports. If those two ever disagree, the member is told the truth — the one
  * that matches their balance — rather than the one this screen guessed.
  *
- * The birthday field is optional and deliberately does NOT gate the bonus: the
- * tier cards have promised a birthday benefit since before there was anywhere
- * to store one, so there has to be a field, but making 50 points conditional on
- * handing over a birthdate is not what was asked for.
+ * 🔴 THE BONUS NOW NEEDS FOUR FACTS (owner, 2026-09-24): name, birth date,
+ * gender — and the phone on record, which OTP already proved and which is
+ * shown here, not typed. The member may save any subset; the +50 is predicted
+ * (and paid by the server) only when all four are there.
  */
 /**
  * THE BIRTHDAY IS PICKED, NOT TYPED. Owner, 2026-09-08: «العميل يختار من رزنامة
@@ -112,15 +114,18 @@ export default function ProfileDetailsScreen() {
   const updateProfile = useUpdateProfile();
 
   const [name, setName] = useState(user?.name ?? '');
-  const [birthday, setBirthday] = useState('');
+  const [birthday, setBirthday] = useState(user?.birthday ?? '');
+  const [gender, setGender] = useState<Gender | null>(user?.gender ?? null);
 
   // Has the member ALREADY been paid? The phone cannot know — the stamp lives
-  // on the server. So the button offers the bonus only when there is nothing
-  // stored yet, which is the case where it is certainly owed; after that it
-  // simply says "Save". An unpromised +50 is a pleasant surprise, a promised
-  // one that does not arrive is a complaint.
-  const firstTime = !isProfileComplete({ name: user?.name ?? '', birthday: null });
-  const willEarn = firstTime && isProfileComplete({ name, birthday: null });
+  // on the server. So the button offers the bonus only when what is stored was
+  // NOT yet complete, which is the case where it is certainly owed; after that
+  // it simply says "Save". An unpromised +50 is a pleasant surprise, a
+  // promised one that does not arrive is a complaint.
+  const stored = { name: user?.name ?? '', birthday: user?.birthday ?? null, gender: user?.gender ?? null, phone: user?.phone };
+  const firstTime = !isProfileComplete(stored);
+  const typedBirthday = birthday.trim() === '' ? null : birthday.trim();
+  const willEarn = firstTime && isProfileComplete({ name, birthday: typedBirthday, gender, phone: user?.phone });
 
   const onSave = () => {
     const clean = normalizeName(name);
@@ -128,13 +133,21 @@ export default function ProfileDetailsScreen() {
       Alert.alert(t('details.nameRequiredTitle'), t('details.nameRequiredBody'));
       return;
     }
+    if (typedBirthday !== null && !isValidBirthday(typedBirthday)) {
+      Alert.alert(t('details.birthdayInvalidTitle'), t('details.birthdayInvalidBody'));
+      return;
+    }
     updateProfile.mutate(
-      { name: clean, birthday: birthday.trim() === '' ? null : birthday.trim() },
+      { name: clean, birthday: typedBirthday, gender },
       {
         onSuccess: (res) => {
-          // The name the SERVER stored, not the one typed — it normalized and
-          // may have truncated it, and the greeting must match the record.
-          if (user) setUser({ ...user, name: res.profile.name });
+          // What the SERVER stored, not what was typed — it normalized and may
+          // have truncated the name, and the greeting must match the record.
+          if (user) {
+            setUser({
+              ...user, name: res.profile.name, birthday: res.profile.birthday, gender: res.profile.gender,
+            });
+          }
           Alert.alert(
             t('details.savedTitle'),
             // The reply's figure. 0 on every save after the first, and the
@@ -188,6 +201,30 @@ export default function ProfileDetailsScreen() {
           />
           <Text variant="caption" color={colors.warmGray}>{t('details.birthdayHint')}</Text>
 
+          <Text variant="caption" color={colors.warmGray} style={styles.label}>
+            {t('details.genderLabel')}
+          </Text>
+          {/* Two ids, never display text: the server stores 'male' | 'female'
+              whatever language the member reads. */}
+          <View style={styles.genderRow} accessibilityRole="radiogroup">
+            {GENDERS.map((g) => {
+              const active = gender === g;
+              return (
+                <Pressable
+                  key={g}
+                  style={[styles.genderChip, active && styles.genderActive]}
+                  onPress={() => setGender(g)}
+                  accessibilityRole="radio"
+                  accessibilityState={{ checked: active }}
+                >
+                  <Text variant="bodyBold" color={active ? colors.white : colors.warmGray}>
+                    {g === 'male' ? t('details.genderMale') : t('details.genderFemale')}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+
           {/* The phone number is not editable here: OTP proved it, and changing
               it would change which account this is. */}
           {user?.phone ? (
@@ -230,4 +267,14 @@ const styles = StyleSheet.create({
     color: colors.dark,
   },
   save: { marginTop: spacing.lg },
+  genderRow: { flexDirection: 'row', gap: spacing.sm },
+  genderChip: {
+    flex: 1,
+    minHeight: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: radius.pill,
+    backgroundColor: colors.neutralWarm,
+  },
+  genderActive: { backgroundColor: colors.primary },
 });

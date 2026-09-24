@@ -93,6 +93,7 @@ export default function RootLayout() {
               options={{ presentation: 'modal' }}
             />
             <Stack.Screen name="referral" />
+            <Stack.Screen name="transfer" />
           </Stack>
           <CartToast />
           </ErrorBoundary>

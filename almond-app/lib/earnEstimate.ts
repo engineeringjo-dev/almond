@@ -1,5 +1,5 @@
 import { computeEarn, earnRulesFromConfig, type EarnRules } from '@almond/shared/loyalty/earn';
-import { comboPairs } from '@/lib/combo';
+import { comboBasket } from '@/lib/combo';
 import type { CartItem } from '@/types';
 
 /**
@@ -46,7 +46,9 @@ export function estimateEarnedPoints(opts: {
       windowSpend: opts.windowSpend,
       heldRungId: opts.heldRungId,
       paidFromBalance: opts.paidFromBalance,
-      comboPairs: comboPairs(opts.items),
+      // On the invoice's own basis: the pair earns the combo INSTEAD of its
+      // regular points, so the estimate must know what the pair costs.
+      combo: comboBasket(opts.items, opts.total),
     },
     ESTIMATE_RULES,
   ).points;

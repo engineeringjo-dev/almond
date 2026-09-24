@@ -13,6 +13,7 @@ import {
 import { computeEarn, earnRulesFromConfig } from '@almond/shared/loyalty/earn';
 import { menuItems, itemFromPrice } from '@almond/shared/menu';
 import { build } from '../src/server';
+import { createMemoryBackend } from '../src/backend/memory';
 import { signIn } from './lib/signIn';
 
 /**
@@ -29,6 +30,9 @@ import { signIn } from './lib/signIn';
  */
 
 const BONUS = config.PROFILE_COMPLETION_BONUS;
+/** The two facts, besides a name, a profile needs to be paid since 2026-09-24
+ *  (the phone is the member's own, from OTP). */
+const FACTS = { birthday: '1990-04-20', gender: 'male' } as const;
 const newPhone = (): string => `+9627${Math.floor(Math.random() * 90000000 + 10000000)}`;
 
 /** Sign a brand-new member in and return their bearer token. A fresh phone each
@@ -76,21 +80,28 @@ describe('T33 the profile bonus', () => {
     const token = await freshMember(app);
     const before = await balance(app, token);
 
-    const first = await save(app, token, { name: 'حمزة', birthday: null });
+    // A NAME ALONE IS SAVED — AND NOT PAID (owner, 2026-09-24: name + birth
+    // date + gender + phone).
+    const nameOnly = await save(app, token, { name: 'حمزة', birthday: null });
+    expect(nameOnly.statusCode).toBe(200);
+    expect(nameOnly.json().bonusGranted).toBe(0);
+    expect(await balance(app, token)).toBe(before);
+
+    const first = await save(app, token, { name: 'حمزة', ...FACTS });
     expect(first.statusCode).toBe(200);
     expect(first.json().bonusGranted).toBe(BONUS);
-    expect(first.json().profile.name).toBe('حمزة');
+    expect(first.json().profile).toEqual({ name: 'حمزة', ...FACTS });
 
     // 🔴 THE BALANCE, NOT THE REPLY. A route can report a grant it never made.
     expect(await balance(app, token)).toBe(before + BONUS);
 
     // Saving again is an ordinary thing to do — correcting a typo, adding a
     // birthday later. It must SUCCEED and pay NOTHING.
-    const second = await save(app, token, { name: 'حمزة خ', birthday: '1990-04-20' });
+    const second = await save(app, token, { name: 'حمزة خ', birthday: '1990-04-21', gender: 'male' });
     expect(second.statusCode).toBe(200);
     expect(second.json().bonusGranted).toBe(0);
     expect(second.json().profile.name).toBe('حمزة خ');
-    expect(second.json().profile.birthday).toBe('1990-04-20');
+    expect(second.json().profile.birthday).toBe('1990-04-21');
     expect(await balance(app, token)).toBe(before + BONUS);
   });
 
@@ -99,23 +110,23 @@ describe('T33 the profile bonus', () => {
     // forever. The stamp is a timestamp on the member and is never derived from
     // "does this member currently have a name".
     const token = await freshMember(app);
-    expect((await save(app, token, { name: 'Hamza', birthday: null })).json().bonusGranted).toBe(BONUS);
+    expect((await save(app, token, { name: 'Hamza', ...FACTS })).json().bonusGranted).toBe(BONUS);
     const paid = await balance(app, token);
 
     for (let i = 0; i < 5; i += 1) {
-      expect((await save(app, token, { name: '', birthday: null })).json().bonusGranted).toBe(0);
-      expect((await save(app, token, { name: 'Hamza', birthday: null })).json().bonusGranted).toBe(0);
+      expect((await save(app, token, { name: '', birthday: null, gender: null })).json().bonusGranted).toBe(0);
+      expect((await save(app, token, { name: 'Hamza', ...FACTS })).json().bonusGranted).toBe(0);
     }
     expect(await balance(app, token)).toBe(paid);
   });
 
   it('T33d whitespace is not a name', async () => {
     const token = await freshMember(app);
-    const res = await save(app, token, { name: '   \t  ', birthday: null });
+    const res = await save(app, token, { name: '   \t  ', ...FACTS });
     expect(res.json().bonusGranted).toBe(0);
     expect(res.json().profile.name).toBe('');
-    // And the member is still eligible — they have not told us anything yet.
-    expect((await save(app, token, { name: 'Hamza', birthday: null })).json().bonusGranted).toBe(BONUS);
+    // And the member is still eligible — they have not told us who they are.
+    expect((await save(app, token, { name: 'Hamza', ...FACTS })).json().bonusGranted).toBe(BONUS);
   });
 
   it('T33e the route requires a member', async () => {
@@ -130,8 +141,8 @@ describe('T33 the profile bonus', () => {
     // reply is what the SERVER decided, and the balance proves it.
     const token = await freshMember(app);
     const res = await save(app, token, {
-      name: 'Hamza', birthday: null,
-      bonusGranted: 100000, points: 100000, profileBonusAt: null,
+      name: 'Hamza', ...FACTS,
+      bonusGranted: 100000, points: 100000, profileBonusAt: null, phone: '+962790000000',
     });
     expect(res.json().bonusGranted).toBe(BONUS);
     expect(await balance(app, token)).toBe(BONUS);
@@ -139,7 +150,7 @@ describe('T33 the profile bonus', () => {
 
   it('T33g a pasted essay is bounded, not rejected', async () => {
     const token = await freshMember(app);
-    const res = await save(app, token, { name: 'ا'.repeat(500), birthday: null });
+    const res = await save(app, token, { name: 'ا'.repeat(500), ...FACTS });
     expect(res.statusCode).toBe(200);
     expect(res.json().profile.name.length).toBe(MAX_NAME_LENGTH);
     expect(res.json().bonusGranted).toBe(BONUS);
@@ -151,6 +162,44 @@ describe('T33 the profile bonus', () => {
     // Genuine abuse is still refused at the edge — a name is a name.
     expect((await save(app, token, { name: 'a'.repeat(9000) })).statusCode).toBe(400);
     expect((await save(app, token, { name: 'x', birthday: '20/04/1990' })).statusCode).toBe(400);
+    // A gender is one of the shared ids, never display text.
+    expect((await save(app, token, { name: 'x', ...FACTS, gender: 'ذكر' })).statusCode).toBe(400);
+    expect((await save(app, token, { name: 'x', ...FACTS, gender: 'other' })).statusCode).toBe(400);
+  });
+
+  it('T33q each missing fact withholds the bonus — and the complete save then pays once', async () => {
+    const token = await freshMember(app);
+    for (const partial of [
+      { name: 'Hamza', birthday: null, gender: 'male' },          // no birth date
+      { name: 'Hamza', birthday: '1990-04-20', gender: null },    // no gender
+      { name: 'Hamza', birthday: '1990-02-31', gender: 'male' },  // not a real day
+      { name: 'Hamza', birthday: '2999-01-01', gender: 'male' },  // not born yet
+      { name: '', birthday: '1990-04-20', gender: 'female' },     // no name
+    ]) {
+      const r = await save(app, token, partial);
+      expect(r.statusCode, JSON.stringify(partial)).toBe(200);    // saved…
+      expect(r.json().bonusGranted, JSON.stringify(partial)).toBe(0);   // …not paid
+    }
+    expect(await balance(app, token)).toBe(0);
+    expect((await save(app, token, { name: 'Hamza', ...FACTS })).json().bonusGranted).toBe(BONUS);
+    expect(await balance(app, token)).toBe(BONUS);
+  });
+
+  it('T33r a member with NO PHONE on record is never paid, whatever they fill in', async () => {
+    // Every member reaches the table through OTP, so this cannot happen through
+    // a route — which is exactly why it is tested on the store: a migrated row
+    // or a future admin-created member without a phone must not be paid for a
+    // profile we cannot tie to a person. The PHONE is the backend's stored one,
+    // never a form field (T33f sends one; it is ignored).
+    const b = createMemoryBackend();
+    const m = await b.findOrCreateByPhone('+962791112233');
+    (await b.getMember(m.id)).phone = '';        // memory hands out the stored row
+    const r = await b.setProfile(m.id, { name: 'Hamza', ...FACTS });
+    expect(r.bonusGranted).toBe(0);
+    expect(liveBalance((await b.getMember(m.id)).lots)).toBe(0);
+    // …and the same member WITH a phone is paid, so the refusal is the phone's.
+    (await b.getMember(m.id)).phone = '+962791112233';
+    expect((await b.setProfile(m.id, { name: 'Hamza', ...FACTS })).bonusGranted).toBe(BONUS);
   });
 });
 
@@ -162,15 +211,30 @@ describe('T33 the shared predicate', () => {
     expect(normalizeName('a'.repeat(200)).length).toBe(MAX_NAME_LENGTH);
   });
 
-  it('a birthday alone does not complete a profile', () => {
-    // Deliberate: gating the bonus on a birthdate would let anyone unwilling to
-    // hand one over refuse it, and the owner asked for the name.
-    expect(isProfileComplete({ name: '', birthday: '1990-04-20' })).toBe(false);
-    expect(isProfileComplete({ name: 'Hamza', birthday: null })).toBe(true);
+  it('T33p complete = name + birth date + gender + PHONE — each one required on its own', () => {
+    // 🔴 Owner, 2026-09-24 (it was the name alone). Each fact is removed in
+    // turn from a complete profile; every one of them must turn it incomplete.
+    // A predicate that quietly stopped checking one would still pass a test
+    // that only tried the complete case.
+    const full = { name: 'Hamza', birthday: '1990-04-20', gender: 'male' as const, phone: '+962791234567' };
+    expect(isProfileComplete(full)).toBe(true);
+    expect(isProfileComplete({ ...full, name: '   ' })).toBe(false);
+    expect(isProfileComplete({ ...full, birthday: null })).toBe(false);
+    expect(isProfileComplete({ ...full, birthday: '1990-13-01' })).toBe(false);
+    expect(isProfileComplete({ ...full, gender: null })).toBe(false);
+    // The PHONE: absent, empty, or not a Jordanian mobile — none completes it.
+    expect(isProfileComplete({ ...full, phone: null })).toBe(false);
+    expect(isProfileComplete({ ...full, phone: '' })).toBe(false);
+    expect(isProfileComplete({ ...full, phone: '+441234567890' })).toBe(false);
+    expect(isProfileComplete({ name: full.name, birthday: full.birthday, gender: full.gender })).toBe(false);
+    // The shapes a real phone arrives in are all accepted.
+    expect(isProfileComplete({ ...full, phone: '0791234567' })).toBe(true);
+    // …and so is the other gender.
+    expect(isProfileComplete({ ...full, gender: 'female' })).toBe(true);
   });
 
   it('the dial can switch the bonus off without breaking the save', () => {
-    const p = { name: 'Hamza', birthday: null };
+    const p = { name: 'Hamza', birthday: '1990-04-20', gender: 'male' as const, phone: '+962791234567' };
     expect(profileBonusFor(p, false, 0)).toBe(0);
     expect(profileBonusFor(p, false, -50)).toBe(0);
     expect(profileBonusFor(p, false, Number.NaN)).toBe(0);
@@ -325,7 +389,7 @@ describe('T34 the wallet ledger', () => {
   });
 });
 
-describe('T33m the Wafii migration must not pay for names it already carries', () => {
+describe('T33m the Wafii migration must not pay for facts it already carries', () => {
   // Owner, 2026-09-08: «لا نقود لاسم نملكه سلفاً».
   //
   // 🔴 THIS SUITE IS 23,860 JOD. The export carries a name for all 47,720
@@ -336,14 +400,30 @@ describe('T33m the Wafii migration must not pay for names it already carries', (
   // fails.
   const CUTOVER = '2026-10-01T00:00:00.000Z';
   const MEMBERS = 47_720;
+  /** A migrated row carrying all four facts. */
+  const COMPLETE = { name: 'حمزة', birthday: '1990-04-20', gender: 'male' as const, phone: '+962791234567' };
 
-  it('a migrated member who arrives with a name is settled at the cutover', () => {
-    const stamp = migratedProfileBonusAt({ name: 'حمزة', birthday: null }, CUTOVER);
+  it('a migrated member who arrives COMPLETE is settled at the cutover', () => {
+    const stamp = migratedProfileBonusAt(COMPLETE, CUTOVER);
     expect(stamp).toBe(CUTOVER);
     // The stamp is only worth anything if it actually closes the payment, so
     // this asserts the OUTCOME through the same function the save handler uses,
     // not merely that a string came back.
-    expect(profileBonusFor({ name: 'حمزة', birthday: null }, stamp !== null)).toBe(0);
+    expect(profileBonusFor(COMPLETE, stamp !== null)).toBe(0);
+  });
+
+  it('🔴 a migrated row with ONLY a name is NOT settled — and is paid when the member completes it', () => {
+    // THE BILL THIS SUITE WARNED ABOUT, NOW REAL AND STATED. Since 2026-09-24
+    // "complete" is four facts, and the Wafii export carries a name and a phone
+    // but (as far as is known) no birth date or gender. Applied as written, a
+    // name-only member is not stamped at import and IS paid 0.500 JOD the day
+    // they add the two missing facts — at most 23,860 JOD if every member does.
+    // Whether "we already own the name" should still settle them is an OWNER
+    // decision (docs/HANDOVER.md §7); this pins what the code does until then.
+    const nameOnly = { name: 'حمزة', phone: '+962791234567' };
+    const stamp = migratedProfileBonusAt(nameOnly, CUTOVER);
+    expect(stamp).toBeNull();
+    expect(profileBonusFor({ ...nameOnly, birthday: '1990-04-20', gender: 'male' }, stamp !== null)).toBe(BONUS);
   });
 
   it('the whole import costs nothing — the sum, not one row', () => {
@@ -351,7 +431,7 @@ describe('T33m the Wafii migration must not pay for names it already carries', (
     // edit makes the stamp conditional on something the export lacks (a
     // birthday, a verified phone), this is where the bill reappears.
     const paid = Array.from({ length: 1000 }, (_, i) => {
-      const profile = { name: `عضو ${i}`, birthday: null };
+      const profile = { ...COMPLETE, name: `عضو ${i}` };
       return profileBonusFor(profile, migratedProfileBonusAt(profile, CUTOVER) !== null);
     }).reduce((a, b) => a + b, 0);
     expect(paid).toBe(0);
@@ -370,8 +450,8 @@ describe('T33m the Wafii migration must not pay for names it already carries', (
     for (const nameless of [{ name: '' }, { name: '   ' }, {}, null, undefined]) {
       expect(migratedProfileBonusAt(nameless, CUTOVER)).toBeNull();
     }
-    const stamp = migratedProfileBonusAt({ name: '' }, CUTOVER);
-    expect(profileBonusFor({ name: 'حمزة' }, stamp !== null))
+    const stamp = migratedProfileBonusAt({ ...COMPLETE, name: '' }, CUTOVER);
+    expect(profileBonusFor(COMPLETE, stamp !== null))
       .toBe(config.PROFILE_COMPLETION_BONUS);
   });
 
@@ -380,16 +460,16 @@ describe('T33m the Wafii migration must not pay for names it already carries', (
     // details re-enters the same handler; the stamp is what makes that save
     // free. Skipping payment at import WITHOUT stamping would only defer the
     // 23,860 JOD to the first time each member edits their name.
-    const profile = { name: 'حمزة', birthday: '1990-04-20' };
-    const stamp = migratedProfileBonusAt(profile, CUTOVER);
-    expect(profileBonusFor({ ...profile, name: 'حمزة العموش' }, stamp !== null)).toBe(0);
+    const stamp = migratedProfileBonusAt(COMPLETE, CUTOVER);
+    expect(profileBonusFor({ ...COMPLETE, name: 'حمزة العموش' }, stamp !== null)).toBe(0);
   });
 
-  it('the migration and the app agree on what "we have a name" means', () => {
+  it('the migration and the app agree on what "complete" means', () => {
     // One predicate, two callers. If the import used a looser test than the
     // save handler, a member could be stamped as settled while the app still
     // considers their profile incomplete — settled AND nagged, paid never.
-    for (const p of [{ name: 'حمزة' }, { name: '  حمزة  ' }, { name: '' }, {}]) {
+    for (const p of [COMPLETE, { ...COMPLETE, name: '  حمزة  ' }, { name: 'حمزة' }, { name: '' }, {},
+      { ...COMPLETE, gender: null }, { ...COMPLETE, phone: '' }]) {
       expect(migratedProfileBonusAt(p, CUTOVER) !== null).toBe(isProfileComplete(p));
     }
   });

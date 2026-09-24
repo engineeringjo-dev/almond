@@ -441,10 +441,17 @@ export function registerPosRoutes(app: FastifyInstance, backend: Backend): void 
     // pointsRedeemed is 0 because paidTotal is ALREADY the money part only —
     // the till takes the points tender (and any Almond redemption) off the
     // bill before it reports what it collected.
+    //
+    // 🔴 NO COMBO AT THE TILL — `combo` is omitted, on purpose. The till reports
+    // one number (paidTotal), never the lines, so the server cannot tell a
+    // drink+food pair from any other 4.40 JOD, and the combo neither adds its
+    // points nor removes the pair's regular ones here: an in-store invoice
+    // earns the plain rate on the whole paid total. The combo is an app/web
+    // checkout offer until the till contract carries lines (INTEGRATIONS §2).
     const earn = computeEarn({
       total: paidJod, corporate: entitlement !== null, pointsRedeemed: 0,
       windowSpend: standing.windowSpend, heldRungId: standing.held.id,
-      paidFromBalance: false, comboPairs: 0, bonusDayActivated: false, at: paidAt,
+      paidFromBalance: false, bonusDayActivated: false, at: paidAt,
     });
     const { sale, replay } = await backend.tillEarn({
       posOrderRef: body.posOrderRef, memberId: ticket.memberId, ticketJti: ticket.jti,

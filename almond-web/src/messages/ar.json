@@ -99,10 +99,10 @@
     "promoApplied": "تم تطبيق الرمز «{code}»",
     "promoInvalid": "رمز غير صالح",
     "removePromo": "إزالة الرمز",
-    "comboAddFood": "أضف صنف طعام لتكسب +{points} نقطة 🍽️",
-    "comboAddDrink": "أضف مشروبًا لتكسب +{points} نقطة ☕",
+    "comboAddFood": "أضف صنف طعام — يكسب الاثنان {points} نقطة بدل نقاطهما 🍽️",
+    "comboAddDrink": "أضف مشروبًا — يكسب الاثنان {points} نقطة بدل نقاطهما ☕",
     "comboAdd": "إضافة",
-    "comboEarned": "كومبو: +{points} نقطة",
+    "comboEarned": "كومبو: {points} نقطة",
     "removeItem": "إزالة {name}"
   },
   "Checkout": {

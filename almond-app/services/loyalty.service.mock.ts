@@ -8,11 +8,21 @@ import type {
 import type { GiftCard, TierId } from '@/types';
 import type { LoyaltyService, EarnInput } from './loyalty.service';
 import { config } from '@/constants/config';
+import { ApiError } from '@/lib/apiClient';
 import { computeEarn } from '@almond/shared/loyalty/earn';
-import { normalizeName, profileBonusFor } from '@almond/shared/loyalty/profile';
+import { maskedDisplayName, normalizeName, profileBonusFor, type Gender } from '@almond/shared/loyalty/profile';
+import {
+  normalizeReferralCode, referralAttachError, referralRewardFor, referralShareLink,
+  REFERRAL_CODE_ALPHABET, REFERRAL_CODE_LENGTH,
+} from '@almond/shared/loyalty/referral';
+import {
+  transferRefusal, transferRemainingToday, transferRulesFromConfig, type TransferKind,
+} from '@almond/shared/loyalty/transfer';
+import { normalizeJordanPhone } from '@almond/shared/lib/phone';
+import { toFils, toJod } from '@almond/shared/lib/format';
 import {
   consumeFifo, expiredBetween, grantLot, liveBalance, lotRulesFromConfig, migrateBalance,
-  nextExpiry, pruneLots, type PointLot,
+  nextExpiry, pruneLots, restoreSlices, spentSlices, type PointLot,
 } from '@almond/shared/loyalty/lots';
 import {
   evaluationPeriod, holdRung, qualifiedRung, spendEntry, standing, windowRulesFromConfig,
@@ -43,6 +53,8 @@ export interface LoyaltyUser {
   name: string;
   /** Amman day key of birth, or null. */
   birthday: string | null;
+  /** 'male' | 'female', or null — one of the four profile facts. */
+  gender: Gender | null;
   /** 🔴 When the profile bonus was paid. A TIMESTAMP, not a boolean, and never
    *  derived from "has a name" — otherwise clearing the name and re-saving it
    *  pays again, forever. Mirrors Member.profileBonusAt in the BFF. */
@@ -80,9 +92,41 @@ export interface LoyaltyUser {
   grantDay: string;
   grantDayCount: number;
   hasRatedBranchEver: boolean;
-  hasReferralRewardEver: boolean;
+  /** This member's own code — the shared alphabet and length, like the BFF's. */
   referralCode: string;
+  /** The referral this member attached as someone's FRIEND, and whether the
+   *  referrer has been paid for it — the twin of the BFF's `referrals` row. */
+  referredBy: { referrerId: string; code: string; rewarded: boolean } | null;
+  /** When this member's first PAID order happened (the mock's `earn` IS a paid
+   *  order), or null. A code may be attached only while it is null. */
+  firstPaidAt: string | null;
+  /** Referral rewards this member has been paid, one per friend. */
+  referralPointsEarned: number;
+  /** Transfers sent, for the daily cap: kind + Amman day + amount. */
+  transfersSent: { kind: TransferKind; day: string; amount: number }[];
+  /**
+   * The member's phone. The mock is the SERVER for this app build, and the
+   * server knows the phone OTP proved — which this mock never sees. So each
+   * mock member gets a stable DEMO number derived from their id (demoPhoneFor),
+   * which is what makes the profile bonus (it needs a phone on record) and
+   * finding a friend by number demonstrable at all.
+   */
   phone: string;
+}
+
+/** A stable, valid-looking Jordanian number per mock member id. Demo only. */
+function demoPhoneFor(userId: string): string {
+  let h = 0;
+  for (const ch of userId) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+  return `+96279${String(1_000_000 + (h % 9_000_000)).padStart(7, '0')}`;
+}
+
+function newReferralCode(): string {
+  let out = '';
+  for (let i = 0; i < REFERRAL_CODE_LENGTH; i += 1) {
+    out += REFERRAL_CODE_ALPHABET[Math.floor(Math.random() * REFERRAL_CODE_ALPHABET.length)];
+  }
+  return out;
 }
 
 /** The 90-day window, read once from config — the same object the BFF reads. */
@@ -115,8 +159,6 @@ function genGiftCode(): string {
   const part = () => Math.random().toString(36).slice(2, 6).toUpperCase();
   return `ALM-${part()}-${part()}`;
 }
-// Track every phone the system has seen (anti-abuse for referrals, section 8.1.1).
-const knownPhones = new Set<string>();
 // Spin config (mirrors what the admin panel would push to the loyalty server).
 let spinConfig: SpinConfig = JSON.parse(JSON.stringify(defaultSpinConfig));
 
@@ -143,6 +185,7 @@ function ensureUser(userId: string): LoyaltyUser {
       ).lots,
       name: '',
       birthday: null,
+      gender: null,
       profileBonusAt: null,
       expirySettledThrough: ammanDayKey(),
       // 🔴 THE SEED DECIDES WHETHER W4'S CENTREPIECE RENDERS AT ALL.
@@ -185,14 +228,64 @@ function ensureUser(userId: string): LoyaltyUser {
       spinsAvailable: 1,
       grantDay: '', grantDayCount: 0,
       hasRatedBranchEver: false,
-      hasReferralRewardEver: false,
-      referralCode: `ALM${Math.floor(1000 + Math.random() * 9000)}`,
-      phone: '',
+      referralCode: newReferralCode(),
+      referredBy: null,
+      firstPaidAt: null,
+      referralPointsEarned: 0,
+      transfersSent: [],
+      phone: demoPhoneFor(userId),
     };
     store.set(userId, u);
   }
   return u;
 }
+
+/**
+ * A REGISTERED friend the demo can find by number — the mock has no sign-in of
+ * its own, so without one "send to a friend" would have nobody to send to.
+ * Seeded once, like the demo gift code.
+ */
+export const MOCK_FRIEND = { id: 'mock-friend-sara', name: 'Sara Khaled', phone: '+962791112233' } as const;
+function seedFriend(): void {
+  const f = ensureUser(MOCK_FRIEND.id);
+  if (f.name) return;
+  f.name = MOCK_FRIEND.name;
+  f.phone = MOCK_FRIEND.phone;
+}
+
+const findByPhone = (phone: string): [string, LoyaltyUser] | null => {
+  seedFriend();
+  for (const [id, u] of store) if (u.phone === phone) return [id, u];
+  return null;
+};
+
+const findByCode = (code: string): [string, LoyaltyUser] | null => {
+  seedFriend();
+  for (const [id, u] of store) if (u.referralCode === code) return [id, u];
+  return null;
+};
+
+/** The mock's twin of the BFF's settlePaidOrder: a paid order stamps
+ *  `firstPaidAt` and pays a pending referrer ONCE. */
+function settlePaidOrder(u: LoyaltyUser, at: Date): void {
+  if (u.firstPaidAt === null) u.firstPaidAt = at.toISOString();
+  const ref = u.referredBy;
+  if (!ref || ref.rewarded) return;
+  ref.rewarded = true;
+  const referrer = ensureUser(ref.referrerId);
+  // The mock holds no corporate roster; the shared rule is still the one asked.
+  const points = referralRewardFor(false);
+  if (points <= 0) return;
+  settleExpiry(referrer, at);
+  referrer.lots = grantLot(referrer.lots, points, 'bonus', at, LOTS).lots;
+  referrer.referralPointsEarned += points;
+  referrer.history.unshift({
+    id: genId('log'), deltaPoints: points,
+    reasonAr: 'مكافأة دعوة صديق', reasonEn: 'Referral reward', createdAt: at.toISOString(),
+  });
+}
+
+const refuse = (status: number, code: string): Promise<never> => Promise.reject(new ApiError(status, code));
 
 /**
  * Write the ledger LINE for points that have died since this member was last
@@ -360,9 +453,15 @@ export const mockLoyaltyService: LoyaltyService = {
     const u = ensureUser(userId);
     settleExpiry(u);
     const name = normalizeName(profile.name);
-    const bonus = profileBonusFor({ name, birthday: profile.birthday }, u.profileBonusAt !== null);
+    // The same four facts the server checks — the phone is the member's own,
+    // never the form's.
+    const bonus = profileBonusFor(
+      { name, birthday: profile.birthday, gender: profile.gender, phone: u.phone },
+      u.profileBonusAt !== null,
+    );
     u.name = name;
     u.birthday = profile.birthday;
+    u.gender = profile.gender;
     if (bonus > 0) {
       u.profileBonusAt = new Date().toISOString();
       u.lots = grantLot(u.lots, bonus, 'bonus', new Date(), LOTS).lots;
@@ -374,7 +473,7 @@ export const mockLoyaltyService: LoyaltyService = {
       });
     }
     return delay({
-      profile: { name, birthday: u.birthday },
+      profile: { name, birthday: u.birthday, gender: u.gender },
       bonusGranted: bonus,
       pointsBalance: liveBalance(u.lots),
     });
@@ -382,7 +481,7 @@ export const mockLoyaltyService: LoyaltyService = {
 
   // Mirror of section 8.2 earn calculation.
   earn: ({
-    userId, invoiceAmount, paidFromBalance, at, bonusDayActivated, comboPairs, pointsRedeemed,
+    userId, invoiceAmount, paidFromBalance, at, bonusDayActivated, combo, pointsRedeemed,
   }: EarnInput) => {
     const u = ensureUser(userId);
     // Book any expiry that has come due into the history BEFORE the grant, so
@@ -406,7 +505,7 @@ export const mockLoyaltyService: LoyaltyService = {
       windowSpend: st.windowSpend,
       heldRungId: st.held.id, // a FLOOR — there is no demotion
       paidFromBalance,
-      comboPairs,
+      combo,
       bonusDayActivated,
       at,
     });
@@ -444,8 +543,12 @@ export const mockLoyaltyService: LoyaltyService = {
       createdAt: new Date().toISOString(),
     });
 
-    // The combo bonus is already INSIDE pointsEarned (computeEarn adds it).
-    // Log it for transparency; never add it again.
+    // This IS a paid order in the mock (cart.tsx calls earn after the order is
+    // placed), so it is the referral rail's trigger — as in the BFF.
+    settlePaidOrder(u, at ?? new Date());
+
+    // The combo bonus is already INSIDE pointsEarned (computeEarn adds it, in
+    // place of the pair's regular points). Log it; never add it again.
     if (earn.comboBonus > 0) {
       u.history.unshift({
         id: genId('log'), deltaPoints: 0,
@@ -612,43 +715,117 @@ export const mockLoyaltyService: LoyaltyService = {
    * mints with. Not a literal: a mock that reported a different lifetime would
    * tune the phone's refresh cadence against a figure production does not use.
    */
-  getPosToken: (userId, mode) => {
+  getPosToken: (userId) => {
     ensureUser(userId);
     return delay({
       token: `${genId('posmock')}-${Math.random().toString(36).slice(2, 10)}.mock-unsigned-not-a-real-signature`,
       expiresIn: config.POS_TOKEN_TTL_SECONDS,
-      mode,
+      // What the server answers to `{}`: the ONE member code (its default
+      // mode), which the till scans for earn and spend alike.
+      mode: 'pay' as const,
     });
   },
 
   // POS not connected in the mock — the till never reports a scan.
   getScanStatus: () => delay({ scanned: false }),
 
-  getReferralCode: (userId) => {
+  // ---- Referrals: the mock's twin of GET /v1/me/referral and
+  //      POST /v1/me/referral/attach, on the SHARED rules ----
+  getReferral: (userId) => {
     const u = ensureUser(userId);
-    return delay({ code: u.referralCode, alreadyRewarded: u.hasReferralRewardEver });
+    seedFriend();
+    const mine = [...store.values()].filter((x) => x.referredBy?.referrerId === userId);
+    return delay({
+      code: u.referralCode,
+      link: referralShareLink(u.referralCode),
+      referredCount: mine.length,
+      rewardedCount: mine.filter((x) => x.referredBy?.rewarded).length,
+      pointsEarned: u.referralPointsEarned,
+      rewardPoints: config.REFERRAL_REWARD_POINTS,
+      attachedCode: u.referredBy?.code ?? null,
+      canAttach: u.referredBy === null && u.firstPaidAt === null,
+    });
   },
 
-  // Referral logic mirrors section 8.1.1 (referrer-only, once per account).
-  claimReferral: (referrerId, referredPhone) => {
-    const u = ensureUser(referrerId);
-    if (u.hasReferralRewardEver) return delay({ rewarded: false });
-    if (referredPhone === u.phone) return delay({ rewarded: false }); // self-referral
-    if (knownPhones.has(referredPhone)) return delay({ rewarded: false }); // not a new user
-    // Assume OTP-verified at claim time in mock; mark phone as known.
-    knownPhones.add(referredPhone);
-    u.hasReferralRewardEver = true;
-    settleExpiry(u);
-    // config.REFERRAL_REWARD_POINTS, never a literal 50. The banner renders the
-    // dial and the grant must pay the dial, or the pitch goes stale the first
-    // time anybody edits it — the same failure as "Earn 5 points per 1 JOD".
-    const reward = config.REFERRAL_REWARD_POINTS;
-    u.lots = grantLot(u.lots, reward, 'bonus', new Date(), LOTS).lots;
-    u.history.unshift({
-      id: genId('log'), deltaPoints: reward,
-      reasonAr: 'مكافأة دعوة صديق', reasonEn: 'Referral reward', createdAt: new Date().toISOString(),
+  attachReferral: (userId, raw) => {
+    const u = ensureUser(userId);
+    const code = normalizeReferralCode(raw);
+    if (!code) return refuse(400, 'referral_code_invalid');
+    const found = findByCode(code);
+    if (!found) return refuse(404, 'referral_code_not_found');
+    const [referrerId, referrer] = found;
+    if (u.referredBy?.code === code) {
+      return delay({ attached: true as const, code, referrerDisplayName: maskedDisplayName(referrer.name), replay: true });
+    }
+    const refusal = referralAttachError({
+      memberId: userId, memberPhone: u.phone, memberFirstPaidAt: u.firstPaidAt,
+      alreadyAttached: u.referredBy !== null, referrer: { id: referrerId, phone: referrer.phone },
     });
-    return delay({ rewarded: true });
+    if (refusal) return refuse(409, refusal);
+    u.referredBy = { referrerId, code, rewarded: false };
+    return delay({ attached: true as const, code, referrerDisplayName: maskedDisplayName(referrer.name), replay: false });
+  },
+
+  // ---- Transfers to a friend: the twin of /v1/me/transfers(/preview) ----
+  previewTransfer: (userId, raw) => {
+    const u = ensureUser(userId);
+    const phone = normalizeJordanPhone(raw);
+    if (!phone) return refuse(400, 'phone_invalid');
+    const found = findByPhone(phone);
+    if (!found) return refuse(404, 'recipient_not_found');
+    if (found[0] === userId) return refuse(409, 'transfer_to_self');
+    return delay({
+      recipientFound: true as const,
+      displayName: maskedDisplayName(found[1].name),
+      remainingToday: remainingOf(u),
+    });
+  },
+
+  sendTransfer: (userId, input) => {
+    const s = ensureUser(userId);
+    const phone = normalizeJordanPhone(input.phone);
+    if (!phone) return refuse(400, 'phone_invalid');
+    const found = findByPhone(phone);
+    if (!found) return refuse(404, 'recipient_not_found');
+    const [recipientId, r] = found;
+    const at = new Date();
+    const day = ammanDayKey(at);
+    const amount = input.kind === 'points' ? input.amount : toFils(input.amount);
+    const sentToday = sentOn(s, input.kind, day);
+    const refusal = transferRefusal({ kind: input.kind, amount, sentToday, senderId: userId, recipientId });
+    if (refusal) return refuse(409, refusal);
+    if (input.kind === 'points') {
+      settleExpiry(s, at);
+      const res = consumeFifo(s.lots, amount, at);
+      if (!res.ok) return refuse(409, 'insufficient_points');
+      const slices = spentSlices(s.lots, res.consumed);
+      s.lots = res.lots;
+      settleExpiry(r, at);
+      // With the dates they left with — never a fresh twelve months.
+      r.lots = restoreSlices(r.lots, slices, at).lots;
+      s.history.unshift({ id: genId('log'), deltaPoints: -amount, reasonAr: 'تحويل نقاط إلى صديق', reasonEn: 'Points sent to a friend', createdAt: at.toISOString() });
+      r.history.unshift({ id: genId('log'), deltaPoints: amount, reasonAr: 'نقاط من صديق', reasonEn: 'Points from a friend', createdAt: at.toISOString() });
+    } else {
+      // The mock's wallet is a scalar (see LoyaltyUser.walletBalance), so the
+      // money moves as one number — in fils, so a fraction never drifts.
+      if (toFils(s.walletBalance) < amount) return refuse(409, 'insufficient_wallet');
+      s.walletBalance = toJod(toFils(s.walletBalance) - amount);
+      r.walletBalance = toJod(toFils(r.walletBalance) + amount);
+      const jod = toJod(amount).toFixed(3);
+      s.history.unshift({ id: genId('log'), deltaPoints: 0, reasonAr: `تحويل رصيد إلى صديق (-${jod} د.أ)`, reasonEn: `Balance sent to a friend (-${jod} JOD)`, createdAt: at.toISOString() });
+      r.history.unshift({ id: genId('log'), deltaPoints: 0, reasonAr: `رصيد من صديق (+${jod} د.أ)`, reasonEn: `Balance from a friend (+${jod} JOD)`, createdAt: at.toISOString() });
+    }
+    s.transfersSent.push({ kind: input.kind, day, amount });
+    const remaining = transferRemainingToday(input.kind, sentToday + amount, TRANSFER_RULES);
+    return delay({
+      transferId: genId('trf'),
+      kind: input.kind,
+      amount: input.kind === 'points' ? amount : toJod(amount),
+      recipientDisplayName: maskedDisplayName(r.name),
+      pointsBalance: liveBalance(s.lots, at),
+      walletBalance: s.walletBalance,
+      remainingToday: { kind: input.kind, amount: input.kind === 'points' ? remaining : toJod(remaining) },
+    });
   },
 
   // Branch rating: 50 pts once per account lifetime, but always save rating (section 8.1.1).
@@ -665,6 +842,19 @@ export const mockLoyaltyService: LoyaltyService = {
     return delay({ rewarded: true });
   },
 };
+
+const TRANSFER_RULES = transferRulesFromConfig();
+/** What `u` sent on Amman `day`, of `kind` — whole points or fils. */
+function sentOn(u: LoyaltyUser, kind: TransferKind, day: string): number {
+  return u.transfersSent.filter((t) => t.kind === kind && t.day === day).reduce((n, t) => n + t.amount, 0);
+}
+function remainingOf(u: LoyaltyUser): { points: number; walletJod: number } {
+  const day = ammanDayKey();
+  return {
+    points: transferRemainingToday('points', sentOn(u, 'points', day), TRANSFER_RULES),
+    walletJod: toJod(transferRemainingToday('wallet', sentOn(u, 'wallet', day), TRANSFER_RULES)),
+  };
+}
 
 /** Test/admin hook so the in-app mock and admin demo can share config changes. */
 export function __setMockSpinConfig(cfg: SpinConfig) {

@@ -248,7 +248,18 @@ export const config = {
   // Combo points are added AFTER the ceiling (D4/§8.7 of
   // docs/LOYALTY-EARN-PATCH.md), so they are the one grant
   // MAX_EARN_MULTIPLIER does not bound. On a small pair — a 2.50 drink and a
-  // 1.90 cookie — 50 points is 11.4% of the bill on top of everything else.
+  // 1.90 cookie — 50 points is 11.4% of the bill.
+  //
+  // 🔴 AND SINCE 2026-09-24 THEY REPLACE THE PAIR'S REGULAR POINTS. Owner: the
+  // 50 is no longer added ON TOP of the cashback the drink and the food would
+  // have earned — the pair's two units earn 0 regular points and the invoice
+  // gets these 50 instead; every other line earns as before. The pair is the
+  // cheapest drink unit + the cheapest food unit (the fewest regular points
+  // removed — customer-favourable). loyalty/earn.ts is the one place it happens
+  // (`comboExcludedJod` on the breakdown). What it saves against the old rule is
+  // exactly the regular points of the pair: ~9 points on that 4.40 JOD pair at
+  // the entry rung, ~26 at the top rung, ~40 at the top rung paying from the
+  // wallet.
   COMBO_BONUS_POINTS: 50,
   /**
    * The combo pays ONCE PER INVOICE, however many pairs the basket holds.
@@ -591,34 +602,70 @@ export const config = {
    * already handles. Making this 60 too would just strand people mid-checkout.
    */
   REDEMPTION_TTL_SECONDS: 15 * 60,
+  // The profile bonus (its long comment sits above REDEMPTION_TTL_SECONDS).
+  // 🔴 Owner, 2026-09-24: it now needs NAME + BIRTH DATE + GENDER + PHONE, not
+  // a name alone — loyalty/profile.ts `isProfileComplete` is the one predicate.
+  // Still once per member (the `profileBonusAt` stamp); a member already paid
+  // under the name-only rule keeps it and is not paid again.
   PROFILE_COMPLETION_BONUS: 50,
 
   /**
    * 🔴 THE REFERRAL REWARD — the second challenge on the home banner. Owner:
    * «خلي صاحبك ينزل التطبيق وخذ ٥٠ نقطة … بس بقدر يعزم اكثر من حدا».
    *
-   * ONCE PER ACCOUNT, and the once-ness is enforced where the grant is
-   * (hasReferralRewardEver), not by the banner. The member may keep sharing the
-   * link with as many people as they like — that is the whole point of the
-   * mechanic — but the account is paid one time.
+   * 🔴 REDEFINED BY THE OWNER, 2026-09-24: THE REFERRER ONLY, ONCE PER REFERRED
+   * ACCOUNT, AND ON THE FRIEND'S FIRST **PAID** ORDER — NOT AT SIGNUP. It used
+   * to be "once per referrer account" and nothing on the server granted it at
+   * all. Now:
+   *   - the friend attaches the referrer's code once, before their first paid
+   *     order (loyalty/referral.ts `referralAttachError` is the whole rule);
+   *   - when that friend's FIRST paid order is confirmed — a funded checkout,
+   *     or a till sale that collected money — the referrer is granted this many
+   *     points as an ordinary 12-month lot IN THE SAME TRANSACTION, once per
+   *     friend (the referral row's `rewarded_at` is the once-only stamp);
+   *   - the friend gets nothing from it (referrer-only, §8.1.1).
+   * A member may therefore be paid for EVERY friend who joins and pays — which
+   * is why loyalty/challenges.ts no longer retires the pitch after the first
+   * reward: the offer keeps being honoured, so it keeps being shown.
    *
-   * 🔴 IT IS NOT ADVERTISED AS ONCE, AND THAT IS A DELIBERATE ASYMMETRY WITH A
-   * RULE ATTACHED. The owner asked for the limit not to be stated in the pitch
-   * («دون ذكر ذلك»), so the banner copy does not carry it. The rule that keeps
-   * that honest is in loyalty/challenges.ts: the offer DISAPPEARS the moment it
-   * is spent. Never re-show a pitch this account can no longer be paid for —
-   * an unadvertised limit is one thing, a repeated promise that will not be
-   * honoured is another, and the second one is what a member complains about.
+   * COST: 50 points = 0.500 JOD per referred friend who PAYS — bought traffic
+   * gated on a real purchase, so an invented phone that never buys costs
+   * nothing. There is deliberately NO cap per referrer yet (none was asked
+   * for); `referralRewardsFor` is where one would go.
    *
-   * COST: 50 points = 0.500 JOD, once per account, and unlike the profile bonus
-   * it is only paid when a genuinely NEW phone joins — so it is bought traffic,
-   * not a giveaway to the existing base. The referred friend gets nothing here;
-   * referrer-only is the shipped rule (§8.1.1).
-   *
-   * 0 retires the challenge: nextChallenge() skips a rung that pays nothing
-   * rather than showing an offer worth zero.
+   * 0 retires the challenge (nextChallenge() skips a rung that pays nothing)
+   * AND the grant: a referral qualified while this is 0 pays 0 and is still
+   * stamped, so a later raise never pays retroactively.
    */
   REFERRAL_REWARD_POINTS: 50,
+  /**
+   * Where a shared referral link points. The code rides as `?ref=<CODE>`.
+   *
+   * ⚠ NOTHING SERVES THIS PATH YET: neither almond-web nor the app reads `ref`
+   * off a landing URL. A friend types the code into the app (POST
+   * /v1/me/referral/attach) — the link is the message it travels in.
+   */
+  REFERRAL_LINK_BASE: 'https://almondcoffeehouse.com/app',
+
+  // ---- Transfers to a friend (POST /v1/me/transfers/*) ----
+  //
+  // Owner, 2026-09-24: a member may send POINTS or WALLET BALANCE to another
+  // REGISTERED member, found by phone, with a DAILY CAP. Per SENDER, per Amman
+  // business day (ammanDayKey — never the host's date), counting only
+  // transfers that went through. Transferred points keep the expiry they were
+  // granted with (they move as lot slices, FIFO), and a transfer is never
+  // qualifying SPEND — it moves no one up a tier.
+  /** Most points one member may send in one Amman day. 500 points = 5.00 JOD. */
+  TRANSFER_POINTS_DAILY_MAX: 500,
+  /** Fewest points one transfer may move — a 1-point transfer is noise in two
+   *  members' histories, not a gift. */
+  TRANSFER_POINTS_MIN: 10,
+  /** Most wallet balance one member may send in one Amman day, in JOD. The
+   *  wallet is cash a customer paid us; the cap bounds what a stolen session
+   *  can move out before anyone notices. */
+  TRANSFER_WALLET_DAILY_MAX_JOD: 20,
+  /** Smallest wallet transfer, in JOD. */
+  TRANSFER_WALLET_MIN_JOD: 0.5,
 
   // 🪦 CUP_TARGET / CUP_HEAD_START — DELETED 2026-09-08, with the cup itself.
   // Owner: «الغي الكوب، لان الصرف قد يكون كوب او غيره». A counter of ORDERS

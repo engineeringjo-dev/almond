@@ -161,7 +161,7 @@ describe('P3 the mock mints like the server, and never the retired string', () =
     // Under DATA_SOURCE='mock' this mock is the app's ONLY data source, so a
     // mock that returned the old string would put it back on screen for every
     // user of every build while the live client stayed clean.
-    const wire = await mockLoyaltyService.getPosToken('u-mock-1', 'pay');
+    const wire = await mockLoyaltyService.getPosToken('u-mock-1');
     expect(() => parsePosToken(wire)).not.toThrow();
     expect(wire.expiresIn).toBe(config.POS_TOKEN_TTL_SECONDS);
     expect(wire.mode).toBe('pay');
@@ -172,22 +172,24 @@ describe('P3 the mock mints like the server, and never the retired string', () =
     // The retired barcode WAS one: same member, same square, forever. Two asks
     // must not produce the same code, or a photograph is still a credential.
     return Promise.all([
-      mockLoyaltyService.getPosToken('u-mock-2', 'pay'),
-      mockLoyaltyService.getPosToken('u-mock-2', 'pay'),
+      mockLoyaltyService.getPosToken('u-mock-2'),
+      mockLoyaltyService.getPosToken('u-mock-2'),
     ]).then(([a, b]) => {
       expect(a.token).not.toBe(b.token);
       expect(a.token).not.toContain('u-mock-2');
     });
   });
 
-  it('echoes the mode it was asked for, so the toggle and the code agree', async () => {
-    expect((await mockLoyaltyService.getPosToken('u-mock-3', 'earn')).mode).toBe('earn');
-    expect((await mockLoyaltyService.getPosToken('u-mock-3', 'pay')).mode).toBe('pay');
+  it('mints ONE member code — no mode asked for, the server\'s default answered', async () => {
+    // Owner, 2026-09-24: «كسب وصرف النقاط بدي يكون باركود مباشر نفسه». The
+    // pay/earn toggle is gone; the till's one scan gets an earn AND a spend
+    // ticket from the same code.
+    expect((await mockLoyaltyService.getPosToken('u-mock-3')).mode).toBe('pay');
   });
 
   it('the service the app actually resolves to implements it', async () => {
     // The wiring, not another unit: `loyaltyService` is what the screen calls.
-    const wire = await loyaltyService.getPosToken('u-mock-4', 'pay');
+    const wire = await loyaltyService.getPosToken('u-mock-4');
     expect(parsePosToken(wire).token.length).toBeGreaterThan(0);
   });
 });
@@ -235,6 +237,16 @@ describe('P5 the screen really feeds the state machine what it needs', () => {
     // `focused` starts false — reads as `unavailable` and shows "you may be
     // offline" before one request has been made.
     expect(pay).toMatch(/settled:\s*!isPending/);
+  });
+
+  it('has no pay/earn toggle, and the live client mints with an empty body', () => {
+    // The toggle was the screen's one control over the code; with one code for
+    // earning and spending it must not come back, and the request must not
+    // carry a mode the server no longer needs.
+    expect(pay).not.toMatch(/scanAndPay|scanOnly|setMode\(/);
+    expect(pay).toMatch(/usePosToken\(\{\s*focused\s*\}\)/);
+    const live = readFileSync(join(__dirname, '..', 'services', 'loyalty.service.live.ts'), 'utf8');
+    expect(live).toMatch(/post<unknown>\(E\.posToken,\s*\{\}\)/);
   });
 
   it('and stops asking when the tab is not focused', () => {

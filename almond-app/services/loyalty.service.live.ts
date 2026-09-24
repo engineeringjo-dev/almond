@@ -9,7 +9,10 @@ import type {
   ReferralInfo,
   GiftCard,
 } from '@/types';
-import type { LoyaltyService, EarnInput, ScanStatus, ProfileSaveResult } from './loyalty.service';
+import type {
+  LoyaltyService, EarnInput, ScanStatus, ProfileSaveResult, ReferralAttachResult, TransferPreview,
+  TransferReceipt,
+} from './loyalty.service';
 import { integration, loyaltyAuthHeaders } from '@/constants/integration';
 import { parseMeBalance, toLoyaltyBalance } from '@almond/shared/loyalty/balanceWire';
 import { parsePosToken, type PosTokenWire } from '@almond/shared/pos/tokenWire';
@@ -35,8 +38,10 @@ import { apiGet, apiPost } from '@/lib/apiClient';
  *   3. contracts — e.g. redeemReward posts {beans,titleAr,titleEn,type} where
  *      `POST /v1/loyalty/redeem` takes {points}. Repointing paths alone would
  *      turn 404s into 400s;
- *   4. features — spin, gift cards, referrals, branch ratings and scan-status
- *      have no BFF route at all. They are unbuilt features, not broken wiring.
+ *   4. features — spin, gift cards, branch ratings and scan-status have no
+ *      BFF route at all. They are unbuilt features, not broken wiring.
+ *      (Referrals and transfers to a friend DO, since 2026-09-24, and are
+ *      called below on their real `/v1/*` paths.)
  *
  * Cutover is therefore an integration project, not a config flip, and it is
  * recorded as such. What HAS been repaired is the one seam that could have gone
@@ -48,7 +53,8 @@ import { apiGet, apiPost } from '@/lib/apiClient';
 const BASE = integration.baseUrls.loyalty;
 const E = integration.endpoints;
 const get = <T>(path: string) => apiGet<T>(BASE, path, loyaltyAuthHeaders());
-const post = <T>(path: string, body: unknown) => apiPost<T>(BASE, path, body, loyaltyAuthHeaders());
+const post = <T>(path: string, body: unknown, headers: Record<string, string> = {}) =>
+  apiPost<T>(BASE, path, body, { ...loyaltyAuthHeaders(), ...headers });
 
 export const liveLoyaltyService: LoyaltyService = {
   // Validated, not cast. `parseMeBalance` throws a named BalanceWireError at
@@ -111,14 +117,26 @@ export const liveLoyaltyService: LoyaltyService = {
   // designed outcome — the Pay screen renders an actionable failure state and
   // the member is looked up by the cashier. There is deliberately no fallback:
   // a code the server did not sign is exactly what this package deletes.
-  getPosToken: async (_userId, mode): Promise<PosTokenWire> =>
-    parsePosToken(await post<unknown>(E.posToken, { mode })),
+  // ONE member code for earn and spend (owner, 2026-09-24): the body is `{}` —
+  // no mode — and the server mints the member code; the till's scan then gets
+  // both an earn and a spend ticket from it.
+  getPosToken: async (): Promise<PosTokenWire> =>
+    parsePosToken(await post<unknown>(E.posToken, {})),
 
   // ---- POS scan confirmation ----
   getScanStatus: (userId) => get<ScanStatus>(E.scanStatus(userId)),
 
-  getReferralCode: (userId) => get<ReferralInfo>(`/loyalty/referral/code/${userId}`),
-  claimReferral: (referrerId, referredPhone) =>
-    post<{ rewarded: boolean }>(`/loyalty/referral/claim`, { referrerId, referredPhone }),
+  // ---- Referrals and transfers: the BFF's REAL paths (bff/src/routes/
+  // referral.ts, transfers.ts). Like getPosToken and updateProfile above they
+  // still go to integration.baseUrls.loyalty with the static header, so they
+  // work only once BASE and AUTH are the BFF's (see the header of this file).
+  // No userId anywhere: the member is the JWT subject.
+  getReferral: () => get<ReferralInfo>('/v1/me/referral'),
+  attachReferral: (_userId, code) => post<ReferralAttachResult>('/v1/me/referral/attach', { code }),
+  previewTransfer: (_userId, phone) => post<TransferPreview>('/v1/me/transfers/preview', { phone }),
+  // The Idempotency-Key is the SCREEN'S, one per confirmation: a retry of the
+  // same confirmation must replay, not move the money twice.
+  sendTransfer: (_userId, { idempotencyKey, ...body }) =>
+    post<TransferReceipt>('/v1/me/transfers', body, { 'Idempotency-Key': idempotencyKey }),
   rateBranch: (input) => post<{ rewarded: boolean }>(`/loyalty/rate-branch`, input),
 };

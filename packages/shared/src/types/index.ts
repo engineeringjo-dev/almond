@@ -1,5 +1,8 @@
 /** Shared domain types for Almond Coffee House. */
 
+import type { ReferralWire } from '../loyalty/referral';
+import type { Gender } from '../loyalty/profile';
+
 export type Lang = 'ar' | 'en';
 
 export interface Category {
@@ -326,10 +329,10 @@ export interface SpinResult {
 
 // ---------- Referral & rating (section 2.4.1) ----------
 
-export interface ReferralInfo {
-  code: string;
-  alreadyRewarded: boolean;
-}
+/** GET /v1/me/referral — the shared wire contract (loyalty/referral.ts). The
+ *  old `{ code, alreadyRewarded }` shape described a once-per-account reward
+ *  that no longer exists (owner, 2026-09-24: once per referred friend). */
+export type ReferralInfo = ReferralWire;
 
 // ---------- Notifications & geofence (section 14) ----------
 
@@ -401,4 +404,9 @@ export interface User {
   phone: string;
   name: string;
   isGuest: boolean;
+  /** Profile facts the member saved (Amman day key / 'male' | 'female'). Kept
+   *  on the device only so the home banner can tell whether the profile rung
+   *  is done; the server's stamp is what decides the bonus. */
+  birthday?: string | null;
+  gender?: Gender | null;
 }

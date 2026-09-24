@@ -76,7 +76,7 @@ async function populate(b: Backend): Promise<World> {
     await b.recordSpend(m.id, 10.8);
     await b.creditWallet(m.id, 15_000, 'topup');
     await b.debitWallet(m.id, 2_500);
-    await b.setProfile(m.id, { name: `عضو ${i}`, birthday: '1990-01-0' + (i + 1) });
+    await b.setProfile(m.id, { name: `عضو ${i}`, birthday: '1990-01-0' + (i + 1), gender: 'female' });
     const pending = await b.createRedemption(m.id, 100);
     const settled = await b.createRedemption(m.id, 200);
     await b.settleRedemption(settled.id, 'pos', new Date());

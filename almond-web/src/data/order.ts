@@ -20,7 +20,7 @@ export function estimatePrepMinutes(items: CartItem[]): number {
 
 // `estimatedBeans` is deleted: the earn arithmetic lives only in
 // packages/shared/src/loyalty/earn.ts. Callers use `earnedPoints({ total,
-// comboPairs })` — see docs/LOYALTY-EARN-PATCH.md §3.5 row 6.
+// combo: comboBasket(items, total) })` — see docs/LOYALTY-EARN-PATCH.md §3.5 row 6.
 
 /**
  * Rules for the beans figure the site DISPLAYS at checkout. Identical to the

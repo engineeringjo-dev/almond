@@ -24,6 +24,8 @@
     "./loyalty/redemption": "./src/loyalty/redemption.ts",
     "./loyalty/secondVisit": "./src/loyalty/secondVisit.ts",
     "./loyalty/corporate": "./src/loyalty/corporate.ts",
+    "./loyalty/referral": "./src/loyalty/referral.ts",
+    "./loyalty/transfer": "./src/loyalty/transfer.ts",
     "./pos/tokenWire": "./src/pos/tokenWire.ts",
     "./menu": "./src/menu/index.ts",
     "./menu/menu.generated": "./src/menu/menu.generated.ts",

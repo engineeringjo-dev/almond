@@ -119,5 +119,18 @@ export function createOdooBackend(): Backend {
     claimIdempotencyKey: () => todo('claimIdempotencyKey'),
     completeIdempotencyKey: () => todo('completeIdempotencyKey'),
     releaseIdempotencyKey: () => todo('releaseIdempotencyKey'),
+    // Referrals: two tables of our own (almond_loyalty_referral_code UNIQUE per
+    // partner and per code; almond_loyalty_referral keyed by the REFERRED
+    // partner, with rewarded_at as the once-only stamp), and the grant written
+    // in the SAME Odoo transaction that confirms the friend's first paid
+    // pos.order / sale.order — never a cron that pays later.
+    getReferral: () => todo('getReferral'),
+    attachReferral: () => todo('attachReferral'),
+    getReferralOf: () => todo('getReferralOf'),
+    // Transfers: one RPC that moves lot slices (keeping their dates) between
+    // two partners under both row locks, in partner-id order, and writes the
+    // almond_loyalty_transfer row the daily cap is summed from.
+    transfer: () => todo('transfer'),
+    transferredOn: () => todo('transferredOn'),
   } as unknown as Backend;
 }

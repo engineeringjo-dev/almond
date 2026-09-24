@@ -1,7 +1,8 @@
 // Runs the second-visit engine ON: it is off in the shipped config (see the module).
 import './lib/second-visit-on';
 import { describe, it, expect, beforeEach } from 'vitest';
-import { liveBalance } from '@almond/shared/loyalty/lots';
+import { liveBalance, lotExpiresOn } from '@almond/shared/loyalty/lots';
+import { ammanDayKey } from '@almond/shared/lib/ammanWeekday';
 import { config as loyalty } from '@almond/shared/config';
 import { createMemoryBackend } from '../src/backend/memory';
 import { createPostgresBackend } from '../src/backend/postgres';
@@ -84,13 +85,22 @@ describe.each(BACKENDS)('T37 backend contract — %s', (_name, make) => {
     expect(await backend.spendPoints(id, 40, 'ب', 'B')).toBe(60);
   });
 
-  it('pays the profile bonus exactly once, however many times the name is saved', async () => {
+  it('pays the profile bonus exactly once, however many times the profile is saved', async () => {
     const id = await newMember();
-    const first = await backend.setProfile(id, { name: 'حمزة', birthday: null });
+    // A NAME ALONE NO LONGER PAYS (owner, 2026-09-24): name + birth date +
+    // gender + the phone on record. Saved, stored, and 0.
+    const nameOnly = await backend.setProfile(id, { name: 'حمزة', birthday: null, gender: null });
+    expect(nameOnly.bonusGranted).toBe(0);
+    expect(await points(id)).toBe(0);
+    const first = await backend.setProfile(id, { name: 'حمزة', birthday: '1990-04-20', gender: 'male' });
     expect(first.bonusGranted).toBe(loyalty.PROFILE_COMPLETION_BONUS);
-    const again = await backend.setProfile(id, { name: 'حمزة العموش', birthday: null });
+    expect(first.profile).toEqual({ name: 'حمزة', birthday: '1990-04-20', gender: 'male' });
+    const again = await backend.setProfile(id, { name: 'حمزة العموش', birthday: '1990-04-20', gender: 'male' });
     expect(again.bonusGranted).toBe(0);      // re-saving succeeds and pays nothing
     expect(await points(id)).toBe(loyalty.PROFILE_COMPLETION_BONUS);
+    // Stored, and read back by the other door.
+    expect((await backend.getMember(id)).gender).toBe('male');
+    expect((await backend.getMember(id)).birthday).toBe('1990-04-20');
   });
 
   it('records spend into the rolling window and never demotes the held rung', async () => {
@@ -769,5 +779,190 @@ describe.each(BACKENDS)('T37 backend contract — %s', (_name, make) => {
     // …so the member can still place the order it paid for.
     const r = await backend.checkout(id, cardCheckout(id, pi.id));
     expect((await backend.getPaymentIntent(pi.id))?.orderId).toBe(r.order.id);
+  });
+
+  // ---- the referral rail (owner, 2026-09-24): the REFERRER, once per friend,
+  //      on the friend's FIRST PAID order ----
+
+  const REWARD = loyalty.REFERRAL_REWARD_POINTS;
+  /** A friend who attached `referrer`'s code. */
+  const referred = async (referrerId: string, phone: string) => {
+    const friend = await newMember(phone);
+    const { code } = await backend.getReferral(referrerId);
+    await backend.attachReferral(friend, code, new Date());
+    return friend;
+  };
+  const paidCheckout = (id: string) => checkoutInput(id, {
+    order: { branchId: 'b1', type: 'pickup', paymentMethod: 'cash', subtotal: 5.37, tax: 0.43, total: 5.8 },
+    walletDebitFils: 0, pointsEarned: 12, earn: { points: 12 } as never, spendJod: 5.8,
+  });
+  const unpaidCheckout = (id: string) => checkoutInput(id, {
+    order: { branchId: 'b1', type: 'pickup', paymentMethod: 'cash', subtotal: 5.37, tax: 0.43, total: 5.8 },
+    walletDebitFils: 0, pointsEarned: 0, earn: null, spendJod: null,
+  });
+
+  it('a member\'s referral code is minted once, stable, unique and well-formed', async () => {
+    const a = await newMember('+962791111111');
+    const b = await newMember('+962792222222');
+    const first = await backend.getReferral(a);
+    expect(first.code).toMatch(/^[A-Z2-9]{6}$/);
+    expect((await backend.getReferral(a)).code).toBe(first.code);
+    expect((await backend.getReferral(b)).code).not.toBe(first.code);
+    expect(first).toEqual({ code: first.code, referredCount: 0, rewardedCount: 0, pointsEarned: 0 });
+    await expect(backend.getReferral('nope')).rejects.toThrow();
+  });
+
+  it('🔴 attaching: once, never your own code, a replay is a replay, an unknown code is not found', async () => {
+    const referrer = await newMember('+962791111111');
+    const other = await newMember('+962793333333');
+    const friend = await newMember('+962792222222');
+    const { code } = await backend.getReferral(referrer);
+    const { code: otherCode } = await backend.getReferral(other);
+    await expect(backend.attachReferral(referrer, code, new Date())).rejects.toMatchObject({ code: 'referral_self' });
+    await expect(backend.attachReferral(friend, 'ZZZZZZ', new Date())).rejects.toMatchObject({ code: 'referral_code_not_found' });
+    const first = await backend.attachReferral(friend, code, new Date());
+    expect(first).toMatchObject({ replay: false, referral: { referredId: friend, referrerId: referrer, code, rewardedAt: null } });
+    expect((await backend.attachReferral(friend, code, new Date())).replay).toBe(true);
+    await expect(backend.attachReferral(friend, otherCode, new Date())).rejects.toMatchObject({ code: 'referral_already_attached' });
+    expect((await backend.getReferralOf(friend))?.referrerId).toBe(referrer);
+    expect(await backend.getReferralOf(referrer)).toBeNull();
+    expect(await backend.getReferral(referrer)).toMatchObject({ referredCount: 1, rewardedCount: 0 });
+  });
+
+  it('🔴 the friend\'s FIRST PAID checkout pays the REFERRER — a lot of its own, logged — and never again', async () => {
+    const referrer = await newMember('+962791111111');
+    const friend = await referred(referrer, '+962792222222');
+    // An UNPAID order (cash not yet taken) pays nobody and leaves the door open.
+    await backend.checkout(friend, unpaidCheckout(friend));
+    expect(await points(referrer)).toBe(0);
+    expect((await backend.getMember(friend)).firstPaidAt).toBeNull();
+
+    const at = new Date();
+    await backend.checkout(friend, { ...paidCheckout(friend), at });
+    expect(await points(referrer)).toBe(REWARD);
+    expect((await backend.getHistory(referrer))[0]).toMatchObject({ deltaPoints: REWARD, reasonEn: 'Referral reward' });
+    // A normal point lot with its own twelve months, granted today.
+    const lot = (await backend.getMember(referrer)).lots.at(-1)!;
+    expect(lot).toMatchObject({ amount: REWARD, remaining: REWARD, source: 'bonus' });
+    expect(lot.expiresOn).toBe(lotExpiresOn(lot.grantedOn));
+    // The friend is paid their order's points and nothing for the referral.
+    expect(await points(friend)).toBe(12);
+    expect((await backend.getMember(friend)).firstPaidAt).toBe(at.toISOString());
+    expect(await backend.getReferralOf(friend)).toMatchObject({ rewardedAt: at.toISOString(), rewardPoints: REWARD });
+    expect(await backend.getReferral(referrer)).toMatchObject({ referredCount: 1, rewardedCount: 1, pointsEarned: REWARD });
+
+    // A second paid order — and a replay of the same input — pay nothing more.
+    await backend.checkout(friend, paidCheckout(friend));
+    await backend.checkout(friend, { ...paidCheckout(friend), at });
+    expect(await points(referrer)).toBe(REWARD);
+    expect((await backend.getHistory(referrer)).filter((h) => h.reasonEn === 'Referral reward')).toHaveLength(1);
+    // …and after a paid order no code can be attached any more.
+    const late = await newMember('+962793333333');
+    await backend.checkout(late, paidCheckout(late));
+    const { code } = await backend.getReferral(referrer);
+    await expect(backend.attachReferral(late, code, new Date())).rejects.toMatchObject({ code: 'referral_too_late' });
+  });
+
+  it('once PER FRIEND: two friends who pay pay the referrer twice', async () => {
+    const referrer = await newMember('+962791111111');
+    const a = await referred(referrer, '+962792222222');
+    const b = await referred(referrer, '+962793333333');
+    await backend.checkout(a, paidCheckout(a));
+    await backend.checkout(b, paidCheckout(b));
+    expect(await points(referrer)).toBe(2 * REWARD);
+    expect(await backend.getReferral(referrer)).toMatchObject({ referredCount: 2, rewardedCount: 2, pointsEarned: 2 * REWARD });
+  });
+
+  it('🔴 a till sale that collected money is a paid order too; its replay and a 0 JOD sale pay nothing', async () => {
+    const referrer = await newMember('+962791111111');
+    const friend = await referred(referrer, '+962792222222');
+    await backend.tillEarn(sale(friend, { paidFils: 0, pointsEarned: 0, earn: null, spendJod: null }));
+    expect(await points(referrer)).toBe(0);
+    expect((await backend.getMember(friend)).firstPaidAt).toBeNull();
+    const input = sale(friend);
+    await backend.tillEarn(input);
+    await backend.tillEarn(input);                                  // the till retries
+    expect(await points(referrer)).toBe(REWARD);
+    expect((await backend.getHistory(referrer)).filter((h) => h.reasonEn === 'Referral reward')).toHaveLength(1);
+  });
+
+  it('a CORPORATE referrer earns 0 — as the earn engine pays them — and the referral is spent all the same', async () => {
+    await backend.saveCompany({ id: 'acme', nameAr: '', nameEn: 'Acme', percentOff: 50, active: true });
+    await backend.replaceRoster('acme', [{ phone: '+962791111111', companyId: 'acme' }]);
+    const referrer = await newMember('+962791111111');
+    const friend = await referred(referrer, '+962792222222');
+    await backend.checkout(friend, paidCheckout(friend));
+    expect(await points(referrer)).toBe(0);
+    expect(await backend.getReferralOf(friend)).toMatchObject({ rewardPoints: 0 });
+    // …so leaving the company later can never pay it retroactively.
+    await backend.replaceRoster('acme', []);
+    await backend.checkout(friend, paidCheckout(friend));
+    expect(await points(referrer)).toBe(0);
+  });
+
+  // ---- transfers to a friend (owner, 2026-09-24) ----
+
+  it('🔴 a points transfer moves lots FIFO, logs BOTH members, and touches neither tier window', async () => {
+    const a = await newMember('+962791111111');
+    const b = await newMember('+962792222222');
+    await backend.addPoints(a, 300, 'أ', 'A');
+    const at = new Date();
+    const r = await backend.transfer({ senderId: a, recipientId: b, kind: 'points', amount: 120, at });
+    expect(r).toMatchObject({ senderPointsBalance: 180, sentToday: 120 });
+    expect(r.transfer).toMatchObject({ senderId: a, recipientId: b, kind: 'points', amount: 120, ammanDay: ammanDayKey(at) });
+    expect(r.transfer.slices.reduce((n, sl) => n + sl.points, 0)).toBe(120);
+    expect(await points(a)).toBe(180);
+    expect(await points(b)).toBe(120);
+    expect((await backend.getHistory(a))[0]).toMatchObject({ deltaPoints: -120, reasonEn: 'Points sent to a friend' });
+    expect((await backend.getHistory(b))[0]).toMatchObject({ deltaPoints: 120, reasonEn: 'Points from a friend' });
+    // A transfer is not a purchase: nobody's window moved.
+    expect((await backend.getStanding(a)).windowSpend).toBe(0);
+    expect((await backend.getStanding(b)).windowSpend).toBe(0);
+    expect(await backend.transferredOn(a, 'points', ammanDayKey(at))).toBe(120);
+    expect(await backend.transferredOn(a, 'wallet', ammanDayKey(at))).toBe(0);
+  });
+
+  it('🔴 a wallet transfer moves fils as two ledger rows and one transfer row', async () => {
+    const a = await newMember('+962791111111');
+    const b = await newMember('+962792222222');
+    await backend.creditWallet(a, 10_000, 'topup');
+    const r = await backend.transfer({ senderId: a, recipientId: b, kind: 'wallet', amount: 2_500, at: new Date() });
+    expect(r.senderWalletFils).toBe(7_500);
+    expect(await wallet(a)).toBe(7_500);
+    expect(await wallet(b)).toBe(2_500);
+    expect((await backend.getHistory(a))[0]).toMatchObject({ deltaPoints: 0, reasonEn: 'Balance sent to a friend (-2.500 JOD)' });
+    expect((await backend.getHistory(b))[0]).toMatchObject({ deltaPoints: 0, reasonEn: 'Balance from a friend (+2.500 JOD)' });
+  });
+
+  it('🔴 every refusal moves NOTHING: self, below the minimum, short balance, the daily cap, unknown member', async () => {
+    const a = await newMember('+962791111111');
+    const b = await newMember('+962792222222');
+    await backend.addPoints(a, 2_000, 'أ', 'A');
+    await backend.creditWallet(a, 1_000, 'topup');
+    const historyA = await backend.getHistory(a);
+    const at = new Date();
+    const t = (over: Partial<Parameters<Backend['transfer']>[0]>) =>
+      backend.transfer({ senderId: a, recipientId: b, kind: 'points', amount: 50, at, ...over });
+    await expect(t({ recipientId: a })).rejects.toMatchObject({ code: 'transfer_to_self' });
+    await expect(t({ amount: loyalty.TRANSFER_POINTS_MIN - 1 })).rejects.toMatchObject({ code: 'transfer_below_min' });
+    await expect(t({ kind: 'wallet', amount: 2_000 })).rejects.toMatchObject({ code: 'insufficient_wallet' });
+    await expect(t({ recipientId: 'nobody' })).rejects.toThrow();
+    await expect(t({ amount: loyalty.TRANSFER_POINTS_DAILY_MAX + 1 })).rejects.toMatchObject({ code: 'transfer_daily_cap' });
+    expect(await points(a)).toBe(2_000);
+    expect(await wallet(a)).toBe(1_000);
+    expect(await points(b)).toBe(0);
+    expect(await backend.getHistory(a)).toEqual(historyA);
+    expect(await backend.getHistory(b)).toEqual([]);
+    // The cap is the SUM of the day: the whole cap goes, then one point more is refused…
+    await t({ amount: loyalty.TRANSFER_POINTS_DAILY_MAX });
+    await expect(t({ amount: loyalty.TRANSFER_POINTS_MIN })).rejects.toMatchObject({ code: 'transfer_daily_cap' });
+    // …and it is a per-AMMAN-DAY cap: tomorrow is a new allowance.
+    const tomorrow = new Date(at.getTime() + 86_400_000);
+    await t({ amount: loyalty.TRANSFER_POINTS_MIN, at: tomorrow });
+    expect(await points(b)).toBe(loyalty.TRANSFER_POINTS_DAILY_MAX + loyalty.TRANSFER_POINTS_MIN);
+    // A short POINTS balance has its own code, distinct from the wallet's.
+    const poor = await newMember('+962793333333');
+    await expect(backend.transfer({ senderId: poor, recipientId: b, kind: 'points', amount: 50, at }))
+      .rejects.toMatchObject({ code: 'insufficient_points' });
   });
 });

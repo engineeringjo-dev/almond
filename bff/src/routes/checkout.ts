@@ -58,7 +58,7 @@ export function registerCheckoutRoutes(app: FastifyInstance, backend: Backend): 
      * what the tax is computed on. Discounting the receipt afterwards would
      * charge full price and tax the discount away.
      */
-    const { items, totals, comboPairs, hasDrink, entitlement } = await priceCartForMember(backend, id, input.lines);
+    const { items, totals, combo, hasDrink, entitlement } = await priceCartForMember(backend, id, input.lines);
     // One instant for this whole request. It dates the voucher's 30-day life,
     // which is an INSTANT and not a business day — Asia/Amman is UTC+3
     // year-round, so 30 × 86.4e6 ms is exactly 30 Amman calendar days. The
@@ -133,6 +133,12 @@ export function registerCheckoutRoutes(app: FastifyInstance, backend: Backend): 
     //
     // Computed BEFORE anything is written: the grant depends only on the
     // invoice and the standing read above, never on the order id.
+    //
+    // 🔴 THE COMBO (owner, 2026-09-24): `combo` is the basket's priced drink and
+    // food lines. The engine takes the CHEAPEST drink unit + the cheapest food
+    // unit as the pair, pays it COMBO_BONUS_POINTS INSTEAD of its regular
+    // points, and earns every other line normally; `earn.comboExcludedJod`
+    // records what left the base.
     const earn = computeEarn({
       total: totals.total,          // tax-inclusive, per §1.1
       corporate: entitlement !== null,   // zero points; see loyalty/corporate.ts
@@ -144,7 +150,7 @@ export function registerCheckoutRoutes(app: FastifyInstance, backend: Backend): 
       // invoice first gets a NEW rate is settled where `standing` is read.
       heldRungId: standing.held.id,
       paidFromBalance,
-      comboPairs,
+      combo,                        // the pair earns the combo INSTEAD of its points
       bonusDayActivated: false,
     });
 

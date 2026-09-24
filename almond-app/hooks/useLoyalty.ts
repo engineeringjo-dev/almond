@@ -5,7 +5,7 @@ import { integration } from '@/constants/integration';
 import { posQrRefreshMs } from '@/lib/posQr';
 import { useUserId } from '@/stores/authStore';
 import type { MemberProfile } from '@almond/shared/loyalty/profile';
-import type { PosMode } from '@almond/shared/pos/tokenWire';
+import type { SendTransferInput } from '@/services/loyalty.service';
 
 export function useLoyaltyBalance() {
   const userId = useUserId();
@@ -145,15 +145,14 @@ export function useChargeWallet() {
  * and wall-clock-bound: serving one from cache on the next focus would show a
  * code that a previous scan may already have burned.
  */
-export function usePosToken(opts: { mode: PosMode; focused: boolean }) {
+export function usePosToken(opts: { focused: boolean }) {
   const userId = useUserId();
-  const { mode, focused } = opts;
+  const { focused } = opts;
   return useQuery({
-    // The mode is part of the KEY, not just the request: the server signs it
-    // into the token, so a token minted for 'pay' is the wrong code to show
-    // under an 'earn' label. Switching the toggle asks for a new one.
-    queryKey: ['loyalty', 'posToken', userId, mode],
-    queryFn: () => loyaltyService.getPosToken(userId, mode),
+    // ONE member code for earn and spend (owner, 2026-09-24) — no mode in the
+    // request and none in the key.
+    queryKey: ['loyalty', 'posToken', userId],
+    queryFn: () => loyaltyService.getPosToken(userId),
     enabled: focused,
     staleTime: 0,
     gcTime: 0,
@@ -165,6 +164,48 @@ export function usePosToken(opts: { mode: PosMode; focused: boolean }) {
     // The member is standing at a counter: fail fast and show them the panel
     // that tells them what to do, rather than spinning through a retry ladder.
     retry: 1,
+  });
+}
+
+// ---------- Referrals ----------
+
+/** My code, my link and what it has earned — the SERVER'S numbers. */
+export function useReferral() {
+  const userId = useUserId();
+  return useQuery({
+    queryKey: ['loyalty', 'referral', userId],
+    queryFn: () => loyaltyService.getReferral(userId),
+  });
+}
+
+/** I am the friend: attach the code I was given. Pays nobody now — the
+ *  referrer is paid when my first order is PAID. */
+export function useAttachReferral() {
+  const userId = useUserId();
+  const invalidate = useInvalidateLoyalty();
+  return useMutation({
+    mutationFn: (code: string) => loyaltyService.attachReferral(userId, code),
+    onSuccess: invalidate,
+  });
+}
+
+// ---------- Transfers to a friend ----------
+
+/** Who does this number belong to? A masked name, never a new member. */
+export function usePreviewTransfer() {
+  const userId = useUserId();
+  return useMutation({
+    mutationFn: (phone: string) => loyaltyService.previewTransfer(userId, phone),
+  });
+}
+
+/** Send points or wallet balance. Carries the screen's Idempotency-Key. */
+export function useSendTransfer() {
+  const userId = useUserId();
+  const invalidate = useInvalidateLoyalty();
+  return useMutation({
+    mutationFn: (input: SendTransferInput) => loyaltyService.sendTransfer(userId, input),
+    onSuccess: invalidate,
   });
 }
 

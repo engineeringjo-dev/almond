@@ -15,6 +15,7 @@ import { colors, spacing, radius, shadow } from '@/constants/theme';
 import { useI18n } from '@/hooks/useI18n';
 import { formatJOD } from '@/lib/format';
 import { config } from '@/constants/config';
+import { isProfileComplete } from '@almond/shared/loyalty/profile';
 import { useAuthStore } from '@/stores/authStore';
 import { useLoyaltyBalance, useWallet } from '@/hooks/useLoyalty';
 
@@ -82,7 +83,11 @@ export default function ProfileScreen() {
             icon="user"
             label={t('profile.details')}
             value={
-              user?.name?.trim()
+              // The same four facts the bonus is paid on (name, birth date,
+              // gender, phone) — not a name alone, since 2026-09-24.
+              user && isProfileComplete({
+                name: user.name, birthday: user.birthday ?? null, gender: user.gender ?? null, phone: user.phone,
+              })
                 ? undefined
                 : t('profile.detailsEarn', { points: config.PROFILE_COMPLETION_BONUS })
             }
@@ -102,9 +107,10 @@ export default function ProfileScreen() {
           <ListRow
             icon="user"
             label={t('profile.referral')}
-            value={t('profile.referralReward')}
+            value={t('profile.referralReward', { points: config.REFERRAL_REWARD_POINTS })}
             onPress={() => router.push('/referral')}
           />
+          <ListRow icon="share" label={t('profile.transfer')} onPress={() => router.push('/transfer')} />
           <ListRow icon="bell" label={t('profile.notifications')} onPress={() => router.push('/notifications')} />
           <ListRow
             icon="globe"

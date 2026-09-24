@@ -3,6 +3,8 @@ import { randomInt, randomUUID } from 'node:crypto';
 import { Pool } from 'pg';
 import type { FastifyInstance } from 'fastify';
 import { liveBalance } from '@almond/shared/loyalty/lots';
+import { config as loyalty } from '@almond/shared/config';
+import { ammanDayKey } from '@almond/shared/lib/ammanWeekday';
 import { menuItems } from '@almond/shared/menu';
 import { assignHoldout, holdoutSpecFromConfig } from '@almond/shared/loyalty/holdout';
 import { createMemoryBackend } from '../src/backend/memory';
@@ -438,6 +440,81 @@ describe.each(HARNESSES)('R1 concurrency — %s', (_name, make) => {
     expect((await h.backend.getTillSale(input.posOrderRef))?.refundedFils).toBe(9_000);
   }, 60_000);
 
+  // ---- transfers to a friend and the referral grant: two members per transaction ----
+
+  const walletOf = async (id: string) => liveBalance((await h.backend.getMember(id)).walletLots);
+  const transfer = (senderId: string, recipientId: string, kind: 'points' | 'wallet', amount: number) =>
+    h.backend.transfer({ senderId, recipientId, kind, amount, at: new Date() });
+
+  it('R1.26 🔴 N parallel points transfers exceeding the balance: no overdraw, the recipient gets exactly what left', async () => {
+    const a = await member();
+    const b = await member();
+    await h.backend.addPoints(a, 100, 'منحة', 'Grant');
+    const { ok, errs } = await burst(8, () => transfer(a, b, 'points', 30));
+    expect(ok).toHaveLength(3);                               // floor(100 / 30)
+    expect(new Set(errs)).toEqual(new Set(['insufficient_points']));
+    expect(await balance(a)).toBe(10);
+    expect(await balance(b)).toBe(90);
+    // Both ledgers reconcile with the lots: every move is one line each side.
+    expect(await ledgerSum(a)).toBe(10);
+    expect(await ledgerSum(b)).toBe(90);
+  }, 60_000);
+
+  it('R1.27 🔴 N parallel WALLET transfers exceeding the balance: no overdraft, no money created', async () => {
+    const a = await member();
+    const b = await member();
+    await h.backend.creditWallet(a, 5_000, 'topup');
+    const { ok, errs } = await burst(8, () => transfer(a, b, 'wallet', 2_000));
+    expect(ok).toHaveLength(2);
+    expect(new Set(errs)).toEqual(new Set(['insufficient_wallet']));
+    expect(await walletOf(a)).toBe(1_000);
+    expect(await walletOf(b)).toBe(4_000);
+  }, 60_000);
+
+  it('R1.28 🔴 A→B and B→A at the same moment, many times: both locks in id order — no deadlock, nothing lost', async () => {
+    const a = await member();
+    const b = await member();
+    await h.backend.addPoints(a, 400, 'منحة', 'Grant');
+    await h.backend.addPoints(b, 400, 'منحة', 'Grant');
+    const { ok, errs } = await burst(16, (i) => (i % 2 ? transfer(a, b, 'points', 20) : transfer(b, a, 'points', 20)));
+    expect(errs).toEqual([]);
+    expect(ok).toHaveLength(16);
+    // Eight each way: conserved to the point.
+    expect(await balance(a)).toBe(400);
+    expect(await balance(b)).toBe(400);
+    expect(await ledgerSum(a)).toBe(400);
+    expect(await ledgerSum(b)).toBe(400);
+  }, 60_000);
+
+  it('R1.29 🔴 parallel transfers each under the daily cap but over it together: the cap holds', async () => {
+    const a = await member();
+    const b = await member();
+    await h.backend.addPoints(a, 5_000, 'منحة', 'Grant');
+    const each = 200;                                           // cap 500 ⇒ two fit
+    const { ok, errs } = await burst(6, () => transfer(a, b, 'points', each));
+    expect(ok).toHaveLength(Math.floor(loyalty.TRANSFER_POINTS_DAILY_MAX / each));
+    expect(new Set(errs)).toEqual(new Set(['transfer_daily_cap']));
+    expect(await balance(b)).toBe(ok.length * each);
+    expect(await h.backend.transferredOn(a, 'points', ammanDayKey(new Date()))).toBe(ok.length * each);
+  }, 60_000);
+
+  it('R1.30 🔴 a referred friend\'s paid orders fired in parallel pay the referrer ONCE', async () => {
+    const referrer = await member();
+    const friend = await member();
+    await h.backend.attachReferral(friend, (await h.backend.getReferral(referrer)).code, new Date());
+    const { ok, errs } = await burst(6, () => h.backend.checkout(friend, {
+      order: { branchId: 'b1', type: 'pickup', paymentMethod: 'cash', subtotal: 2.78, tax: 0.22, total: 3 },
+      walletDebitFils: 0, pointsEarned: 6, pointsReasonAr: 'نقاط طلب', pointsReasonEn: 'Order points',
+      earn: { points: 6 } as never, spendJod: 3, corporateUse: null,
+      secondVisit: { basketHasDrink: false, arm: assignHoldout(friend, holdoutSpecFromConfig('secondVisitVoucher')) },
+      at: new Date(),
+    }));
+    expect(errs).toEqual([]);
+    expect(ok).toHaveLength(6);
+    expect(await balance(referrer)).toBe(loyalty.REFERRAL_REWARD_POINTS);
+    expect(await ledgerSum(referrer)).toBe(loyalty.REFERRAL_REWARD_POINTS);
+  }, 60_000);
+
   it('R1.9 two parallel first sign-ins with one phone create ONE member', async () => {
     const p = newPhone().canonical;
     const { ok, errs } = await burst(6, () => h.backend.findOrCreateByPhone(p));
@@ -581,7 +658,11 @@ function recording(inner: Db, groups: Group[]): Db {
 }
 
 describe('R1.8 🔴 postgres.ts takes a row lock (FOR NO KEY UPDATE on members) before every read-modify-write (SQL capture)', () => {
-  const MUTABLE = ['members', 'redemptions', 'second_visit_vouchers', 'pos_sales', 'payment_intents', 'pos_point_spends'];
+  const MUTABLE = [
+    'members', 'redemptions', 'second_visit_vouchers', 'pos_sales', 'payment_intents', 'pos_point_spends',
+    // 20261001: the referral's once-only stamp is UPDATEd — only under its lock.
+    'referrals',
+  ];
   let groups: Group[];
   let b: Backend;
   beforeAll(async () => { groups = []; b = createPostgresBackend(recording(await pgTestDb(), groups)); }, 60_000);
@@ -611,12 +692,19 @@ describe('R1.8 🔴 postgres.ts takes a row lock (FOR NO KEY UPDATE on members) 
 
   it('every money-moving method locks the member row first, in ONE transaction', async () => {
     const id = (await b.findOrCreateByPhone(newPhone().canonical)).id;
+    const referrerId = (await b.findOrCreateByPhone(newPhone().canonical)).id;
     const cases: [string, () => Promise<unknown>][] = [
       ['addPoints', () => b.addPoints(id, 500, 'أ', 'A')],
       ['spendPoints', () => b.spendPoints(id, 10, 'ب', 'B')],
       ['creditWallet', () => b.creditWallet(id, 5_000, 'topup')],
       ['debitWallet', () => b.debitWallet(id, 1_000)],
-      ['setProfile', () => b.setProfile(id, { name: 'حمزة', birthday: null })],
+      ['setProfile', () => b.setProfile(id, { name: 'حمزة', birthday: '1990-04-20', gender: 'male' })],
+      // The friend attaches a code (under the FRIEND's lock), then the paid
+      // checkout below pays the referrer inside its one transaction.
+      ['attachReferral', async () => b.attachReferral(id, (await b.getReferral(referrerId)).code, new Date())],
+      // A transfer: BOTH members locked, the first statement a member lock.
+      ['transfer(points)', () => b.transfer({ senderId: id, recipientId: referrerId, kind: 'points', amount: 20, at: new Date() })],
+      ['transfer(wallet)', () => b.transfer({ senderId: id, recipientId: referrerId, kind: 'wallet', amount: 500, at: new Date() })],
       ['recordSpend', () => b.recordSpend(id, 12)],
       ['createRedemption', () => b.createRedemption(id, 100)],
       ['sweepRedemptions', () => b.sweepRedemptions(id, new Date())],
@@ -672,6 +760,8 @@ describe('R1.8 🔴 postgres.ts takes a row lock (FOR NO KEY UPDATE on members) 
       assertLocked(gs, label);
     }
     // The new paths really ran their writes (not a vacuous pass).
+    expect((await b.getReferralOf(id))?.rewardedAt).not.toBeNull();
+    expect(liveBalance((await b.getMember(referrerId)).lots)).toBe(loyalty.REFERRAL_REWARD_POINTS + 20);
     const sale = await b.getTillSale('Shop/R18');
     expect(sale?.status).toBe('reversed');
     expect((await b.getTillSpend('Shop/R18S'))?.status).toBe('reversed');

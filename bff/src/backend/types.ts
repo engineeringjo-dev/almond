@@ -6,7 +6,8 @@ import type { OrderType, PaymentMethodId, TierId } from '@almond/shared/types';
 import type { EarnBreakdown } from '@almond/shared/loyalty/earn';
 import type { HoldoutStamp } from '@almond/shared/loyalty/holdout';
 import type { SecondVisitVoucher } from '@almond/shared/loyalty/secondVisit';
-import type { MemberProfile } from '@almond/shared/loyalty/profile';
+import type { Gender, MemberProfile } from '@almond/shared/loyalty/profile';
+import type { TransferKind } from '@almond/shared/loyalty/transfer';
 import type { PointLot, SpentSlice, WalletLot } from '@almond/shared/loyalty/lots';
 import type { SpendEntry, TierStanding, Evaluation } from '@almond/shared/loyalty/window';
 
@@ -46,6 +47,24 @@ export interface Member {
    * one. A DAY KEY, never an ISO instant — see MemberProfile.birthday.
    */
   birthday: string | null;
+  /** 'male' | 'female', or null. Fed by the profile form; one of the four facts
+   *  the completion bonus needs since 2026-09-24 (loyalty/profile.ts). */
+  gender: Gender | null;
+  /**
+   * 🔴 WHEN THIS MEMBER'S FIRST **PAID** ORDER WAS CONFIRMED — or null.
+   *
+   * Written ONCE, inside the transaction that confirms that order: a funded
+   * checkout (wallet or captured card — `CheckoutInput.spendJod !== null`) or
+   * a till sale that collected money (`TillEarnInput.paidFils > 0`). An
+   * unfunded cash order does not set it; the till's later earn for that same
+   * visit does.
+   *
+   * It is the referral rail's clock: a code may be attached only while this is
+   * null, and the referrer is paid inside the transaction that sets it. A
+   * durable marker of its own, because `spend` is pruned to 90 days and
+   * "has this member ever paid?" must survive that.
+   */
+  firstPaidAt: string | null;
   /**
    * 🔴 WHEN THE PROFILE BONUS WAS PAID — the once-only stamp, and the ONLY
    * thing that stops it being a mint.
@@ -225,7 +244,11 @@ export interface CheckoutInput {
   /** The earn breakdown to persist on the order, or null when nothing was
    *  granted — a breakdown describes a grant, and there was not one. */
   earn: EarnBreakdown | null;
-  /** JOD to record into the rolling window, or null (unfunded: no window). */
+  /** JOD to record into the rolling window, or null (unfunded: no window).
+   *
+   *  🔴 ALSO THE "PAID" SIGNAL for the referral rail: non-null means the money
+   *  was confirmed (wallet, or a captured card — the route's `funded`), so this
+   *  order stamps `Member.firstPaidAt` and pays a pending referrer. */
   spendJod: number | null;
   /** The standing discount that applied, or null. `phone` and `orderId` are
    *  filled in by the backend from the locked member row and the new order. */
@@ -440,6 +463,63 @@ export interface CheckoutPayment {
   captureRef: string | null;
 }
 
+// ---- Referrals (loyalty/referral.ts) ----
+
+/** One friend who attached a member's code. `rewardedAt` is the once-only
+ *  stamp: set in the transaction that confirmed the friend's first paid order,
+ *  with the points actually granted (0 for a corporate referrer). */
+export interface ReferralRow {
+  referredId: string;
+  referrerId: string;
+  code: string;
+  attachedAt: string;
+  rewardedAt: string | null;
+  rewardPoints: number | null;
+}
+
+/** What GET /v1/me/referral reports about a member's own code. */
+export interface ReferralSummary {
+  code: string;
+  referredCount: number;
+  rewardedCount: number;
+  pointsEarned: number;
+}
+
+// ---- Transfers to a friend (loyalty/transfer.ts) ----
+
+export interface TransferInput {
+  senderId: string;
+  /** Resolved from a phone by the route — a REGISTERED member, never created. */
+  recipientId: string;
+  kind: TransferKind;
+  /** WHOLE points, or WHOLE fils for the wallet. */
+  amount: number;
+  at: Date;
+}
+
+/** One transfer, as stored (member_transfers). */
+export interface MemberTransfer {
+  id: string;
+  senderId: string;
+  recipientId: string;
+  kind: TransferKind;
+  amount: number;
+  /** The lot slices that moved, with the dates they carried — the recipient's
+   *  new lots are exactly these (restoreSlices), never a fresh clock. */
+  slices: SpentSlice[];
+  /** The Amman business day the cap counts it against. */
+  ammanDay: string;
+  createdAt: string;
+}
+
+export interface TransferResult {
+  transfer: MemberTransfer;
+  senderPointsBalance: number;
+  senderWalletFils: number;
+  /** What the sender has sent today of this kind, THIS transfer included. */
+  sentToday: number;
+}
+
 export interface CheckoutResult {
   order: OrderRecord;
   pointsBalance: number;
@@ -637,6 +717,13 @@ export interface Backend {
    *
    * Throws conflict('insufficient_wallet') and conflict('negative_grant')
    * having written nothing.
+   *
+   * 🔴 AND, WHEN THE ORDER IS PAID (`spendJod !== null`): stamps the member's
+   * `firstPaidAt` if unset, and if the member attached a referral that has not
+   * been rewarded, grants the REFERRER config.REFERRAL_REWARD_POINTS as an
+   * ordinary lot (0 for a corporate referrer) and stamps the referral — in this
+   * same transaction, taking the referrer's row lock after the member's. The
+   * stamp makes it once per friend; a replayed or later paid order pays nothing.
    */
   checkout(memberId: string, input: CheckoutInput): Promise<CheckoutResult>;
   /** Credit a top-up lot and grant its reload bonus in ONE transaction. A
@@ -656,6 +743,10 @@ export interface Backend {
    * different member, amount or branch throws conflict('pos_order_conflict').
    * A ticket already spent on another sale throws conflict('earn_ticket_used');
    * an expired one starting a NEW sale throws 401 'earn_ticket_expired'.
+   *
+   * A sale that collected money (`paidFils > 0`) is a PAID order for the
+   * referral rail exactly as a funded checkout is (see `checkout`); a replay
+   * returns before it, so it cannot pay a referrer twice.
    */
   tillEarn(input: TillEarnInput): Promise<TillEarnResult>;
   /**
@@ -739,4 +830,40 @@ export interface Backend {
   /** Drop a PENDING claim so the request may be retried (a 5xx that moved
    *  nothing). A completed key is never released. */
   releaseIdempotencyKey(memberId: string, key: string, requestHash: string): Promise<void>;
+
+  // ---- Referrals (loyalty/referral.ts) ----
+  /**
+   * The member's own referral code and what it has earned. The code is minted
+   * on the first call and never changes (UNIQUE per member and per code).
+   */
+  getReferral(memberId: string): Promise<ReferralSummary>;
+  /**
+   * Attach `code` (already normalised) to this member as the friend who used
+   * it — ONCE, and only before their first paid order. Under the member's lock,
+   * so it cannot interleave with that order.
+   *
+   * The SAME code again returns the stored row with `replay: true`. Throws
+   * notFound('referral_code_not_found') for a code nobody owns, and
+   * conflict('referral_self' | 'referral_same_phone' | 'referral_already_attached'
+   * | 'referral_too_late') — loyalty/referral.ts `referralAttachError`.
+   */
+  attachReferral(memberId: string, code: string, at: Date): Promise<{ referral: ReferralRow; replay: boolean }>;
+  /** The referral this member attached, or null. */
+  getReferralOf(memberId: string): Promise<ReferralRow | null>;
+
+  // ---- Transfers to a friend (loyalty/transfer.ts) ----
+  /**
+   * Move points or wallet balance from one member to another in ONE
+   * transaction holding BOTH members' locks, taken in id order (so A→B and B→A
+   * at the same moment cannot deadlock). The daily cap is read under the
+   * sender's lock. Points and money move as lot slices keeping their dates;
+   * nothing is written to either member's tier window.
+   *
+   * Throws conflict('transfer_to_self' | 'transfer_below_min' |
+   * 'transfer_daily_cap' | 'insufficient_points' | 'insufficient_wallet') and
+   * notFound for an unknown member — having moved nothing.
+   */
+  transfer(input: TransferInput): Promise<TransferResult>;
+  /** What `memberId` has sent today (Amman `ammanDay`) of `kind`. */
+  transferredOn(memberId: string, kind: TransferKind, ammanDay: string): Promise<number>;
 }

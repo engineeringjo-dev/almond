@@ -12,6 +12,8 @@ import { registerMeRoutes } from './routes/me';
 import { registerForecastRoutes } from './routes/forecast';
 import { registerCorporateRoutes } from './routes/corporate';
 import { registerPaymentRoutes } from './routes/payments';
+import { registerReferralRoutes } from './routes/referral';
+import { registerTransferRoutes } from './routes/transfers';
 import { providerConfigErrors } from './providers';
 
 /**
@@ -107,6 +109,8 @@ export async function build(backend: Backend = createBackend()): Promise<Fastify
   registerLoyaltyRoutes(app, backend);
   registerPosRoutes(app, backend);
   registerMeRoutes(app, backend);
+  registerReferralRoutes(app, backend);
+  registerTransferRoutes(app, backend);
   registerForecastRoutes(app);
   return app;
 }

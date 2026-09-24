@@ -1,15 +1,13 @@
-import { useQuery } from '@tanstack/react-query';
 import { StyleSheet, Pressable, View, Share } from 'react-native';
 import { router } from 'expo-router';
 
 import { Text } from '@/components/ui/Text';
 import { Icon, type IconName } from '@/components/ui/Icon';
 import { colors, spacing, radius } from '@/constants/theme';
-import { config } from '@/constants/config';
 import { useI18n } from '@/hooks/useI18n';
+import { useReferral } from '@/hooks/useLoyalty';
 import { formatNumber } from '@/lib/format';
-import { loyaltyService } from '@/services/loyalty.service';
-import { useUser, useUserId } from '@/stores/authStore';
+import { useUser } from '@/stores/authStore';
 import { nextChallenge, type ChallengeId } from '@almond/shared/loyalty/challenges';
 
 /**
@@ -22,12 +20,10 @@ import { nextChallenge, type ChallengeId } from '@almond/shared/loyalty/challeng
  * the ordering is testable without mounting a screen and cannot drift from what
  * the grant will actually pay. This component only renders it.
  *
- * 🔴 IT RENDERS NOTHING WHEN THE LADDER IS DONE — and that is the guard that
- * keeps the unadvertised once-per-account referral honest. The pitch does not
- * say "once" (the owner asked for that), but the moment the reward is spent the
- * offer is gone, so nobody is invited a fifth time to earn something they
- * cannot. Read the comment on config.REFERRAL_REWARD_POINTS before changing
- * this behaviour.
+ * The referral rung now STAYS once the profile is done: since 2026-09-24 the
+ * referrer is paid once per FRIEND, on that friend's first paid order, so the
+ * offer is honoured every time it is taken up and there is no spent state to
+ * hide it on (config.REFERRAL_REWARD_POINTS, loyalty/challenges.ts).
  *
  * The referral row SHARES rather than navigating: the whole mechanic is the
  * member handing a link to somebody, so the tap does the thing. The referral
@@ -36,28 +32,22 @@ import { nextChallenge, type ChallengeId } from '@almond/shared/loyalty/challeng
 export function ChallengeBanner() {
   const { t, lang } = useI18n();
   const user = useUser();
-  const userId = useUserId();
-
-  // The referral state is the SERVER'S — `alreadyRewarded` decides whether the
-  // second rung is still offerable, and a client that decided it for itself
-  // could re-offer a reward it has already been paid.
-  const { data: referral } = useQuery({
-    queryKey: ['loyalty', 'referral', userId],
-    queryFn: () => loyaltyService.getReferralCode(userId),
-  });
+  // The code and the link are the SERVER'S (GET /v1/me/referral).
+  const { data: referral } = useReferral();
 
   // Guests are not on the ladder at all: they have no account to pay, and
   // "tell us your name" before "sign in" is the wrong order to ask in.
   if (!user || user.isGuest || !referral) return null;
 
+  // The FOUR facts the bonus is paid on (name, birth date, gender, phone) —
+  // the same shared predicate the server pays with, so the rung disappears
+  // exactly when the profile would be paid, not when a name alone is typed.
   const challenge = nextChallenge({
-    profile: { name: user.name ?? '' },
-    referralRewarded: referral.alreadyRewarded,
+    profile: { name: user.name ?? '', birthday: user.birthday ?? null, gender: user.gender ?? null, phone: user.phone },
   });
   if (!challenge) return null;
 
   const points = formatNumber(challenge.points, lang);
-  const link = `${config.DELIVERY_REDIRECT_URL.replace('/order', '')}/app`;
 
   const ICON: Record<ChallengeId, IconName> = { profile: 'user', referral: 'gift' };
 
@@ -68,9 +58,9 @@ export function ChallengeBanner() {
     }
     // Fire-and-forget: a share sheet the member dismisses is not an error, and
     // there is nothing to report either way. The REWARD is not granted here —
-    // it is granted when a genuinely new phone joins (claimReferral), which is
-    // why sharing ten times cannot pay ten times.
-    void Share.share({ message: t('referral.shareMessage', { link, code: referral.code }) });
+    // the server grants it when a friend who used the code makes their FIRST
+    // PAID order, which is why sharing ten times cannot pay ten times.
+    void Share.share({ message: t('referral.shareMessage', { link: referral.link, code: referral.code }) });
   };
 
   return (
