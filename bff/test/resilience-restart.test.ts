@@ -1,3 +1,5 @@
+// Runs the second-visit engine ON: it is off in the shipped config (see the module).
+import './lib/second-visit-on';
 import { describe, it, expect, afterAll, afterEach, beforeEach, vi } from 'vitest';
 import { randomInt, randomUUID } from 'node:crypto';
 import { mkdtempSync, rmSync } from 'node:fs';

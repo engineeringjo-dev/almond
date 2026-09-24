@@ -65,16 +65,9 @@ export const useLoyaltyStore = create<LoyaltyState>()(
       points: 240,
       windowSpend: 12,
       walletBalance: 12.5,
-      vouchers: [
-        {
-          id: rid('v'),
-          titleAr: 'مشروب مجاني',
-          titleEn: 'Free drink',
-          type: 'free-item',
-          expiresAt: daysAhead(30),
-          used: false,
-        },
-      ],
+      // No seeded "free drink": the owner withdrew the second-visit drink
+      // (2026-09-24). Vouchers come only from redeeming points.
+      vouchers: [],
       pointsHistory: [
         { id: rid('p'), deltaPoints: 45, reasonAr: 'طلب قهوة', reasonEn: 'Coffee order', createdAt: daysAgo(2) },
         { id: rid('p'), deltaPoints: 50, reasonAr: 'مكافأة شحن المحفظة', reasonEn: 'Wallet reload bonus', createdAt: daysAgo(5) },
@@ -196,7 +189,9 @@ export const useLoyaltyStore = create<LoyaltyState>()(
       // on being told "6% back on every order"; zustand drops a persisted
       // state whose version does not match and no migrate is supplied, so the
       // corrected seed actually reaches them.
-      version: 2,
+      // v3 (2026-09-24): the seeded "free drink" voucher was removed with the
+      // second-visit offer; without the bump a returning visitor keeps it.
+      version: 3,
       storage: createJSONStorage(() =>
         typeof window !== 'undefined' ? window.localStorage : (undefined as never),
       ),

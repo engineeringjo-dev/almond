@@ -1,3 +1,5 @@
+// Runs the second-visit engine ON: it is off in the shipped config (see the module).
+import './lib/second-visit-on';
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';

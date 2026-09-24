@@ -109,8 +109,9 @@ export default function HomeScreen() {
         {/* 🪦 WelcomeOffer sat here — «هدية الترحيب: مشروب مجاني على أول طلب».
             Deleted 2026-09-08 («الغي الكاس المجاني»): no code anywhere granted a
             drink on a first order, so the card was a promise with nothing
-            behind it. The real acquisition offer is the second-visit voucher
-            («تانية علينا»), which is tested end to end. */}
+            behind it. The second-visit voucher («تانية علينا») that replaced it
+            was withdrawn too, on 2026-09-24 («نلغي من التطبيق المشروب الثاني
+            علينا»): its flag is off and nothing on this screen offers it. */}
 
         <View style={styles.section}>
           <VisitRewardBanner />

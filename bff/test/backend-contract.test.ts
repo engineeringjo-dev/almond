@@ -1,3 +1,5 @@
+// Runs the second-visit engine ON: it is off in the shipped config (see the module).
+import './lib/second-visit-on';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { liveBalance } from '@almond/shared/loyalty/lots';
 import { config as loyalty } from '@almond/shared/config';

@@ -197,7 +197,7 @@ describe('SMOKE: one member, one server, sign-in to the top rung', () => {
     expect(b.nextTier!.visitsGuaranteed).toBe(true);
   });
 
-  it('S2 the first drink order pays 2% and issues the second-visit voucher', async () => {
+  it('S2 the first drink order pays 2% — and issues NO second-visit voucher (off since 2026-09-24)', async () => {
     const { token } = await enrolTreatment();
     const { body } = await buy(token);
 
@@ -205,18 +205,15 @@ describe('SMOKE: one member, one server, sign-in to the top rung', () => {
     expectRate(body.pointsEarned, body.total, 2);
     expect(body.pointsBalance).toBe(body.pointsEarned);
 
-    // The flagship mechanic, on the wire, from the real route.
-    expect(body.secondVisitVoucher).not.toBeNull();
-    expect(body.secondVisitVoucher.type).toBe('free-item');
-    expect(body.secondVisitVoucher.status).toBe('active');
-    expect(body.secondVisitVoucher.used).toBe(false);
-    expect(body.secondVisitVoucher.redeemedAt).toBeNull();
-
-    // ... and the READ route returns the same live row (GET /v1/me/voucher is
-    // registered, reaches the Backend, and agrees with the checkout body).
+    // 🔴 THE OWNER TOOK THE OFFER AWAY — «نلغي من التطبيق المشروب الثاني علينا»
+    // (2026-09-24). Even a TREATMENT-arm member buying their first drink — the
+    // exact case that used to be issued — gets nothing, on the wire, from the
+    // real route; and the read route agrees. The engine is kept behind the
+    // flag and tested ON in secondVisit.test.ts.
+    expect(body.secondVisitVoucher).toBeNull();
     const read = await app.inject({ method: 'GET', url: '/v1/me/voucher', headers: authOf(token) });
     expect(read.statusCode).toBe(200);
-    expect(read.json().voucher.id).toBe(body.secondVisitVoucher.id);
+    expect(read.json().voucher).toBeNull();
 
     const after = await balance(token);
     expect(after.points).toBe(body.pointsEarned);
@@ -352,38 +349,20 @@ describe('SMOKE: one member, one server, sign-in to the top rung', () => {
     expect(next.body.pointsEarned).toBe(expectedPoints(next.body.total, 'top'));
   });
 
-  it('S6 the voucher is redeemed exactly once, and a retry is not a second spend', async () => {
+  it('S6 with the programme off there is nothing to redeem — and nothing moves', async () => {
     const { token } = await enrolTreatment();
     const issued = (await checkout(token)).json().secondVisitVoucher;
-    expect(issued).not.toBeNull();
+    expect(issued).toBeNull();
 
     const before = await balance(token);
-    const key = randomUUID();
-    const redeem = (k: string) => app.inject({
+    const r = await app.inject({
       method: 'POST', url: '/v1/loyalty/voucher/redeem',
-      payload: {}, headers: authOf(token, { 'idempotency-key': k }),
+      payload: {}, headers: authOf(token, { 'idempotency-key': randomUUID() }),
     });
-
-    const first = await redeem(key);
-    expect(first.statusCode).toBe(201);
-    expect(first.json().redeemed).toBe(true);
-    expect(first.json().voucher.used).toBe(true);
-    expect(first.json().voucher.status).toBe('redeemed');
-    expect(first.json().voucher.redeemedAt).not.toBeNull();
-
-    // Same key → the stored response, byte for byte.
-    const replay = await redeem(key);
-    expect(replay.statusCode).toBe(201);
-    expect(replay.body).toBe(first.body);
-    expect(replay.headers['idempotent-replay']).toBe('true');
-
-    // A FRESH key, so the idempotency plugin cannot be what refuses it: this is
-    // the compare-and-set in the backend saying the row is already spent.
-    const second = await redeem(randomUUID());
-    expect(second.statusCode).toBe(409);
-    expect(second.json().error).toBe('voucher_already_redeemed');
-
-    // The item is paid in kind. Redemption moves neither points nor wallet.
+    // The same indistinguishable 404 a member with no voucher always got
+    // (secondVisit.test.ts T32j). Redeem-exactly-once is the engine's promise
+    // and is tested there, with the programme ON.
+    expect(r.statusCode).toBe(404);
     const after = await balance(token);
     expect(after.points).toBe(before.points);
   });

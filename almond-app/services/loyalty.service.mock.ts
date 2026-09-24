@@ -193,15 +193,11 @@ function ensureUser(userId: string): LoyaltyUser {
       heldTierId: 'base',
       evaluatedThrough: evaluationPeriod(ammanDayKey(), WINDOW.evaluation),
       walletBalance: 12.5,
-      vouchers: [
-        {
-          id: genId('vch'),
-          titleAr: 'مشروب مجاني',
-          titleEn: 'Free drink',
-          type: 'free-item',
-          expiresAt: new Date(Date.now() + 86400000 * 14).toISOString(),
-        },
-      ],
+      // No seeded "free drink": the owner withdrew the second-visit drink
+      // (2026-09-24), and a demo that hands every member one teaches a promise
+      // the server no longer makes. Vouchers here now come only from redeeming
+      // points, as they do for real.
+      vouchers: [],
       history: [
         { id: genId('log'), deltaPoints: 240, reasonAr: 'مكافأة ترحيبية', reasonEn: 'Welcome bonus', createdAt: new Date(Date.now() - 86400000 * 10).toISOString() },
         { id: genId('log'), deltaPoints: 15, reasonAr: 'طلب لاتيه', reasonEn: 'Latte order', createdAt: new Date(Date.now() - 86400000 * 7).toISOString() },

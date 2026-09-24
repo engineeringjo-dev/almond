@@ -407,7 +407,11 @@ export const config = {
   // against the deterministic hash holdout in LOYALTY-ODOO-ARCHITECTURE §4.11 or
   // it cannot be told apart from doing nothing.
   SECOND_VISIT_VOUCHER: {
-    enabled: true,
+    // OFF — owner, 2026-09-24: «نلغي من التطبيق المشروب الثاني علينا». No
+    // voucher is issued and no evaluation row is written (secondVisit.ts:
+    // skip 'disabled'). The engine, its tests and its storage stay, so turning
+    // it back on is this one flag — not a rebuild.
+    enabled: false,
     windowDays: 30,
     /** Condition on buying a drink: it protects the margin (they still pay for
      *  the 3.50 drink) and cuts deadweight 25-51%. */
