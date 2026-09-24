@@ -56,7 +56,7 @@ almond/
 ├── almond-web/        Next.js 15 website — menu, ordering, back office at /admin.
 ├── almond-app/        Expo SDK 56 member app. Ships as a WEB build today (GitHub
 │                      Pages, base path /almond); no native build pipeline yet.
-├── supabase/migrations/  Loyalty schema (6 files, 20260909→20260927 — see HANDOVER §4.2;
+├── supabase/migrations/  Loyalty schema (12 files, 20260909→20261003 — see HANDOVER §4.2;
 │                      the three 2026-08 files belong to a different system's database).
 ├── integrations/      Odoo 19 addons (POS loyalty connector, MEPS card terminals, …).
 ├── scripts/           odoo-menu-pull.ts (menu:pull), load/ (load:baseline),

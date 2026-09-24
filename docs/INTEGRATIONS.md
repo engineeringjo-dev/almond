@@ -22,6 +22,7 @@
 | رسائل SMS لرمز الدخول | **الواجهة جاهزة**؛ لا مزوّد — الإنتاج يُجيب 503 بصدق | **نعم** — يلزم مزوّد وSender ID | [٣](#sms) |
 | التوصيل (Careem / Talabat عبر Ishbek) | مسارات خادم في الموقع؛ أجسام الطلبات عيّنة؛ الربط مع أودو TODO | لا (للاستلام من الفرع) | [٤](#delivery) |
 | المنيو من أودو | **حقيقيّ** — سحبٌ يدويّ للقراءة فقط يُنتج commit | لا | [٥](#menu) |
+| الإحالة والتحويل لصديق (واجهات العضو، 2026-09-24) | **مبنيّة على الخادم ومختبَرة**؛ التطبيق يستدعيها عبر المحاكاة، وعميله الحيّ على مساراتها الحقيقيّة | لا | [٦](#member-moves) |
 
 **قاعدة مشتركة:** قيمة `PAYMENT_PROVIDER` أو `SMS_PROVIDER` لا تسمّي مزوّداً مسجَّلاً ← **الخادم يرفض الإقلاع في
 كلّ بيئة** (`bff/src/providers.ts`)، وكذلك `OTP_SMS_TEMPLATE` بلا `{code}`. خطأٌ إملائيٌّ في ملفّ البيئة يُكتشَف
@@ -298,6 +299,12 @@ python3 integrations/almond_loyalty_pos/mock/almond_bff_mock.py --port 8898 --ke
 
 **(٣)** أُزيل اشتراك «١٨ ديناراً» كلّياً (مساراته في الخادم لم تعد موجودة) — لا أثر له على الكاشير.
 
+**(٤) الكومبو لا يُطبَّق على الكاشير — عقد الكاشير لم يتغيّر.** منذ 2026-09-24 يحلّ الكومبو (٥٠ نقطة) **محلّ** نقاط زوج المشروب + الطعام
+بدل أن يُضاف فوقها (HANDOVER §٧). الكاشير يرسل إلى `POST /v1/pos/earn` مبلغاً واحداً (`paidTotal`) **بلا أسطر**، فلا يعرف الخادم أنّ في الفاتورة
+زوجاً: **لا تُضاف الخمسون ولا يُحذف زوج** — فاتورة المحلّ تكسب النسبة العاديّة على كلّ ما دُفع (كما كانت: `comboPairs: 0` صار «لا
+`combo`»). الكومبو عرضٌ للطلب من التطبيق/الموقع (`/v1/checkout` يسعّر الأسطر من المنيو). **إن أُريد في المحلّ** فهو تغيير عقد: سطور الفاتورة
+(معرّف الصنف + السعر المدفوع لكلّ وحدة) في جسم `earn`، والخادم يمرّرها إلى `comboBasket` — قرارٌ للمالك وعملٌ في الموديول.
+
 **متغيّرات جديدة (`bff`):** `POS_SPEND_TICKET_TTL_SECONDS` (٩٠٠) · `POS_SPEND_MAX_POINTS_PER_SALE` (١٠٠٠٠) ·
 `RATE_POS_SPEND_PER_TILL`/`_PER_KEY` (٦٠/٦٠٠ في الدقيقة) · `RATE_POS_IDENTIFY_PER_TILL`/`_PER_KEY` (٣٠/٣٠٠).
 **هجرات جديدة:** `20260928` ← `20260929` ← `20260930` (HANDOVER §٤.٢). محاكي الكاشير (`npm run pos:simulate`) يقود الآن هذا
@@ -340,6 +347,13 @@ python3 integrations/almond_loyalty_pos/mock/almond_bff_mock.py --port 8898 --ke
 2. نفّذ `SmsSender.send` انطلاقاً من `bff/src/auth/providers/TEMPLATE.ts`: Sender ID المسجَّل، عربيّة Unicode، مهلة زمنيّة، و**ارمِ خطأً** عند أيّ ردٍّ غير «مقبول».
 3. سجّله في `SMS_SENDERS` داخل `bff/src/auth/sms.ts`، واضبط `SMS_PROVIDER`.
 4. اختبر التسليم الفعليّ على **زين وأورنج وأمنية**.
+
+### التأكيد الإضافيّ (step-up) للتحويل لصديق — نقطة ربطٍ غير مبنيّة
+
+`POST /v1/me/transfers` ينقل نقاطاً أو رصيداً بجلسة العضو وحدها. **لا آليّة OTP/PIN لإعادة التأكيد في الخادم** لإعادة استعمالها (رمز
+الدخول هو الوحيد، ولا مزوّد SMS)، فلم تُخترَع؛ ما يحدّ سرقة جلسة اليوم هو **السقف اليوميّ** (`TRANSFER_*_DAILY_MAX`) وحدّ المعدّل.
+متى وُجد المزوّد: `preHandler` على ذلك المسار (بعد `requireMember`، قبل `idem.preHandler`) يطلب رمزاً مرسَلاً عبر `smsSender()` نفسه — وقرار
+«لكلّ تحويل أم فوق مبلغ» للمالك (HANDOVER §٧).
 
 ### متغيّرات البيئة (`bff`)
 
@@ -447,5 +461,36 @@ python3 integrations/almond_loyalty_pos/mock/almond_bff_mock.py --port 8898 --ke
 
 السكربت **ليس** ضمن `npm run typecheck` (يُفحَص منفرداً)؛ `menu.test.ts` في `almond-web/src/data/` و`bff/test/tax.test.ts`
 (كلّ صنفٍ مسعَّر: المجموع = سعر المحلّ) يلتقطان منيو مُولَّداً معطوباً بعد السحب.
+
+</div>
+
+---
+
+<a id="member-moves"></a>
+
+## ٦) الإحالة والتحويل لصديق — واجهات العضو (2026-09-24)
+
+<div dir="rtl">
+
+**الغرض:** قرارا المالك (HANDOVER §٧): **الإحالة** — ٥٠ نقطة للداعي مرّةً لكلّ حسابٍ مُحال عند أوّل طلبٍ **مدفوع** للصديق؛
+**التحويل** — نقاط أو رصيد محفظة إلى عضوٍ مسجَّل، بسقفٍ يوميّ. كلّها بـJWT العضو (العضو هو `sub`، لا معرّف في الجسم).
+
+| المسار | الطلب ← الجواب · رموز الأخطاء |
+|---|---|
+| `GET /v1/me/referral` | ← **200** `{code, link, referredCount, rewardedCount, pointsEarned, rewardPoints, attachedCode, canAttach}` — الرمز ستّة أحرف من `A–Z` بلا `I/L/O` و`2–9`، يُصكّ مرّةً ولا يتغيّر؛ `link` = `REFERRAL_LINK_BASE?ref=CODE` (لا صفحة تخدمه بعد)؛ `canAttach` = لا رمز مُرفَق ولا طلب مدفوع بعد |
+| `POST /v1/me/referral/attach` | `{code}` (يقبل حروفاً صغيرة ومسافات وأرقاماً عربيّة) ← **201** `{attached:true, code, referrerDisplayName, replay:false}` · **200** `replay:true` لنفس الرمز · **400** `referral_code_invalid` · **404** `referral_code_not_found` · **409** `referral_self` · `referral_same_phone` · `referral_already_attached` · `referral_too_late` (بعد أوّل طلب مدفوع) · **429** `rate_limited` (١٠/دقيقة). **لا يدفع شيئاً** |
+| `POST /v1/me/transfers/preview` | `{phone}` ← **200** `{recipientFound:true, displayName, remainingToday:{points, walletJod}}` — `displayName` = الاسم الأوّل + الحرف الأوّل من العائلة، أو `null` **ولا يُنشأ عضو أبداً** · **400** `phone_invalid` · **404** `recipient_not_found` · **409** `transfer_to_self` · **429** `rate_limited` (١٠/دقيقة) |
+| `POST /v1/me/transfers` (+ `Idempotency-Key` **إلزاميّ**) | `{phone, kind:'points', amount:<نقاط صحيحة>}` أو `{phone, kind:'wallet', amount:<دينار بخانات فلس>}` ← **201** `{transferId, kind, amount, recipientDisplayName, pointsBalance, walletBalance, remainingToday:{kind, amount}}`؛ الإعادة بنفس المفتاح = الجواب نفسه بايتاً ببايت (`Idempotent-Replay: true`) · **400** `idempotency_key_required` · `phone_invalid` · جسمٌ غير صالح · **404** `recipient_not_found` · **409** `transfer_to_self` · `transfer_below_min` · `transfer_daily_cap` · **`insufficient_points`** · **`insufficient_wallet`** · **429** `rate_limited` |
+
+**ما يضمنه الخادم:** معاملةٌ واحدة تقفل العضوين **بترتيب المعرّف** (لا تعطّل بين A→B وB→A)، السقف يُقرأ تحت قفل المُرسِل (تحويلان
+متوازيان لا يتجاوزانه — `resilience-concurrency` R1.26–R1.29 على Postgres حقيقيّ)، النقاط والرصيد ينتقلان **شرائح FIFO بتواريخها
+الأصليّة**، سطرا دفتر (واحدٌ لكلّ عضو) وصفّ `member_transfers`، ولا شيء يُكتب في نافذة الفئة. **المكافأة** تُمنح داخل معاملة الطلب
+المدفوع (`Backend.checkout` حين `spendJod !== null`، و`Backend.tillEarn` حين `paidFils > 0`) مختومةً بـ`referrals.rewarded_at`.
+
+**الملفّات:** `packages/shared/src/loyalty/{referral,transfer}.ts` (القواعد) · `bff/src/routes/{referral,transfers}.ts` ·
+`bff/src/memberMoves.ts` (صياغة الأخطاء والسطور للمخزنين) · `bff/src/backend/{memory,postgres}.ts` · الهجرتان `20261001`/`20261002`.
+**الاختبارات:** `bff/test/{referral,transfers}.test.ts` · `backend-contract` · `resilience-concurrency` R1.8/R1.26–R1.30 · `migration` R3.14–R3.16.
+
+**على أشبك:** ربط التطبيق بالخادم (القاعدة والمصادقة — HANDOVER §٣)؛ صفحة هبوطٍ تقرأ `?ref=` إن أُريدت؛ والتأكيد الإضافيّ بعد المزوّد (§٣).
 
 </div>
