@@ -3,6 +3,19 @@ import { categories, menuItems } from './seed';
 import { categoryRank } from '@/lib/menuOrder';
 import { delay } from './util';
 
+/**
+ * THE MENU — in every mode, demo and live alike. It is the shop's Odoo POS
+ * menu (only items active on the POS), pulled with its photos, sizes, options
+ * and the measured «إضافات» add-ons into packages/shared/src/menu, and synced
+ * daily by .github/workflows/menu-sync.yml. The website and the public feed
+ * read the same module, and the server re-prices every order from it.
+ *
+ * There used to be a separate "odoo" implementation that called Odoo from the
+ * phone. It was never finished and would have shown the wrong menu on launch
+ * (raw products, hidden ones included, no sizes, options or add-ons) — so it
+ * was removed rather than switched on (GM, 2026-09-25).
+ */
+
 // Prepend an "All" chip so the menu filter can reset to the full list.
 const ALL = { id: 'all', nameAr: 'الكل', nameEn: 'All' };
 
@@ -14,7 +27,7 @@ const orderedItems = [...menuItems].sort(
   (a, b) => (rankById.get(a.categoryId) ?? 100) - (rankById.get(b.categoryId) ?? 100),
 );
 
-export const mockMenuService: MenuService = {
+export const bundledMenuService: MenuService = {
   getCategories: () => delay([ALL, ...orderedCategories]),
 
   getItems: (categoryId) => {
