@@ -1,13 +1,17 @@
 import { menuItems } from '../menu/seed';
+import { itemInsights } from '../menu/menu.insights.generated';
 import { categoryKind, itemKind, type CategoryKind } from './categoryKind';
 import type { MenuItem, CartItem, ItemSize } from '../types';
 
 /**
- * Rule-based upsell / cross-sell engine (Starbucks-style).
+ * Upsell / cross-sell engine.
  *
- * Categories are classified as drink / food / other by name (see categoryKind),
- * so cross-sell keeps working with the live Talabat menu (opaque `sec-…` IDs).
- * Swap for real "frequently bought together" data from Odoo/loyalty later.
+ * MEASURED FIRST (GM, 2026-09-25): "frequently bought together" is now real —
+ * scripts/odoo-menu-insights.ts measures, over the last 45 days of paid Odoo POS
+ * orders, which items are bought in the same order across categories
+ * (attach rate + lift). Those pairs lead every suggestion below; the
+ * rule-based picks (categoryKind + TREAT/POPULAR_DRINK) only FILL what the
+ * measurement leaves empty — a new item, or one with too few orders to judge.
  */
 
 // "Treat" foods pair best with coffee; popular drinks pair best with food.
@@ -32,6 +36,37 @@ function pickByKind(target: CategoryKind, exclude: Set<string>, max: number): Me
     .slice(0, max);
 }
 
+/** Measured pairings for these items, strongest first: attach × ln(lift),
+ *  summed when several cart items point at the same thing. Only items still on
+ *  the menu and in stock, never one already chosen. */
+function measuredPairs(ids: string[], exclude: Set<string>): MenuItem[] {
+  const score = new Map<string, number>();
+  for (const id of ids) {
+    for (const c of itemInsights[id]?.crossSell ?? []) {
+      if (exclude.has(c.itemId)) continue;
+      score.set(c.itemId, (score.get(c.itemId) ?? 0) + c.attach * Math.log(c.lift));
+    }
+  }
+  const byId = new Map(menuItems.map((m) => [m.id, m]));
+  return [...score.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .map(([id]) => byId.get(id))
+    .filter((m): m is MenuItem => !!m && m.inStock !== false);
+}
+
+/** Measured pairs first, then rule-based picks to fill up to `max`. */
+function measuredThenRules(measured: MenuItem[], rules: MenuItem[], max: number): MenuItem[] {
+  const out: MenuItem[] = [];
+  const seen = new Set<string>();
+  for (const m of [...measured, ...rules]) {
+    if (out.length >= max) break;
+    if (seen.has(m.id)) continue;
+    seen.add(m.id);
+    out.push(m);
+  }
+  return out;
+}
+
 /**
  * Cross-sell for the cart: complete the order. Drinks → suggest food, food →
  * suggest a drink, mixed cart → food treats. Excludes items already in the cart.
@@ -45,7 +80,7 @@ export function getCartCrossSell(items: CartItem[], max = 8): MenuItem[] {
 
   // Drink-only cart → suggest food; food-only → suggest drinks; otherwise food.
   const target: CategoryKind = hasDrink && !hasFood ? 'food' : hasFood && !hasDrink ? 'drink' : 'food';
-  return pickByKind(target, inCart, max);
+  return measuredThenRules(measuredPairs([...inCart], inCart), pickByKind(target, inCart, max), max);
 }
 
 /**
@@ -72,12 +107,15 @@ export function getComboUpsell(items: CartItem[]): { item: MenuItem; missing: 'd
   const hasDrink = kinds.includes('drink');
   const hasFood = kinds.includes('food');
   const inCart = new Set(items.map((i) => i.itemId));
+  // The measured partner of the missing kind wins; the rule-based pick is the fallback.
+  const measured = (kind: CategoryKind) =>
+    measuredPairs([...inCart], inCart).find((m) => categoryKind(m.categoryId) === kind);
   if (hasDrink && !hasFood) {
-    const item = pickByKind('food', inCart, 1)[0];
+    const item = measured('food') ?? pickByKind('food', inCart, 1)[0];
     return item ? { item, missing: 'food' } : null;
   }
   if (hasFood && !hasDrink) {
-    const item = pickByKind('drink', inCart, 1)[0];
+    const item = measured('drink') ?? pickByKind('drink', inCart, 1)[0];
     return item ? { item, missing: 'drink' } : null;
   }
   return null;
@@ -175,9 +213,10 @@ export function getComboStarter(): ComboStarter | null {
 
 /** Cross-sell for the item modal: "goes great with" the item being viewed. */
 export function getItemPairings(item: MenuItem, max = 4): MenuItem[] {
-  // Drinks pair with food; food (or anything else) pairs with drinks.
+  // Measured "bought together" first; then drinks pair with food, food with drinks.
   const target: CategoryKind = categoryKind(item.categoryId) === 'drink' ? 'food' : 'drink';
-  return pickByKind(target, new Set([item.id]), max);
+  const self = new Set([item.id]);
+  return measuredThenRules(measuredPairs([item.id], self), pickByKind(target, self, max), max);
 }
 
 export interface SizeUpsell {

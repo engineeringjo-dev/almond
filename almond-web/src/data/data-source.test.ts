@@ -168,8 +168,14 @@ describe('data/menu getMenu', () => {
     expect(m.categories).toBe(shared.categories);
   });
 
-  it('odoo throws instead of serving the stale bundled menu', async () => {
-    const { getMenu } = await withSource('odoo', () => import('@/data/menu'));
-    await expect(getMenu()).rejects.toThrow(/not wired/);
+  // The bundled menu is the Odoo POS menu, synced daily — no longer the stale
+  // Talabat export this used to refuse — so live mode serves the same one.
+  it('odoo serves the same Odoo POS menu, add-ons included', async () => {
+    const [{ getMenu }, shared] = await withSource('odoo', () =>
+      Promise.all([import('@/data/menu'), import('@almond/shared/menu')]),
+    );
+    const m = await getMenu();
+    expect(m.items).toBe(shared.menuItems);
+    expect(m.items.find((i) => i.nameEn === 'Iced Latte')!.customizations.some((g) => g.id === 'g-addons')).toBe(true);
   });
 });

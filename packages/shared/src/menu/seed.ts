@@ -2,7 +2,7 @@
  * Seed data for the mock layer (shared between app + web).
  * Prices are JOD, Price2 authoritative. Source of truth in production is Odoo 19.
  *
- * The real menu (Talabat export) is the active source for `categories` /
+ * The shop's Odoo POS menu (menu.generated.ts, synced daily) is the source for `categories` /
  * `menuItems`; branches + payment methods live here as the single source so the
  * app and the website stay identical by construction.
  */
@@ -35,9 +35,13 @@ export const paymentMethods: PaymentMethod[] = [
   { id: 'paypal', nameAr: 'باي بال', nameEn: 'PayPal', emoji: '🅿️' },
 ];
 
-// Real menu (Talabat export) is the active source.
-export const categories: Category[] = generatedCategories;
 // Odoo's add-on products (Extra Cold Foam…) join each item they are measured
 // on as an «إضافات» group — one menu for the app, the website, the feed and
 // the server's re-price (menu/addOns.ts).
 export const menuItems: MenuItem[] = attachAddOns(generatedMenuItems, modifierProducts, itemInsights);
+
+// Only sections that hold something. Odoo's POS tree also has its root nodes
+// (Food, Drink), the add-on categories (Extra Drink, Extra Pizza…) and retired
+// ones (Ramdan Sweets, Drink / Iced) — empty here, and shown as filter chips
+// they led to blank pages (GM, 2026-09-25).
+export const categories: Category[] = generatedCategories.filter((c) => menuItems.some((i) => i.categoryId === c.id));

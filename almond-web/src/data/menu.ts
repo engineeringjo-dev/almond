@@ -1,18 +1,17 @@
 import { categories, menuItems } from '@almond/shared/menu';
 import type { Category, MenuItem } from '@almond/shared/types';
-import { DATA_SOURCE } from '@/lib/config';
 
 /**
- * Menu data access. Under `mock` (default) it reads the real Talabat menu from
- * the shared package; under `odoo` it will call the live API with the same
- * return shapes — flip DATA_SOURCE and nothing else changes for callers.
+ * Menu data access — ONE menu in every mode. It is the shop's Odoo POS menu
+ * (only items active on the POS, with sizes, options and the measured «إضافات»
+ * add-ons), pulled into @almond/shared and re-synced daily by
+ * .github/workflows/menu-sync.yml; the app, the public feed and the server's
+ * re-price read the same module.
+ *
+ * Under 'odoo' this used to THROW, because the bundled menu was then a stale
+ * Talabat export. It no longer is (GM, 2026-09-25), so live mode serves it too.
  */
 export async function getMenu(): Promise<{ categories: Category[]; items: MenuItem[] }> {
-  if (DATA_SOURCE === 'odoo') {
-    throw new Error(
-      'Odoo menu source is not wired yet — run with NEXT_PUBLIC_DATA_SOURCE=mock.',
-    );
-  }
   return { categories, items: menuItems };
 }
 
