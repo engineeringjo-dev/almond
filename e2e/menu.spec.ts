@@ -58,11 +58,15 @@ test.describe('Menu', () => {
     const shown = parseJod(await add.innerText());
     expect(shown, 'price on the add button').toBeGreaterThan(0);
 
-    // Choosing a modifier toggles its pressed state.
-    const firstOption = options.first();
-    const before = await firstOption.getAttribute('aria-pressed');
+    // Choosing an option that is not selected presses it. (The first button
+    // may be a pre-selected single choice — Bagel Type is radio in Odoo — and
+    // pressing a chosen radio leaves it chosen, so pick an unpressed one.)
+    const states = await options.evaluateAll((els) => els.map((e) => e.getAttribute('aria-pressed')));
+    const idx = states.indexOf('false');
+    expect(idx, 'an unselected option exists').toBeGreaterThanOrEqual(0);
+    const firstOption = options.nth(idx);
     await firstOption.click();
-    await expect(firstOption).toHaveAttribute('aria-pressed', before === 'true' ? 'false' : 'true');
+    await expect(firstOption).toHaveAttribute('aria-pressed', 'true');
 
     // Quantity 2 doubles the total on the button.
     const unit = parseJod(await add.innerText());

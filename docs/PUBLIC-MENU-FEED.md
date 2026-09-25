@@ -32,7 +32,7 @@ the same items, prices, milk choices and photos, all pulled from Odoo. It is
 ```jsonc
 {
   "schema_version": 1,
-  "updated_at": "2026-09-08",          // date of the last Odoo pull
+  "updated_at": "2026-09-25",          // date of the last Odoo pull
   "currency": "JOD",
   "prices_include_tax": true,           // every price already includes the 8% sales tax
   "tax_rate": 0.08,
@@ -87,9 +87,9 @@ the same items, prices, milk choices and photos, all pulled from Odoo. It is
 | Price | `list_price` plus each attribute value's `price_extra`. The project documents treat `list_price` as the reference "Price2" |
 | Sizes | The attributes `Drink Size`, `Cake Size` and `Pizza Size & type` |
 | Options | Every other attribute, with its price from `price_extra` |
-| Single or multi choice | `SINGLE_CHOICE_ATTRIBUTES` in `publicFeed.ts`. Odoo stores all of these attributes as checkboxes; the lasting fix is to set them to radio in Odoo |
+| Single or multi choice | `product.attribute.display_type` in Odoo: radio → `required: true, multi: false` with a default; checkbox → optional, any number |
 | Branches | `CATEGORY_BRANCH_LIMITS`: pizza and pasta only at Rabieh, 8th Circle, JU, Madina and Shafa Badran (GM, 2026-09-25). Every other item is sold at all branches. The pull does not yet read `pos.config` per branch |
-| Tags | Category name ("Gluten-free …", "Seasonal Drinks") or item name (gluten/GF/جلوتين, keto/كيتو, sugar free, vegan/نباتي, pumpkin/gingerbread) |
+| Tags | Category name ("Gluten-free …", "Seasonal Drinks") or item name (gluten/GF/جلوتين, keto/كيتو, sugar free, vegan/نباتي, pumpkin/gingerbread/fall/autumn/خريف/قرع) |
 | Photos | `image_1920`, resized to 512 px WebP by `npm run menu:pull` |
 
 ## Order payload — one structure for WhatsApp now and for app orders later

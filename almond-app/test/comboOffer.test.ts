@@ -138,13 +138,14 @@ describe('O1 the cold-start pair', () => {
     // this test doing its job rather than breaking. The Talabat export's 267
     // items (69 drink / 182 food / 16 other, 94% pairable) became the Odoo
     // shop menu's 373 (77 / 282 / 14, 96% pairable). The design holds and the
-    // margin widened; only the census moved.
+    // margin widened; only the census moved. Re-pulled 2026-09-25 with the
+    // autumn menu: 375 (82 / 279 / 14) — still 96%.
     const kinds = menuItems.map((m) => itemKind(m.id));
     const pairable = kinds.filter((k) => k !== 'other').length;
-    expect(menuItems.length).toBe(373);
-    expect(kinds.filter((k) => k === 'drink').length).toBe(77);
-    expect(kinds.filter((k) => k === 'food').length).toBe(282);
-    // A "combo-eligible" menu filter would remove 14 of 373 items and hand the
+    expect(menuItems.length).toBe(375);
+    expect(kinds.filter((k) => k === 'drink').length).toBe(82);
+    expect(kinds.filter((k) => k === 'food').length).toBe(279);
+    // A "combo-eligible" menu filter would remove 14 of 375 items and hand the
     // member back the menu they were already looking at. The 14 are the coffee
     // equipment and the candles/flowers/gift-box "Sides" — genuinely neither.
     expect(pairable / menuItems.length).toBeGreaterThan(0.93);

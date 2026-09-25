@@ -8,10 +8,10 @@ import type { Category, MenuItem } from '../types';
 // photos were hotlinked from images.deliveryhero.io. Photos now live in
 // almond-web/public/menu/ and are ours.
 //
-// Pulled 2026-09-08: 44 categories, 373 items, 306 photos.
+// Pulled 2026-09-25: 44 categories, 375 items, 308 photos.
 
-/** When this menu was pulled from Odoo — the public feed's `updated_at`. */
-export const menuPulledAt = '2026-09-08';
+/** When this menu was pulled from Odoo — the public feed's updated_at. */
+export const menuPulledAt = '2026-09-25';
 
 export const generatedCategories: Category[] = [
   {
@@ -257,7 +257,7 @@ export const generatedMenuItems: MenuItem[] = [
         "id": "g-4",
         "nameEn": "Bagel Type",
         "nameAr": "نوع البيغل",
-        "multiple": true,
+        "multiple": false,
         "options": [
           {
             "id": "o-1",
@@ -298,17 +298,37 @@ export const generatedMenuItems: MenuItem[] = [
         ]
       },
       {
+        "id": "g-3135",
+        "nameEn": "Extra vegetables",
+        "nameAr": "أضافات على الطعام",
+        "multiple": true,
+        "options": [
+          {
+            "id": "o-11581",
+            "nameEn": "Extra Tomato",
+            "nameAr": "اكسترا طماطم",
+            "priceDelta": 0
+          },
+          {
+            "id": "o-11583",
+            "nameEn": "Extra Olives",
+            "nameAr": "اكسترا زيتون",
+            "priceDelta": 0
+          },
+          {
+            "id": "o-11587",
+            "nameEn": "Extra Lettuce",
+            "nameAr": "Extra Lettuce",
+            "priceDelta": 0
+          }
+        ]
+      },
+      {
         "id": "g-2778",
         "nameEn": "Extra Food",
         "nameAr": "أضافات على الطعام",
         "multiple": true,
         "options": [
-          {
-            "id": "o-8736",
-            "nameEn": "Extra Salmon",
-            "nameAr": "اكسترا سالمون",
-            "priceDelta": 1.5
-          },
           {
             "id": "o-8737",
             "nameEn": "Extra Turkey",
@@ -316,57 +336,9 @@ export const generatedMenuItems: MenuItem[] = [
             "priceDelta": 0.6
           },
           {
-            "id": "o-8738",
-            "nameEn": "Extra Tomato",
-            "nameAr": "اكسترا طماطم",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-8739",
-            "nameEn": "Extra Sundried Tomato",
-            "nameAr": "اكسترا بندورة مجففة",
-            "priceDelta": 0.6
-          },
-          {
-            "id": "o-8740",
-            "nameEn": "Extra Olives",
-            "nameAr": "اكسترا زيتون",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-8741",
-            "nameEn": "Extra Lettuce",
-            "nameAr": "اكسترا خس",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-8742",
-            "nameEn": "Extra Guacamole",
-            "nameAr": "اكسترا جواكامولي",
-            "priceDelta": 1.5
-          },
-          {
-            "id": "o-8743",
-            "nameEn": "Extra Avocado",
-            "nameAr": "اكسترا افوكادو",
-            "priceDelta": 1.5
-          },
-          {
             "id": "o-8744",
             "nameEn": "Extra 3 Cheese",
             "nameAr": "اكسترا 3 أجبان",
-            "priceDelta": 1
-          },
-          {
-            "id": "o-8745",
-            "nameEn": "Extra Roast Beef",
-            "nameAr": "اكسترا روست بيف",
-            "priceDelta": 0.6
-          },
-          {
-            "id": "o-8747",
-            "nameEn": "Extra Halloumi",
-            "nameAr": "اكسترا حلوم",
             "priceDelta": 1
           },
           {
@@ -376,96 +348,16 @@ export const generatedMenuItems: MenuItem[] = [
             "priceDelta": 0.45
           },
           {
-            "id": "o-8749",
-            "nameEn": "Extra Cream Cheese",
-            "nameAr": "اكسترا كريم تشيز",
+            "id": "o-11867",
+            "nameEn": "Extra Sundried Tomato",
+            "nameAr": "Extra Sundried Tomato",
             "priceDelta": 0.6
           },
           {
-            "id": "o-8750",
-            "nameEn": "Extra Chicken",
-            "nameAr": "اكسترا دجاج",
-            "priceDelta": 1.5
-          },
-          {
-            "id": "o-8751",
+            "id": "o-12071",
             "nameEn": "Extra Chedder Cheese",
-            "nameAr": "اكسترا تشيدر تشيز",
+            "nameAr": "Extra Chedder Cheese",
             "priceDelta": 0.2
-          }
-        ]
-      },
-      {
-        "id": "g-6",
-        "nameEn": "Without",
-        "nameAr": "بدون اضافة",
-        "multiple": true,
-        "options": [
-          {
-            "id": "o-18",
-            "nameEn": "Without Lettuce",
-            "nameAr": "بدون خس",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-19",
-            "nameEn": "Without Black Olive",
-            "nameAr": " بدون زيتون اسود",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-20",
-            "nameEn": "Without Tomato",
-            "nameAr": "بدون بندورة",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-21",
-            "nameEn": "Without Roast Beef",
-            "nameAr": " بدون روست بيف",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-22",
-            "nameEn": "Without Turkey",
-            "nameAr": "بدون تيركي",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-23",
-            "nameEn": "Withoout Egg",
-            "nameAr": "بدون بيض",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-24",
-            "nameEn": "Without Sun Dried Tomato",
-            "nameAr": "بدون بندورة مجففة ",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-25",
-            "nameEn": "Without Cream Cheese",
-            "nameAr": "بدون كريم تشيز ",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-26",
-            "nameEn": "Without Cheddar Cheese",
-            "nameAr": "بدون تشيدر تشيز ",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-27",
-            "nameEn": "Without Avocado",
-            "nameAr": "بدون افوكادو ",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-28",
-            "nameEn": "Without Guacamole",
-            "nameAr": "بدون جواكامولي",
-            "priceDelta": 0
           }
         ]
       }
@@ -488,17 +380,37 @@ export const generatedMenuItems: MenuItem[] = [
     ],
     "customizations": [
       {
+        "id": "g-3156",
+        "nameEn": "Extra vegetables",
+        "nameAr": "أضافات على الطعام",
+        "multiple": true,
+        "options": [
+          {
+            "id": "o-11728",
+            "nameEn": "Extra Tomato",
+            "nameAr": "اكسترا طماطم",
+            "priceDelta": 0
+          },
+          {
+            "id": "o-11730",
+            "nameEn": "Extra Olives",
+            "nameAr": "اكسترا زيتون",
+            "priceDelta": 0
+          },
+          {
+            "id": "o-11734",
+            "nameEn": "Extra Lettuce",
+            "nameAr": "Extra Lettuce",
+            "priceDelta": 0
+          }
+        ]
+      },
+      {
         "id": "g-2844",
         "nameEn": "Extra Food",
         "nameAr": "أضافات على الطعام",
         "multiple": true,
         "options": [
-          {
-            "id": "o-9804",
-            "nameEn": "Extra Salmon",
-            "nameAr": "اكسترا سالمون",
-            "priceDelta": 1.5
-          },
           {
             "id": "o-9805",
             "nameEn": "Extra Turkey",
@@ -506,57 +418,9 @@ export const generatedMenuItems: MenuItem[] = [
             "priceDelta": 0.6
           },
           {
-            "id": "o-9806",
-            "nameEn": "Extra Tomato",
-            "nameAr": "اكسترا طماطم",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-9807",
-            "nameEn": "Extra Sundried Tomato",
-            "nameAr": "اكسترا بندورة مجففة",
-            "priceDelta": 0.6
-          },
-          {
-            "id": "o-9808",
-            "nameEn": "Extra Olives",
-            "nameAr": "اكسترا زيتون",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-9809",
-            "nameEn": "Extra Lettuce",
-            "nameAr": "اكسترا خس",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-9810",
-            "nameEn": "Extra Guacamole",
-            "nameAr": "اكسترا جواكامولي",
-            "priceDelta": 1.5
-          },
-          {
-            "id": "o-9811",
-            "nameEn": "Extra Avocado",
-            "nameAr": "اكسترا افوكادو",
-            "priceDelta": 1.5
-          },
-          {
             "id": "o-9812",
             "nameEn": "Extra 3 Cheese",
             "nameAr": "اكسترا 3 أجبان",
-            "priceDelta": 1
-          },
-          {
-            "id": "o-9813",
-            "nameEn": "Extra Roast Beef",
-            "nameAr": "اكسترا روست بيف",
-            "priceDelta": 0.6
-          },
-          {
-            "id": "o-9815",
-            "nameEn": "Extra Halloumi",
-            "nameAr": "اكسترا حلوم",
             "priceDelta": 1
           },
           {
@@ -566,96 +430,10 @@ export const generatedMenuItems: MenuItem[] = [
             "priceDelta": 0.45
           },
           {
-            "id": "o-9817",
-            "nameEn": "Extra Cream Cheese",
-            "nameAr": "اكسترا كريم تشيز",
+            "id": "o-11866",
+            "nameEn": "Extra Sundried Tomato",
+            "nameAr": "Extra Sundried Tomato",
             "priceDelta": 0.6
-          },
-          {
-            "id": "o-9818",
-            "nameEn": "Extra Chicken",
-            "nameAr": "اكسترا دجاج",
-            "priceDelta": 1.5
-          },
-          {
-            "id": "o-9819",
-            "nameEn": "Extra Chedder Cheese",
-            "nameAr": "اكسترا تشيدر تشيز",
-            "priceDelta": 0.2
-          }
-        ]
-      },
-      {
-        "id": "g-1542",
-        "nameEn": "Without",
-        "nameAr": "بدون اضافة",
-        "multiple": true,
-        "options": [
-          {
-            "id": "o-1073",
-            "nameEn": "Without Lettuce",
-            "nameAr": "بدون خس",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-1074",
-            "nameEn": "Without Black Olive",
-            "nameAr": " بدون زيتون اسود",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-1075",
-            "nameEn": "Without Tomato",
-            "nameAr": "بدون بندورة",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-1076",
-            "nameEn": "Without Roast Beef",
-            "nameAr": " بدون روست بيف",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-1077",
-            "nameEn": "Without Turkey",
-            "nameAr": "بدون تيركي",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-1078",
-            "nameEn": "Withoout Egg",
-            "nameAr": "بدون بيض",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-1079",
-            "nameEn": "Without Sun Dried Tomato",
-            "nameAr": "بدون بندورة مجففة ",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-1080",
-            "nameEn": "Without Cream Cheese",
-            "nameAr": "بدون كريم تشيز ",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-1081",
-            "nameEn": "Without Cheddar Cheese",
-            "nameAr": "بدون تشيدر تشيز ",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-1082",
-            "nameEn": "Without Avocado",
-            "nameAr": "بدون افوكادو ",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-1083",
-            "nameEn": "Without Guacamole",
-            "nameAr": "بدون جواكامولي",
-            "priceDelta": 0
           }
         ]
       }
@@ -678,17 +456,37 @@ export const generatedMenuItems: MenuItem[] = [
     ],
     "customizations": [
       {
+        "id": "g-3136",
+        "nameEn": "Extra vegetables",
+        "nameAr": "أضافات على الطعام",
+        "multiple": true,
+        "options": [
+          {
+            "id": "o-11588",
+            "nameEn": "Extra Tomato",
+            "nameAr": "اكسترا طماطم",
+            "priceDelta": 0
+          },
+          {
+            "id": "o-11590",
+            "nameEn": "Extra Olives",
+            "nameAr": "اكسترا زيتون",
+            "priceDelta": 0
+          },
+          {
+            "id": "o-11594",
+            "nameEn": "Extra Lettuce",
+            "nameAr": "Extra Lettuce",
+            "priceDelta": 0
+          }
+        ]
+      },
+      {
         "id": "g-2823",
         "nameEn": "Extra Food",
         "nameAr": "أضافات على الطعام",
         "multiple": true,
         "options": [
-          {
-            "id": "o-9426",
-            "nameEn": "Extra Salmon",
-            "nameAr": "اكسترا سالمون",
-            "priceDelta": 1.5
-          },
           {
             "id": "o-9427",
             "nameEn": "Extra Turkey",
@@ -696,57 +494,9 @@ export const generatedMenuItems: MenuItem[] = [
             "priceDelta": 0.6
           },
           {
-            "id": "o-9428",
-            "nameEn": "Extra Tomato",
-            "nameAr": "اكسترا طماطم",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-9429",
-            "nameEn": "Extra Sundried Tomato",
-            "nameAr": "اكسترا بندورة مجففة",
-            "priceDelta": 0.6
-          },
-          {
-            "id": "o-9430",
-            "nameEn": "Extra Olives",
-            "nameAr": "اكسترا زيتون",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-9431",
-            "nameEn": "Extra Lettuce",
-            "nameAr": "اكسترا خس",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-9432",
-            "nameEn": "Extra Guacamole",
-            "nameAr": "اكسترا جواكامولي",
-            "priceDelta": 1.5
-          },
-          {
-            "id": "o-9433",
-            "nameEn": "Extra Avocado",
-            "nameAr": "اكسترا افوكادو",
-            "priceDelta": 1.5
-          },
-          {
             "id": "o-9434",
             "nameEn": "Extra 3 Cheese",
             "nameAr": "اكسترا 3 أجبان",
-            "priceDelta": 1
-          },
-          {
-            "id": "o-9435",
-            "nameEn": "Extra Roast Beef",
-            "nameAr": "اكسترا روست بيف",
-            "priceDelta": 0.6
-          },
-          {
-            "id": "o-9437",
-            "nameEn": "Extra Halloumi",
-            "nameAr": "اكسترا حلوم",
             "priceDelta": 1
           },
           {
@@ -756,21 +506,15 @@ export const generatedMenuItems: MenuItem[] = [
             "priceDelta": 0.45
           },
           {
-            "id": "o-9439",
-            "nameEn": "Extra Cream Cheese",
-            "nameAr": "اكسترا كريم تشيز",
+            "id": "o-11858",
+            "nameEn": "Extra Sundried Tomato",
+            "nameAr": "Extra Sundried Tomato",
             "priceDelta": 0.6
           },
           {
-            "id": "o-9440",
-            "nameEn": "Extra Chicken",
-            "nameAr": "اكسترا دجاج",
-            "priceDelta": 1.5
-          },
-          {
-            "id": "o-9441",
+            "id": "o-12062",
             "nameEn": "Extra Chedder Cheese",
-            "nameAr": "اكسترا تشيدر تشيز",
+            "nameAr": "Extra Chedder Cheese",
             "priceDelta": 0.2
           }
         ]
@@ -781,18 +525,6 @@ export const generatedMenuItems: MenuItem[] = [
         "nameAr": "بدون اضافة",
         "multiple": true,
         "options": [
-          {
-            "id": "o-485",
-            "nameEn": "Without Lettuce",
-            "nameAr": "بدون خس",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-486",
-            "nameEn": "Without Black Olive",
-            "nameAr": " بدون زيتون اسود",
-            "priceDelta": 0
-          },
           {
             "id": "o-487",
             "nameEn": "Without Tomato",
@@ -812,39 +544,9 @@ export const generatedMenuItems: MenuItem[] = [
             "priceDelta": 0
           },
           {
-            "id": "o-490",
-            "nameEn": "Withoout Egg",
-            "nameAr": "بدون بيض",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-491",
-            "nameEn": "Without Sun Dried Tomato",
-            "nameAr": "بدون بندورة مجففة ",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-492",
-            "nameEn": "Without Cream Cheese",
-            "nameAr": "بدون كريم تشيز ",
-            "priceDelta": 0
-          },
-          {
             "id": "o-493",
             "nameEn": "Without Cheddar Cheese",
             "nameAr": "بدون تشيدر تشيز ",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-494",
-            "nameEn": "Without Avocado",
-            "nameAr": "بدون افوكادو ",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-495",
-            "nameEn": "Without Guacamole",
-            "nameAr": "بدون جواكامولي",
             "priceDelta": 0
           }
         ]
@@ -867,91 +569,11 @@ export const generatedMenuItems: MenuItem[] = [
     ],
     "customizations": [
       {
-        "id": "g-1929",
-        "nameEn": "Without",
-        "nameAr": "بدون اضافة",
-        "multiple": true,
-        "options": [
-          {
-            "id": "o-2305",
-            "nameEn": "Without Lettuce",
-            "nameAr": "بدون خس",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-2306",
-            "nameEn": "Without Black Olive",
-            "nameAr": " بدون زيتون اسود",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-2307",
-            "nameEn": "Without Tomato",
-            "nameAr": "بدون بندورة",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-2308",
-            "nameEn": "Without Roast Beef",
-            "nameAr": " بدون روست بيف",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-2309",
-            "nameEn": "Without Turkey",
-            "nameAr": "بدون تيركي",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-2310",
-            "nameEn": "Withoout Egg",
-            "nameAr": "بدون بيض",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-2311",
-            "nameEn": "Without Sun Dried Tomato",
-            "nameAr": "بدون بندورة مجففة ",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-2312",
-            "nameEn": "Without Cream Cheese",
-            "nameAr": "بدون كريم تشيز ",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-2313",
-            "nameEn": "Without Cheddar Cheese",
-            "nameAr": "بدون تشيدر تشيز ",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-2314",
-            "nameEn": "Without Avocado",
-            "nameAr": "بدون افوكادو ",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-2315",
-            "nameEn": "Without Guacamole",
-            "nameAr": "بدون جواكامولي",
-            "priceDelta": 0
-          }
-        ]
-      },
-      {
         "id": "g-2832",
         "nameEn": "Extra Food",
         "nameAr": "أضافات على الطعام",
         "multiple": true,
         "options": [
-          {
-            "id": "o-9588",
-            "nameEn": "Extra Salmon",
-            "nameAr": "اكسترا سالمون",
-            "priceDelta": 1.5
-          },
           {
             "id": "o-9589",
             "nameEn": "Extra Turkey",
@@ -959,57 +581,9 @@ export const generatedMenuItems: MenuItem[] = [
             "priceDelta": 0.6
           },
           {
-            "id": "o-9590",
-            "nameEn": "Extra Tomato",
-            "nameAr": "اكسترا طماطم",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-9591",
-            "nameEn": "Extra Sundried Tomato",
-            "nameAr": "اكسترا بندورة مجففة",
-            "priceDelta": 0.6
-          },
-          {
-            "id": "o-9592",
-            "nameEn": "Extra Olives",
-            "nameAr": "اكسترا زيتون",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-9593",
-            "nameEn": "Extra Lettuce",
-            "nameAr": "اكسترا خس",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-9594",
-            "nameEn": "Extra Guacamole",
-            "nameAr": "اكسترا جواكامولي",
-            "priceDelta": 1.5
-          },
-          {
-            "id": "o-9595",
-            "nameEn": "Extra Avocado",
-            "nameAr": "اكسترا افوكادو",
-            "priceDelta": 1.5
-          },
-          {
             "id": "o-9596",
             "nameEn": "Extra 3 Cheese",
             "nameAr": "اكسترا 3 أجبان",
-            "priceDelta": 1
-          },
-          {
-            "id": "o-9597",
-            "nameEn": "Extra Roast Beef",
-            "nameAr": "اكسترا روست بيف",
-            "priceDelta": 0.6
-          },
-          {
-            "id": "o-9599",
-            "nameEn": "Extra Halloumi",
-            "nameAr": "اكسترا حلوم",
             "priceDelta": 1
           },
           {
@@ -1019,21 +593,15 @@ export const generatedMenuItems: MenuItem[] = [
             "priceDelta": 0.45
           },
           {
-            "id": "o-9601",
-            "nameEn": "Extra Cream Cheese",
-            "nameAr": "اكسترا كريم تشيز",
+            "id": "o-11879",
+            "nameEn": "Extra Sundried Tomato",
+            "nameAr": "Extra Sundried Tomato",
             "priceDelta": 0.6
           },
           {
-            "id": "o-9602",
-            "nameEn": "Extra Chicken",
-            "nameAr": "اكسترا دجاج",
-            "priceDelta": 1.5
-          },
-          {
-            "id": "o-9603",
+            "id": "o-12083",
             "nameEn": "Extra Chedder Cheese",
-            "nameAr": "اكسترا تشيدر تشيز",
+            "nameAr": "Extra Chedder Cheese",
             "priceDelta": 0.2
           }
         ]
@@ -1113,93 +681,21 @@ export const generatedMenuItems: MenuItem[] = [
         "multiple": true,
         "options": [
           {
-            "id": "o-9060",
-            "nameEn": "Extra Salmon",
-            "nameAr": "اكسترا سالمون",
-            "priceDelta": 1.5
-          },
-          {
-            "id": "o-9061",
-            "nameEn": "Extra Turkey",
-            "nameAr": "اكسترا تيركي",
-            "priceDelta": 0.6
-          },
-          {
-            "id": "o-9062",
-            "nameEn": "Extra Tomato",
-            "nameAr": "اكسترا طماطم",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-9063",
-            "nameEn": "Extra Sundried Tomato",
-            "nameAr": "اكسترا بندورة مجففة",
-            "priceDelta": 0.6
-          },
-          {
-            "id": "o-9064",
-            "nameEn": "Extra Olives",
-            "nameAr": "اكسترا زيتون",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-9065",
-            "nameEn": "Extra Lettuce",
-            "nameAr": "اكسترا خس",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-9066",
-            "nameEn": "Extra Guacamole",
-            "nameAr": "اكسترا جواكامولي",
-            "priceDelta": 1.5
-          },
-          {
-            "id": "o-9067",
-            "nameEn": "Extra Avocado",
-            "nameAr": "اكسترا افوكادو",
-            "priceDelta": 1.5
-          },
-          {
-            "id": "o-9068",
-            "nameEn": "Extra 3 Cheese",
-            "nameAr": "اكسترا 3 أجبان",
-            "priceDelta": 1
-          },
-          {
-            "id": "o-9069",
-            "nameEn": "Extra Roast Beef",
-            "nameAr": "اكسترا روست بيف",
-            "priceDelta": 0.6
-          },
-          {
-            "id": "o-9071",
-            "nameEn": "Extra Halloumi",
-            "nameAr": "اكسترا حلوم",
-            "priceDelta": 1
-          },
-          {
-            "id": "o-9072",
-            "nameEn": "Extra Egg",
-            "nameAr": "اكسترا بيض",
-            "priceDelta": 0.45
-          },
-          {
-            "id": "o-9073",
-            "nameEn": "Extra Cream Cheese",
-            "nameAr": "اكسترا كريم تشيز",
-            "priceDelta": 0.6
-          },
-          {
             "id": "o-9074",
             "nameEn": "Extra Chicken",
             "nameAr": "اكسترا دجاج",
             "priceDelta": 1.5
           },
           {
-            "id": "o-9075",
+            "id": "o-11827",
+            "nameEn": "Extra Sundried Tomato",
+            "nameAr": "Extra Sundried Tomato",
+            "priceDelta": 0.6
+          },
+          {
+            "id": "o-12031",
             "nameEn": "Extra Chedder Cheese",
-            "nameAr": "اكسترا تشيدر تشيز",
+            "nameAr": "Extra Chedder Cheese",
             "priceDelta": 0.2
           }
         ]
@@ -1308,7 +804,7 @@ export const generatedMenuItems: MenuItem[] = [
         "id": "g-2045",
         "nameEn": "Milk Type",
         "nameAr": "نوع الحليب",
-        "multiple": true,
+        "multiple": false,
         "options": [
           {
             "id": "o-7833",
@@ -1439,6 +935,74 @@ export const generatedMenuItems: MenuItem[] = [
     ]
   },
   {
+    "id": "p-12160",
+    "categoryId": "cat-10",
+    "nameEn": "Apple & Dark Chocolate Brioche",
+    "nameAr": "قطعة بريوش التفاح",
+    "emoji": "",
+    "imageUrl": "/menu/p-12160.webp",
+    "sizes": [
+      {
+        "id": "M",
+        "nameEn": "Regular",
+        "nameAr": "عادي",
+        "price": 1.9
+      }
+    ],
+    "customizations": []
+  },
+  {
+    "id": "p-12134",
+    "categoryId": "cat-8",
+    "nameEn": "Apple & Feta Salad",
+    "nameAr": "سلطة التفاح والفيتا(حديقة الخريف)",
+    "emoji": "",
+    "imageUrl": "/menu/p-12134.webp",
+    "sizes": [
+      {
+        "id": "M",
+        "nameEn": "Regular",
+        "nameAr": "عادي",
+        "price": 4.5
+      }
+    ],
+    "customizations": []
+  },
+  {
+    "id": "p-12138",
+    "categoryId": "cat-10",
+    "nameEn": "Apple Linzer Cake Piece",
+    "nameAr": "قطعة لينزار التفاح",
+    "emoji": "",
+    "imageUrl": "/menu/p-12138.webp",
+    "sizes": [
+      {
+        "id": "M",
+        "nameEn": "Regular",
+        "nameAr": "عادي",
+        "price": 2.9
+      }
+    ],
+    "customizations": []
+  },
+  {
+    "id": "p-12137",
+    "categoryId": "cat-14",
+    "nameEn": "Apple Linzer Full Cake",
+    "nameAr": "قالب لينزار التفاح",
+    "emoji": "",
+    "imageUrl": "/menu/p-12137.webp",
+    "sizes": [
+      {
+        "id": "M",
+        "nameEn": "Regular",
+        "nameAr": "عادي",
+        "price": 16
+      }
+    ],
+    "customizations": []
+  },
+  {
     "id": "p-10188",
     "categoryId": "cat-5",
     "nameEn": "Avocado And Labaneh Sourdough Bread",
@@ -1455,174 +1019,28 @@ export const generatedMenuItems: MenuItem[] = [
     ],
     "customizations": [
       {
-        "id": "g-1932",
-        "nameEn": "Without",
-        "nameAr": "بدون اضافة",
-        "multiple": true,
-        "options": [
-          {
-            "id": "o-2338",
-            "nameEn": "Without Lettuce",
-            "nameAr": "بدون خس",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-2339",
-            "nameEn": "Without Black Olive",
-            "nameAr": " بدون زيتون اسود",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-2340",
-            "nameEn": "Without Tomato",
-            "nameAr": "بدون بندورة",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-2341",
-            "nameEn": "Without Roast Beef",
-            "nameAr": " بدون روست بيف",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-2342",
-            "nameEn": "Without Turkey",
-            "nameAr": "بدون تيركي",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-2343",
-            "nameEn": "Withoout Egg",
-            "nameAr": "بدون بيض",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-2344",
-            "nameEn": "Without Sun Dried Tomato",
-            "nameAr": "بدون بندورة مجففة ",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-2345",
-            "nameEn": "Without Cream Cheese",
-            "nameAr": "بدون كريم تشيز ",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-2346",
-            "nameEn": "Without Cheddar Cheese",
-            "nameAr": "بدون تشيدر تشيز ",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-2347",
-            "nameEn": "Without Avocado",
-            "nameAr": "بدون افوكادو ",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-2348",
-            "nameEn": "Without Guacamole",
-            "nameAr": "بدون جواكامولي",
-            "priceDelta": 0
-          }
-        ]
-      },
-      {
         "id": "g-2829",
         "nameEn": "Extra Food",
         "nameAr": "أضافات على الطعام",
         "multiple": true,
         "options": [
           {
-            "id": "o-9534",
-            "nameEn": "Extra Salmon",
-            "nameAr": "اكسترا سالمون",
-            "priceDelta": 1.5
-          },
-          {
-            "id": "o-9535",
-            "nameEn": "Extra Turkey",
-            "nameAr": "اكسترا تيركي",
-            "priceDelta": 0.6
-          },
-          {
-            "id": "o-9536",
-            "nameEn": "Extra Tomato",
-            "nameAr": "اكسترا طماطم",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-9537",
+            "id": "o-11876",
             "nameEn": "Extra Sundried Tomato",
-            "nameAr": "اكسترا بندورة مجففة",
+            "nameAr": "Extra Sundried Tomato",
             "priceDelta": 0.6
           },
           {
-            "id": "o-9538",
-            "nameEn": "Extra Olives",
-            "nameAr": "اكسترا زيتون",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-9539",
-            "nameEn": "Extra Lettuce",
-            "nameAr": "اكسترا خس",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-9540",
+            "id": "o-11944",
             "nameEn": "Extra Guacamole",
-            "nameAr": "اكسترا جواكامولي",
+            "nameAr": "Extra Guacamole",
             "priceDelta": 1.5
           },
           {
-            "id": "o-9541",
+            "id": "o-12012",
             "nameEn": "Extra Avocado",
-            "nameAr": "اكسترا افوكادو",
+            "nameAr": "Extra Avocado",
             "priceDelta": 1.5
-          },
-          {
-            "id": "o-9542",
-            "nameEn": "Extra 3 Cheese",
-            "nameAr": "اكسترا 3 أجبان",
-            "priceDelta": 1
-          },
-          {
-            "id": "o-9543",
-            "nameEn": "Extra Roast Beef",
-            "nameAr": "اكسترا روست بيف",
-            "priceDelta": 0.6
-          },
-          {
-            "id": "o-9545",
-            "nameEn": "Extra Halloumi",
-            "nameAr": "اكسترا حلوم",
-            "priceDelta": 1
-          },
-          {
-            "id": "o-9546",
-            "nameEn": "Extra Egg",
-            "nameAr": "اكسترا بيض",
-            "priceDelta": 0.45
-          },
-          {
-            "id": "o-9547",
-            "nameEn": "Extra Cream Cheese",
-            "nameAr": "اكسترا كريم تشيز",
-            "priceDelta": 0.6
-          },
-          {
-            "id": "o-9548",
-            "nameEn": "Extra Chicken",
-            "nameAr": "اكسترا دجاج",
-            "priceDelta": 1.5
-          },
-          {
-            "id": "o-9549",
-            "nameEn": "Extra Chedder Cheese",
-            "nameAr": "اكسترا تشيدر تشيز",
-            "priceDelta": 0.2
           }
         ]
       }
@@ -1648,7 +1066,7 @@ export const generatedMenuItems: MenuItem[] = [
         "id": "g-75",
         "nameEn": "Bagel Type",
         "nameAr": "نوع البيغل",
-        "multiple": true,
+        "multiple": false,
         "options": [
           {
             "id": "o-150",
@@ -1689,174 +1107,54 @@ export const generatedMenuItems: MenuItem[] = [
         ]
       },
       {
+        "id": "g-3137",
+        "nameEn": "Extra vegetables",
+        "nameAr": "أضافات على الطعام",
+        "multiple": true,
+        "options": [
+          {
+            "id": "o-11595",
+            "nameEn": "Extra Tomato",
+            "nameAr": "اكسترا طماطم",
+            "priceDelta": 0
+          },
+          {
+            "id": "o-11597",
+            "nameEn": "Extra Olives",
+            "nameAr": "اكسترا زيتون",
+            "priceDelta": 0
+          },
+          {
+            "id": "o-11601",
+            "nameEn": "Extra Lettuce",
+            "nameAr": "Extra Lettuce",
+            "priceDelta": 0
+          }
+        ]
+      },
+      {
         "id": "g-2850",
         "nameEn": "Extra Food",
         "nameAr": "أضافات على الطعام",
         "multiple": true,
         "options": [
           {
-            "id": "o-9912",
-            "nameEn": "Extra Salmon",
-            "nameAr": "اكسترا سالمون",
-            "priceDelta": 1.5
-          },
-          {
-            "id": "o-9913",
-            "nameEn": "Extra Turkey",
-            "nameAr": "اكسترا تيركي",
-            "priceDelta": 0.6
-          },
-          {
-            "id": "o-9914",
-            "nameEn": "Extra Tomato",
-            "nameAr": "اكسترا طماطم",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-9915",
+            "id": "o-11888",
             "nameEn": "Extra Sundried Tomato",
-            "nameAr": "اكسترا بندورة مجففة",
+            "nameAr": "Extra Sundried Tomato",
             "priceDelta": 0.6
           },
           {
-            "id": "o-9916",
-            "nameEn": "Extra Olives",
-            "nameAr": "اكسترا زيتون",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-9917",
-            "nameEn": "Extra Lettuce",
-            "nameAr": "اكسترا خس",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-9918",
+            "id": "o-11956",
             "nameEn": "Extra Guacamole",
-            "nameAr": "اكسترا جواكامولي",
+            "nameAr": "Extra Guacamole",
             "priceDelta": 1.5
           },
           {
-            "id": "o-9919",
+            "id": "o-12024",
             "nameEn": "Extra Avocado",
-            "nameAr": "اكسترا افوكادو",
+            "nameAr": "Extra Avocado",
             "priceDelta": 1.5
-          },
-          {
-            "id": "o-9920",
-            "nameEn": "Extra 3 Cheese",
-            "nameAr": "اكسترا 3 أجبان",
-            "priceDelta": 1
-          },
-          {
-            "id": "o-9921",
-            "nameEn": "Extra Roast Beef",
-            "nameAr": "اكسترا روست بيف",
-            "priceDelta": 0.6
-          },
-          {
-            "id": "o-9923",
-            "nameEn": "Extra Halloumi",
-            "nameAr": "اكسترا حلوم",
-            "priceDelta": 1
-          },
-          {
-            "id": "o-9924",
-            "nameEn": "Extra Egg",
-            "nameAr": "اكسترا بيض",
-            "priceDelta": 0.45
-          },
-          {
-            "id": "o-9925",
-            "nameEn": "Extra Cream Cheese",
-            "nameAr": "اكسترا كريم تشيز",
-            "priceDelta": 0.6
-          },
-          {
-            "id": "o-9926",
-            "nameEn": "Extra Chicken",
-            "nameAr": "اكسترا دجاج",
-            "priceDelta": 1.5
-          },
-          {
-            "id": "o-9927",
-            "nameEn": "Extra Chedder Cheese",
-            "nameAr": "اكسترا تشيدر تشيز",
-            "priceDelta": 0.2
-          }
-        ]
-      },
-      {
-        "id": "g-76",
-        "nameEn": "Without",
-        "nameAr": "بدون اضافة",
-        "multiple": true,
-        "options": [
-          {
-            "id": "o-156",
-            "nameEn": "Without Lettuce",
-            "nameAr": "بدون خس",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-157",
-            "nameEn": "Without Black Olive",
-            "nameAr": " بدون زيتون اسود",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-158",
-            "nameEn": "Without Tomato",
-            "nameAr": "بدون بندورة",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-159",
-            "nameEn": "Without Roast Beef",
-            "nameAr": " بدون روست بيف",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-160",
-            "nameEn": "Without Turkey",
-            "nameAr": "بدون تيركي",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-161",
-            "nameEn": "Withoout Egg",
-            "nameAr": "بدون بيض",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-162",
-            "nameEn": "Without Sun Dried Tomato",
-            "nameAr": "بدون بندورة مجففة ",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-163",
-            "nameEn": "Without Cream Cheese",
-            "nameAr": "بدون كريم تشيز ",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-164",
-            "nameEn": "Without Cheddar Cheese",
-            "nameAr": "بدون تشيدر تشيز ",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-165",
-            "nameEn": "Without Avocado",
-            "nameAr": "بدون افوكادو ",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-166",
-            "nameEn": "Without Guacamole",
-            "nameAr": "بدون جواكامولي",
-            "priceDelta": 0
           }
         ]
       }
@@ -1885,167 +1183,47 @@ export const generatedMenuItems: MenuItem[] = [
         "multiple": true,
         "options": [
           {
-            "id": "o-9750",
-            "nameEn": "Extra Salmon",
-            "nameAr": "اكسترا سالمون",
-            "priceDelta": 1.5
-          },
-          {
-            "id": "o-9751",
-            "nameEn": "Extra Turkey",
-            "nameAr": "اكسترا تيركي",
+            "id": "o-11863",
+            "nameEn": "Extra Sundried Tomato",
+            "nameAr": "Extra Sundried Tomato",
             "priceDelta": 0.6
           },
           {
-            "id": "o-9752",
+            "id": "o-11931",
+            "nameEn": "Extra Guacamole",
+            "nameAr": "Extra Guacamole",
+            "priceDelta": 1.5
+          },
+          {
+            "id": "o-11999",
+            "nameEn": "Extra Avocado",
+            "nameAr": "Extra Avocado",
+            "priceDelta": 1.5
+          }
+        ]
+      },
+      {
+        "id": "g-3157",
+        "nameEn": "Extra vegetables",
+        "nameAr": "أضافات على الطعام",
+        "multiple": true,
+        "options": [
+          {
+            "id": "o-11735",
             "nameEn": "Extra Tomato",
             "nameAr": "اكسترا طماطم",
             "priceDelta": 0
           },
           {
-            "id": "o-9753",
-            "nameEn": "Extra Sundried Tomato",
-            "nameAr": "اكسترا بندورة مجففة",
-            "priceDelta": 0.6
-          },
-          {
-            "id": "o-9754",
+            "id": "o-11737",
             "nameEn": "Extra Olives",
             "nameAr": "اكسترا زيتون",
             "priceDelta": 0
           },
           {
-            "id": "o-9755",
+            "id": "o-11741",
             "nameEn": "Extra Lettuce",
-            "nameAr": "اكسترا خس",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-9756",
-            "nameEn": "Extra Guacamole",
-            "nameAr": "اكسترا جواكامولي",
-            "priceDelta": 1.5
-          },
-          {
-            "id": "o-9757",
-            "nameEn": "Extra Avocado",
-            "nameAr": "اكسترا افوكادو",
-            "priceDelta": 1.5
-          },
-          {
-            "id": "o-9758",
-            "nameEn": "Extra 3 Cheese",
-            "nameAr": "اكسترا 3 أجبان",
-            "priceDelta": 1
-          },
-          {
-            "id": "o-9759",
-            "nameEn": "Extra Roast Beef",
-            "nameAr": "اكسترا روست بيف",
-            "priceDelta": 0.6
-          },
-          {
-            "id": "o-9761",
-            "nameEn": "Extra Halloumi",
-            "nameAr": "اكسترا حلوم",
-            "priceDelta": 1
-          },
-          {
-            "id": "o-9762",
-            "nameEn": "Extra Egg",
-            "nameAr": "اكسترا بيض",
-            "priceDelta": 0.45
-          },
-          {
-            "id": "o-9763",
-            "nameEn": "Extra Cream Cheese",
-            "nameAr": "اكسترا كريم تشيز",
-            "priceDelta": 0.6
-          },
-          {
-            "id": "o-9764",
-            "nameEn": "Extra Chicken",
-            "nameAr": "اكسترا دجاج",
-            "priceDelta": 1.5
-          },
-          {
-            "id": "o-9765",
-            "nameEn": "Extra Chedder Cheese",
-            "nameAr": "اكسترا تشيدر تشيز",
-            "priceDelta": 0.2
-          }
-        ]
-      },
-      {
-        "id": "g-1659",
-        "nameEn": "Without",
-        "nameAr": "بدون اضافة",
-        "multiple": true,
-        "options": [
-          {
-            "id": "o-1876",
-            "nameEn": "Without Lettuce",
-            "nameAr": "بدون خس",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-1877",
-            "nameEn": "Without Black Olive",
-            "nameAr": " بدون زيتون اسود",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-1878",
-            "nameEn": "Without Tomato",
-            "nameAr": "بدون بندورة",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-1879",
-            "nameEn": "Without Roast Beef",
-            "nameAr": " بدون روست بيف",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-1880",
-            "nameEn": "Without Turkey",
-            "nameAr": "بدون تيركي",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-1881",
-            "nameEn": "Withoout Egg",
-            "nameAr": "بدون بيض",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-1882",
-            "nameEn": "Without Sun Dried Tomato",
-            "nameAr": "بدون بندورة مجففة ",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-1883",
-            "nameEn": "Without Cream Cheese",
-            "nameAr": "بدون كريم تشيز ",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-1884",
-            "nameEn": "Without Cheddar Cheese",
-            "nameAr": "بدون تشيدر تشيز ",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-1885",
-            "nameEn": "Without Avocado",
-            "nameAr": "بدون افوكادو ",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-1886",
-            "nameEn": "Without Guacamole",
-            "nameAr": "بدون جواكامولي",
+            "nameAr": "Extra Lettuce",
             "priceDelta": 0
           }
         ]
@@ -2069,174 +1247,54 @@ export const generatedMenuItems: MenuItem[] = [
     ],
     "customizations": [
       {
+        "id": "g-3138",
+        "nameEn": "Extra vegetables",
+        "nameAr": "أضافات على الطعام",
+        "multiple": true,
+        "options": [
+          {
+            "id": "o-11602",
+            "nameEn": "Extra Tomato",
+            "nameAr": "اكسترا طماطم",
+            "priceDelta": 0
+          },
+          {
+            "id": "o-11604",
+            "nameEn": "Extra Olives",
+            "nameAr": "اكسترا زيتون",
+            "priceDelta": 0
+          },
+          {
+            "id": "o-11608",
+            "nameEn": "Extra Lettuce",
+            "nameAr": "Extra Lettuce",
+            "priceDelta": 0
+          }
+        ]
+      },
+      {
         "id": "g-2820",
         "nameEn": "Extra Food",
         "nameAr": "أضافات على الطعام",
         "multiple": true,
         "options": [
           {
-            "id": "o-9372",
-            "nameEn": "Extra Salmon",
-            "nameAr": "اكسترا سالمون",
-            "priceDelta": 1.5
-          },
-          {
-            "id": "o-9373",
-            "nameEn": "Extra Turkey",
-            "nameAr": "اكسترا تيركي",
-            "priceDelta": 0.6
-          },
-          {
-            "id": "o-9374",
-            "nameEn": "Extra Tomato",
-            "nameAr": "اكسترا طماطم",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-9375",
+            "id": "o-11855",
             "nameEn": "Extra Sundried Tomato",
-            "nameAr": "اكسترا بندورة مجففة",
+            "nameAr": "Extra Sundried Tomato",
             "priceDelta": 0.6
           },
           {
-            "id": "o-9376",
-            "nameEn": "Extra Olives",
-            "nameAr": "اكسترا زيتون",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-9377",
-            "nameEn": "Extra Lettuce",
-            "nameAr": "اكسترا خس",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-9378",
+            "id": "o-11923",
             "nameEn": "Extra Guacamole",
-            "nameAr": "اكسترا جواكامولي",
+            "nameAr": "Extra Guacamole",
             "priceDelta": 1.5
           },
           {
-            "id": "o-9379",
+            "id": "o-11991",
             "nameEn": "Extra Avocado",
-            "nameAr": "اكسترا افوكادو",
+            "nameAr": "Extra Avocado",
             "priceDelta": 1.5
-          },
-          {
-            "id": "o-9380",
-            "nameEn": "Extra 3 Cheese",
-            "nameAr": "اكسترا 3 أجبان",
-            "priceDelta": 1
-          },
-          {
-            "id": "o-9381",
-            "nameEn": "Extra Roast Beef",
-            "nameAr": "اكسترا روست بيف",
-            "priceDelta": 0.6
-          },
-          {
-            "id": "o-9383",
-            "nameEn": "Extra Halloumi",
-            "nameAr": "اكسترا حلوم",
-            "priceDelta": 1
-          },
-          {
-            "id": "o-9384",
-            "nameEn": "Extra Egg",
-            "nameAr": "اكسترا بيض",
-            "priceDelta": 0.45
-          },
-          {
-            "id": "o-9385",
-            "nameEn": "Extra Cream Cheese",
-            "nameAr": "اكسترا كريم تشيز",
-            "priceDelta": 0.6
-          },
-          {
-            "id": "o-9386",
-            "nameEn": "Extra Chicken",
-            "nameAr": "اكسترا دجاج",
-            "priceDelta": 1.5
-          },
-          {
-            "id": "o-9387",
-            "nameEn": "Extra Chedder Cheese",
-            "nameAr": "اكسترا تشيدر تشيز",
-            "priceDelta": 0.2
-          }
-        ]
-      },
-      {
-        "id": "g-242",
-        "nameEn": "Without",
-        "nameAr": "بدون اضافة",
-        "multiple": true,
-        "options": [
-          {
-            "id": "o-507",
-            "nameEn": "Without Lettuce",
-            "nameAr": "بدون خس",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-508",
-            "nameEn": "Without Black Olive",
-            "nameAr": " بدون زيتون اسود",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-509",
-            "nameEn": "Without Tomato",
-            "nameAr": "بدون بندورة",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-510",
-            "nameEn": "Without Roast Beef",
-            "nameAr": " بدون روست بيف",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-511",
-            "nameEn": "Without Turkey",
-            "nameAr": "بدون تيركي",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-512",
-            "nameEn": "Withoout Egg",
-            "nameAr": "بدون بيض",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-513",
-            "nameEn": "Without Sun Dried Tomato",
-            "nameAr": "بدون بندورة مجففة ",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-514",
-            "nameEn": "Without Cream Cheese",
-            "nameAr": "بدون كريم تشيز ",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-515",
-            "nameEn": "Without Cheddar Cheese",
-            "nameAr": "بدون تشيدر تشيز ",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-516",
-            "nameEn": "Without Avocado",
-            "nameAr": "بدون افوكادو ",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-517",
-            "nameEn": "Without Guacamole",
-            "nameAr": "بدون جواكامولي",
-            "priceDelta": 0
           }
         ]
       }
@@ -2262,7 +1320,7 @@ export const generatedMenuItems: MenuItem[] = [
         "id": "g-78",
         "nameEn": "Bagel Type",
         "nameAr": "نوع البيغل",
-        "multiple": true,
+        "multiple": false,
         "options": [
           {
             "id": "o-178",
@@ -2303,174 +1361,54 @@ export const generatedMenuItems: MenuItem[] = [
         ]
       },
       {
+        "id": "g-3139",
+        "nameEn": "Extra vegetables",
+        "nameAr": "أضافات على الطعام",
+        "multiple": true,
+        "options": [
+          {
+            "id": "o-11609",
+            "nameEn": "Extra Tomato",
+            "nameAr": "اكسترا طماطم",
+            "priceDelta": 0
+          },
+          {
+            "id": "o-11611",
+            "nameEn": "Extra Olives",
+            "nameAr": "اكسترا زيتون",
+            "priceDelta": 0
+          },
+          {
+            "id": "o-11615",
+            "nameEn": "Extra Lettuce",
+            "nameAr": "Extra Lettuce",
+            "priceDelta": 0
+          }
+        ]
+      },
+      {
         "id": "g-2852",
         "nameEn": "Extra Food",
         "nameAr": "أضافات على الطعام",
         "multiple": true,
         "options": [
           {
-            "id": "o-9948",
-            "nameEn": "Extra Salmon",
-            "nameAr": "اكسترا سالمون",
-            "priceDelta": 1.5
-          },
-          {
-            "id": "o-9949",
-            "nameEn": "Extra Turkey",
-            "nameAr": "اكسترا تيركي",
-            "priceDelta": 0.6
-          },
-          {
-            "id": "o-9950",
-            "nameEn": "Extra Tomato",
-            "nameAr": "اكسترا طماطم",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-9951",
+            "id": "o-11889",
             "nameEn": "Extra Sundried Tomato",
-            "nameAr": "اكسترا بندورة مجففة",
+            "nameAr": "Extra Sundried Tomato",
             "priceDelta": 0.6
           },
           {
-            "id": "o-9952",
-            "nameEn": "Extra Olives",
-            "nameAr": "اكسترا زيتون",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-9953",
-            "nameEn": "Extra Lettuce",
-            "nameAr": "اكسترا خس",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-9954",
+            "id": "o-11957",
             "nameEn": "Extra Guacamole",
-            "nameAr": "اكسترا جواكامولي",
+            "nameAr": "Extra Guacamole",
             "priceDelta": 1.5
           },
           {
-            "id": "o-9955",
+            "id": "o-12025",
             "nameEn": "Extra Avocado",
-            "nameAr": "اكسترا افوكادو",
+            "nameAr": "Extra Avocado",
             "priceDelta": 1.5
-          },
-          {
-            "id": "o-9956",
-            "nameEn": "Extra 3 Cheese",
-            "nameAr": "اكسترا 3 أجبان",
-            "priceDelta": 1
-          },
-          {
-            "id": "o-9957",
-            "nameEn": "Extra Roast Beef",
-            "nameAr": "اكسترا روست بيف",
-            "priceDelta": 0.6
-          },
-          {
-            "id": "o-9959",
-            "nameEn": "Extra Halloumi",
-            "nameAr": "اكسترا حلوم",
-            "priceDelta": 1
-          },
-          {
-            "id": "o-9960",
-            "nameEn": "Extra Egg",
-            "nameAr": "اكسترا بيض",
-            "priceDelta": 0.45
-          },
-          {
-            "id": "o-9961",
-            "nameEn": "Extra Cream Cheese",
-            "nameAr": "اكسترا كريم تشيز",
-            "priceDelta": 0.6
-          },
-          {
-            "id": "o-9962",
-            "nameEn": "Extra Chicken",
-            "nameAr": "اكسترا دجاج",
-            "priceDelta": 1.5
-          },
-          {
-            "id": "o-9963",
-            "nameEn": "Extra Chedder Cheese",
-            "nameAr": "اكسترا تشيدر تشيز",
-            "priceDelta": 0.2
-          }
-        ]
-      },
-      {
-        "id": "g-79",
-        "nameEn": "Without",
-        "nameAr": "بدون اضافة",
-        "multiple": true,
-        "options": [
-          {
-            "id": "o-184",
-            "nameEn": "Without Lettuce",
-            "nameAr": "بدون خس",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-185",
-            "nameEn": "Without Black Olive",
-            "nameAr": " بدون زيتون اسود",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-186",
-            "nameEn": "Without Tomato",
-            "nameAr": "بدون بندورة",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-187",
-            "nameEn": "Without Roast Beef",
-            "nameAr": " بدون روست بيف",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-188",
-            "nameEn": "Without Turkey",
-            "nameAr": "بدون تيركي",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-189",
-            "nameEn": "Withoout Egg",
-            "nameAr": "بدون بيض",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-190",
-            "nameEn": "Without Sun Dried Tomato",
-            "nameAr": "بدون بندورة مجففة ",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-191",
-            "nameEn": "Without Cream Cheese",
-            "nameAr": "بدون كريم تشيز ",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-192",
-            "nameEn": "Without Cheddar Cheese",
-            "nameAr": "بدون تشيدر تشيز ",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-193",
-            "nameEn": "Without Avocado",
-            "nameAr": "بدون افوكادو ",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-194",
-            "nameEn": "Without Guacamole",
-            "nameAr": "بدون جواكامولي",
-            "priceDelta": 0
           }
         ]
       }
@@ -2493,174 +1431,54 @@ export const generatedMenuItems: MenuItem[] = [
     ],
     "customizations": [
       {
+        "id": "g-3158",
+        "nameEn": "Extra vegetables",
+        "nameAr": "أضافات على الطعام",
+        "multiple": true,
+        "options": [
+          {
+            "id": "o-11742",
+            "nameEn": "Extra Tomato",
+            "nameAr": "اكسترا طماطم",
+            "priceDelta": 0
+          },
+          {
+            "id": "o-11744",
+            "nameEn": "Extra Olives",
+            "nameAr": "اكسترا زيتون",
+            "priceDelta": 0
+          },
+          {
+            "id": "o-11748",
+            "nameEn": "Extra Lettuce",
+            "nameAr": "Extra Lettuce",
+            "priceDelta": 0
+          }
+        ]
+      },
+      {
         "id": "g-2843",
         "nameEn": "Extra Food",
         "nameAr": "أضافات على الطعام",
         "multiple": true,
         "options": [
           {
-            "id": "o-9786",
-            "nameEn": "Extra Salmon",
-            "nameAr": "اكسترا سالمون",
-            "priceDelta": 1.5
-          },
-          {
-            "id": "o-9787",
-            "nameEn": "Extra Turkey",
-            "nameAr": "اكسترا تيركي",
-            "priceDelta": 0.6
-          },
-          {
-            "id": "o-9788",
-            "nameEn": "Extra Tomato",
-            "nameAr": "اكسترا طماطم",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-9789",
+            "id": "o-11865",
             "nameEn": "Extra Sundried Tomato",
-            "nameAr": "اكسترا بندورة مجففة",
+            "nameAr": "Extra Sundried Tomato",
             "priceDelta": 0.6
           },
           {
-            "id": "o-9790",
-            "nameEn": "Extra Olives",
-            "nameAr": "اكسترا زيتون",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-9791",
-            "nameEn": "Extra Lettuce",
-            "nameAr": "اكسترا خس",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-9792",
+            "id": "o-11933",
             "nameEn": "Extra Guacamole",
-            "nameAr": "اكسترا جواكامولي",
+            "nameAr": "Extra Guacamole",
             "priceDelta": 1.5
           },
           {
-            "id": "o-9793",
+            "id": "o-12001",
             "nameEn": "Extra Avocado",
-            "nameAr": "اكسترا افوكادو",
+            "nameAr": "Extra Avocado",
             "priceDelta": 1.5
-          },
-          {
-            "id": "o-9794",
-            "nameEn": "Extra 3 Cheese",
-            "nameAr": "اكسترا 3 أجبان",
-            "priceDelta": 1
-          },
-          {
-            "id": "o-9795",
-            "nameEn": "Extra Roast Beef",
-            "nameAr": "اكسترا روست بيف",
-            "priceDelta": 0.6
-          },
-          {
-            "id": "o-9797",
-            "nameEn": "Extra Halloumi",
-            "nameAr": "اكسترا حلوم",
-            "priceDelta": 1
-          },
-          {
-            "id": "o-9798",
-            "nameEn": "Extra Egg",
-            "nameAr": "اكسترا بيض",
-            "priceDelta": 0.45
-          },
-          {
-            "id": "o-9799",
-            "nameEn": "Extra Cream Cheese",
-            "nameAr": "اكسترا كريم تشيز",
-            "priceDelta": 0.6
-          },
-          {
-            "id": "o-9800",
-            "nameEn": "Extra Chicken",
-            "nameAr": "اكسترا دجاج",
-            "priceDelta": 1.5
-          },
-          {
-            "id": "o-9801",
-            "nameEn": "Extra Chedder Cheese",
-            "nameAr": "اكسترا تشيدر تشيز",
-            "priceDelta": 0.2
-          }
-        ]
-      },
-      {
-        "id": "g-1660",
-        "nameEn": "Without",
-        "nameAr": "بدون اضافة",
-        "multiple": true,
-        "options": [
-          {
-            "id": "o-1887",
-            "nameEn": "Without Lettuce",
-            "nameAr": "بدون خس",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-1888",
-            "nameEn": "Without Black Olive",
-            "nameAr": " بدون زيتون اسود",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-1889",
-            "nameEn": "Without Tomato",
-            "nameAr": "بدون بندورة",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-1890",
-            "nameEn": "Without Roast Beef",
-            "nameAr": " بدون روست بيف",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-1891",
-            "nameEn": "Without Turkey",
-            "nameAr": "بدون تيركي",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-1892",
-            "nameEn": "Withoout Egg",
-            "nameAr": "بدون بيض",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-1893",
-            "nameEn": "Without Sun Dried Tomato",
-            "nameAr": "بدون بندورة مجففة ",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-1894",
-            "nameEn": "Without Cream Cheese",
-            "nameAr": "بدون كريم تشيز ",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-1895",
-            "nameEn": "Without Cheddar Cheese",
-            "nameAr": "بدون تشيدر تشيز ",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-1896",
-            "nameEn": "Without Avocado",
-            "nameAr": "بدون افوكادو ",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-1897",
-            "nameEn": "Without Guacamole",
-            "nameAr": "بدون جواكامولي",
-            "priceDelta": 0
           }
         ]
       }
@@ -2683,174 +1501,54 @@ export const generatedMenuItems: MenuItem[] = [
     ],
     "customizations": [
       {
+        "id": "g-3140",
+        "nameEn": "Extra vegetables",
+        "nameAr": "أضافات على الطعام",
+        "multiple": true,
+        "options": [
+          {
+            "id": "o-11616",
+            "nameEn": "Extra Tomato",
+            "nameAr": "اكسترا طماطم",
+            "priceDelta": 0
+          },
+          {
+            "id": "o-11618",
+            "nameEn": "Extra Olives",
+            "nameAr": "اكسترا زيتون",
+            "priceDelta": 0
+          },
+          {
+            "id": "o-11622",
+            "nameEn": "Extra Lettuce",
+            "nameAr": "Extra Lettuce",
+            "priceDelta": 0
+          }
+        ]
+      },
+      {
         "id": "g-2822",
         "nameEn": "Extra Food",
         "nameAr": "أضافات على الطعام",
         "multiple": true,
         "options": [
           {
-            "id": "o-9408",
-            "nameEn": "Extra Salmon",
-            "nameAr": "اكسترا سالمون",
-            "priceDelta": 1.5
-          },
-          {
-            "id": "o-9409",
-            "nameEn": "Extra Turkey",
-            "nameAr": "اكسترا تيركي",
-            "priceDelta": 0.6
-          },
-          {
-            "id": "o-9410",
-            "nameEn": "Extra Tomato",
-            "nameAr": "اكسترا طماطم",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-9411",
+            "id": "o-11857",
             "nameEn": "Extra Sundried Tomato",
-            "nameAr": "اكسترا بندورة مجففة",
+            "nameAr": "Extra Sundried Tomato",
             "priceDelta": 0.6
           },
           {
-            "id": "o-9412",
-            "nameEn": "Extra Olives",
-            "nameAr": "اكسترا زيتون",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-9413",
-            "nameEn": "Extra Lettuce",
-            "nameAr": "اكسترا خس",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-9414",
+            "id": "o-11925",
             "nameEn": "Extra Guacamole",
-            "nameAr": "اكسترا جواكامولي",
+            "nameAr": "Extra Guacamole",
             "priceDelta": 1.5
           },
           {
-            "id": "o-9415",
+            "id": "o-11993",
             "nameEn": "Extra Avocado",
-            "nameAr": "اكسترا افوكادو",
+            "nameAr": "Extra Avocado",
             "priceDelta": 1.5
-          },
-          {
-            "id": "o-9416",
-            "nameEn": "Extra 3 Cheese",
-            "nameAr": "اكسترا 3 أجبان",
-            "priceDelta": 1
-          },
-          {
-            "id": "o-9417",
-            "nameEn": "Extra Roast Beef",
-            "nameAr": "اكسترا روست بيف",
-            "priceDelta": 0.6
-          },
-          {
-            "id": "o-9419",
-            "nameEn": "Extra Halloumi",
-            "nameAr": "اكسترا حلوم",
-            "priceDelta": 1
-          },
-          {
-            "id": "o-9420",
-            "nameEn": "Extra Egg",
-            "nameAr": "اكسترا بيض",
-            "priceDelta": 0.45
-          },
-          {
-            "id": "o-9421",
-            "nameEn": "Extra Cream Cheese",
-            "nameAr": "اكسترا كريم تشيز",
-            "priceDelta": 0.6
-          },
-          {
-            "id": "o-9422",
-            "nameEn": "Extra Chicken",
-            "nameAr": "اكسترا دجاج",
-            "priceDelta": 1.5
-          },
-          {
-            "id": "o-9423",
-            "nameEn": "Extra Chedder Cheese",
-            "nameAr": "اكسترا تشيدر تشيز",
-            "priceDelta": 0.2
-          }
-        ]
-      },
-      {
-        "id": "g-244",
-        "nameEn": "Without",
-        "nameAr": "بدون اضافة",
-        "multiple": true,
-        "options": [
-          {
-            "id": "o-529",
-            "nameEn": "Without Lettuce",
-            "nameAr": "بدون خس",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-530",
-            "nameEn": "Without Black Olive",
-            "nameAr": " بدون زيتون اسود",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-531",
-            "nameEn": "Without Tomato",
-            "nameAr": "بدون بندورة",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-532",
-            "nameEn": "Without Roast Beef",
-            "nameAr": " بدون روست بيف",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-533",
-            "nameEn": "Without Turkey",
-            "nameAr": "بدون تيركي",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-534",
-            "nameEn": "Withoout Egg",
-            "nameAr": "بدون بيض",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-535",
-            "nameEn": "Without Sun Dried Tomato",
-            "nameAr": "بدون بندورة مجففة ",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-536",
-            "nameEn": "Without Cream Cheese",
-            "nameAr": "بدون كريم تشيز ",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-537",
-            "nameEn": "Without Cheddar Cheese",
-            "nameAr": "بدون تشيدر تشيز ",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-538",
-            "nameEn": "Without Avocado",
-            "nameAr": "بدون افوكادو ",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-539",
-            "nameEn": "Without Guacamole",
-            "nameAr": "بدون جواكامولي",
-            "priceDelta": 0
           }
         ]
       }
@@ -2873,174 +1571,28 @@ export const generatedMenuItems: MenuItem[] = [
     ],
     "customizations": [
       {
-        "id": "g-1933",
-        "nameEn": "Without",
-        "nameAr": "بدون اضافة",
-        "multiple": true,
-        "options": [
-          {
-            "id": "o-2349",
-            "nameEn": "Without Lettuce",
-            "nameAr": "بدون خس",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-2350",
-            "nameEn": "Without Black Olive",
-            "nameAr": " بدون زيتون اسود",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-2351",
-            "nameEn": "Without Tomato",
-            "nameAr": "بدون بندورة",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-2352",
-            "nameEn": "Without Roast Beef",
-            "nameAr": " بدون روست بيف",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-2353",
-            "nameEn": "Without Turkey",
-            "nameAr": "بدون تيركي",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-2354",
-            "nameEn": "Withoout Egg",
-            "nameAr": "بدون بيض",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-2355",
-            "nameEn": "Without Sun Dried Tomato",
-            "nameAr": "بدون بندورة مجففة ",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-2356",
-            "nameEn": "Without Cream Cheese",
-            "nameAr": "بدون كريم تشيز ",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-2357",
-            "nameEn": "Without Cheddar Cheese",
-            "nameAr": "بدون تشيدر تشيز ",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-2358",
-            "nameEn": "Without Avocado",
-            "nameAr": "بدون افوكادو ",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-2359",
-            "nameEn": "Without Guacamole",
-            "nameAr": "بدون جواكامولي",
-            "priceDelta": 0
-          }
-        ]
-      },
-      {
         "id": "g-2831",
         "nameEn": "Extra Food",
         "nameAr": "أضافات على الطعام",
         "multiple": true,
         "options": [
           {
-            "id": "o-9570",
-            "nameEn": "Extra Salmon",
-            "nameAr": "اكسترا سالمون",
-            "priceDelta": 1.5
-          },
-          {
-            "id": "o-9571",
-            "nameEn": "Extra Turkey",
-            "nameAr": "اكسترا تيركي",
-            "priceDelta": 0.6
-          },
-          {
-            "id": "o-9572",
-            "nameEn": "Extra Tomato",
-            "nameAr": "اكسترا طماطم",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-9573",
+            "id": "o-11878",
             "nameEn": "Extra Sundried Tomato",
-            "nameAr": "اكسترا بندورة مجففة",
+            "nameAr": "Extra Sundried Tomato",
             "priceDelta": 0.6
           },
           {
-            "id": "o-9574",
-            "nameEn": "Extra Olives",
-            "nameAr": "اكسترا زيتون",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-9575",
-            "nameEn": "Extra Lettuce",
-            "nameAr": "اكسترا خس",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-9576",
+            "id": "o-11946",
             "nameEn": "Extra Guacamole",
-            "nameAr": "اكسترا جواكامولي",
+            "nameAr": "Extra Guacamole",
             "priceDelta": 1.5
           },
           {
-            "id": "o-9577",
+            "id": "o-12014",
             "nameEn": "Extra Avocado",
-            "nameAr": "اكسترا افوكادو",
+            "nameAr": "Extra Avocado",
             "priceDelta": 1.5
-          },
-          {
-            "id": "o-9578",
-            "nameEn": "Extra 3 Cheese",
-            "nameAr": "اكسترا 3 أجبان",
-            "priceDelta": 1
-          },
-          {
-            "id": "o-9579",
-            "nameEn": "Extra Roast Beef",
-            "nameAr": "اكسترا روست بيف",
-            "priceDelta": 0.6
-          },
-          {
-            "id": "o-9581",
-            "nameEn": "Extra Halloumi",
-            "nameAr": "اكسترا حلوم",
-            "priceDelta": 1
-          },
-          {
-            "id": "o-9582",
-            "nameEn": "Extra Egg",
-            "nameAr": "اكسترا بيض",
-            "priceDelta": 0.45
-          },
-          {
-            "id": "o-9583",
-            "nameEn": "Extra Cream Cheese",
-            "nameAr": "اكسترا كريم تشيز",
-            "priceDelta": 0.6
-          },
-          {
-            "id": "o-9584",
-            "nameEn": "Extra Chicken",
-            "nameAr": "اكسترا دجاج",
-            "priceDelta": 1.5
-          },
-          {
-            "id": "o-9585",
-            "nameEn": "Extra Chedder Cheese",
-            "nameAr": "اكسترا تشيدر تشيز",
-            "priceDelta": 0.2
           }
         ]
       }
@@ -3066,7 +1618,7 @@ export const generatedMenuItems: MenuItem[] = [
         "id": "g-81",
         "nameEn": "Bagel Type",
         "nameAr": "نوع البيغل",
-        "multiple": true,
+        "multiple": false,
         "options": [
           {
             "id": "o-206",
@@ -3107,75 +1659,27 @@ export const generatedMenuItems: MenuItem[] = [
         ]
       },
       {
-        "id": "g-83",
-        "nameEn": "Without",
-        "nameAr": "بدون اضافة",
+        "id": "g-3133",
+        "nameEn": "Extra vegetables",
+        "nameAr": "أضافات على الطعام",
         "multiple": true,
         "options": [
           {
-            "id": "o-223",
-            "nameEn": "Without Lettuce",
-            "nameAr": "بدون خس",
+            "id": "o-11567",
+            "nameEn": "Extra Tomato",
+            "nameAr": "اكسترا طماطم",
             "priceDelta": 0
           },
           {
-            "id": "o-224",
-            "nameEn": "Without Black Olive",
-            "nameAr": " بدون زيتون اسود",
+            "id": "o-11569",
+            "nameEn": "Extra Olives",
+            "nameAr": "اكسترا زيتون",
             "priceDelta": 0
           },
           {
-            "id": "o-225",
-            "nameEn": "Without Tomato",
-            "nameAr": "بدون بندورة",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-226",
-            "nameEn": "Without Roast Beef",
-            "nameAr": " بدون روست بيف",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-227",
-            "nameEn": "Without Turkey",
-            "nameAr": "بدون تيركي",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-228",
-            "nameEn": "Withoout Egg",
-            "nameAr": "بدون بيض",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-229",
-            "nameEn": "Without Sun Dried Tomato",
-            "nameAr": "بدون بندورة مجففة ",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-230",
-            "nameEn": "Without Cream Cheese",
-            "nameAr": "بدون كريم تشيز ",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-231",
-            "nameEn": "Without Cheddar Cheese",
-            "nameAr": "بدون تشيدر تشيز ",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-232",
-            "nameEn": "Without Avocado",
-            "nameAr": "بدون افوكادو ",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-233",
-            "nameEn": "Without Guacamole",
-            "nameAr": "بدون جواكامولي",
+            "id": "o-11573",
+            "nameEn": "Extra Lettuce",
+            "nameAr": "Extra Lettuce",
             "priceDelta": 0
           }
         ]
@@ -3187,94 +1691,28 @@ export const generatedMenuItems: MenuItem[] = [
         "multiple": true,
         "options": [
           {
-            "id": "o-9930",
-            "nameEn": "Extra Salmon",
-            "nameAr": "اكسترا سالمون",
-            "priceDelta": 1.5
-          },
-          {
-            "id": "o-9931",
-            "nameEn": "Extra Turkey",
-            "nameAr": "اكسترا تيركي",
-            "priceDelta": 0.6
-          },
-          {
-            "id": "o-9932",
-            "nameEn": "Extra Tomato",
-            "nameAr": "اكسترا طماطم",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-9933",
-            "nameEn": "Extra Sundried Tomato",
-            "nameAr": "اكسترا بندورة مجففة",
-            "priceDelta": 0.6
-          },
-          {
-            "id": "o-9934",
-            "nameEn": "Extra Olives",
-            "nameAr": "اكسترا زيتون",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-9935",
-            "nameEn": "Extra Lettuce",
-            "nameAr": "اكسترا خس",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-9936",
-            "nameEn": "Extra Guacamole",
-            "nameAr": "اكسترا جواكامولي",
-            "priceDelta": 1.5
-          },
-          {
-            "id": "o-9937",
-            "nameEn": "Extra Avocado",
-            "nameAr": "اكسترا افوكادو",
-            "priceDelta": 1.5
-          },
-          {
-            "id": "o-9938",
-            "nameEn": "Extra 3 Cheese",
-            "nameAr": "اكسترا 3 أجبان",
-            "priceDelta": 1
-          },
-          {
-            "id": "o-9939",
-            "nameEn": "Extra Roast Beef",
-            "nameAr": "اكسترا روست بيف",
-            "priceDelta": 0.6
-          },
-          {
-            "id": "o-9941",
-            "nameEn": "Extra Halloumi",
-            "nameAr": "اكسترا حلوم",
-            "priceDelta": 1
-          },
-          {
             "id": "o-9942",
             "nameEn": "Extra Egg",
             "nameAr": "اكسترا بيض",
             "priceDelta": 0.45
           },
           {
-            "id": "o-9943",
-            "nameEn": "Extra Cream Cheese",
-            "nameAr": "اكسترا كريم تشيز",
+            "id": "o-11893",
+            "nameEn": "Extra Sundried Tomato",
+            "nameAr": "Extra Sundried Tomato",
             "priceDelta": 0.6
           },
           {
-            "id": "o-9944",
-            "nameEn": "Extra Chicken",
-            "nameAr": "اكسترا دجاج",
+            "id": "o-11961",
+            "nameEn": "Extra Guacamole",
+            "nameAr": "Extra Guacamole",
             "priceDelta": 1.5
           },
           {
-            "id": "o-9945",
-            "nameEn": "Extra Chedder Cheese",
-            "nameAr": "اكسترا تشيدر تشيز",
-            "priceDelta": 0.2
+            "id": "o-12029",
+            "nameEn": "Extra Avocado",
+            "nameAr": "Extra Avocado",
+            "priceDelta": 1.5
           }
         ]
       }
@@ -3303,167 +1741,53 @@ export const generatedMenuItems: MenuItem[] = [
         "multiple": true,
         "options": [
           {
-            "id": "o-9768",
-            "nameEn": "Extra Salmon",
-            "nameAr": "اكسترا سالمون",
-            "priceDelta": 1.5
-          },
-          {
-            "id": "o-9769",
-            "nameEn": "Extra Turkey",
-            "nameAr": "اكسترا تيركي",
-            "priceDelta": 0.6
-          },
-          {
-            "id": "o-9770",
-            "nameEn": "Extra Tomato",
-            "nameAr": "اكسترا طماطم",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-9771",
-            "nameEn": "Extra Sundried Tomato",
-            "nameAr": "اكسترا بندورة مجففة",
-            "priceDelta": 0.6
-          },
-          {
-            "id": "o-9772",
-            "nameEn": "Extra Olives",
-            "nameAr": "اكسترا زيتون",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-9773",
-            "nameEn": "Extra Lettuce",
-            "nameAr": "اكسترا خس",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-9774",
-            "nameEn": "Extra Guacamole",
-            "nameAr": "اكسترا جواكامولي",
-            "priceDelta": 1.5
-          },
-          {
-            "id": "o-9775",
-            "nameEn": "Extra Avocado",
-            "nameAr": "اكسترا افوكادو",
-            "priceDelta": 1.5
-          },
-          {
-            "id": "o-9776",
-            "nameEn": "Extra 3 Cheese",
-            "nameAr": "اكسترا 3 أجبان",
-            "priceDelta": 1
-          },
-          {
-            "id": "o-9777",
-            "nameEn": "Extra Roast Beef",
-            "nameAr": "اكسترا روست بيف",
-            "priceDelta": 0.6
-          },
-          {
-            "id": "o-9779",
-            "nameEn": "Extra Halloumi",
-            "nameAr": "اكسترا حلوم",
-            "priceDelta": 1
-          },
-          {
             "id": "o-9780",
             "nameEn": "Extra Egg",
             "nameAr": "اكسترا بيض",
             "priceDelta": 0.45
           },
           {
-            "id": "o-9781",
-            "nameEn": "Extra Cream Cheese",
-            "nameAr": "اكسترا كريم تشيز",
+            "id": "o-11864",
+            "nameEn": "Extra Sundried Tomato",
+            "nameAr": "Extra Sundried Tomato",
             "priceDelta": 0.6
           },
           {
-            "id": "o-9782",
-            "nameEn": "Extra Chicken",
-            "nameAr": "اكسترا دجاج",
+            "id": "o-11932",
+            "nameEn": "Extra Guacamole",
+            "nameAr": "Extra Guacamole",
             "priceDelta": 1.5
           },
           {
-            "id": "o-9783",
-            "nameEn": "Extra Chedder Cheese",
-            "nameAr": "اكسترا تشيدر تشيز",
-            "priceDelta": 0.2
+            "id": "o-12000",
+            "nameEn": "Extra Avocado",
+            "nameAr": "Extra Avocado",
+            "priceDelta": 1.5
           }
         ]
       },
       {
-        "id": "g-1661",
-        "nameEn": "Without",
-        "nameAr": "بدون اضافة",
+        "id": "g-3159",
+        "nameEn": "Extra vegetables",
+        "nameAr": "أضافات على الطعام",
         "multiple": true,
         "options": [
           {
-            "id": "o-1898",
-            "nameEn": "Without Lettuce",
-            "nameAr": "بدون خس",
+            "id": "o-11749",
+            "nameEn": "Extra Tomato",
+            "nameAr": "اكسترا طماطم",
             "priceDelta": 0
           },
           {
-            "id": "o-1899",
-            "nameEn": "Without Black Olive",
-            "nameAr": " بدون زيتون اسود",
+            "id": "o-11751",
+            "nameEn": "Extra Olives",
+            "nameAr": "اكسترا زيتون",
             "priceDelta": 0
           },
           {
-            "id": "o-1900",
-            "nameEn": "Without Tomato",
-            "nameAr": "بدون بندورة",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-1901",
-            "nameEn": "Without Roast Beef",
-            "nameAr": " بدون روست بيف",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-1902",
-            "nameEn": "Without Turkey",
-            "nameAr": "بدون تيركي",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-1903",
-            "nameEn": "Withoout Egg",
-            "nameAr": "بدون بيض",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-1904",
-            "nameEn": "Without Sun Dried Tomato",
-            "nameAr": "بدون بندورة مجففة ",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-1905",
-            "nameEn": "Without Cream Cheese",
-            "nameAr": "بدون كريم تشيز ",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-1906",
-            "nameEn": "Without Cheddar Cheese",
-            "nameAr": "بدون تشيدر تشيز ",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-1907",
-            "nameEn": "Without Avocado",
-            "nameAr": "بدون افوكادو ",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-1908",
-            "nameEn": "Without Guacamole",
-            "nameAr": "بدون جواكامولي",
+            "id": "o-11755",
+            "nameEn": "Extra Lettuce",
+            "nameAr": "Extra Lettuce",
             "priceDelta": 0
           }
         ]
@@ -3487,77 +1811,37 @@ export const generatedMenuItems: MenuItem[] = [
     ],
     "customizations": [
       {
-        "id": "g-2821",
-        "nameEn": "Extra Food",
+        "id": "g-3141",
+        "nameEn": "Extra vegetables",
         "nameAr": "أضافات على الطعام",
         "multiple": true,
         "options": [
           {
-            "id": "o-9390",
-            "nameEn": "Extra Salmon",
-            "nameAr": "اكسترا سالمون",
-            "priceDelta": 1.5
-          },
-          {
-            "id": "o-9391",
-            "nameEn": "Extra Turkey",
-            "nameAr": "اكسترا تيركي",
-            "priceDelta": 0.6
-          },
-          {
-            "id": "o-9392",
+            "id": "o-11623",
             "nameEn": "Extra Tomato",
             "nameAr": "اكسترا طماطم",
             "priceDelta": 0
           },
           {
-            "id": "o-9393",
-            "nameEn": "Extra Sundried Tomato",
-            "nameAr": "اكسترا بندورة مجففة",
-            "priceDelta": 0.6
-          },
-          {
-            "id": "o-9394",
+            "id": "o-11625",
             "nameEn": "Extra Olives",
             "nameAr": "اكسترا زيتون",
             "priceDelta": 0
           },
           {
-            "id": "o-9395",
+            "id": "o-11629",
             "nameEn": "Extra Lettuce",
-            "nameAr": "اكسترا خس",
+            "nameAr": "Extra Lettuce",
             "priceDelta": 0
-          },
-          {
-            "id": "o-9396",
-            "nameEn": "Extra Guacamole",
-            "nameAr": "اكسترا جواكامولي",
-            "priceDelta": 1.5
-          },
-          {
-            "id": "o-9397",
-            "nameEn": "Extra Avocado",
-            "nameAr": "اكسترا افوكادو",
-            "priceDelta": 1.5
-          },
-          {
-            "id": "o-9398",
-            "nameEn": "Extra 3 Cheese",
-            "nameAr": "اكسترا 3 أجبان",
-            "priceDelta": 1
-          },
-          {
-            "id": "o-9399",
-            "nameEn": "Extra Roast Beef",
-            "nameAr": "اكسترا روست بيف",
-            "priceDelta": 0.6
-          },
-          {
-            "id": "o-9401",
-            "nameEn": "Extra Halloumi",
-            "nameAr": "اكسترا حلوم",
-            "priceDelta": 1
-          },
+          }
+        ]
+      },
+      {
+        "id": "g-2821",
+        "nameEn": "Extra Food",
+        "nameAr": "أضافات على الطعام",
+        "multiple": true,
+        "options": [
           {
             "id": "o-9402",
             "nameEn": "Extra Egg",
@@ -3565,96 +1849,22 @@ export const generatedMenuItems: MenuItem[] = [
             "priceDelta": 0.45
           },
           {
-            "id": "o-9403",
-            "nameEn": "Extra Cream Cheese",
-            "nameAr": "اكسترا كريم تشيز",
+            "id": "o-11856",
+            "nameEn": "Extra Sundried Tomato",
+            "nameAr": "Extra Sundried Tomato",
             "priceDelta": 0.6
           },
           {
-            "id": "o-9404",
-            "nameEn": "Extra Chicken",
-            "nameAr": "اكسترا دجاج",
+            "id": "o-11924",
+            "nameEn": "Extra Guacamole",
+            "nameAr": "Extra Guacamole",
             "priceDelta": 1.5
           },
           {
-            "id": "o-9405",
-            "nameEn": "Extra Chedder Cheese",
-            "nameAr": "اكسترا تشيدر تشيز",
-            "priceDelta": 0.2
-          }
-        ]
-      },
-      {
-        "id": "g-246",
-        "nameEn": "Without",
-        "nameAr": "بدون اضافة",
-        "multiple": true,
-        "options": [
-          {
-            "id": "o-551",
-            "nameEn": "Without Lettuce",
-            "nameAr": "بدون خس",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-552",
-            "nameEn": "Without Black Olive",
-            "nameAr": " بدون زيتون اسود",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-553",
-            "nameEn": "Without Tomato",
-            "nameAr": "بدون بندورة",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-554",
-            "nameEn": "Without Roast Beef",
-            "nameAr": " بدون روست بيف",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-555",
-            "nameEn": "Without Turkey",
-            "nameAr": "بدون تيركي",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-556",
-            "nameEn": "Withoout Egg",
-            "nameAr": "بدون بيض",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-557",
-            "nameEn": "Without Sun Dried Tomato",
-            "nameAr": "بدون بندورة مجففة ",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-558",
-            "nameEn": "Without Cream Cheese",
-            "nameAr": "بدون كريم تشيز ",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-559",
-            "nameEn": "Without Cheddar Cheese",
-            "nameAr": "بدون تشيدر تشيز ",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-560",
-            "nameEn": "Without Avocado",
-            "nameAr": "بدون افوكادو ",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-561",
-            "nameEn": "Without Guacamole",
-            "nameAr": "بدون جواكامولي",
-            "priceDelta": 0
+            "id": "o-11992",
+            "nameEn": "Extra Avocado",
+            "nameAr": "Extra Avocado",
+            "priceDelta": 1.5
           }
         ]
       }
@@ -3676,151 +1886,11 @@ export const generatedMenuItems: MenuItem[] = [
     ],
     "customizations": [
       {
-        "id": "g-1930",
-        "nameEn": "Without",
-        "nameAr": "بدون اضافة",
-        "multiple": true,
-        "options": [
-          {
-            "id": "o-2316",
-            "nameEn": "Without Lettuce",
-            "nameAr": "بدون خس",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-2317",
-            "nameEn": "Without Black Olive",
-            "nameAr": " بدون زيتون اسود",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-2318",
-            "nameEn": "Without Tomato",
-            "nameAr": "بدون بندورة",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-2319",
-            "nameEn": "Without Roast Beef",
-            "nameAr": " بدون روست بيف",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-2320",
-            "nameEn": "Without Turkey",
-            "nameAr": "بدون تيركي",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-2321",
-            "nameEn": "Withoout Egg",
-            "nameAr": "بدون بيض",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-2322",
-            "nameEn": "Without Sun Dried Tomato",
-            "nameAr": "بدون بندورة مجففة ",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-2323",
-            "nameEn": "Without Cream Cheese",
-            "nameAr": "بدون كريم تشيز ",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-2324",
-            "nameEn": "Without Cheddar Cheese",
-            "nameAr": "بدون تشيدر تشيز ",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-2325",
-            "nameEn": "Without Avocado",
-            "nameAr": "بدون افوكادو ",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-2326",
-            "nameEn": "Without Guacamole",
-            "nameAr": "بدون جواكامولي",
-            "priceDelta": 0
-          }
-        ]
-      },
-      {
         "id": "g-2830",
         "nameEn": "Extra Food",
         "nameAr": "أضافات على الطعام",
         "multiple": true,
         "options": [
-          {
-            "id": "o-9552",
-            "nameEn": "Extra Salmon",
-            "nameAr": "اكسترا سالمون",
-            "priceDelta": 1.5
-          },
-          {
-            "id": "o-9553",
-            "nameEn": "Extra Turkey",
-            "nameAr": "اكسترا تيركي",
-            "priceDelta": 0.6
-          },
-          {
-            "id": "o-9554",
-            "nameEn": "Extra Tomato",
-            "nameAr": "اكسترا طماطم",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-9555",
-            "nameEn": "Extra Sundried Tomato",
-            "nameAr": "اكسترا بندورة مجففة",
-            "priceDelta": 0.6
-          },
-          {
-            "id": "o-9556",
-            "nameEn": "Extra Olives",
-            "nameAr": "اكسترا زيتون",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-9557",
-            "nameEn": "Extra Lettuce",
-            "nameAr": "اكسترا خس",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-9558",
-            "nameEn": "Extra Guacamole",
-            "nameAr": "اكسترا جواكامولي",
-            "priceDelta": 1.5
-          },
-          {
-            "id": "o-9559",
-            "nameEn": "Extra Avocado",
-            "nameAr": "اكسترا افوكادو",
-            "priceDelta": 1.5
-          },
-          {
-            "id": "o-9560",
-            "nameEn": "Extra 3 Cheese",
-            "nameAr": "اكسترا 3 أجبان",
-            "priceDelta": 1
-          },
-          {
-            "id": "o-9561",
-            "nameEn": "Extra Roast Beef",
-            "nameAr": "اكسترا روست بيف",
-            "priceDelta": 0.6
-          },
-          {
-            "id": "o-9563",
-            "nameEn": "Extra Halloumi",
-            "nameAr": "اكسترا حلوم",
-            "priceDelta": 1
-          },
           {
             "id": "o-9564",
             "nameEn": "Extra Egg",
@@ -3828,212 +1898,22 @@ export const generatedMenuItems: MenuItem[] = [
             "priceDelta": 0.45
           },
           {
-            "id": "o-9565",
-            "nameEn": "Extra Cream Cheese",
-            "nameAr": "اكسترا كريم تشيز",
-            "priceDelta": 0.6
-          },
-          {
-            "id": "o-9566",
-            "nameEn": "Extra Chicken",
-            "nameAr": "اكسترا دجاج",
-            "priceDelta": 1.5
-          },
-          {
-            "id": "o-9567",
-            "nameEn": "Extra Chedder Cheese",
-            "nameAr": "اكسترا تشيدر تشيز",
-            "priceDelta": 0.2
-          }
-        ]
-      }
-    ]
-  },
-  {
-    "id": "p-10184",
-    "categoryId": "cat-5",
-    "nameEn": "Avocado Hummus Sourdough Bread",
-    "nameAr": "حمص افوكادو خبز سوردو",
-    "emoji": "",
-    "imageUrl": "/menu/p-10184.webp",
-    "sizes": [
-      {
-        "id": "M",
-        "nameEn": "Regular",
-        "nameAr": "عادي",
-        "price": 3.4
-      }
-    ],
-    "customizations": [
-      {
-        "id": "g-1931",
-        "nameEn": "Without",
-        "nameAr": "بدون اضافة",
-        "multiple": true,
-        "options": [
-          {
-            "id": "o-2327",
-            "nameEn": "Without Lettuce",
-            "nameAr": "بدون خس",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-2328",
-            "nameEn": "Without Black Olive",
-            "nameAr": " بدون زيتون اسود",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-2329",
-            "nameEn": "Without Tomato",
-            "nameAr": "بدون بندورة",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-2330",
-            "nameEn": "Without Roast Beef",
-            "nameAr": " بدون روست بيف",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-2331",
-            "nameEn": "Without Turkey",
-            "nameAr": "بدون تيركي",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-2332",
-            "nameEn": "Withoout Egg",
-            "nameAr": "بدون بيض",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-2333",
-            "nameEn": "Without Sun Dried Tomato",
-            "nameAr": "بدون بندورة مجففة ",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-2334",
-            "nameEn": "Without Cream Cheese",
-            "nameAr": "بدون كريم تشيز ",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-2335",
-            "nameEn": "Without Cheddar Cheese",
-            "nameAr": "بدون تشيدر تشيز ",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-2336",
-            "nameEn": "Without Avocado",
-            "nameAr": "بدون افوكادو ",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-2337",
-            "nameEn": "Without Guacamole",
-            "nameAr": "بدون جواكامولي",
-            "priceDelta": 0
-          }
-        ]
-      },
-      {
-        "id": "g-2833",
-        "nameEn": "Extra Food",
-        "nameAr": "أضافات على الطعام",
-        "multiple": true,
-        "options": [
-          {
-            "id": "o-9606",
-            "nameEn": "Extra Salmon",
-            "nameAr": "اكسترا سالمون",
-            "priceDelta": 1.5
-          },
-          {
-            "id": "o-9607",
-            "nameEn": "Extra Turkey",
-            "nameAr": "اكسترا تيركي",
-            "priceDelta": 0.6
-          },
-          {
-            "id": "o-9608",
-            "nameEn": "Extra Tomato",
-            "nameAr": "اكسترا طماطم",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-9609",
+            "id": "o-11877",
             "nameEn": "Extra Sundried Tomato",
-            "nameAr": "اكسترا بندورة مجففة",
+            "nameAr": "Extra Sundried Tomato",
             "priceDelta": 0.6
           },
           {
-            "id": "o-9610",
-            "nameEn": "Extra Olives",
-            "nameAr": "اكسترا زيتون",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-9611",
-            "nameEn": "Extra Lettuce",
-            "nameAr": "اكسترا خس",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-9612",
+            "id": "o-11945",
             "nameEn": "Extra Guacamole",
-            "nameAr": "اكسترا جواكامولي",
+            "nameAr": "Extra Guacamole",
             "priceDelta": 1.5
           },
           {
-            "id": "o-9613",
+            "id": "o-12013",
             "nameEn": "Extra Avocado",
-            "nameAr": "اكسترا افوكادو",
+            "nameAr": "Extra Avocado",
             "priceDelta": 1.5
-          },
-          {
-            "id": "o-9614",
-            "nameEn": "Extra 3 Cheese",
-            "nameAr": "اكسترا 3 أجبان",
-            "priceDelta": 1
-          },
-          {
-            "id": "o-9615",
-            "nameEn": "Extra Roast Beef",
-            "nameAr": "اكسترا روست بيف",
-            "priceDelta": 0.6
-          },
-          {
-            "id": "o-9617",
-            "nameEn": "Extra Halloumi",
-            "nameAr": "اكسترا حلوم",
-            "priceDelta": 1
-          },
-          {
-            "id": "o-9618",
-            "nameEn": "Extra Egg",
-            "nameAr": "اكسترا بيض",
-            "priceDelta": 0.45
-          },
-          {
-            "id": "o-9619",
-            "nameEn": "Extra Cream Cheese",
-            "nameAr": "اكسترا كريم تشيز",
-            "priceDelta": 0.6
-          },
-          {
-            "id": "o-9620",
-            "nameEn": "Extra Chicken",
-            "nameAr": "اكسترا دجاج",
-            "priceDelta": 1.5
-          },
-          {
-            "id": "o-9621",
-            "nameEn": "Extra Chedder Cheese",
-            "nameAr": "اكسترا تشيدر تشيز",
-            "priceDelta": 0.2
           }
         ]
       }
@@ -4052,6 +1932,97 @@ export const generatedMenuItems: MenuItem[] = [
         "nameEn": "Regular",
         "nameAr": "عادي",
         "price": 3
+      }
+    ],
+    "customizations": []
+  },
+  {
+    "id": "p-12188",
+    "categoryId": "cat-48",
+    "nameEn": "Banoffee Frappé",
+    "nameAr": "بانوفي فرابيه",
+    "emoji": "",
+    "imageUrl": "/menu/p-12188.webp",
+    "sizes": [
+      {
+        "id": "S",
+        "nameEn": "Small",
+        "nameAr": "صغير",
+        "price": 3.95
+      },
+      {
+        "id": "M",
+        "nameEn": "Medium",
+        "nameAr": "وسط",
+        "price": 4.55
+      }
+    ],
+    "customizations": [
+      {
+        "id": "g-3175",
+        "nameEn": "Milk Type",
+        "nameAr": "نوع الحليب",
+        "multiple": false,
+        "options": [
+          {
+            "id": "o-12115",
+            "nameEn": "Fresh Milk",
+            "nameAr": "حليب بقري طازج",
+            "priceDelta": 0
+          },
+          {
+            "id": "o-12109",
+            "nameEn": "Skimmed Milk",
+            "nameAr": "حليب خالي الدسم",
+            "priceDelta": 0
+          },
+          {
+            "id": "o-12110",
+            "nameEn": "Oat Milk",
+            "nameAr": "حليب شوفان",
+            "priceDelta": 0.4
+          },
+          {
+            "id": "o-12111",
+            "nameEn": "Soy Milk",
+            "nameAr": "حليب صويا",
+            "priceDelta": 0.4
+          },
+          {
+            "id": "o-12112",
+            "nameEn": "Almond Milk",
+            "nameAr": "حليب اللوز",
+            "priceDelta": 0.4
+          },
+          {
+            "id": "o-12113",
+            "nameEn": "Lactose Free Milk",
+            "nameAr": "حليب خالي اللاكتوز",
+            "priceDelta": 0.4
+          },
+          {
+            "id": "o-12114",
+            "nameEn": "Coconut Milk",
+            "nameAr": "حليب جوز الهند",
+            "priceDelta": 0.4
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "p-12129",
+    "categoryId": "cat-8",
+    "nameEn": "Beetroot & Quinoa Salad",
+    "nameAr": "سلطة الكينوا والشمندر(حصاد الخريف)",
+    "emoji": "",
+    "imageUrl": "/menu/p-12129.webp",
+    "sizes": [
+      {
+        "id": "M",
+        "nameEn": "Regular",
+        "nameAr": "عادي",
+        "price": 4.5
       }
     ],
     "customizations": []
@@ -4254,7 +2225,7 @@ export const generatedMenuItems: MenuItem[] = [
         "id": "g-2049",
         "nameEn": "Milk Type",
         "nameAr": "نوع الحليب",
-        "multiple": true,
+        "multiple": false,
         "options": [
           {
             "id": "o-7837",
@@ -4452,23 +2423,6 @@ export const generatedMenuItems: MenuItem[] = [
     "customizations": []
   },
   {
-    "id": "p-11953",
-    "categoryId": "cat-6",
-    "nameEn": "Boiled Egg Plate",
-    "nameAr": " صحن البيض المسلوق",
-    "emoji": "",
-    "imageUrl": "/menu/p-11953.webp",
-    "sizes": [
-      {
-        "id": "M",
-        "nameEn": "Regular",
-        "nameAr": "عادي",
-        "price": 2.5
-      }
-    ],
-    "customizations": []
-  },
-  {
     "id": "p-10244",
     "categoryId": "cat-10",
     "nameEn": "Brownies",
@@ -4659,82 +2613,10 @@ export const generatedMenuItems: MenuItem[] = [
         "multiple": true,
         "options": [
           {
-            "id": "o-9042",
-            "nameEn": "Extra Salmon",
-            "nameAr": "اكسترا سالمون",
-            "priceDelta": 1.5
-          },
-          {
-            "id": "o-9043",
-            "nameEn": "Extra Turkey",
-            "nameAr": "اكسترا تيركي",
-            "priceDelta": 0.6
-          },
-          {
-            "id": "o-9044",
-            "nameEn": "Extra Tomato",
-            "nameAr": "اكسترا طماطم",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-9045",
-            "nameEn": "Extra Sundried Tomato",
-            "nameAr": "اكسترا بندورة مجففة",
-            "priceDelta": 0.6
-          },
-          {
-            "id": "o-9046",
-            "nameEn": "Extra Olives",
-            "nameAr": "اكسترا زيتون",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-9047",
-            "nameEn": "Extra Lettuce",
-            "nameAr": "اكسترا خس",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-9048",
-            "nameEn": "Extra Guacamole",
-            "nameAr": "اكسترا جواكامولي",
-            "priceDelta": 1.5
-          },
-          {
-            "id": "o-9049",
-            "nameEn": "Extra Avocado",
-            "nameAr": "اكسترا افوكادو",
-            "priceDelta": 1.5
-          },
-          {
-            "id": "o-9050",
+            "id": "o-12118",
             "nameEn": "Extra 3 Cheese",
             "nameAr": "اكسترا 3 أجبان",
             "priceDelta": 1
-          },
-          {
-            "id": "o-9051",
-            "nameEn": "Extra Roast Beef",
-            "nameAr": "اكسترا روست بيف",
-            "priceDelta": 0.6
-          },
-          {
-            "id": "o-9053",
-            "nameEn": "Extra Halloumi",
-            "nameAr": "اكسترا حلوم",
-            "priceDelta": 1
-          },
-          {
-            "id": "o-9054",
-            "nameEn": "Extra Egg",
-            "nameAr": "اكسترا بيض",
-            "priceDelta": 0.45
-          },
-          {
-            "id": "o-9055",
-            "nameEn": "Extra Cream Cheese",
-            "nameAr": "اكسترا كريم تشيز",
-            "priceDelta": 0.6
           },
           {
             "id": "o-9056",
@@ -4743,10 +2625,10 @@ export const generatedMenuItems: MenuItem[] = [
             "priceDelta": 1.5
           },
           {
-            "id": "o-9057",
-            "nameEn": "Extra Chedder Cheese",
-            "nameAr": "اكسترا تشيدر تشيز",
-            "priceDelta": 0.2
+            "id": "o-11826",
+            "nameEn": "Extra Sundried Tomato",
+            "nameAr": "Extra Sundried Tomato",
+            "priceDelta": 0.6
           }
         ]
       }
@@ -5036,7 +2918,7 @@ export const generatedMenuItems: MenuItem[] = [
         "id": "g-2050",
         "nameEn": "Milk Type",
         "nameAr": "نوع الحليب",
-        "multiple": true,
+        "multiple": false,
         "options": [
           {
             "id": "o-7838",
@@ -5142,7 +3024,7 @@ export const generatedMenuItems: MenuItem[] = [
         "id": "g-2644",
         "nameEn": "Milk Type",
         "nameAr": "نوع الحليب",
-        "multiple": true,
+        "multiple": false,
         "options": [
           {
             "id": "o-7942",
@@ -5306,20 +3188,20 @@ export const generatedMenuItems: MenuItem[] = [
       },
       {
         "id": "L",
-        "nameEn": "15",
-        "nameAr": "15",
+        "nameEn": "15 (تواصي)",
+        "nameAr": "15 (تواصي)",
         "price": 30
       },
       {
         "id": "L",
-        "nameEn": "20",
-        "nameAr": "20",
+        "nameEn": "20 (تواصي)",
+        "nameAr": "20 (تواصي)",
         "price": 40
       },
       {
         "id": "L",
-        "nameEn": "25",
-        "nameAr": "25",
+        "nameEn": "25 (تواصي)",
+        "nameAr": "25 (تواصي)",
         "price": 50
       }
     ],
@@ -5410,7 +3292,7 @@ export const generatedMenuItems: MenuItem[] = [
         "id": "g-87",
         "nameEn": "Bagel Type",
         "nameAr": "نوع البيغل",
-        "multiple": true,
+        "multiple": false,
         "options": [
           {
             "id": "o-262",
@@ -5451,58 +3333,42 @@ export const generatedMenuItems: MenuItem[] = [
         ]
       },
       {
+        "id": "g-3142",
+        "nameEn": "Extra vegetables",
+        "nameAr": "أضافات على الطعام",
+        "multiple": true,
+        "options": [
+          {
+            "id": "o-11630",
+            "nameEn": "Extra Tomato",
+            "nameAr": "اكسترا طماطم",
+            "priceDelta": 0
+          },
+          {
+            "id": "o-11632",
+            "nameEn": "Extra Olives",
+            "nameAr": "اكسترا زيتون",
+            "priceDelta": 0
+          },
+          {
+            "id": "o-11636",
+            "nameEn": "Extra Lettuce",
+            "nameAr": "Extra Lettuce",
+            "priceDelta": 0
+          }
+        ]
+      },
+      {
         "id": "g-2849",
         "nameEn": "Extra Food",
         "nameAr": "أضافات على الطعام",
         "multiple": true,
         "options": [
           {
-            "id": "o-9894",
-            "nameEn": "Extra Salmon",
-            "nameAr": "اكسترا سالمون",
-            "priceDelta": 1.5
-          },
-          {
             "id": "o-9895",
             "nameEn": "Extra Turkey",
             "nameAr": "اكسترا تيركي",
             "priceDelta": 0.6
-          },
-          {
-            "id": "o-9896",
-            "nameEn": "Extra Tomato",
-            "nameAr": "اكسترا طماطم",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-9897",
-            "nameEn": "Extra Sundried Tomato",
-            "nameAr": "اكسترا بندورة مجففة",
-            "priceDelta": 0.6
-          },
-          {
-            "id": "o-9898",
-            "nameEn": "Extra Olives",
-            "nameAr": "اكسترا زيتون",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-9899",
-            "nameEn": "Extra Lettuce",
-            "nameAr": "اكسترا خس",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-9900",
-            "nameEn": "Extra Guacamole",
-            "nameAr": "اكسترا جواكامولي",
-            "priceDelta": 1.5
-          },
-          {
-            "id": "o-9901",
-            "nameEn": "Extra Avocado",
-            "nameAr": "اكسترا افوكادو",
-            "priceDelta": 1.5
           },
           {
             "id": "o-9902",
@@ -5517,108 +3383,22 @@ export const generatedMenuItems: MenuItem[] = [
             "priceDelta": 0.6
           },
           {
-            "id": "o-9905",
-            "nameEn": "Extra Halloumi",
-            "nameAr": "اكسترا حلوم",
-            "priceDelta": 1
-          },
-          {
             "id": "o-9906",
             "nameEn": "Extra Egg",
             "nameAr": "اكسترا بيض",
             "priceDelta": 0.45
           },
           {
-            "id": "o-9907",
-            "nameEn": "Extra Cream Cheese",
-            "nameAr": "اكسترا كريم تشيز",
+            "id": "o-11887",
+            "nameEn": "Extra Sundried Tomato",
+            "nameAr": "Extra Sundried Tomato",
             "priceDelta": 0.6
           },
           {
-            "id": "o-9908",
-            "nameEn": "Extra Chicken",
-            "nameAr": "اكسترا دجاج",
-            "priceDelta": 1.5
-          },
-          {
-            "id": "o-9909",
+            "id": "o-12091",
             "nameEn": "Extra Chedder Cheese",
-            "nameAr": "اكسترا تشيدر تشيز",
+            "nameAr": "Extra Chedder Cheese",
             "priceDelta": 0.2
-          }
-        ]
-      },
-      {
-        "id": "g-89",
-        "nameEn": "Without",
-        "nameAr": "بدون اضافة",
-        "multiple": true,
-        "options": [
-          {
-            "id": "o-279",
-            "nameEn": "Without Lettuce",
-            "nameAr": "بدون خس",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-280",
-            "nameEn": "Without Black Olive",
-            "nameAr": " بدون زيتون اسود",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-281",
-            "nameEn": "Without Tomato",
-            "nameAr": "بدون بندورة",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-282",
-            "nameEn": "Without Roast Beef",
-            "nameAr": " بدون روست بيف",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-283",
-            "nameEn": "Without Turkey",
-            "nameAr": "بدون تيركي",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-284",
-            "nameEn": "Withoout Egg",
-            "nameAr": "بدون بيض",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-285",
-            "nameEn": "Without Sun Dried Tomato",
-            "nameAr": "بدون بندورة مجففة ",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-286",
-            "nameEn": "Without Cream Cheese",
-            "nameAr": "بدون كريم تشيز ",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-287",
-            "nameEn": "Without Cheddar Cheese",
-            "nameAr": "بدون تشيدر تشيز ",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-288",
-            "nameEn": "Without Avocado",
-            "nameAr": "بدون افوكادو ",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-289",
-            "nameEn": "Without Guacamole",
-            "nameAr": "بدون جواكامولي",
-            "priceDelta": 0
           }
         ]
       }
@@ -5641,58 +3421,42 @@ export const generatedMenuItems: MenuItem[] = [
     ],
     "customizations": [
       {
+        "id": "g-3160",
+        "nameEn": "Extra vegetables",
+        "nameAr": "أضافات على الطعام",
+        "multiple": true,
+        "options": [
+          {
+            "id": "o-11756",
+            "nameEn": "Extra Tomato",
+            "nameAr": "اكسترا طماطم",
+            "priceDelta": 0
+          },
+          {
+            "id": "o-11758",
+            "nameEn": "Extra Olives",
+            "nameAr": "اكسترا زيتون",
+            "priceDelta": 0
+          },
+          {
+            "id": "o-11762",
+            "nameEn": "Extra Lettuce",
+            "nameAr": "Extra Lettuce",
+            "priceDelta": 0
+          }
+        ]
+      },
+      {
         "id": "g-2840",
         "nameEn": "Extra Food",
         "nameAr": "أضافات على الطعام",
         "multiple": true,
         "options": [
           {
-            "id": "o-9732",
-            "nameEn": "Extra Salmon",
-            "nameAr": "اكسترا سالمون",
-            "priceDelta": 1.5
-          },
-          {
             "id": "o-9733",
             "nameEn": "Extra Turkey",
             "nameAr": "اكسترا تيركي",
             "priceDelta": 0.6
-          },
-          {
-            "id": "o-9734",
-            "nameEn": "Extra Tomato",
-            "nameAr": "اكسترا طماطم",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-9735",
-            "nameEn": "Extra Sundried Tomato",
-            "nameAr": "اكسترا بندورة مجففة",
-            "priceDelta": 0.6
-          },
-          {
-            "id": "o-9736",
-            "nameEn": "Extra Olives",
-            "nameAr": "اكسترا زيتون",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-9737",
-            "nameEn": "Extra Lettuce",
-            "nameAr": "اكسترا خس",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-9738",
-            "nameEn": "Extra Guacamole",
-            "nameAr": "اكسترا جواكامولي",
-            "priceDelta": 1.5
-          },
-          {
-            "id": "o-9739",
-            "nameEn": "Extra Avocado",
-            "nameAr": "اكسترا افوكادو",
-            "priceDelta": 1.5
           },
           {
             "id": "o-9740",
@@ -5707,108 +3471,22 @@ export const generatedMenuItems: MenuItem[] = [
             "priceDelta": 0.6
           },
           {
-            "id": "o-9743",
-            "nameEn": "Extra Halloumi",
-            "nameAr": "اكسترا حلوم",
-            "priceDelta": 1
-          },
-          {
             "id": "o-9744",
             "nameEn": "Extra Egg",
             "nameAr": "اكسترا بيض",
             "priceDelta": 0.45
           },
           {
-            "id": "o-9745",
-            "nameEn": "Extra Cream Cheese",
-            "nameAr": "اكسترا كريم تشيز",
+            "id": "o-11862",
+            "nameEn": "Extra Sundried Tomato",
+            "nameAr": "Extra Sundried Tomato",
             "priceDelta": 0.6
           },
           {
-            "id": "o-9746",
-            "nameEn": "Extra Chicken",
-            "nameAr": "اكسترا دجاج",
-            "priceDelta": 1.5
-          },
-          {
-            "id": "o-9747",
+            "id": "o-12066",
             "nameEn": "Extra Chedder Cheese",
-            "nameAr": "اكسترا تشيدر تشيز",
+            "nameAr": "Extra Chedder Cheese",
             "priceDelta": 0.2
-          }
-        ]
-      },
-      {
-        "id": "g-2068",
-        "nameEn": "Without",
-        "nameAr": "بدون اضافة",
-        "multiple": true,
-        "options": [
-          {
-            "id": "o-3153",
-            "nameEn": "Without Lettuce",
-            "nameAr": "بدون خس",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-3154",
-            "nameEn": "Without Black Olive",
-            "nameAr": " بدون زيتون اسود",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-3155",
-            "nameEn": "Without Tomato",
-            "nameAr": "بدون بندورة",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-3156",
-            "nameEn": "Without Roast Beef",
-            "nameAr": " بدون روست بيف",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-3157",
-            "nameEn": "Without Turkey",
-            "nameAr": "بدون تيركي",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-3158",
-            "nameEn": "Withoout Egg",
-            "nameAr": "بدون بيض",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-3159",
-            "nameEn": "Without Sun Dried Tomato",
-            "nameAr": "بدون بندورة مجففة ",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-3160",
-            "nameEn": "Without Cream Cheese",
-            "nameAr": "بدون كريم تشيز ",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-3161",
-            "nameEn": "Without Cheddar Cheese",
-            "nameAr": "بدون تشيدر تشيز ",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-3162",
-            "nameEn": "Without Avocado",
-            "nameAr": "بدون افوكادو ",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-3163",
-            "nameEn": "Without Guacamole",
-            "nameAr": "بدون جواكامولي",
-            "priceDelta": 0
           }
         ]
       }
@@ -5831,58 +3509,42 @@ export const generatedMenuItems: MenuItem[] = [
     ],
     "customizations": [
       {
+        "id": "g-3143",
+        "nameEn": "Extra vegetables",
+        "nameAr": "أضافات على الطعام",
+        "multiple": true,
+        "options": [
+          {
+            "id": "o-11637",
+            "nameEn": "Extra Tomato",
+            "nameAr": "اكسترا طماطم",
+            "priceDelta": 0
+          },
+          {
+            "id": "o-11639",
+            "nameEn": "Extra Olives",
+            "nameAr": "اكسترا زيتون",
+            "priceDelta": 0
+          },
+          {
+            "id": "o-11643",
+            "nameEn": "Extra Lettuce",
+            "nameAr": "Extra Lettuce",
+            "priceDelta": 0
+          }
+        ]
+      },
+      {
         "id": "g-2819",
         "nameEn": "Extra Food",
         "nameAr": "أضافات على الطعام",
         "multiple": true,
         "options": [
           {
-            "id": "o-9354",
-            "nameEn": "Extra Salmon",
-            "nameAr": "اكسترا سالمون",
-            "priceDelta": 1.5
-          },
-          {
             "id": "o-9355",
             "nameEn": "Extra Turkey",
             "nameAr": "اكسترا تيركي",
             "priceDelta": 0.6
-          },
-          {
-            "id": "o-9356",
-            "nameEn": "Extra Tomato",
-            "nameAr": "اكسترا طماطم",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-9357",
-            "nameEn": "Extra Sundried Tomato",
-            "nameAr": "اكسترا بندورة مجففة",
-            "priceDelta": 0.6
-          },
-          {
-            "id": "o-9358",
-            "nameEn": "Extra Olives",
-            "nameAr": "اكسترا زيتون",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-9359",
-            "nameEn": "Extra Lettuce",
-            "nameAr": "اكسترا خس",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-9360",
-            "nameEn": "Extra Guacamole",
-            "nameAr": "اكسترا جواكامولي",
-            "priceDelta": 1.5
-          },
-          {
-            "id": "o-9361",
-            "nameEn": "Extra Avocado",
-            "nameAr": "اكسترا افوكادو",
-            "priceDelta": 1.5
           },
           {
             "id": "o-9362",
@@ -5897,108 +3559,22 @@ export const generatedMenuItems: MenuItem[] = [
             "priceDelta": 0.6
           },
           {
-            "id": "o-9365",
-            "nameEn": "Extra Halloumi",
-            "nameAr": "اكسترا حلوم",
-            "priceDelta": 1
-          },
-          {
             "id": "o-9366",
             "nameEn": "Extra Egg",
             "nameAr": "اكسترا بيض",
             "priceDelta": 0.45
           },
           {
-            "id": "o-9367",
-            "nameEn": "Extra Cream Cheese",
-            "nameAr": "اكسترا كريم تشيز",
+            "id": "o-11854",
+            "nameEn": "Extra Sundried Tomato",
+            "nameAr": "Extra Sundried Tomato",
             "priceDelta": 0.6
           },
           {
-            "id": "o-9368",
-            "nameEn": "Extra Chicken",
-            "nameAr": "اكسترا دجاج",
-            "priceDelta": 1.5
-          },
-          {
-            "id": "o-9369",
+            "id": "o-12058",
             "nameEn": "Extra Chedder Cheese",
-            "nameAr": "اكسترا تشيدر تشيز",
+            "nameAr": "Extra Chedder Cheese",
             "priceDelta": 0.2
-          }
-        ]
-      },
-      {
-        "id": "g-248",
-        "nameEn": "Without",
-        "nameAr": "بدون اضافة",
-        "multiple": true,
-        "options": [
-          {
-            "id": "o-573",
-            "nameEn": "Without Lettuce",
-            "nameAr": "بدون خس",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-574",
-            "nameEn": "Without Black Olive",
-            "nameAr": " بدون زيتون اسود",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-575",
-            "nameEn": "Without Tomato",
-            "nameAr": "بدون بندورة",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-576",
-            "nameEn": "Without Roast Beef",
-            "nameAr": " بدون روست بيف",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-577",
-            "nameEn": "Without Turkey",
-            "nameAr": "بدون تيركي",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-578",
-            "nameEn": "Withoout Egg",
-            "nameAr": "بدون بيض",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-579",
-            "nameEn": "Without Sun Dried Tomato",
-            "nameAr": "بدون بندورة مجففة ",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-580",
-            "nameEn": "Without Cream Cheese",
-            "nameAr": "بدون كريم تشيز ",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-581",
-            "nameEn": "Without Cheddar Cheese",
-            "nameAr": "بدون تشيدر تشيز ",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-582",
-            "nameEn": "Without Avocado",
-            "nameAr": "بدون افوكادو ",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-583",
-            "nameEn": "Without Guacamole",
-            "nameAr": "بدون جواكامولي",
-            "priceDelta": 0
           }
         ]
       }
@@ -6020,149 +3596,15 @@ export const generatedMenuItems: MenuItem[] = [
     ],
     "customizations": [
       {
-        "id": "g-1934",
-        "nameEn": "Without",
-        "nameAr": "بدون اضافة",
-        "multiple": true,
-        "options": [
-          {
-            "id": "o-2360",
-            "nameEn": "Without Lettuce",
-            "nameAr": "بدون خس",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-2361",
-            "nameEn": "Without Black Olive",
-            "nameAr": " بدون زيتون اسود",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-2362",
-            "nameEn": "Without Tomato",
-            "nameAr": "بدون بندورة",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-2363",
-            "nameEn": "Without Roast Beef",
-            "nameAr": " بدون روست بيف",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-2364",
-            "nameEn": "Without Turkey",
-            "nameAr": "بدون تيركي",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-2365",
-            "nameEn": "Withoout Egg",
-            "nameAr": "بدون بيض",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-2366",
-            "nameEn": "Without Sun Dried Tomato",
-            "nameAr": "بدون بندورة مجففة ",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-2367",
-            "nameEn": "Without Cream Cheese",
-            "nameAr": "بدون كريم تشيز ",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-2368",
-            "nameEn": "Without Cheddar Cheese",
-            "nameAr": "بدون تشيدر تشيز ",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-2369",
-            "nameEn": "Without Avocado",
-            "nameAr": "بدون افوكادو ",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-2370",
-            "nameEn": "Without Guacamole",
-            "nameAr": "بدون جواكامولي",
-            "priceDelta": 0
-          }
-        ]
-      },
-      {
         "id": "g-2828",
         "nameEn": "Extra Food",
         "nameAr": "أضافات على الطعام",
         "multiple": true,
         "options": [
           {
-            "id": "o-9516",
-            "nameEn": "Extra Salmon",
-            "nameAr": "اكسترا سالمون",
-            "priceDelta": 1.5
-          },
-          {
-            "id": "o-9517",
-            "nameEn": "Extra Turkey",
-            "nameAr": "اكسترا تيركي",
-            "priceDelta": 0.6
-          },
-          {
-            "id": "o-9518",
-            "nameEn": "Extra Tomato",
-            "nameAr": "اكسترا طماطم",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-9519",
-            "nameEn": "Extra Sundried Tomato",
-            "nameAr": "اكسترا بندورة مجففة",
-            "priceDelta": 0.6
-          },
-          {
-            "id": "o-9520",
-            "nameEn": "Extra Olives",
-            "nameAr": "اكسترا زيتون",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-9521",
-            "nameEn": "Extra Lettuce",
-            "nameAr": "اكسترا خس",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-9522",
-            "nameEn": "Extra Guacamole",
-            "nameAr": "اكسترا جواكامولي",
-            "priceDelta": 1.5
-          },
-          {
-            "id": "o-9523",
-            "nameEn": "Extra Avocado",
-            "nameAr": "اكسترا افوكادو",
-            "priceDelta": 1.5
-          },
-          {
             "id": "o-9524",
             "nameEn": "Extra 3 Cheese",
             "nameAr": "اكسترا 3 أجبان",
-            "priceDelta": 1
-          },
-          {
-            "id": "o-9525",
-            "nameEn": "Extra Roast Beef",
-            "nameAr": "اكسترا روست بيف",
-            "priceDelta": 0.6
-          },
-          {
-            "id": "o-9527",
-            "nameEn": "Extra Halloumi",
-            "nameAr": "اكسترا حلوم",
             "priceDelta": 1
           },
           {
@@ -6178,15 +3620,15 @@ export const generatedMenuItems: MenuItem[] = [
             "priceDelta": 0.6
           },
           {
-            "id": "o-9530",
-            "nameEn": "Extra Chicken",
-            "nameAr": "اكسترا دجاج",
-            "priceDelta": 1.5
+            "id": "o-11875",
+            "nameEn": "Extra Sundried Tomato",
+            "nameAr": "Extra Sundried Tomato",
+            "priceDelta": 0.6
           },
           {
-            "id": "o-9531",
+            "id": "o-12079",
             "nameEn": "Extra Chedder Cheese",
-            "nameAr": "اكسترا تشيدر تشيز",
+            "nameAr": "Extra Chedder Cheese",
             "priceDelta": 0.2
           }
         ]
@@ -6233,36 +3675,6 @@ export const generatedMenuItems: MenuItem[] = [
         "multiple": true,
         "options": [
           {
-            "id": "o-10260",
-            "nameEn": "Extra Salmon",
-            "nameAr": "اكسترا سالمون",
-            "priceDelta": 1.5
-          },
-          {
-            "id": "o-10263",
-            "nameEn": "Extra Sundried Tomato",
-            "nameAr": "اكسترا بندورة مجففة",
-            "priceDelta": 0.6
-          },
-          {
-            "id": "o-10266",
-            "nameEn": "Extra Guacamole",
-            "nameAr": "اكسترا جواكامولي",
-            "priceDelta": 1.5
-          },
-          {
-            "id": "o-10267",
-            "nameEn": "Extra Avocado",
-            "nameAr": "اكسترا افوكادو",
-            "priceDelta": 1.5
-          },
-          {
-            "id": "o-10271",
-            "nameEn": "Extra Halloumi",
-            "nameAr": "اكسترا حلوم",
-            "priceDelta": 1
-          },
-          {
             "id": "o-10274",
             "nameEn": "Extra Chicken",
             "nameAr": "اكسترا دجاج",
@@ -6295,40 +3707,16 @@ export const generatedMenuItems: MenuItem[] = [
         "multiple": true,
         "options": [
           {
-            "id": "o-10242",
-            "nameEn": "Extra Salmon",
-            "nameAr": "اكسترا سالمون",
-            "priceDelta": 1.5
-          },
-          {
-            "id": "o-10245",
-            "nameEn": "Extra Sundried Tomato",
-            "nameAr": "اكسترا بندورة مجففة",
-            "priceDelta": 0.6
-          },
-          {
-            "id": "o-10248",
-            "nameEn": "Extra Guacamole",
-            "nameAr": "اكسترا جواكامولي",
-            "priceDelta": 1.5
-          },
-          {
-            "id": "o-10249",
-            "nameEn": "Extra Avocado",
-            "nameAr": "اكسترا افوكادو",
-            "priceDelta": 1.5
-          },
-          {
-            "id": "o-10253",
-            "nameEn": "Extra Halloumi",
-            "nameAr": "اكسترا حلوم",
-            "priceDelta": 1
-          },
-          {
             "id": "o-10256",
             "nameEn": "Extra Chicken",
             "nameAr": "اكسترا دجاج",
             "priceDelta": 1.5
+          },
+          {
+            "id": "o-11842",
+            "nameEn": "Extra Sundried Tomato",
+            "nameAr": "Extra Sundried Tomato",
+            "priceDelta": 0.6
           }
         ]
       }
@@ -6466,7 +3854,7 @@ export const generatedMenuItems: MenuItem[] = [
         "id": "g-2046",
         "nameEn": "Milk Type",
         "nameAr": "نوع الحليب",
-        "multiple": true,
+        "multiple": false,
         "options": [
           {
             "id": "o-7834",
@@ -6634,7 +4022,7 @@ export const generatedMenuItems: MenuItem[] = [
         "id": "g-2051",
         "nameEn": "Milk Type",
         "nameAr": "نوع الحليب",
-        "multiple": true,
+        "multiple": false,
         "options": [
           {
             "id": "o-7839",
@@ -7185,7 +4573,7 @@ export const generatedMenuItems: MenuItem[] = [
         "id": "g-2770",
         "nameEn": "Coffee Flavor",
         "nameAr": "نكهة القهوة",
-        "multiple": true,
+        "multiple": false,
         "options": [
           {
             "id": "o-8640",
@@ -7295,7 +4683,7 @@ export const generatedMenuItems: MenuItem[] = [
         "id": "g-2985",
         "nameEn": "Milk Type",
         "nameAr": "نوع الحليب",
-        "multiple": true,
+        "multiple": false,
         "options": [
           {
             "id": "o-10939",
@@ -7418,7 +4806,7 @@ export const generatedMenuItems: MenuItem[] = [
         "id": "g-3075",
         "nameEn": "Choose Grind Size:",
         "nameAr": "اختر حجم الطحن:",
-        "multiple": true,
+        "multiple": false,
         "options": [
           {
             "id": "o-11208",
@@ -7480,7 +4868,7 @@ export const generatedMenuItems: MenuItem[] = [
         "id": "g-1971",
         "nameEn": "Milk Type",
         "nameAr": "نوع الحليب",
-        "multiple": true,
+        "multiple": false,
         "options": [
           {
             "id": "o-7821",
@@ -7536,7 +4924,7 @@ export const generatedMenuItems: MenuItem[] = [
         "id": "g-2760",
         "nameEn": "Coffee Flavor",
         "nameAr": "نكهة القهوة",
-        "multiple": true,
+        "multiple": false,
         "options": [
           {
             "id": "o-8468",
@@ -7713,7 +5101,7 @@ export const generatedMenuItems: MenuItem[] = [
         "id": "g-84",
         "nameEn": "Bagel Type",
         "nameAr": "نوع البيغل",
-        "multiple": true,
+        "multiple": false,
         "options": [
           {
             "id": "o-234",
@@ -7754,17 +5142,37 @@ export const generatedMenuItems: MenuItem[] = [
         ]
       },
       {
+        "id": "g-3145",
+        "nameEn": "Extra vegetables",
+        "nameAr": "أضافات على الطعام",
+        "multiple": true,
+        "options": [
+          {
+            "id": "o-11651",
+            "nameEn": "Extra Tomato",
+            "nameAr": "اكسترا طماطم",
+            "priceDelta": 0
+          },
+          {
+            "id": "o-11653",
+            "nameEn": "Extra Olives",
+            "nameAr": "اكسترا زيتون",
+            "priceDelta": 0
+          },
+          {
+            "id": "o-11657",
+            "nameEn": "Extra Lettuce",
+            "nameAr": "Extra Lettuce",
+            "priceDelta": 0
+          }
+        ]
+      },
+      {
         "id": "g-2848",
         "nameEn": "Extra Food",
         "nameAr": "أضافات على الطعام",
         "multiple": true,
         "options": [
-          {
-            "id": "o-9876",
-            "nameEn": "Extra Salmon",
-            "nameAr": "اكسترا سالمون",
-            "priceDelta": 1.5
-          },
           {
             "id": "o-9877",
             "nameEn": "Extra Turkey",
@@ -7772,58 +5180,10 @@ export const generatedMenuItems: MenuItem[] = [
             "priceDelta": 0.6
           },
           {
-            "id": "o-9878",
-            "nameEn": "Extra Tomato",
-            "nameAr": "اكسترا طماطم",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-9879",
-            "nameEn": "Extra Sundried Tomato",
-            "nameAr": "اكسترا بندورة مجففة",
-            "priceDelta": 0.6
-          },
-          {
-            "id": "o-9880",
-            "nameEn": "Extra Olives",
-            "nameAr": "اكسترا زيتون",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-9881",
-            "nameEn": "Extra Lettuce",
-            "nameAr": "اكسترا خس",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-9882",
-            "nameEn": "Extra Guacamole",
-            "nameAr": "اكسترا جواكامولي",
-            "priceDelta": 1.5
-          },
-          {
-            "id": "o-9883",
-            "nameEn": "Extra Avocado",
-            "nameAr": "اكسترا افوكادو",
-            "priceDelta": 1.5
-          },
-          {
-            "id": "o-9884",
-            "nameEn": "Extra 3 Cheese",
-            "nameAr": "اكسترا 3 أجبان",
-            "priceDelta": 1
-          },
-          {
             "id": "o-9885",
             "nameEn": "Extra Roast Beef",
             "nameAr": "اكسترا روست بيف",
             "priceDelta": 0.6
-          },
-          {
-            "id": "o-9887",
-            "nameEn": "Extra Halloumi",
-            "nameAr": "اكسترا حلوم",
-            "priceDelta": 1
           },
           {
             "id": "o-9888",
@@ -7838,90 +5198,10 @@ export const generatedMenuItems: MenuItem[] = [
             "priceDelta": 0.6
           },
           {
-            "id": "o-9890",
-            "nameEn": "Extra Chicken",
-            "nameAr": "اكسترا دجاج",
-            "priceDelta": 1.5
-          },
-          {
-            "id": "o-9891",
-            "nameEn": "Extra Chedder Cheese",
-            "nameAr": "اكسترا تشيدر تشيز",
-            "priceDelta": 0.2
-          }
-        ]
-      },
-      {
-        "id": "g-86",
-        "nameEn": "Without",
-        "nameAr": "بدون اضافة",
-        "multiple": true,
-        "options": [
-          {
-            "id": "o-251",
-            "nameEn": "Without Lettuce",
-            "nameAr": "بدون خس",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-252",
-            "nameEn": "Without Black Olive",
-            "nameAr": " بدون زيتون اسود",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-253",
-            "nameEn": "Without Tomato",
-            "nameAr": "بدون بندورة",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-254",
-            "nameEn": "Without Roast Beef",
-            "nameAr": " بدون روست بيف",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-255",
-            "nameEn": "Without Turkey",
-            "nameAr": "بدون تيركي",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-256",
-            "nameEn": "Withoout Egg",
-            "nameAr": "بدون بيض",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-257",
-            "nameEn": "Without Sun Dried Tomato",
-            "nameAr": "بدون بندورة مجففة ",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-258",
-            "nameEn": "Without Cream Cheese",
-            "nameAr": "بدون كريم تشيز ",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-259",
-            "nameEn": "Without Cheddar Cheese",
-            "nameAr": "بدون تشيدر تشيز ",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-260",
-            "nameEn": "Without Avocado",
-            "nameAr": "بدون افوكادو ",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-261",
-            "nameEn": "Without Guacamole",
-            "nameAr": "بدون جواكامولي",
-            "priceDelta": 0
+            "id": "o-11886",
+            "nameEn": "Extra Sundried Tomato",
+            "nameAr": "Extra Sundried Tomato",
+            "priceDelta": 0.6
           }
         ]
       }
@@ -7950,167 +5230,41 @@ export const generatedMenuItems: MenuItem[] = [
         "multiple": true,
         "options": [
           {
-            "id": "o-11268",
-            "nameEn": "Extra Salmon",
-            "nameAr": "اكسترا سالمون",
-            "priceDelta": 1.5
-          },
-          {
-            "id": "o-11269",
-            "nameEn": "Extra Turkey",
-            "nameAr": "اكسترا تيركي",
-            "priceDelta": 0.6
-          },
-          {
-            "id": "o-11270",
-            "nameEn": "Extra Tomato",
-            "nameAr": "اكسترا طماطم",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-11271",
-            "nameEn": "Extra Sundried Tomato",
-            "nameAr": "اكسترا بندورة مجففة",
-            "priceDelta": 0.6
-          },
-          {
-            "id": "o-11272",
-            "nameEn": "Extra Olives",
-            "nameAr": "اكسترا زيتون",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-11273",
-            "nameEn": "Extra Lettuce",
-            "nameAr": "اكسترا خس",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-11274",
-            "nameEn": "Extra Guacamole",
-            "nameAr": "اكسترا جواكامولي",
-            "priceDelta": 1.5
-          },
-          {
-            "id": "o-11275",
-            "nameEn": "Extra Avocado",
-            "nameAr": "اكسترا افوكادو",
-            "priceDelta": 1.5
-          },
-          {
-            "id": "o-11276",
-            "nameEn": "Extra 3 Cheese",
-            "nameAr": "اكسترا 3 أجبان",
-            "priceDelta": 1
-          },
-          {
-            "id": "o-11277",
-            "nameEn": "Extra Roast Beef",
-            "nameAr": "اكسترا روست بيف",
-            "priceDelta": 0.6
-          },
-          {
-            "id": "o-11278",
-            "nameEn": "Extra Halloumi",
-            "nameAr": "اكسترا حلوم",
-            "priceDelta": 1
-          },
-          {
-            "id": "o-11279",
-            "nameEn": "Extra Egg",
-            "nameAr": "اكسترا بيض",
-            "priceDelta": 0.45
-          },
-          {
             "id": "o-11280",
             "nameEn": "Extra Cream Cheese",
             "nameAr": "اكسترا كريم تشيز",
             "priceDelta": 0.6
           },
           {
-            "id": "o-11281",
-            "nameEn": "Extra Chicken",
-            "nameAr": "اكسترا دجاج",
-            "priceDelta": 1.5
-          },
-          {
-            "id": "o-11282",
-            "nameEn": "Extra Chedder Cheese",
-            "nameAr": "اكسترا تشيدر تشيز",
-            "priceDelta": 0.2
+            "id": "o-11847",
+            "nameEn": "Extra Sundried Tomato",
+            "nameAr": "Extra Sundried Tomato",
+            "priceDelta": 0.6
           }
         ]
       },
       {
-        "id": "g-3086",
-        "nameEn": "Without",
-        "nameAr": "بدون اضافة",
+        "id": "g-3161",
+        "nameEn": "Extra vegetables",
+        "nameAr": "أضافات على الطعام",
         "multiple": true,
         "options": [
           {
-            "id": "o-11283",
-            "nameEn": "Without Lettuce",
-            "nameAr": "بدون خس",
+            "id": "o-11763",
+            "nameEn": "Extra Tomato",
+            "nameAr": "اكسترا طماطم",
             "priceDelta": 0
           },
           {
-            "id": "o-11284",
-            "nameEn": "Without Black Olive",
-            "nameAr": " بدون زيتون اسود",
+            "id": "o-11765",
+            "nameEn": "Extra Olives",
+            "nameAr": "اكسترا زيتون",
             "priceDelta": 0
           },
           {
-            "id": "o-11285",
-            "nameEn": "Without Tomato",
-            "nameAr": "بدون بندورة",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-11286",
-            "nameEn": "Without Roast Beef",
-            "nameAr": " بدون روست بيف",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-11287",
-            "nameEn": "Without Turkey",
-            "nameAr": "بدون تيركي",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-11288",
-            "nameEn": "Withoout Egg",
-            "nameAr": "بدون بيض",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-11289",
-            "nameEn": "Without Sun Dried Tomato",
-            "nameAr": "بدون بندورة مجففة ",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-11290",
-            "nameEn": "Without Cream Cheese",
-            "nameAr": "بدون كريم تشيز ",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-11291",
-            "nameEn": "Without Cheddar Cheese",
-            "nameAr": "بدون تشيدر تشيز ",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-11292",
-            "nameEn": "Without Avocado",
-            "nameAr": "بدون افوكادو ",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-11293",
-            "nameEn": "Without Guacamole",
-            "nameAr": "بدون جواكامولي",
+            "id": "o-11769",
+            "nameEn": "Extra Lettuce",
+            "nameAr": "Extra Lettuce",
             "priceDelta": 0
           }
         ]
@@ -8134,75 +5288,27 @@ export const generatedMenuItems: MenuItem[] = [
     ],
     "customizations": [
       {
-        "id": "g-252",
-        "nameEn": "Without",
-        "nameAr": "بدون اضافة",
+        "id": "g-3146",
+        "nameEn": "Extra vegetables",
+        "nameAr": "أضافات على الطعام",
         "multiple": true,
         "options": [
           {
-            "id": "o-617",
-            "nameEn": "Without Lettuce",
-            "nameAr": "بدون خس",
+            "id": "o-11658",
+            "nameEn": "Extra Tomato",
+            "nameAr": "اكسترا طماطم",
             "priceDelta": 0
           },
           {
-            "id": "o-618",
-            "nameEn": "Without Black Olive",
-            "nameAr": " بدون زيتون اسود",
+            "id": "o-11660",
+            "nameEn": "Extra Olives",
+            "nameAr": "اكسترا زيتون",
             "priceDelta": 0
           },
           {
-            "id": "o-619",
-            "nameEn": "Without Tomato",
-            "nameAr": "بدون بندورة",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-620",
-            "nameEn": "Without Roast Beef",
-            "nameAr": " بدون روست بيف",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-621",
-            "nameEn": "Without Turkey",
-            "nameAr": "بدون تيركي",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-622",
-            "nameEn": "Withoout Egg",
-            "nameAr": "بدون بيض",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-623",
-            "nameEn": "Without Sun Dried Tomato",
-            "nameAr": "بدون بندورة مجففة ",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-624",
-            "nameEn": "Without Cream Cheese",
-            "nameAr": "بدون كريم تشيز ",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-625",
-            "nameEn": "Without Cheddar Cheese",
-            "nameAr": "بدون تشيدر تشيز ",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-626",
-            "nameEn": "Without Avocado",
-            "nameAr": "بدون افوكادو ",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-627",
-            "nameEn": "Without Guacamole",
-            "nameAr": "بدون جواكامولي",
+            "id": "o-11664",
+            "nameEn": "Extra Lettuce",
+            "nameAr": "Extra Lettuce",
             "priceDelta": 0
           }
         ]
@@ -8214,70 +5320,16 @@ export const generatedMenuItems: MenuItem[] = [
         "multiple": true,
         "options": [
           {
-            "id": "o-9336",
-            "nameEn": "Extra Salmon",
-            "nameAr": "اكسترا سالمون",
-            "priceDelta": 1.5
-          },
-          {
             "id": "o-9337",
             "nameEn": "Extra Turkey",
             "nameAr": "اكسترا تيركي",
             "priceDelta": 0.6
           },
           {
-            "id": "o-9338",
-            "nameEn": "Extra Tomato",
-            "nameAr": "اكسترا طماطم",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-9339",
-            "nameEn": "Extra Sundried Tomato",
-            "nameAr": "اكسترا بندورة مجففة",
-            "priceDelta": 0.6
-          },
-          {
-            "id": "o-9340",
-            "nameEn": "Extra Olives",
-            "nameAr": "اكسترا زيتون",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-9341",
-            "nameEn": "Extra Lettuce",
-            "nameAr": "اكسترا خس",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-9342",
-            "nameEn": "Extra Guacamole",
-            "nameAr": "اكسترا جواكامولي",
-            "priceDelta": 1.5
-          },
-          {
-            "id": "o-9343",
-            "nameEn": "Extra Avocado",
-            "nameAr": "اكسترا افوكادو",
-            "priceDelta": 1.5
-          },
-          {
-            "id": "o-9344",
-            "nameEn": "Extra 3 Cheese",
-            "nameAr": "اكسترا 3 أجبان",
-            "priceDelta": 1
-          },
-          {
             "id": "o-9345",
             "nameEn": "Extra Roast Beef",
             "nameAr": "اكسترا روست بيف",
             "priceDelta": 0.6
-          },
-          {
-            "id": "o-9347",
-            "nameEn": "Extra Halloumi",
-            "nameAr": "اكسترا حلوم",
-            "priceDelta": 1
           },
           {
             "id": "o-9348",
@@ -8292,16 +5344,10 @@ export const generatedMenuItems: MenuItem[] = [
             "priceDelta": 0.6
           },
           {
-            "id": "o-9350",
-            "nameEn": "Extra Chicken",
-            "nameAr": "اكسترا دجاج",
-            "priceDelta": 1.5
-          },
-          {
-            "id": "o-9351",
-            "nameEn": "Extra Chedder Cheese",
-            "nameAr": "اكسترا تشيدر تشيز",
-            "priceDelta": 0.2
+            "id": "o-11870",
+            "nameEn": "Extra Sundried Tomato",
+            "nameAr": "Extra Sundried Tomato",
+            "priceDelta": 0.6
           }
         ]
       }
@@ -8323,75 +5369,27 @@ export const generatedMenuItems: MenuItem[] = [
     ],
     "customizations": [
       {
-        "id": "g-1935",
-        "nameEn": "Without",
-        "nameAr": "بدون اضافة",
+        "id": "g-3178",
+        "nameEn": "Extra vegetables",
+        "nameAr": "أضافات على الطعام",
         "multiple": true,
         "options": [
           {
-            "id": "o-2371",
-            "nameEn": "Without Lettuce",
-            "nameAr": "بدون خس",
+            "id": "o-12125",
+            "nameEn": "Extra Tomato",
+            "nameAr": "اكسترا طماطم",
             "priceDelta": 0
           },
           {
-            "id": "o-2372",
-            "nameEn": "Without Black Olive",
-            "nameAr": " بدون زيتون اسود",
+            "id": "o-12126",
+            "nameEn": "Extra Olives",
+            "nameAr": "اكسترا زيتون",
             "priceDelta": 0
           },
           {
-            "id": "o-2373",
-            "nameEn": "Without Tomato",
-            "nameAr": "بدون بندورة",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-2374",
-            "nameEn": "Without Roast Beef",
-            "nameAr": " بدون روست بيف",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-2375",
-            "nameEn": "Without Turkey",
-            "nameAr": "بدون تيركي",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-2376",
-            "nameEn": "Withoout Egg",
-            "nameAr": "بدون بيض",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-2377",
-            "nameEn": "Without Sun Dried Tomato",
-            "nameAr": "بدون بندورة مجففة ",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-2378",
-            "nameEn": "Without Cream Cheese",
-            "nameAr": "بدون كريم تشيز ",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-2379",
-            "nameEn": "Without Cheddar Cheese",
-            "nameAr": "بدون تشيدر تشيز ",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-2380",
-            "nameEn": "Without Avocado",
-            "nameAr": "بدون افوكادو ",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-2381",
-            "nameEn": "Without Guacamole",
-            "nameAr": "بدون جواكامولي",
+            "id": "o-12127",
+            "nameEn": "Extra Lettuce",
+            "nameAr": "Extra Lettuce",
             "priceDelta": 0
           }
         ]
@@ -8403,70 +5401,16 @@ export const generatedMenuItems: MenuItem[] = [
         "multiple": true,
         "options": [
           {
-            "id": "o-9498",
-            "nameEn": "Extra Salmon",
-            "nameAr": "اكسترا سالمون",
-            "priceDelta": 1.5
-          },
-          {
             "id": "o-9499",
             "nameEn": "Extra Turkey",
             "nameAr": "اكسترا تيركي",
             "priceDelta": 0.6
           },
           {
-            "id": "o-9500",
-            "nameEn": "Extra Tomato",
-            "nameAr": "اكسترا طماطم",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-9501",
-            "nameEn": "Extra Sundried Tomato",
-            "nameAr": "اكسترا بندورة مجففة",
-            "priceDelta": 0.6
-          },
-          {
-            "id": "o-9502",
-            "nameEn": "Extra Olives",
-            "nameAr": "اكسترا زيتون",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-9503",
-            "nameEn": "Extra Lettuce",
-            "nameAr": "اكسترا خس",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-9504",
-            "nameEn": "Extra Guacamole",
-            "nameAr": "اكسترا جواكامولي",
-            "priceDelta": 1.5
-          },
-          {
-            "id": "o-9505",
-            "nameEn": "Extra Avocado",
-            "nameAr": "اكسترا افوكادو",
-            "priceDelta": 1.5
-          },
-          {
-            "id": "o-9506",
-            "nameEn": "Extra 3 Cheese",
-            "nameAr": "اكسترا 3 أجبان",
-            "priceDelta": 1
-          },
-          {
             "id": "o-9507",
             "nameEn": "Extra Roast Beef",
             "nameAr": "اكسترا روست بيف",
             "priceDelta": 0.6
-          },
-          {
-            "id": "o-9509",
-            "nameEn": "Extra Halloumi",
-            "nameAr": "اكسترا حلوم",
-            "priceDelta": 1
           },
           {
             "id": "o-9510",
@@ -8481,16 +5425,10 @@ export const generatedMenuItems: MenuItem[] = [
             "priceDelta": 0.6
           },
           {
-            "id": "o-9512",
-            "nameEn": "Extra Chicken",
-            "nameAr": "اكسترا دجاج",
-            "priceDelta": 1.5
-          },
-          {
-            "id": "o-9513",
-            "nameEn": "Extra Chedder Cheese",
-            "nameAr": "اكسترا تشيدر تشيز",
-            "priceDelta": 0.2
+            "id": "o-11874",
+            "nameEn": "Extra Sundried Tomato",
+            "nameAr": "Extra Sundried Tomato",
+            "priceDelta": 0.6
           }
         ]
       }
@@ -8559,12 +5497,29 @@ export const generatedMenuItems: MenuItem[] = [
     ]
   },
   {
-    "id": "p-11931",
-    "categoryId": "cat-14",
-    "nameEn": "Crushed Lemon Tart Full Cake",
-    "nameAr": "قالب تارت الليمون المقرمش",
+    "id": "p-12143",
+    "categoryId": "cat-10",
+    "nameEn": "Crunchy Chocolate Cheesecake Piece",
+    "nameAr": "قطعة كرنشي تشوكلت",
     "emoji": "",
-    "imageUrl": "/menu/p-11931.webp",
+    "imageUrl": "/menu/p-12143.webp",
+    "sizes": [
+      {
+        "id": "M",
+        "nameEn": "Regular",
+        "nameAr": "عادي",
+        "price": 3.5
+      }
+    ],
+    "customizations": []
+  },
+  {
+    "id": "p-12142",
+    "categoryId": "cat-14",
+    "nameEn": "Crunchy Chocolate Full Cheesecake",
+    "nameAr": "قالب كرنشي تشوكلت",
+    "emoji": "",
+    "imageUrl": "/menu/p-12142.webp",
     "sizes": [
       {
         "id": "M",
@@ -8662,7 +5617,7 @@ export const generatedMenuItems: MenuItem[] = [
         "id": "g-3077",
         "nameEn": "Choose Grind Size:",
         "nameAr": "اختر حجم الطحن:",
-        "multiple": true,
+        "multiple": false,
         "options": [
           {
             "id": "o-11220",
@@ -8870,7 +5825,7 @@ export const generatedMenuItems: MenuItem[] = [
         "id": "g-90",
         "nameEn": "Bagel Type",
         "nameAr": "نوع البيغل",
-        "multiple": true,
+        "multiple": false,
         "options": [
           {
             "id": "o-290",
@@ -8911,76 +5866,42 @@ export const generatedMenuItems: MenuItem[] = [
         ]
       },
       {
+        "id": "g-3147",
+        "nameEn": "Extra vegetables",
+        "nameAr": "أضافات على الطعام",
+        "multiple": true,
+        "options": [
+          {
+            "id": "o-11665",
+            "nameEn": "Extra Tomato",
+            "nameAr": "اكسترا طماطم",
+            "priceDelta": 0
+          },
+          {
+            "id": "o-11667",
+            "nameEn": "Extra Olives",
+            "nameAr": "اكسترا زيتون",
+            "priceDelta": 0
+          },
+          {
+            "id": "o-11671",
+            "nameEn": "Extra Lettuce",
+            "nameAr": "Extra Lettuce",
+            "priceDelta": 0
+          }
+        ]
+      },
+      {
         "id": "g-2847",
         "nameEn": "Extra Food",
         "nameAr": "أضافات على الطعام",
         "multiple": true,
         "options": [
           {
-            "id": "o-9858",
-            "nameEn": "Extra Salmon",
-            "nameAr": "اكسترا سالمون",
-            "priceDelta": 1.5
-          },
-          {
             "id": "o-9859",
             "nameEn": "Extra Turkey",
             "nameAr": "اكسترا تيركي",
             "priceDelta": 0.6
-          },
-          {
-            "id": "o-9860",
-            "nameEn": "Extra Tomato",
-            "nameAr": "اكسترا طماطم",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-9861",
-            "nameEn": "Extra Sundried Tomato",
-            "nameAr": "اكسترا بندورة مجففة",
-            "priceDelta": 0.6
-          },
-          {
-            "id": "o-9862",
-            "nameEn": "Extra Olives",
-            "nameAr": "اكسترا زيتون",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-9863",
-            "nameEn": "Extra Lettuce",
-            "nameAr": "اكسترا خس",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-9864",
-            "nameEn": "Extra Guacamole",
-            "nameAr": "اكسترا جواكامولي",
-            "priceDelta": 1.5
-          },
-          {
-            "id": "o-9865",
-            "nameEn": "Extra Avocado",
-            "nameAr": "اكسترا افوكادو",
-            "priceDelta": 1.5
-          },
-          {
-            "id": "o-9866",
-            "nameEn": "Extra 3 Cheese",
-            "nameAr": "اكسترا 3 أجبان",
-            "priceDelta": 1
-          },
-          {
-            "id": "o-9867",
-            "nameEn": "Extra Roast Beef",
-            "nameAr": "اكسترا روست بيف",
-            "priceDelta": 0.6
-          },
-          {
-            "id": "o-9869",
-            "nameEn": "Extra Halloumi",
-            "nameAr": "اكسترا حلوم",
-            "priceDelta": 1
           },
           {
             "id": "o-9870",
@@ -8989,96 +5910,16 @@ export const generatedMenuItems: MenuItem[] = [
             "priceDelta": 0.45
           },
           {
-            "id": "o-9871",
-            "nameEn": "Extra Cream Cheese",
-            "nameAr": "اكسترا كريم تشيز",
+            "id": "o-11885",
+            "nameEn": "Extra Sundried Tomato",
+            "nameAr": "Extra Sundried Tomato",
             "priceDelta": 0.6
           },
           {
-            "id": "o-9872",
-            "nameEn": "Extra Chicken",
-            "nameAr": "اكسترا دجاج",
-            "priceDelta": 1.5
-          },
-          {
-            "id": "o-9873",
+            "id": "o-12089",
             "nameEn": "Extra Chedder Cheese",
-            "nameAr": "اكسترا تشيدر تشيز",
+            "nameAr": "Extra Chedder Cheese",
             "priceDelta": 0.2
-          }
-        ]
-      },
-      {
-        "id": "g-92",
-        "nameEn": "Without",
-        "nameAr": "بدون اضافة",
-        "multiple": true,
-        "options": [
-          {
-            "id": "o-307",
-            "nameEn": "Without Lettuce",
-            "nameAr": "بدون خس",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-308",
-            "nameEn": "Without Black Olive",
-            "nameAr": " بدون زيتون اسود",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-309",
-            "nameEn": "Without Tomato",
-            "nameAr": "بدون بندورة",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-310",
-            "nameEn": "Without Roast Beef",
-            "nameAr": " بدون روست بيف",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-311",
-            "nameEn": "Without Turkey",
-            "nameAr": "بدون تيركي",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-312",
-            "nameEn": "Withoout Egg",
-            "nameAr": "بدون بيض",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-313",
-            "nameEn": "Without Sun Dried Tomato",
-            "nameAr": "بدون بندورة مجففة ",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-314",
-            "nameEn": "Without Cream Cheese",
-            "nameAr": "بدون كريم تشيز ",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-315",
-            "nameEn": "Without Cheddar Cheese",
-            "nameAr": "بدون تشيدر تشيز ",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-316",
-            "nameEn": "Without Avocado",
-            "nameAr": "بدون افوكادو ",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-317",
-            "nameEn": "Without Guacamole",
-            "nameAr": "بدون جواكامولي",
-            "priceDelta": 0
           }
         ]
       }
@@ -9107,52 +5948,10 @@ export const generatedMenuItems: MenuItem[] = [
         "multiple": true,
         "options": [
           {
-            "id": "o-9696",
-            "nameEn": "Extra Salmon",
-            "nameAr": "اكسترا سالمون",
-            "priceDelta": 1.5
-          },
-          {
             "id": "o-9697",
             "nameEn": "Extra Turkey",
             "nameAr": "اكسترا تيركي",
             "priceDelta": 0.6
-          },
-          {
-            "id": "o-9698",
-            "nameEn": "Extra Tomato",
-            "nameAr": "اكسترا طماطم",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-9699",
-            "nameEn": "Extra Sundried Tomato",
-            "nameAr": "اكسترا بندورة مجففة",
-            "priceDelta": 0.6
-          },
-          {
-            "id": "o-9700",
-            "nameEn": "Extra Olives",
-            "nameAr": "اكسترا زيتون",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-9701",
-            "nameEn": "Extra Lettuce",
-            "nameAr": "اكسترا خس",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-9702",
-            "nameEn": "Extra Guacamole",
-            "nameAr": "اكسترا جواكامولي",
-            "priceDelta": 1.5
-          },
-          {
-            "id": "o-9703",
-            "nameEn": "Extra Avocado",
-            "nameAr": "اكسترا افوكادو",
-            "priceDelta": 1.5
           },
           {
             "id": "o-9704",
@@ -9167,107 +5966,59 @@ export const generatedMenuItems: MenuItem[] = [
             "priceDelta": 0.6
           },
           {
-            "id": "o-9707",
-            "nameEn": "Extra Halloumi",
-            "nameAr": "اكسترا حلوم",
-            "priceDelta": 1
-          },
-          {
             "id": "o-9708",
             "nameEn": "Extra Egg",
             "nameAr": "اكسترا بيض",
             "priceDelta": 0.45
           },
           {
-            "id": "o-9709",
-            "nameEn": "Extra Cream Cheese",
-            "nameAr": "اكسترا كريم تشيز",
+            "id": "o-11861",
+            "nameEn": "Extra Sundried Tomato",
+            "nameAr": "Extra Sundried Tomato",
             "priceDelta": 0.6
           },
           {
-            "id": "o-9710",
-            "nameEn": "Extra Chicken",
-            "nameAr": "اكسترا دجاج",
+            "id": "o-11929",
+            "nameEn": "Extra Guacamole",
+            "nameAr": "Extra Guacamole",
             "priceDelta": 1.5
           },
           {
-            "id": "o-9711",
+            "id": "o-11997",
+            "nameEn": "Extra Avocado",
+            "nameAr": "Extra Avocado",
+            "priceDelta": 1.5
+          },
+          {
+            "id": "o-12065",
             "nameEn": "Extra Chedder Cheese",
-            "nameAr": "اكسترا تشيدر تشيز",
+            "nameAr": "Extra Chedder Cheese",
             "priceDelta": 0.2
           }
         ]
       },
       {
-        "id": "g-1665",
-        "nameEn": "Without",
-        "nameAr": "بدون اضافة",
+        "id": "g-3162",
+        "nameEn": "Extra vegetables",
+        "nameAr": "أضافات على الطعام",
         "multiple": true,
         "options": [
           {
-            "id": "o-1942",
-            "nameEn": "Without Lettuce",
-            "nameAr": "بدون خس",
+            "id": "o-11770",
+            "nameEn": "Extra Tomato",
+            "nameAr": "اكسترا طماطم",
             "priceDelta": 0
           },
           {
-            "id": "o-1943",
-            "nameEn": "Without Black Olive",
-            "nameAr": " بدون زيتون اسود",
+            "id": "o-11772",
+            "nameEn": "Extra Olives",
+            "nameAr": "اكسترا زيتون",
             "priceDelta": 0
           },
           {
-            "id": "o-1944",
-            "nameEn": "Without Tomato",
-            "nameAr": "بدون بندورة",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-1945",
-            "nameEn": "Without Roast Beef",
-            "nameAr": " بدون روست بيف",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-1946",
-            "nameEn": "Without Turkey",
-            "nameAr": "بدون تيركي",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-1947",
-            "nameEn": "Withoout Egg",
-            "nameAr": "بدون بيض",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-1948",
-            "nameEn": "Without Sun Dried Tomato",
-            "nameAr": "بدون بندورة مجففة ",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-1949",
-            "nameEn": "Without Cream Cheese",
-            "nameAr": "بدون كريم تشيز ",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-1950",
-            "nameEn": "Without Cheddar Cheese",
-            "nameAr": "بدون تشيدر تشيز ",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-1951",
-            "nameEn": "Without Avocado",
-            "nameAr": "بدون افوكادو ",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-1952",
-            "nameEn": "Without Guacamole",
-            "nameAr": "بدون جواكامولي",
+            "id": "o-11776",
+            "nameEn": "Extra Lettuce",
+            "nameAr": "Extra Lettuce",
             "priceDelta": 0
           }
         ]
@@ -9297,69 +6048,15 @@ export const generatedMenuItems: MenuItem[] = [
         "multiple": true,
         "options": [
           {
-            "id": "o-9318",
-            "nameEn": "Extra Salmon",
-            "nameAr": "اكسترا سالمون",
-            "priceDelta": 1.5
-          },
-          {
             "id": "o-9319",
             "nameEn": "Extra Turkey",
             "nameAr": "اكسترا تيركي",
             "priceDelta": 0.6
           },
           {
-            "id": "o-9320",
-            "nameEn": "Extra Tomato",
-            "nameAr": "اكسترا طماطم",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-9321",
-            "nameEn": "Extra Sundried Tomato",
-            "nameAr": "اكسترا بندورة مجففة",
-            "priceDelta": 0.6
-          },
-          {
-            "id": "o-9322",
-            "nameEn": "Extra Olives",
-            "nameAr": "اكسترا زيتون",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-9323",
-            "nameEn": "Extra Lettuce",
-            "nameAr": "اكسترا خس",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-9324",
-            "nameEn": "Extra Guacamole",
-            "nameAr": "اكسترا جواكامولي",
-            "priceDelta": 1.5
-          },
-          {
-            "id": "o-9325",
-            "nameEn": "Extra Avocado",
-            "nameAr": "اكسترا افوكادو",
-            "priceDelta": 1.5
-          },
-          {
             "id": "o-9326",
             "nameEn": "Extra 3 Cheese",
             "nameAr": "اكسترا 3 أجبان",
-            "priceDelta": 1
-          },
-          {
-            "id": "o-9327",
-            "nameEn": "Extra Roast Beef",
-            "nameAr": "اكسترا روست بيف",
-            "priceDelta": 0.6
-          },
-          {
-            "id": "o-9329",
-            "nameEn": "Extra Halloumi",
-            "nameAr": "اكسترا حلوم",
             "priceDelta": 1
           },
           {
@@ -9375,89 +6072,53 @@ export const generatedMenuItems: MenuItem[] = [
             "priceDelta": 0.6
           },
           {
-            "id": "o-9332",
-            "nameEn": "Extra Chicken",
-            "nameAr": "اكسترا دجاج",
+            "id": "o-11853",
+            "nameEn": "Extra Sundried Tomato",
+            "nameAr": "Extra Sundried Tomato",
+            "priceDelta": 0.6
+          },
+          {
+            "id": "o-11921",
+            "nameEn": "Extra Guacamole",
+            "nameAr": "Extra Guacamole",
             "priceDelta": 1.5
           },
           {
-            "id": "o-9333",
+            "id": "o-11989",
+            "nameEn": "Extra Avocado",
+            "nameAr": "Extra Avocado",
+            "priceDelta": 1.5
+          },
+          {
+            "id": "o-12057",
             "nameEn": "Extra Chedder Cheese",
-            "nameAr": "اكسترا تشيدر تشيز",
+            "nameAr": "Extra Chedder Cheese",
             "priceDelta": 0.2
           }
         ]
       },
       {
-        "id": "g-254",
-        "nameEn": "Without",
-        "nameAr": "بدون اضافة",
+        "id": "g-3148",
+        "nameEn": "Extra vegetables",
+        "nameAr": "أضافات على الطعام",
         "multiple": true,
         "options": [
           {
-            "id": "o-639",
-            "nameEn": "Without Lettuce",
-            "nameAr": "بدون خس",
+            "id": "o-11672",
+            "nameEn": "Extra Tomato",
+            "nameAr": "اكسترا طماطم",
             "priceDelta": 0
           },
           {
-            "id": "o-640",
-            "nameEn": "Without Black Olive",
-            "nameAr": " بدون زيتون اسود",
+            "id": "o-11674",
+            "nameEn": "Extra Olives",
+            "nameAr": "اكسترا زيتون",
             "priceDelta": 0
           },
           {
-            "id": "o-641",
-            "nameEn": "Without Tomato",
-            "nameAr": "بدون بندورة",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-642",
-            "nameEn": "Without Roast Beef",
-            "nameAr": " بدون روست بيف",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-643",
-            "nameEn": "Without Turkey",
-            "nameAr": "بدون تيركي",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-644",
-            "nameEn": "Withoout Egg",
-            "nameAr": "بدون بيض",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-645",
-            "nameEn": "Without Sun Dried Tomato",
-            "nameAr": "بدون بندورة مجففة ",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-646",
-            "nameEn": "Without Cream Cheese",
-            "nameAr": "بدون كريم تشيز ",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-647",
-            "nameEn": "Without Cheddar Cheese",
-            "nameAr": "بدون تشيدر تشيز ",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-648",
-            "nameEn": "Without Avocado",
-            "nameAr": "بدون افوكادو ",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-649",
-            "nameEn": "Without Guacamole",
-            "nameAr": "بدون جواكامولي",
+            "id": "o-11678",
+            "nameEn": "Extra Lettuce",
+            "nameAr": "Extra Lettuce",
             "priceDelta": 0
           }
         ]
@@ -9480,91 +6141,11 @@ export const generatedMenuItems: MenuItem[] = [
     ],
     "customizations": [
       {
-        "id": "g-1936",
-        "nameEn": "Without",
-        "nameAr": "بدون اضافة",
-        "multiple": true,
-        "options": [
-          {
-            "id": "o-2382",
-            "nameEn": "Without Lettuce",
-            "nameAr": "بدون خس",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-2383",
-            "nameEn": "Without Black Olive",
-            "nameAr": " بدون زيتون اسود",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-2384",
-            "nameEn": "Without Tomato",
-            "nameAr": "بدون بندورة",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-2385",
-            "nameEn": "Without Roast Beef",
-            "nameAr": " بدون روست بيف",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-2386",
-            "nameEn": "Without Turkey",
-            "nameAr": "بدون تيركي",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-2387",
-            "nameEn": "Withoout Egg",
-            "nameAr": "بدون بيض",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-2388",
-            "nameEn": "Without Sun Dried Tomato",
-            "nameAr": "بدون بندورة مجففة ",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-2389",
-            "nameEn": "Without Cream Cheese",
-            "nameAr": "بدون كريم تشيز ",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-2390",
-            "nameEn": "Without Cheddar Cheese",
-            "nameAr": "بدون تشيدر تشيز ",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-2391",
-            "nameEn": "Without Avocado",
-            "nameAr": "بدون افوكادو ",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-2392",
-            "nameEn": "Without Guacamole",
-            "nameAr": "بدون جواكامولي",
-            "priceDelta": 0
-          }
-        ]
-      },
-      {
         "id": "g-2826",
         "nameEn": "Extra Food",
         "nameAr": "أضافات على الطعام",
         "multiple": true,
         "options": [
-          {
-            "id": "o-9480",
-            "nameEn": "Extra Salmon",
-            "nameAr": "اكسترا سالمون",
-            "priceDelta": 1.5
-          },
           {
             "id": "o-9481",
             "nameEn": "Extra Turkey",
@@ -9572,57 +6153,9 @@ export const generatedMenuItems: MenuItem[] = [
             "priceDelta": 0.6
           },
           {
-            "id": "o-9482",
-            "nameEn": "Extra Tomato",
-            "nameAr": "اكسترا طماطم",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-9483",
-            "nameEn": "Extra Sundried Tomato",
-            "nameAr": "اكسترا بندورة مجففة",
-            "priceDelta": 0.6
-          },
-          {
-            "id": "o-9484",
-            "nameEn": "Extra Olives",
-            "nameAr": "اكسترا زيتون",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-9485",
-            "nameEn": "Extra Lettuce",
-            "nameAr": "اكسترا خس",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-9486",
-            "nameEn": "Extra Guacamole",
-            "nameAr": "اكسترا جواكامولي",
-            "priceDelta": 1.5
-          },
-          {
-            "id": "o-9487",
-            "nameEn": "Extra Avocado",
-            "nameAr": "اكسترا افوكادو",
-            "priceDelta": 1.5
-          },
-          {
             "id": "o-9488",
             "nameEn": "Extra 3 Cheese",
             "nameAr": "اكسترا 3 أجبان",
-            "priceDelta": 1
-          },
-          {
-            "id": "o-9489",
-            "nameEn": "Extra Roast Beef",
-            "nameAr": "اكسترا روست بيف",
-            "priceDelta": 0.6
-          },
-          {
-            "id": "o-9491",
-            "nameEn": "Extra Halloumi",
-            "nameAr": "اكسترا حلوم",
             "priceDelta": 1
           },
           {
@@ -9632,22 +6165,10 @@ export const generatedMenuItems: MenuItem[] = [
             "priceDelta": 0.45
           },
           {
-            "id": "o-9493",
-            "nameEn": "Extra Cream Cheese",
-            "nameAr": "اكسترا كريم تشيز",
+            "id": "o-11873",
+            "nameEn": "Extra Sundried Tomato",
+            "nameAr": "Extra Sundried Tomato",
             "priceDelta": 0.6
-          },
-          {
-            "id": "o-9494",
-            "nameEn": "Extra Chicken",
-            "nameAr": "اكسترا دجاج",
-            "priceDelta": 1.5
-          },
-          {
-            "id": "o-9495",
-            "nameEn": "Extra Chedder Cheese",
-            "nameAr": "اكسترا تشيدر تشيز",
-            "priceDelta": 0.2
           }
         ]
       }
@@ -9673,7 +6194,7 @@ export const generatedMenuItems: MenuItem[] = [
         "id": "g-2716",
         "nameEn": "Dough Type",
         "nameAr": "نوع العجين",
-        "multiple": true,
+        "multiple": false,
         "options": [
           {
             "id": "o-8292",
@@ -9785,7 +6306,7 @@ export const generatedMenuItems: MenuItem[] = [
         "id": "g-2761",
         "nameEn": "Coffee Flavor",
         "nameAr": "نكهة القهوة",
-        "multiple": true,
+        "multiple": false,
         "options": [
           {
             "id": "o-8485",
@@ -9933,7 +6454,7 @@ export const generatedMenuItems: MenuItem[] = [
         "id": "g-3079",
         "nameEn": "Choose Grind Size:",
         "nameAr": "اختر حجم الطحن:",
-        "multiple": true,
+        "multiple": false,
         "options": [
           {
             "id": "o-11232",
@@ -10001,7 +6522,7 @@ export const generatedMenuItems: MenuItem[] = [
         "id": "g-2047",
         "nameEn": "Milk Type",
         "nameAr": "نوع الحليب",
-        "multiple": true,
+        "multiple": false,
         "options": [
           {
             "id": "o-7835",
@@ -10057,7 +6578,7 @@ export const generatedMenuItems: MenuItem[] = [
         "id": "g-2694",
         "nameEn": "Coffee Flavor",
         "nameAr": "نكهة القهوة",
-        "multiple": true,
+        "multiple": false,
         "options": [
           {
             "id": "o-8184",
@@ -10211,7 +6732,7 @@ export const generatedMenuItems: MenuItem[] = [
         "id": "g-2647",
         "nameEn": "Milk Type",
         "nameAr": "نوع الحليب",
-        "multiple": true,
+        "multiple": false,
         "options": [
           {
             "id": "o-7953",
@@ -10267,7 +6788,7 @@ export const generatedMenuItems: MenuItem[] = [
         "id": "g-2762",
         "nameEn": "Coffee Flavor",
         "nameAr": "نكهة القهوة",
-        "multiple": true,
+        "multiple": false,
         "options": [
           {
             "id": "o-8502",
@@ -10421,7 +6942,7 @@ export const generatedMenuItems: MenuItem[] = [
         "id": "g-3080",
         "nameEn": "Choose Grind Size:",
         "nameAr": "اختر حجم الطحن:",
-        "multiple": true,
+        "multiple": false,
         "options": [
           {
             "id": "o-11238",
@@ -10485,20 +7006,20 @@ export const generatedMenuItems: MenuItem[] = [
       },
       {
         "id": "L",
-        "nameEn": "15",
-        "nameAr": "15",
+        "nameEn": "15 (تواصي)",
+        "nameAr": "15 (تواصي)",
         "price": 28
       },
       {
         "id": "L",
-        "nameEn": "20",
-        "nameAr": "20",
+        "nameEn": "20 (تواصي)",
+        "nameAr": "20 (تواصي)",
         "price": 38
       },
       {
         "id": "L",
-        "nameEn": "25",
-        "nameAr": "25",
+        "nameEn": "25 (تواصي)",
+        "nameAr": "25 (تواصي)",
         "price": 50
       }
     ],
@@ -10518,6 +7039,40 @@ export const generatedMenuItems: MenuItem[] = [
         ]
       }
     ]
+  },
+  {
+    "id": "p-12150",
+    "categoryId": "cat-10",
+    "nameEn": "Fig & Almond Cake Piece",
+    "nameAr": "قطعة تين كيك",
+    "emoji": "",
+    "imageUrl": "/menu/p-12150.webp",
+    "sizes": [
+      {
+        "id": "M",
+        "nameEn": "Regular",
+        "nameAr": "عادي",
+        "price": 1.9
+      }
+    ],
+    "customizations": []
+  },
+  {
+    "id": "p-12131",
+    "categoryId": "cat-8",
+    "nameEn": "Fig & Walnut Fall Salad",
+    "nameAr": "سلطة التين والجوز الخريفية(خيرات الخريف)",
+    "emoji": "",
+    "imageUrl": "/menu/p-12131.webp",
+    "sizes": [
+      {
+        "id": "M",
+        "nameEn": "Regular",
+        "nameAr": "عادي",
+        "price": 4.5
+      }
+    ],
+    "customizations": []
   },
   {
     "id": "p-4469",
@@ -10573,7 +7128,7 @@ export const generatedMenuItems: MenuItem[] = [
         "id": "g-3088",
         "nameEn": "Frozen Type",
         "nameAr": "Frozen Type",
-        "multiple": true,
+        "multiple": false,
         "options": [
           {
             "id": "o-11316",
@@ -10623,7 +7178,7 @@ export const generatedMenuItems: MenuItem[] = [
         "id": "g-3089",
         "nameEn": "Frozen Type",
         "nameAr": "Frozen Type",
-        "multiple": true,
+        "multiple": false,
         "options": [
           {
             "id": "o-11320",
@@ -10813,7 +7368,7 @@ export const generatedMenuItems: MenuItem[] = [
   {
     "id": "p-10305",
     "categoryId": "cat-14",
-    "nameEn": "German Cake",
+    "nameEn": "German Cake (تواصي)",
     "nameAr": "جيرمن كيك",
     "emoji": "",
     "imageUrl": "/menu/p-10305.webp",
@@ -10832,20 +7387,20 @@ export const generatedMenuItems: MenuItem[] = [
       },
       {
         "id": "L",
-        "nameEn": "15",
-        "nameAr": "15",
+        "nameEn": "15 (تواصي)",
+        "nameAr": "15 (تواصي)",
         "price": 30
       },
       {
         "id": "L",
-        "nameEn": "20",
-        "nameAr": "20",
+        "nameEn": "20 (تواصي)",
+        "nameAr": "20 (تواصي)",
         "price": 40
       },
       {
         "id": "L",
-        "nameEn": "25",
-        "nameAr": "25",
+        "nameEn": "25 (تواصي)",
+        "nameAr": "25 (تواصي)",
         "price": 50
       }
     ],
@@ -10932,62 +7487,6 @@ export const generatedMenuItems: MenuItem[] = [
       }
     ],
     "customizations": []
-  },
-  {
-    "id": "p-11382",
-    "categoryId": "cat-14",
-    "nameEn": "Gianduja Chocolate Cake",
-    "nameAr": "قالب شوكولاتة جياندوجا",
-    "emoji": "",
-    "imageUrl": "/menu/p-11382.webp",
-    "sizes": [
-      {
-        "id": "S",
-        "nameEn": "(6-8) people",
-        "nameAr": "(6-8) أشخاص",
-        "price": 30
-      },
-      {
-        "id": "M",
-        "nameEn": "(10-12) poeple",
-        "nameAr": "(10-12) أشخاص",
-        "price": 45
-      },
-      {
-        "id": "L",
-        "nameEn": "15",
-        "nameAr": "15",
-        "price": 44
-      },
-      {
-        "id": "L",
-        "nameEn": "20",
-        "nameAr": "20",
-        "price": 54
-      },
-      {
-        "id": "L",
-        "nameEn": "25",
-        "nameAr": "25",
-        "price": 64
-      }
-    ],
-    "customizations": [
-      {
-        "id": "g-2720",
-        "nameEn": "Customize Cake",
-        "nameAr": "تفصيلات قوالب الكيك",
-        "multiple": true,
-        "options": [
-          {
-            "id": "o-8305",
-            "nameEn": "Sugar Picture",
-            "nameAr": "صورة السكر",
-            "priceDelta": 10
-          }
-        ]
-      }
-    ]
   },
   {
     "id": "p-11381",
@@ -11312,23 +7811,6 @@ export const generatedMenuItems: MenuItem[] = [
     "customizations": []
   },
   {
-    "id": "p-11929",
-    "categoryId": "cat-6",
-    "nameEn": "Gluten Free Mix Cheese  Wrap",
-    "nameAr": "ساندويش راب مكس الأجبان جلوتين فري",
-    "emoji": "",
-    "imageUrl": "/menu/p-11929.webp",
-    "sizes": [
-      {
-        "id": "M",
-        "nameEn": "Regular",
-        "nameAr": "عادي",
-        "price": 3.5
-      }
-    ],
-    "customizations": []
-  },
-  {
     "id": "p-10276",
     "categoryId": "cat-12",
     "nameEn": "Gluten Free Refined Sugar Free Banana Chocolate Cake",
@@ -11437,7 +7919,7 @@ export const generatedMenuItems: MenuItem[] = [
         "id": "g-3122",
         "nameEn": "Choose Grind Size:",
         "nameAr": "اختر حجم الطحن:",
-        "multiple": true,
+        "multiple": false,
         "options": [
           {
             "id": "o-11480",
@@ -11533,7 +8015,7 @@ export const generatedMenuItems: MenuItem[] = [
         "id": "g-93",
         "nameEn": "Bagel Type",
         "nameAr": "نوع البيغل",
-        "multiple": true,
+        "multiple": false,
         "options": [
           {
             "id": "o-318",
@@ -11574,71 +8056,37 @@ export const generatedMenuItems: MenuItem[] = [
         ]
       },
       {
-        "id": "g-2846",
-        "nameEn": "Extra Food",
+        "id": "g-3149",
+        "nameEn": "Extra vegetables",
         "nameAr": "أضافات على الطعام",
         "multiple": true,
         "options": [
           {
-            "id": "o-9840",
-            "nameEn": "Extra Salmon",
-            "nameAr": "اكسترا سالمون",
-            "priceDelta": 1.5
-          },
-          {
-            "id": "o-9841",
-            "nameEn": "Extra Turkey",
-            "nameAr": "اكسترا تيركي",
-            "priceDelta": 0.6
-          },
-          {
-            "id": "o-9842",
+            "id": "o-11679",
             "nameEn": "Extra Tomato",
             "nameAr": "اكسترا طماطم",
             "priceDelta": 0
           },
           {
-            "id": "o-9843",
-            "nameEn": "Extra Sundried Tomato",
-            "nameAr": "اكسترا بندورة مجففة",
-            "priceDelta": 0.6
-          },
-          {
-            "id": "o-9844",
+            "id": "o-11681",
             "nameEn": "Extra Olives",
             "nameAr": "اكسترا زيتون",
             "priceDelta": 0
           },
           {
-            "id": "o-9845",
+            "id": "o-11685",
             "nameEn": "Extra Lettuce",
-            "nameAr": "اكسترا خس",
+            "nameAr": "Extra Lettuce",
             "priceDelta": 0
-          },
-          {
-            "id": "o-9846",
-            "nameEn": "Extra Guacamole",
-            "nameAr": "اكسترا جواكامولي",
-            "priceDelta": 1.5
-          },
-          {
-            "id": "o-9847",
-            "nameEn": "Extra Avocado",
-            "nameAr": "اكسترا افوكادو",
-            "priceDelta": 1.5
-          },
-          {
-            "id": "o-9848",
-            "nameEn": "Extra 3 Cheese",
-            "nameAr": "اكسترا 3 أجبان",
-            "priceDelta": 1
-          },
-          {
-            "id": "o-9849",
-            "nameEn": "Extra Roast Beef",
-            "nameAr": "اكسترا روست بيف",
-            "priceDelta": 0.6
-          },
+          }
+        ]
+      },
+      {
+        "id": "g-2846",
+        "nameEn": "Extra Food",
+        "nameAr": "أضافات على الطعام",
+        "multiple": true,
+        "options": [
           {
             "id": "o-9851",
             "nameEn": "Extra Halloumi",
@@ -11646,102 +8094,16 @@ export const generatedMenuItems: MenuItem[] = [
             "priceDelta": 1
           },
           {
-            "id": "o-9852",
-            "nameEn": "Extra Egg",
-            "nameAr": "اكسترا بيض",
-            "priceDelta": 0.45
-          },
-          {
-            "id": "o-9853",
-            "nameEn": "Extra Cream Cheese",
-            "nameAr": "اكسترا كريم تشيز",
+            "id": "o-11884",
+            "nameEn": "Extra Sundried Tomato",
+            "nameAr": "Extra Sundried Tomato",
             "priceDelta": 0.6
           },
           {
-            "id": "o-9854",
-            "nameEn": "Extra Chicken",
-            "nameAr": "اكسترا دجاج",
+            "id": "o-11952",
+            "nameEn": "Extra Guacamole",
+            "nameAr": "Extra Guacamole",
             "priceDelta": 1.5
-          },
-          {
-            "id": "o-9855",
-            "nameEn": "Extra Chedder Cheese",
-            "nameAr": "اكسترا تشيدر تشيز",
-            "priceDelta": 0.2
-          }
-        ]
-      },
-      {
-        "id": "g-95",
-        "nameEn": "Without",
-        "nameAr": "بدون اضافة",
-        "multiple": true,
-        "options": [
-          {
-            "id": "o-335",
-            "nameEn": "Without Lettuce",
-            "nameAr": "بدون خس",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-336",
-            "nameEn": "Without Black Olive",
-            "nameAr": " بدون زيتون اسود",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-337",
-            "nameEn": "Without Tomato",
-            "nameAr": "بدون بندورة",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-338",
-            "nameEn": "Without Roast Beef",
-            "nameAr": " بدون روست بيف",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-339",
-            "nameEn": "Without Turkey",
-            "nameAr": "بدون تيركي",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-340",
-            "nameEn": "Withoout Egg",
-            "nameAr": "بدون بيض",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-341",
-            "nameEn": "Without Sun Dried Tomato",
-            "nameAr": "بدون بندورة مجففة ",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-342",
-            "nameEn": "Without Cream Cheese",
-            "nameAr": "بدون كريم تشيز ",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-343",
-            "nameEn": "Without Cheddar Cheese",
-            "nameAr": "بدون تشيدر تشيز ",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-344",
-            "nameEn": "Without Avocado",
-            "nameAr": "بدون افوكادو ",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-345",
-            "nameEn": "Without Guacamole",
-            "nameAr": "بدون جواكامولي",
-            "priceDelta": 0
           }
         ]
       }
@@ -11770,167 +8132,47 @@ export const generatedMenuItems: MenuItem[] = [
         "multiple": true,
         "options": [
           {
-            "id": "o-9678",
-            "nameEn": "Extra Salmon",
-            "nameAr": "اكسترا سالمون",
-            "priceDelta": 1.5
-          },
-          {
-            "id": "o-9679",
-            "nameEn": "Extra Turkey",
-            "nameAr": "اكسترا تيركي",
-            "priceDelta": 0.6
-          },
-          {
-            "id": "o-9680",
-            "nameEn": "Extra Tomato",
-            "nameAr": "اكسترا طماطم",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-9681",
-            "nameEn": "Extra Sundried Tomato",
-            "nameAr": "اكسترا بندورة مجففة",
-            "priceDelta": 0.6
-          },
-          {
-            "id": "o-9682",
-            "nameEn": "Extra Olives",
-            "nameAr": "اكسترا زيتون",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-9683",
-            "nameEn": "Extra Lettuce",
-            "nameAr": "اكسترا خس",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-9684",
-            "nameEn": "Extra Guacamole",
-            "nameAr": "اكسترا جواكامولي",
-            "priceDelta": 1.5
-          },
-          {
-            "id": "o-9685",
-            "nameEn": "Extra Avocado",
-            "nameAr": "اكسترا افوكادو",
-            "priceDelta": 1.5
-          },
-          {
-            "id": "o-9686",
-            "nameEn": "Extra 3 Cheese",
-            "nameAr": "اكسترا 3 أجبان",
-            "priceDelta": 1
-          },
-          {
-            "id": "o-9687",
-            "nameEn": "Extra Roast Beef",
-            "nameAr": "اكسترا روست بيف",
-            "priceDelta": 0.6
-          },
-          {
             "id": "o-9689",
             "nameEn": "Extra Halloumi",
             "nameAr": "اكسترا حلوم",
             "priceDelta": 1
           },
           {
-            "id": "o-9690",
-            "nameEn": "Extra Egg",
-            "nameAr": "اكسترا بيض",
-            "priceDelta": 0.45
-          },
-          {
-            "id": "o-9691",
-            "nameEn": "Extra Cream Cheese",
-            "nameAr": "اكسترا كريم تشيز",
+            "id": "o-11860",
+            "nameEn": "Extra Sundried Tomato",
+            "nameAr": "Extra Sundried Tomato",
             "priceDelta": 0.6
           },
           {
-            "id": "o-9692",
-            "nameEn": "Extra Chicken",
-            "nameAr": "اكسترا دجاج",
+            "id": "o-11928",
+            "nameEn": "Extra Guacamole",
+            "nameAr": "Extra Guacamole",
             "priceDelta": 1.5
-          },
-          {
-            "id": "o-9693",
-            "nameEn": "Extra Chedder Cheese",
-            "nameAr": "اكسترا تشيدر تشيز",
-            "priceDelta": 0.2
           }
         ]
       },
       {
-        "id": "g-1673",
-        "nameEn": "Without",
-        "nameAr": "بدون اضافة",
+        "id": "g-3163",
+        "nameEn": "Extra vegetables",
+        "nameAr": "أضافات على الطعام",
         "multiple": true,
         "options": [
           {
-            "id": "o-2030",
-            "nameEn": "Without Lettuce",
-            "nameAr": "بدون خس",
+            "id": "o-11777",
+            "nameEn": "Extra Tomato",
+            "nameAr": "اكسترا طماطم",
             "priceDelta": 0
           },
           {
-            "id": "o-2031",
-            "nameEn": "Without Black Olive",
-            "nameAr": " بدون زيتون اسود",
+            "id": "o-11779",
+            "nameEn": "Extra Olives",
+            "nameAr": "اكسترا زيتون",
             "priceDelta": 0
           },
           {
-            "id": "o-2032",
-            "nameEn": "Without Tomato",
-            "nameAr": "بدون بندورة",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-2033",
-            "nameEn": "Without Roast Beef",
-            "nameAr": " بدون روست بيف",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-2034",
-            "nameEn": "Without Turkey",
-            "nameAr": "بدون تيركي",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-2035",
-            "nameEn": "Withoout Egg",
-            "nameAr": "بدون بيض",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-2036",
-            "nameEn": "Without Sun Dried Tomato",
-            "nameAr": "بدون بندورة مجففة ",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-2037",
-            "nameEn": "Without Cream Cheese",
-            "nameAr": "بدون كريم تشيز ",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-2038",
-            "nameEn": "Without Cheddar Cheese",
-            "nameAr": "بدون تشيدر تشيز ",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-2039",
-            "nameEn": "Without Avocado",
-            "nameAr": "بدون افوكادو ",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-2040",
-            "nameEn": "Without Guacamole",
-            "nameAr": "بدون جواكامولي",
+            "id": "o-11783",
+            "nameEn": "Extra Lettuce",
+            "nameAr": "Extra Lettuce",
             "priceDelta": 0
           }
         ]
@@ -11954,71 +8196,37 @@ export const generatedMenuItems: MenuItem[] = [
     ],
     "customizations": [
       {
-        "id": "g-2816",
-        "nameEn": "Extra Food",
+        "id": "g-3150",
+        "nameEn": "Extra vegetables",
         "nameAr": "أضافات على الطعام",
         "multiple": true,
         "options": [
           {
-            "id": "o-9300",
-            "nameEn": "Extra Salmon",
-            "nameAr": "اكسترا سالمون",
-            "priceDelta": 1.5
-          },
-          {
-            "id": "o-9301",
-            "nameEn": "Extra Turkey",
-            "nameAr": "اكسترا تيركي",
-            "priceDelta": 0.6
-          },
-          {
-            "id": "o-9302",
+            "id": "o-11686",
             "nameEn": "Extra Tomato",
             "nameAr": "اكسترا طماطم",
             "priceDelta": 0
           },
           {
-            "id": "o-9303",
-            "nameEn": "Extra Sundried Tomato",
-            "nameAr": "اكسترا بندورة مجففة",
-            "priceDelta": 0.6
-          },
-          {
-            "id": "o-9304",
+            "id": "o-11688",
             "nameEn": "Extra Olives",
             "nameAr": "اكسترا زيتون",
             "priceDelta": 0
           },
           {
-            "id": "o-9305",
+            "id": "o-11692",
             "nameEn": "Extra Lettuce",
-            "nameAr": "اكسترا خس",
+            "nameAr": "Extra Lettuce",
             "priceDelta": 0
-          },
-          {
-            "id": "o-9306",
-            "nameEn": "Extra Guacamole",
-            "nameAr": "اكسترا جواكامولي",
-            "priceDelta": 1.5
-          },
-          {
-            "id": "o-9307",
-            "nameEn": "Extra Avocado",
-            "nameAr": "اكسترا افوكادو",
-            "priceDelta": 1.5
-          },
-          {
-            "id": "o-9308",
-            "nameEn": "Extra 3 Cheese",
-            "nameAr": "اكسترا 3 أجبان",
-            "priceDelta": 1
-          },
-          {
-            "id": "o-9309",
-            "nameEn": "Extra Roast Beef",
-            "nameAr": "اكسترا روست بيف",
-            "priceDelta": 0.6
-          },
+          }
+        ]
+      },
+      {
+        "id": "g-2816",
+        "nameEn": "Extra Food",
+        "nameAr": "أضافات على الطعام",
+        "multiple": true,
+        "options": [
           {
             "id": "o-9311",
             "nameEn": "Extra Halloumi",
@@ -12026,28 +8234,22 @@ export const generatedMenuItems: MenuItem[] = [
             "priceDelta": 1
           },
           {
-            "id": "o-9312",
-            "nameEn": "Extra Egg",
-            "nameAr": "اكسترا بيض",
-            "priceDelta": 0.45
-          },
-          {
-            "id": "o-9313",
-            "nameEn": "Extra Cream Cheese",
-            "nameAr": "اكسترا كريم تشيز",
+            "id": "o-11852",
+            "nameEn": "Extra Sundried Tomato",
+            "nameAr": "Extra Sundried Tomato",
             "priceDelta": 0.6
           },
           {
-            "id": "o-9314",
-            "nameEn": "Extra Chicken",
-            "nameAr": "اكسترا دجاج",
+            "id": "o-11920",
+            "nameEn": "Extra Guacamole",
+            "nameAr": "Extra Guacamole",
             "priceDelta": 1.5
           },
           {
-            "id": "o-9315",
-            "nameEn": "Extra Chedder Cheese",
-            "nameAr": "اكسترا تشيدر تشيز",
-            "priceDelta": 0.2
+            "id": "o-11988",
+            "nameEn": "Extra Avocado",
+            "nameAr": "Extra Avocado",
+            "priceDelta": 1.5
           }
         ]
       },
@@ -12076,51 +8278,9 @@ export const generatedMenuItems: MenuItem[] = [
             "priceDelta": 0
           },
           {
-            "id": "o-664",
-            "nameEn": "Without Roast Beef",
-            "nameAr": " بدون روست بيف",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-665",
-            "nameEn": "Without Turkey",
-            "nameAr": "بدون تيركي",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-666",
-            "nameEn": "Withoout Egg",
-            "nameAr": "بدون بيض",
-            "priceDelta": 0
-          },
-          {
             "id": "o-667",
             "nameEn": "Without Sun Dried Tomato",
             "nameAr": "بدون بندورة مجففة ",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-668",
-            "nameEn": "Without Cream Cheese",
-            "nameAr": "بدون كريم تشيز ",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-669",
-            "nameEn": "Without Cheddar Cheese",
-            "nameAr": "بدون تشيدر تشيز ",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-670",
-            "nameEn": "Without Avocado",
-            "nameAr": "بدون افوكادو ",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-671",
-            "nameEn": "Without Guacamole",
-            "nameAr": "بدون جواكامولي",
             "priceDelta": 0
           }
         ]
@@ -12144,145 +8304,11 @@ export const generatedMenuItems: MenuItem[] = [
     ],
     "customizations": [
       {
-        "id": "g-1937",
-        "nameEn": "Without",
-        "nameAr": "بدون اضافة",
-        "multiple": true,
-        "options": [
-          {
-            "id": "o-2393",
-            "nameEn": "Without Lettuce",
-            "nameAr": "بدون خس",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-2394",
-            "nameEn": "Without Black Olive",
-            "nameAr": " بدون زيتون اسود",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-2395",
-            "nameEn": "Without Tomato",
-            "nameAr": "بدون بندورة",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-2396",
-            "nameEn": "Without Roast Beef",
-            "nameAr": " بدون روست بيف",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-2397",
-            "nameEn": "Without Turkey",
-            "nameAr": "بدون تيركي",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-2398",
-            "nameEn": "Withoout Egg",
-            "nameAr": "بدون بيض",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-2399",
-            "nameEn": "Without Sun Dried Tomato",
-            "nameAr": "بدون بندورة مجففة ",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-2400",
-            "nameEn": "Without Cream Cheese",
-            "nameAr": "بدون كريم تشيز ",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-2401",
-            "nameEn": "Without Cheddar Cheese",
-            "nameAr": "بدون تشيدر تشيز ",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-2402",
-            "nameEn": "Without Avocado",
-            "nameAr": "بدون افوكادو ",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-2403",
-            "nameEn": "Without Guacamole",
-            "nameAr": "بدون جواكامولي",
-            "priceDelta": 0
-          }
-        ]
-      },
-      {
         "id": "g-2825",
         "nameEn": "Extra Food",
         "nameAr": "أضافات على الطعام",
         "multiple": true,
         "options": [
-          {
-            "id": "o-9462",
-            "nameEn": "Extra Salmon",
-            "nameAr": "اكسترا سالمون",
-            "priceDelta": 1.5
-          },
-          {
-            "id": "o-9463",
-            "nameEn": "Extra Turkey",
-            "nameAr": "اكسترا تيركي",
-            "priceDelta": 0.6
-          },
-          {
-            "id": "o-9464",
-            "nameEn": "Extra Tomato",
-            "nameAr": "اكسترا طماطم",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-9465",
-            "nameEn": "Extra Sundried Tomato",
-            "nameAr": "اكسترا بندورة مجففة",
-            "priceDelta": 0.6
-          },
-          {
-            "id": "o-9466",
-            "nameEn": "Extra Olives",
-            "nameAr": "اكسترا زيتون",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-9467",
-            "nameEn": "Extra Lettuce",
-            "nameAr": "اكسترا خس",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-9468",
-            "nameEn": "Extra Guacamole",
-            "nameAr": "اكسترا جواكامولي",
-            "priceDelta": 1.5
-          },
-          {
-            "id": "o-9469",
-            "nameEn": "Extra Avocado",
-            "nameAr": "اكسترا افوكادو",
-            "priceDelta": 1.5
-          },
-          {
-            "id": "o-9470",
-            "nameEn": "Extra 3 Cheese",
-            "nameAr": "اكسترا 3 أجبان",
-            "priceDelta": 1
-          },
-          {
-            "id": "o-9471",
-            "nameEn": "Extra Roast Beef",
-            "nameAr": "اكسترا روست بيف",
-            "priceDelta": 0.6
-          },
           {
             "id": "o-9473",
             "nameEn": "Extra Halloumi",
@@ -12290,28 +8316,16 @@ export const generatedMenuItems: MenuItem[] = [
             "priceDelta": 1
           },
           {
-            "id": "o-9474",
-            "nameEn": "Extra Egg",
-            "nameAr": "اكسترا بيض",
-            "priceDelta": 0.45
-          },
-          {
-            "id": "o-9475",
-            "nameEn": "Extra Cream Cheese",
-            "nameAr": "اكسترا كريم تشيز",
+            "id": "o-11872",
+            "nameEn": "Extra Sundried Tomato",
+            "nameAr": "Extra Sundried Tomato",
             "priceDelta": 0.6
           },
           {
-            "id": "o-9476",
-            "nameEn": "Extra Chicken",
-            "nameAr": "اكسترا دجاج",
+            "id": "o-11940",
+            "nameEn": "Extra Guacamole",
+            "nameAr": "Extra Guacamole",
             "priceDelta": 1.5
-          },
-          {
-            "id": "o-9477",
-            "nameEn": "Extra Chedder Cheese",
-            "nameAr": "اكسترا تشيدر تشيز",
-            "priceDelta": 0.2
           }
         ]
       }
@@ -12340,94 +8354,28 @@ export const generatedMenuItems: MenuItem[] = [
         "multiple": true,
         "options": [
           {
-            "id": "o-9132",
-            "nameEn": "Extra Salmon",
-            "nameAr": "اكسترا سالمون",
-            "priceDelta": 1.5
-          },
-          {
-            "id": "o-9133",
-            "nameEn": "Extra Turkey",
-            "nameAr": "اكسترا تيركي",
-            "priceDelta": 0.6
-          },
-          {
-            "id": "o-9134",
-            "nameEn": "Extra Tomato",
-            "nameAr": "اكسترا طماطم",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-9135",
-            "nameEn": "Extra Sundried Tomato",
-            "nameAr": "اكسترا بندورة مجففة",
-            "priceDelta": 0.6
-          },
-          {
-            "id": "o-9136",
-            "nameEn": "Extra Olives",
-            "nameAr": "اكسترا زيتون",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-9137",
-            "nameEn": "Extra Lettuce",
-            "nameAr": "اكسترا خس",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-9138",
-            "nameEn": "Extra Guacamole",
-            "nameAr": "اكسترا جواكامولي",
-            "priceDelta": 1.5
-          },
-          {
-            "id": "o-9139",
-            "nameEn": "Extra Avocado",
-            "nameAr": "اكسترا افوكادو",
-            "priceDelta": 1.5
-          },
-          {
-            "id": "o-9140",
-            "nameEn": "Extra 3 Cheese",
-            "nameAr": "اكسترا 3 أجبان",
-            "priceDelta": 1
-          },
-          {
-            "id": "o-9141",
-            "nameEn": "Extra Roast Beef",
-            "nameAr": "اكسترا روست بيف",
-            "priceDelta": 0.6
-          },
-          {
             "id": "o-9143",
             "nameEn": "Extra Halloumi",
             "nameAr": "اكسترا حلوم",
             "priceDelta": 1
           },
           {
-            "id": "o-9144",
-            "nameEn": "Extra Egg",
-            "nameAr": "اكسترا بيض",
-            "priceDelta": 0.45
-          },
-          {
-            "id": "o-9145",
-            "nameEn": "Extra Cream Cheese",
-            "nameAr": "اكسترا كريم تشيز",
+            "id": "o-11831",
+            "nameEn": "Extra Sundried Tomato",
+            "nameAr": "Extra Sundried Tomato",
             "priceDelta": 0.6
           },
           {
-            "id": "o-9146",
-            "nameEn": "Extra Chicken",
-            "nameAr": "اكسترا دجاج",
+            "id": "o-11899",
+            "nameEn": "Extra Guacamole",
+            "nameAr": "Extra Guacamole",
             "priceDelta": 1.5
           },
           {
-            "id": "o-9147",
-            "nameEn": "Extra Chedder Cheese",
-            "nameAr": "اكسترا تشيدر تشيز",
-            "priceDelta": 0.2
+            "id": "o-11967",
+            "nameEn": "Extra Avocado",
+            "nameAr": "Extra Avocado",
+            "priceDelta": 1.5
           }
         ]
       }
@@ -12485,23 +8433,6 @@ export const generatedMenuItems: MenuItem[] = [
     "customizations": []
   },
   {
-    "id": "p-11935",
-    "categoryId": "cat-10",
-    "nameEn": "Hazelnut Paris-Brest Piece",
-    "nameAr": "قطعة باريس بريست بالبندق",
-    "emoji": "",
-    "imageUrl": "/menu/p-11935.webp",
-    "sizes": [
-      {
-        "id": "M",
-        "nameEn": "Regular",
-        "nameAr": "عادي",
-        "price": 2.9
-      }
-    ],
-    "customizations": []
-  },
-  {
     "id": "p-10400",
     "categoryId": "cat-30",
     "nameEn": "Honduras Decaf Specialty Coffee 250 G",
@@ -12521,7 +8452,7 @@ export const generatedMenuItems: MenuItem[] = [
         "id": "g-3074",
         "nameEn": "Choose Grind Size:",
         "nameAr": "اختر حجم الطحن:",
-        "multiple": true,
+        "multiple": false,
         "options": [
           {
             "id": "o-11202",
@@ -12586,82 +8517,10 @@ export const generatedMenuItems: MenuItem[] = [
         "multiple": true,
         "options": [
           {
-            "id": "o-9114",
-            "nameEn": "Extra Salmon",
-            "nameAr": "اكسترا سالمون",
-            "priceDelta": 1.5
-          },
-          {
-            "id": "o-9115",
-            "nameEn": "Extra Turkey",
-            "nameAr": "اكسترا تيركي",
-            "priceDelta": 0.6
-          },
-          {
-            "id": "o-9116",
-            "nameEn": "Extra Tomato",
-            "nameAr": "اكسترا طماطم",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-9117",
-            "nameEn": "Extra Sundried Tomato",
-            "nameAr": "اكسترا بندورة مجففة",
-            "priceDelta": 0.6
-          },
-          {
-            "id": "o-9118",
-            "nameEn": "Extra Olives",
-            "nameAr": "اكسترا زيتون",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-9119",
-            "nameEn": "Extra Lettuce",
-            "nameAr": "اكسترا خس",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-9120",
-            "nameEn": "Extra Guacamole",
-            "nameAr": "اكسترا جواكامولي",
-            "priceDelta": 1.5
-          },
-          {
-            "id": "o-9121",
-            "nameEn": "Extra Avocado",
-            "nameAr": "اكسترا افوكادو",
-            "priceDelta": 1.5
-          },
-          {
             "id": "o-9122",
             "nameEn": "Extra 3 Cheese",
             "nameAr": "اكسترا 3 أجبان",
             "priceDelta": 1
-          },
-          {
-            "id": "o-9123",
-            "nameEn": "Extra Roast Beef",
-            "nameAr": "اكسترا روست بيف",
-            "priceDelta": 0.6
-          },
-          {
-            "id": "o-9125",
-            "nameEn": "Extra Halloumi",
-            "nameAr": "اكسترا حلوم",
-            "priceDelta": 1
-          },
-          {
-            "id": "o-9126",
-            "nameEn": "Extra Egg",
-            "nameAr": "اكسترا بيض",
-            "priceDelta": 0.45
-          },
-          {
-            "id": "o-9127",
-            "nameEn": "Extra Cream Cheese",
-            "nameAr": "اكسترا كريم تشيز",
-            "priceDelta": 0.6
           },
           {
             "id": "o-9128",
@@ -12670,9 +8529,15 @@ export const generatedMenuItems: MenuItem[] = [
             "priceDelta": 1.5
           },
           {
-            "id": "o-9129",
+            "id": "o-11830",
+            "nameEn": "Extra Sundried Tomato",
+            "nameAr": "Extra Sundried Tomato",
+            "priceDelta": 0.6
+          },
+          {
+            "id": "o-12034",
             "nameEn": "Extra Chedder Cheese",
-            "nameAr": "اكسترا تشيدر تشيز",
+            "nameAr": "Extra Chedder Cheese",
             "priceDelta": 0.2
           }
         ]
@@ -12711,7 +8576,7 @@ export const generatedMenuItems: MenuItem[] = [
         "id": "g-1972",
         "nameEn": "Milk Type",
         "nameAr": "نوع الحليب",
-        "multiple": true,
+        "multiple": false,
         "options": [
           {
             "id": "o-7822",
@@ -12767,7 +8632,7 @@ export const generatedMenuItems: MenuItem[] = [
         "id": "g-3025",
         "nameEn": "Extra Almond Latte",
         "nameAr": "Extra Almond Latte",
-        "multiple": true,
+        "multiple": false,
         "options": [
           {
             "id": "o-11087",
@@ -12849,7 +8714,7 @@ export const generatedMenuItems: MenuItem[] = [
         "id": "g-2763",
         "nameEn": "Coffee Flavor",
         "nameAr": "نكهة القهوة",
-        "multiple": true,
+        "multiple": false,
         "options": [
           {
             "id": "o-8519",
@@ -12959,7 +8824,7 @@ export const generatedMenuItems: MenuItem[] = [
         "id": "g-1973",
         "nameEn": "Milk Type",
         "nameAr": "نوع الحليب",
-        "multiple": true,
+        "multiple": false,
         "options": [
           {
             "id": "o-2542",
@@ -13083,7 +8948,7 @@ export const generatedMenuItems: MenuItem[] = [
         "id": "g-1974",
         "nameEn": "Milk Type",
         "nameAr": "نوع الحليب",
-        "multiple": true,
+        "multiple": false,
         "options": [
           {
             "id": "o-7824",
@@ -13139,7 +9004,7 @@ export const generatedMenuItems: MenuItem[] = [
         "id": "g-2692",
         "nameEn": "Coffee Flavor",
         "nameAr": "نكهة القهوة",
-        "multiple": true,
+        "multiple": false,
         "options": [
           {
             "id": "o-8154",
@@ -13279,7 +9144,7 @@ export const generatedMenuItems: MenuItem[] = [
         "id": "g-1975",
         "nameEn": "Milk Type",
         "nameAr": "نوع الحليب",
-        "multiple": true,
+        "multiple": false,
         "options": [
           {
             "id": "o-7825",
@@ -13391,7 +9256,7 @@ export const generatedMenuItems: MenuItem[] = [
         "id": "g-2552",
         "nameEn": "Milk Type",
         "nameAr": "نوع الحليب",
-        "multiple": true,
+        "multiple": false,
         "options": [
           {
             "id": "o-7855",
@@ -13471,7 +9336,7 @@ export const generatedMenuItems: MenuItem[] = [
         "id": "g-2044",
         "nameEn": "Milk Type",
         "nameAr": "نوع الحليب",
-        "multiple": true,
+        "multiple": false,
         "options": [
           {
             "id": "o-7832",
@@ -13527,7 +9392,7 @@ export const generatedMenuItems: MenuItem[] = [
         "id": "g-2463",
         "nameEn": "Hot Chocolate Flavor",
         "nameAr": "نكهة الشوكلاتة الساخنة",
-        "multiple": true,
+        "multiple": false,
         "options": [
           {
             "id": "o-7486",
@@ -13600,76 +9465,10 @@ export const generatedMenuItems: MenuItem[] = [
         "multiple": true,
         "options": [
           {
-            "id": "o-10730",
-            "nameEn": "Extra Salmon",
-            "nameAr": "اكسترا سالمون",
-            "priceDelta": 1.5
-          },
-          {
-            "id": "o-10731",
-            "nameEn": "Extra Turkey",
-            "nameAr": "اكسترا تيركي",
-            "priceDelta": 0.6
-          },
-          {
-            "id": "o-10732",
-            "nameEn": "Extra Tomato",
-            "nameAr": "اكسترا طماطم",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-10733",
-            "nameEn": "Extra Sundried Tomato",
-            "nameAr": "اكسترا بندورة مجففة",
-            "priceDelta": 0.6
-          },
-          {
-            "id": "o-10734",
-            "nameEn": "Extra Olives",
-            "nameAr": "اكسترا زيتون",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-10735",
-            "nameEn": "Extra Lettuce",
-            "nameAr": "اكسترا خس",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-10736",
-            "nameEn": "Extra Guacamole",
-            "nameAr": "اكسترا جواكامولي",
-            "priceDelta": 1.5
-          },
-          {
-            "id": "o-10737",
-            "nameEn": "Extra Avocado",
-            "nameAr": "اكسترا افوكادو",
-            "priceDelta": 1.5
-          },
-          {
             "id": "o-10738",
             "nameEn": "Extra 3 Cheese",
             "nameAr": "اكسترا 3 أجبان",
             "priceDelta": 1
-          },
-          {
-            "id": "o-10739",
-            "nameEn": "Extra Roast Beef",
-            "nameAr": "اكسترا روست بيف",
-            "priceDelta": 0.6
-          },
-          {
-            "id": "o-10741",
-            "nameEn": "Extra Halloumi",
-            "nameAr": "اكسترا حلوم",
-            "priceDelta": 1
-          },
-          {
-            "id": "o-10742",
-            "nameEn": "Extra Egg",
-            "nameAr": "اكسترا بيض",
-            "priceDelta": 0.45
           },
           {
             "id": "o-10743",
@@ -13678,15 +9477,9 @@ export const generatedMenuItems: MenuItem[] = [
             "priceDelta": 0.6
           },
           {
-            "id": "o-10744",
-            "nameEn": "Extra Chicken",
-            "nameAr": "اكسترا دجاج",
-            "priceDelta": 1.5
-          },
-          {
-            "id": "o-10745",
+            "id": "o-12050",
             "nameEn": "Extra Chedder Cheese",
-            "nameAr": "اكسترا تشيدر تشيز",
+            "nameAr": "Extra Chedder Cheese",
             "priceDelta": 0.2
           }
         ]
@@ -13713,7 +9506,7 @@ export const generatedMenuItems: MenuItem[] = [
         "id": "g-1976",
         "nameEn": "Milk Type",
         "nameAr": "نوع الحليب",
-        "multiple": true,
+        "multiple": false,
         "options": [
           {
             "id": "o-7826",
@@ -13769,7 +9562,7 @@ export const generatedMenuItems: MenuItem[] = [
         "id": "g-2765",
         "nameEn": "Coffee Flavor",
         "nameAr": "نكهة القهوة",
-        "multiple": true,
+        "multiple": false,
         "options": [
           {
             "id": "o-8555",
@@ -13941,7 +9734,7 @@ export const generatedMenuItems: MenuItem[] = [
         "id": "g-1977",
         "nameEn": "Milk Type",
         "nameAr": "نوع الحليب",
-        "multiple": true,
+        "multiple": false,
         "options": [
           {
             "id": "o-7827",
@@ -13997,7 +9790,7 @@ export const generatedMenuItems: MenuItem[] = [
         "id": "g-2690",
         "nameEn": "Coffee Flavor",
         "nameAr": "نكهة القهوة",
-        "multiple": true,
+        "multiple": false,
         "options": [
           {
             "id": "o-8138",
@@ -14126,6 +9919,80 @@ export const generatedMenuItems: MenuItem[] = [
     ]
   },
   {
+    "id": "p-12182",
+    "categoryId": "cat-48",
+    "nameEn": "Hot Macadamia Latte",
+    "nameAr": "ماكاديميا لاتيه ساخن",
+    "emoji": "",
+    "imageUrl": "/menu/p-12182.webp",
+    "sizes": [
+      {
+        "id": "S",
+        "nameEn": "Small",
+        "nameAr": "صغير",
+        "price": 3.5
+      },
+      {
+        "id": "M",
+        "nameEn": "Medium",
+        "nameAr": "وسط",
+        "price": 4.1
+      }
+    ],
+    "customizations": [
+      {
+        "id": "g-3167",
+        "nameEn": "Milk Type",
+        "nameAr": "نوع الحليب",
+        "multiple": false,
+        "options": [
+          {
+            "id": "o-11807",
+            "nameEn": "Fresh Milk",
+            "nameAr": "حليب بقري طازج",
+            "priceDelta": 0
+          },
+          {
+            "id": "o-11801",
+            "nameEn": "Skimmed Milk",
+            "nameAr": "حليب خالي الدسم",
+            "priceDelta": 0
+          },
+          {
+            "id": "o-11802",
+            "nameEn": "Oat Milk",
+            "nameAr": "حليب شوفان",
+            "priceDelta": 0.4
+          },
+          {
+            "id": "o-11803",
+            "nameEn": "Soy Milk",
+            "nameAr": "حليب صويا",
+            "priceDelta": 0.4
+          },
+          {
+            "id": "o-11804",
+            "nameEn": "Almond Milk",
+            "nameAr": "حليب اللوز",
+            "priceDelta": 0.4
+          },
+          {
+            "id": "o-11805",
+            "nameEn": "Lactose Free Milk",
+            "nameAr": "حليب خالي اللاكتوز",
+            "priceDelta": 0.4
+          },
+          {
+            "id": "o-11806",
+            "nameEn": "Coconut Milk",
+            "nameAr": "حليب جوز الهند",
+            "priceDelta": 0.4
+          }
+        ]
+      }
+    ]
+  },
+  {
     "id": "p-10335",
     "categoryId": "cat-22",
     "nameEn": "Hot Mocha",
@@ -14157,7 +10024,7 @@ export const generatedMenuItems: MenuItem[] = [
         "id": "g-1978",
         "nameEn": "Milk Type",
         "nameAr": "نوع الحليب",
-        "multiple": true,
+        "multiple": false,
         "options": [
           {
             "id": "o-7828",
@@ -14213,7 +10080,7 @@ export const generatedMenuItems: MenuItem[] = [
         "id": "g-2627",
         "nameEn": "Mocha Flavor",
         "nameAr": "نكهة الموكا",
-        "multiple": true,
+        "multiple": false,
         "options": [
           {
             "id": "o-7860",
@@ -14239,7 +10106,7 @@ export const generatedMenuItems: MenuItem[] = [
         "id": "g-2767",
         "nameEn": "Coffee Flavor",
         "nameAr": "نكهة القهوة",
-        "multiple": true,
+        "multiple": false,
         "options": [
           {
             "id": "o-8589",
@@ -14348,6 +10215,80 @@ export const generatedMenuItems: MenuItem[] = [
     ]
   },
   {
+    "id": "p-12185",
+    "categoryId": "cat-48",
+    "nameEn": "Hot Pumpkin Pie Latte",
+    "nameAr": "بمكن باي لاتيه ساخن",
+    "emoji": "",
+    "imageUrl": "/menu/p-12185.webp",
+    "sizes": [
+      {
+        "id": "S",
+        "nameEn": "Small",
+        "nameAr": "صغير",
+        "price": 3.5
+      },
+      {
+        "id": "M",
+        "nameEn": "Medium",
+        "nameAr": "وسط",
+        "price": 4.1
+      }
+    ],
+    "customizations": [
+      {
+        "id": "g-3171",
+        "nameEn": "Milk Type",
+        "nameAr": "نوع الحليب",
+        "multiple": false,
+        "options": [
+          {
+            "id": "o-11825",
+            "nameEn": "Fresh Milk",
+            "nameAr": "حليب بقري طازج",
+            "priceDelta": 0
+          },
+          {
+            "id": "o-11819",
+            "nameEn": "Skimmed Milk",
+            "nameAr": "حليب خالي الدسم",
+            "priceDelta": 0
+          },
+          {
+            "id": "o-11820",
+            "nameEn": "Oat Milk",
+            "nameAr": "حليب شوفان",
+            "priceDelta": 0.4
+          },
+          {
+            "id": "o-11821",
+            "nameEn": "Soy Milk",
+            "nameAr": "حليب صويا",
+            "priceDelta": 0.4
+          },
+          {
+            "id": "o-11822",
+            "nameEn": "Almond Milk",
+            "nameAr": "حليب اللوز",
+            "priceDelta": 0.4
+          },
+          {
+            "id": "o-11823",
+            "nameEn": "Lactose Free Milk",
+            "nameAr": "حليب خالي اللاكتوز",
+            "priceDelta": 0.4
+          },
+          {
+            "id": "o-11824",
+            "nameEn": "Coconut Milk",
+            "nameAr": "حليب جوز الهند",
+            "priceDelta": 0.4
+          }
+        ]
+      }
+    ]
+  },
+  {
     "id": "p-11927",
     "categoryId": "cat-48",
     "nameEn": "Hot Seif Latte",
@@ -14373,7 +10314,7 @@ export const generatedMenuItems: MenuItem[] = [
         "id": "g-3106",
         "nameEn": "Milk Type",
         "nameAr": "نوع الحليب",
-        "multiple": true,
+        "multiple": false,
         "options": [
           {
             "id": "o-11421",
@@ -14453,7 +10394,7 @@ export const generatedMenuItems: MenuItem[] = [
         "id": "g-1979",
         "nameEn": "Milk Type",
         "nameAr": "نوع الحليب",
-        "multiple": true,
+        "multiple": false,
         "options": [
           {
             "id": "o-7829",
@@ -14509,7 +10450,7 @@ export const generatedMenuItems: MenuItem[] = [
         "id": "g-2768",
         "nameEn": "Coffee Flavor",
         "nameAr": "نكهة القهوة",
-        "multiple": true,
+        "multiple": false,
         "options": [
           {
             "id": "o-8606",
@@ -14649,7 +10590,7 @@ export const generatedMenuItems: MenuItem[] = [
         "id": "g-2769",
         "nameEn": "Coffee Flavor",
         "nameAr": "نكهة القهوة",
-        "multiple": true,
+        "multiple": false,
         "options": [
           {
             "id": "o-8623",
@@ -14759,7 +10700,7 @@ export const generatedMenuItems: MenuItem[] = [
         "id": "g-3038",
         "nameEn": "Milk Type",
         "nameAr": "نوع الحليب",
-        "multiple": true,
+        "multiple": false,
         "options": [
           {
             "id": "o-11128",
@@ -14833,7 +10774,7 @@ export const generatedMenuItems: MenuItem[] = [
         "id": "g-2632",
         "nameEn": "Tea Types",
         "nameAr": "نوع الشاي",
-        "multiple": true,
+        "multiple": false,
         "options": [
           {
             "id": "o-7891",
@@ -14925,7 +10866,7 @@ export const generatedMenuItems: MenuItem[] = [
         "id": "g-2772",
         "nameEn": "Coffee Flavor",
         "nameAr": "نكهة القهوة",
-        "multiple": true,
+        "multiple": false,
         "options": [
           {
             "id": "o-8676",
@@ -15035,7 +10976,7 @@ export const generatedMenuItems: MenuItem[] = [
         "id": "g-2994",
         "nameEn": "Milk Type",
         "nameAr": "نوع الحليب",
-        "multiple": true,
+        "multiple": false,
         "options": [
           {
             "id": "o-10980",
@@ -15146,7 +11087,7 @@ export const generatedMenuItems: MenuItem[] = [
         "id": "g-2771",
         "nameEn": "Coffee Flavor",
         "nameAr": "نكهة القهوة",
-        "multiple": true,
+        "multiple": false,
         "options": [
           {
             "id": "o-8657",
@@ -15256,7 +11197,7 @@ export const generatedMenuItems: MenuItem[] = [
         "id": "g-2982",
         "nameEn": "Milk Type",
         "nameAr": "نوع الحليب",
-        "multiple": true,
+        "multiple": false,
         "options": [
           {
             "id": "o-10923",
@@ -15367,7 +11308,7 @@ export const generatedMenuItems: MenuItem[] = [
         "id": "g-2059",
         "nameEn": "Milk Type",
         "nameAr": "نوع الحليب",
-        "multiple": true,
+        "multiple": false,
         "options": [
           {
             "id": "o-7847",
@@ -15423,7 +11364,7 @@ export const generatedMenuItems: MenuItem[] = [
         "id": "g-2693",
         "nameEn": "Coffee Flavor",
         "nameAr": "نكهة القهوة",
-        "multiple": true,
+        "multiple": false,
         "options": [
           {
             "id": "o-8169",
@@ -15557,7 +11498,7 @@ export const generatedMenuItems: MenuItem[] = [
         "id": "g-2060",
         "nameEn": "Milk Type",
         "nameAr": "نوع الحليب",
-        "multiple": true,
+        "multiple": false,
         "options": [
           {
             "id": "o-7848",
@@ -15683,7 +11624,7 @@ export const generatedMenuItems: MenuItem[] = [
         "id": "g-3094",
         "nameEn": "Milk Type",
         "nameAr": "نوع الحليب",
-        "multiple": true,
+        "multiple": false,
         "options": [
           {
             "id": "o-11422",
@@ -15765,7 +11706,7 @@ export const generatedMenuItems: MenuItem[] = [
         "id": "g-2061",
         "nameEn": "Milk Type",
         "nameAr": "نوع الحليب",
-        "multiple": true,
+        "multiple": false,
         "options": [
           {
             "id": "o-7849",
@@ -15821,7 +11762,7 @@ export const generatedMenuItems: MenuItem[] = [
         "id": "g-2691",
         "nameEn": "Coffee Flavor",
         "nameAr": "نكهة القهوة",
-        "multiple": true,
+        "multiple": false,
         "options": [
           {
             "id": "o-8139",
@@ -15956,6 +11897,80 @@ export const generatedMenuItems: MenuItem[] = [
     ]
   },
   {
+    "id": "p-12184",
+    "categoryId": "cat-48",
+    "nameEn": "Iced Macadamia Latte",
+    "nameAr": "ماكاديميا لاتيه مثلّج",
+    "emoji": "",
+    "imageUrl": "/menu/p-12184.webp",
+    "sizes": [
+      {
+        "id": "S",
+        "nameEn": "Small",
+        "nameAr": "صغير",
+        "price": 3.75
+      },
+      {
+        "id": "M",
+        "nameEn": "Medium",
+        "nameAr": "وسط",
+        "price": 4.35
+      }
+    ],
+    "customizations": [
+      {
+        "id": "g-3169",
+        "nameEn": "Milk Type",
+        "nameAr": "نوع الحليب",
+        "multiple": false,
+        "options": [
+          {
+            "id": "o-11816",
+            "nameEn": "Fresh Milk",
+            "nameAr": "حليب بقري طازج",
+            "priceDelta": 0
+          },
+          {
+            "id": "o-11810",
+            "nameEn": "Skimmed Milk",
+            "nameAr": "حليب خالي الدسم",
+            "priceDelta": 0
+          },
+          {
+            "id": "o-11811",
+            "nameEn": "Oat Milk",
+            "nameAr": "حليب شوفان",
+            "priceDelta": 0.4
+          },
+          {
+            "id": "o-11812",
+            "nameEn": "Soy Milk",
+            "nameAr": "حليب صويا",
+            "priceDelta": 0.4
+          },
+          {
+            "id": "o-11813",
+            "nameEn": "Almond Milk",
+            "nameAr": "حليب اللوز",
+            "priceDelta": 0.4
+          },
+          {
+            "id": "o-11814",
+            "nameEn": "Lactose Free Milk",
+            "nameAr": "حليب خالي اللاكتوز",
+            "priceDelta": 0.4
+          },
+          {
+            "id": "o-11815",
+            "nameEn": "Coconut Milk",
+            "nameAr": "حليب جوز الهند",
+            "priceDelta": 0.4
+          }
+        ]
+      }
+    ]
+  },
+  {
     "id": "p-11370",
     "categoryId": "cat-24",
     "nameEn": "Iced Matcha Blueberry Latte",
@@ -15981,7 +11996,7 @@ export const generatedMenuItems: MenuItem[] = [
         "id": "g-2713",
         "nameEn": "Milk Type",
         "nameAr": "نوع الحليب",
-        "multiple": true,
+        "multiple": false,
         "options": [
           {
             "id": "o-8272",
@@ -16089,7 +12104,7 @@ export const generatedMenuItems: MenuItem[] = [
         "id": "g-2554",
         "nameEn": "Milk Type",
         "nameAr": "نوع الحليب",
-        "multiple": true,
+        "multiple": false,
         "options": [
           {
             "id": "o-7857",
@@ -16223,7 +12238,7 @@ export const generatedMenuItems: MenuItem[] = [
         "id": "g-3109",
         "nameEn": "Type",
         "nameAr": "Type",
-        "multiple": true,
+        "multiple": false,
         "options": [
           {
             "id": "o-11415",
@@ -16267,7 +12282,7 @@ export const generatedMenuItems: MenuItem[] = [
         "id": "g-2062",
         "nameEn": "Milk Type",
         "nameAr": "نوع الحليب",
-        "multiple": true,
+        "multiple": false,
         "options": [
           {
             "id": "o-7850",
@@ -16323,7 +12338,7 @@ export const generatedMenuItems: MenuItem[] = [
         "id": "g-2628",
         "nameEn": "Mocha Flavor",
         "nameAr": "نكهة الموكا",
-        "multiple": true,
+        "multiple": false,
         "options": [
           {
             "id": "o-7863",
@@ -16349,7 +12364,7 @@ export const generatedMenuItems: MenuItem[] = [
         "id": "g-2773",
         "nameEn": "Coffee Flavor",
         "nameAr": "نكهة القهوة",
-        "multiple": true,
+        "multiple": false,
         "options": [
           {
             "id": "o-8694",
@@ -16483,7 +12498,7 @@ export const generatedMenuItems: MenuItem[] = [
         "id": "g-2063",
         "nameEn": "Milk Type",
         "nameAr": "نوع الحليب",
-        "multiple": true,
+        "multiple": false,
         "options": [
           {
             "id": "o-7851",
@@ -16570,6 +12585,80 @@ export const generatedMenuItems: MenuItem[] = [
     ]
   },
   {
+    "id": "p-12187",
+    "categoryId": "cat-48",
+    "nameEn": "Iced Pumpkin Pie Latte",
+    "nameAr": "بمكن باي لاتيه مثلّج",
+    "emoji": "",
+    "imageUrl": "/menu/p-12187.webp",
+    "sizes": [
+      {
+        "id": "S",
+        "nameEn": "Small",
+        "nameAr": "صغير",
+        "price": 3.75
+      },
+      {
+        "id": "M",
+        "nameEn": "Medium",
+        "nameAr": "وسط",
+        "price": 4.35
+      }
+    ],
+    "customizations": [
+      {
+        "id": "g-3173",
+        "nameEn": "Milk Type",
+        "nameAr": "نوع الحليب",
+        "multiple": false,
+        "options": [
+          {
+            "id": "o-12106",
+            "nameEn": "Fresh Milk",
+            "nameAr": "حليب بقري طازج",
+            "priceDelta": 0
+          },
+          {
+            "id": "o-12100",
+            "nameEn": "Skimmed Milk",
+            "nameAr": "حليب خالي الدسم",
+            "priceDelta": 0
+          },
+          {
+            "id": "o-12101",
+            "nameEn": "Oat Milk",
+            "nameAr": "حليب شوفان",
+            "priceDelta": 0.4
+          },
+          {
+            "id": "o-12102",
+            "nameEn": "Soy Milk",
+            "nameAr": "حليب صويا",
+            "priceDelta": 0.4
+          },
+          {
+            "id": "o-12103",
+            "nameEn": "Almond Milk",
+            "nameAr": "حليب اللوز",
+            "priceDelta": 0.4
+          },
+          {
+            "id": "o-12104",
+            "nameEn": "Lactose Free Milk",
+            "nameAr": "حليب خالي اللاكتوز",
+            "priceDelta": 0.4
+          },
+          {
+            "id": "o-12105",
+            "nameEn": "Coconut Milk",
+            "nameAr": "حليب جوز الهند",
+            "priceDelta": 0.4
+          }
+        ]
+      }
+    ]
+  },
+  {
     "id": "p-11926",
     "categoryId": "cat-48",
     "nameEn": "Iced Seif Latte",
@@ -16609,7 +12698,7 @@ export const generatedMenuItems: MenuItem[] = [
         "id": "g-3103",
         "nameEn": "Milk Type",
         "nameAr": "نوع الحليب",
-        "multiple": true,
+        "multiple": false,
         "options": [
           {
             "id": "o-11406",
@@ -16689,7 +12778,7 @@ export const generatedMenuItems: MenuItem[] = [
         "id": "g-2064",
         "nameEn": "Milk Type",
         "nameAr": "نوع الحليب",
-        "multiple": true,
+        "multiple": false,
         "options": [
           {
             "id": "o-7852",
@@ -16745,7 +12834,7 @@ export const generatedMenuItems: MenuItem[] = [
         "id": "g-2695",
         "nameEn": "Coffee Flavor",
         "nameAr": "نكهة القهوة",
-        "multiple": true,
+        "multiple": false,
         "options": [
           {
             "id": "o-8199",
@@ -16911,7 +13000,7 @@ export const generatedMenuItems: MenuItem[] = [
         "id": "g-2065",
         "nameEn": "Milk Type",
         "nameAr": "نوع الحليب",
-        "multiple": true,
+        "multiple": false,
         "options": [
           {
             "id": "o-7853",
@@ -17023,7 +13112,7 @@ export const generatedMenuItems: MenuItem[] = [
         "id": "g-2711",
         "nameEn": "Milk Type",
         "nameAr": "نوع الحليب",
-        "multiple": true,
+        "multiple": false,
         "options": [
           {
             "id": "o-8262",
@@ -17172,40 +13261,22 @@ export const generatedMenuItems: MenuItem[] = [
         "multiple": true,
         "options": [
           {
-            "id": "o-10020",
-            "nameEn": "Extra Salmon",
-            "nameAr": "اكسترا سالمون",
-            "priceDelta": 1.5
-          },
-          {
-            "id": "o-10023",
+            "id": "o-11835",
             "nameEn": "Extra Sundried Tomato",
-            "nameAr": "اكسترا بندورة مجففة",
+            "nameAr": "Extra Sundried Tomato",
             "priceDelta": 0.6
           },
           {
-            "id": "o-10026",
-            "nameEn": "Extra Guacamole",
-            "nameAr": "اكسترا جواكامولي",
-            "priceDelta": 1.5
-          },
-          {
-            "id": "o-10027",
+            "id": "o-11971",
             "nameEn": "Extra Avocado",
-            "nameAr": "اكسترا افوكادو",
+            "nameAr": "Extra Avocado",
             "priceDelta": 1.5
           },
           {
-            "id": "o-10031",
-            "nameEn": "Extra Halloumi",
-            "nameAr": "اكسترا حلوم",
-            "priceDelta": 1
-          },
-          {
-            "id": "o-10034",
-            "nameEn": "Extra Chicken",
-            "nameAr": "اكسترا دجاج",
-            "priceDelta": 1.5
+            "id": "o-12039",
+            "nameEn": "Extra Chedder Cheese",
+            "nameAr": "Extra Chedder Cheese",
+            "priceDelta": 0.2
           }
         ]
       }
@@ -17330,7 +13401,7 @@ export const generatedMenuItems: MenuItem[] = [
         "id": "g-2636",
         "nameEn": "Milk Type",
         "nameAr": "نوع الحليب",
-        "multiple": true,
+        "multiple": false,
         "options": [
           {
             "id": "o-7912",
@@ -17476,20 +13547,20 @@ export const generatedMenuItems: MenuItem[] = [
       },
       {
         "id": "L",
-        "nameEn": "15",
-        "nameAr": "15",
+        "nameEn": "15 (تواصي)",
+        "nameAr": "15 (تواصي)",
         "price": 28
       },
       {
         "id": "L",
-        "nameEn": "20",
-        "nameAr": "20",
+        "nameEn": "20 (تواصي)",
+        "nameAr": "20 (تواصي)",
         "price": 38
       },
       {
         "id": "L",
-        "nameEn": "25",
-        "nameAr": "25",
+        "nameEn": "25 (تواصي)",
+        "nameAr": "25 (تواصي)",
         "price": 50
       }
     ],
@@ -17932,7 +14003,7 @@ export const generatedMenuItems: MenuItem[] = [
         "id": "g-2053",
         "nameEn": "Milk Type",
         "nameAr": "نوع الحليب",
-        "multiple": true,
+        "multiple": false,
         "options": [
           {
             "id": "o-7841",
@@ -19225,7 +15296,7 @@ export const generatedMenuItems: MenuItem[] = [
         "id": "g-2048",
         "nameEn": "Milk Type",
         "nameAr": "نوع الحليب",
-        "multiple": true,
+        "multiple": false,
         "options": [
           {
             "id": "o-7836",
@@ -19281,7 +15352,7 @@ export const generatedMenuItems: MenuItem[] = [
         "id": "g-2629",
         "nameEn": "Mocha Flavor",
         "nameAr": "نكهة الموكا",
-        "multiple": true,
+        "multiple": false,
         "options": [
           {
             "id": "o-7866",
@@ -19351,7 +15422,7 @@ export const generatedMenuItems: MenuItem[] = [
         "id": "g-3121",
         "nameEn": "Choose Grind Size:",
         "nameAr": "اختر حجم الطحن:",
-        "multiple": true,
+        "multiple": false,
         "options": [
           {
             "id": "o-11474",
@@ -19415,20 +15486,20 @@ export const generatedMenuItems: MenuItem[] = [
       },
       {
         "id": "L",
-        "nameEn": "15",
-        "nameAr": "15",
+        "nameEn": "15 (تواصي)",
+        "nameAr": "15 (تواصي)",
         "price": 28
       },
       {
         "id": "L",
-        "nameEn": "20",
-        "nameAr": "20",
+        "nameEn": "20 (تواصي)",
+        "nameAr": "20 (تواصي)",
         "price": 38
       },
       {
         "id": "L",
-        "nameEn": "25",
-        "nameAr": "25",
+        "nameEn": "25 (تواصي)",
+        "nameAr": "25 (تواصي)",
         "price": 50
       }
     ],
@@ -19772,7 +15843,7 @@ export const generatedMenuItems: MenuItem[] = [
         "id": "g-96",
         "nameEn": "Bagel Type",
         "nameAr": "نوع البيغل",
-        "multiple": true,
+        "multiple": false,
         "options": [
           {
             "id": "o-346",
@@ -19813,58 +15884,42 @@ export const generatedMenuItems: MenuItem[] = [
         ]
       },
       {
+        "id": "g-3151",
+        "nameEn": "Extra vegetables",
+        "nameAr": "أضافات على الطعام",
+        "multiple": true,
+        "options": [
+          {
+            "id": "o-11693",
+            "nameEn": "Extra Tomato",
+            "nameAr": "اكسترا طماطم",
+            "priceDelta": 0
+          },
+          {
+            "id": "o-11695",
+            "nameEn": "Extra Olives",
+            "nameAr": "اكسترا زيتون",
+            "priceDelta": 0
+          },
+          {
+            "id": "o-11699",
+            "nameEn": "Extra Lettuce",
+            "nameAr": "Extra Lettuce",
+            "priceDelta": 0
+          }
+        ]
+      },
+      {
         "id": "g-2845",
         "nameEn": "Extra Food",
         "nameAr": "أضافات على الطعام",
         "multiple": true,
         "options": [
           {
-            "id": "o-9822",
-            "nameEn": "Extra Salmon",
-            "nameAr": "اكسترا سالمون",
-            "priceDelta": 1.5
-          },
-          {
             "id": "o-9823",
             "nameEn": "Extra Turkey",
             "nameAr": "اكسترا تيركي",
             "priceDelta": 0.6
-          },
-          {
-            "id": "o-9824",
-            "nameEn": "Extra Tomato",
-            "nameAr": "اكسترا طماطم",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-9825",
-            "nameEn": "Extra Sundried Tomato",
-            "nameAr": "اكسترا بندورة مجففة",
-            "priceDelta": 0.6
-          },
-          {
-            "id": "o-9826",
-            "nameEn": "Extra Olives",
-            "nameAr": "اكسترا زيتون",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-9827",
-            "nameEn": "Extra Lettuce",
-            "nameAr": "اكسترا خس",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-9828",
-            "nameEn": "Extra Guacamole",
-            "nameAr": "اكسترا جواكامولي",
-            "priceDelta": 1.5
-          },
-          {
-            "id": "o-9829",
-            "nameEn": "Extra Avocado",
-            "nameAr": "اكسترا افوكادو",
-            "priceDelta": 1.5
           },
           {
             "id": "o-9830",
@@ -19879,12 +15934,6 @@ export const generatedMenuItems: MenuItem[] = [
             "priceDelta": 0.6
           },
           {
-            "id": "o-9833",
-            "nameEn": "Extra Halloumi",
-            "nameAr": "اكسترا حلوم",
-            "priceDelta": 1
-          },
-          {
             "id": "o-9834",
             "nameEn": "Extra Egg",
             "nameAr": "اكسترا بيض",
@@ -19897,90 +15946,16 @@ export const generatedMenuItems: MenuItem[] = [
             "priceDelta": 0.6
           },
           {
-            "id": "o-9836",
-            "nameEn": "Extra Chicken",
-            "nameAr": "اكسترا دجاج",
-            "priceDelta": 1.5
+            "id": "o-11883",
+            "nameEn": "Extra Sundried Tomato",
+            "nameAr": "Extra Sundried Tomato",
+            "priceDelta": 0.6
           },
           {
-            "id": "o-9837",
+            "id": "o-12087",
             "nameEn": "Extra Chedder Cheese",
-            "nameAr": "اكسترا تشيدر تشيز",
+            "nameAr": "Extra Chedder Cheese",
             "priceDelta": 0.2
-          }
-        ]
-      },
-      {
-        "id": "g-98",
-        "nameEn": "Without",
-        "nameAr": "بدون اضافة",
-        "multiple": true,
-        "options": [
-          {
-            "id": "o-363",
-            "nameEn": "Without Lettuce",
-            "nameAr": "بدون خس",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-364",
-            "nameEn": "Without Black Olive",
-            "nameAr": " بدون زيتون اسود",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-365",
-            "nameEn": "Without Tomato",
-            "nameAr": "بدون بندورة",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-366",
-            "nameEn": "Without Roast Beef",
-            "nameAr": " بدون روست بيف",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-367",
-            "nameEn": "Without Turkey",
-            "nameAr": "بدون تيركي",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-368",
-            "nameEn": "Withoout Egg",
-            "nameAr": "بدون بيض",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-369",
-            "nameEn": "Without Sun Dried Tomato",
-            "nameAr": "بدون بندورة مجففة ",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-370",
-            "nameEn": "Without Cream Cheese",
-            "nameAr": "بدون كريم تشيز ",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-371",
-            "nameEn": "Without Cheddar Cheese",
-            "nameAr": "بدون تشيدر تشيز ",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-372",
-            "nameEn": "Without Avocado",
-            "nameAr": "بدون افوكادو ",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-373",
-            "nameEn": "Without Guacamole",
-            "nameAr": "بدون جواكامولي",
-            "priceDelta": 0
           }
         ]
       }
@@ -20002,75 +15977,27 @@ export const generatedMenuItems: MenuItem[] = [
     ],
     "customizations": [
       {
-        "id": "g-1938",
-        "nameEn": "Without",
-        "nameAr": "بدون اضافة",
+        "id": "g-3177",
+        "nameEn": "Extra vegetables",
+        "nameAr": "أضافات على الطعام",
         "multiple": true,
         "options": [
           {
-            "id": "o-2404",
-            "nameEn": "Without Lettuce",
-            "nameAr": "بدون خس",
+            "id": "o-12122",
+            "nameEn": "Extra Tomato",
+            "nameAr": "اكسترا طماطم",
             "priceDelta": 0
           },
           {
-            "id": "o-2405",
-            "nameEn": "Without Black Olive",
-            "nameAr": " بدون زيتون اسود",
+            "id": "o-12123",
+            "nameEn": "Extra Olives",
+            "nameAr": "اكسترا زيتون",
             "priceDelta": 0
           },
           {
-            "id": "o-2406",
-            "nameEn": "Without Tomato",
-            "nameAr": "بدون بندورة",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-2407",
-            "nameEn": "Without Roast Beef",
-            "nameAr": " بدون روست بيف",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-2408",
-            "nameEn": "Without Turkey",
-            "nameAr": "بدون تيركي",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-2409",
-            "nameEn": "Withoout Egg",
-            "nameAr": "بدون بيض",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-2410",
-            "nameEn": "Without Sun Dried Tomato",
-            "nameAr": "بدون بندورة مجففة ",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-2411",
-            "nameEn": "Without Cream Cheese",
-            "nameAr": "بدون كريم تشيز ",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-2412",
-            "nameEn": "Without Cheddar Cheese",
-            "nameAr": "بدون تشيدر تشيز ",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-2413",
-            "nameEn": "Without Avocado",
-            "nameAr": "بدون افوكادو ",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-2414",
-            "nameEn": "Without Guacamole",
-            "nameAr": "بدون جواكامولي",
+            "id": "o-12124",
+            "nameEn": "Extra Lettuce",
+            "nameAr": "Extra Lettuce",
             "priceDelta": 0
           }
         ]
@@ -20082,69 +16009,15 @@ export const generatedMenuItems: MenuItem[] = [
         "multiple": true,
         "options": [
           {
-            "id": "o-9444",
-            "nameEn": "Extra Salmon",
-            "nameAr": "اكسترا سالمون",
-            "priceDelta": 1.5
-          },
-          {
             "id": "o-9445",
             "nameEn": "Extra Turkey",
             "nameAr": "اكسترا تيركي",
             "priceDelta": 0.6
           },
           {
-            "id": "o-9446",
-            "nameEn": "Extra Tomato",
-            "nameAr": "اكسترا طماطم",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-9447",
-            "nameEn": "Extra Sundried Tomato",
-            "nameAr": "اكسترا بندورة مجففة",
-            "priceDelta": 0.6
-          },
-          {
-            "id": "o-9448",
-            "nameEn": "Extra Olives",
-            "nameAr": "اكسترا زيتون",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-9449",
-            "nameEn": "Extra Lettuce",
-            "nameAr": "اكسترا خس",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-9450",
-            "nameEn": "Extra Guacamole",
-            "nameAr": "اكسترا جواكامولي",
-            "priceDelta": 1.5
-          },
-          {
-            "id": "o-9451",
-            "nameEn": "Extra Avocado",
-            "nameAr": "اكسترا افوكادو",
-            "priceDelta": 1.5
-          },
-          {
             "id": "o-9452",
             "nameEn": "Extra 3 Cheese",
             "nameAr": "اكسترا 3 أجبان",
-            "priceDelta": 1
-          },
-          {
-            "id": "o-9453",
-            "nameEn": "Extra Roast Beef",
-            "nameAr": "اكسترا روست بيف",
-            "priceDelta": 0.6
-          },
-          {
-            "id": "o-9455",
-            "nameEn": "Extra Halloumi",
-            "nameAr": "اكسترا حلوم",
             "priceDelta": 1
           },
           {
@@ -20160,15 +16033,15 @@ export const generatedMenuItems: MenuItem[] = [
             "priceDelta": 0.6
           },
           {
-            "id": "o-9458",
-            "nameEn": "Extra Chicken",
-            "nameAr": "اكسترا دجاج",
-            "priceDelta": 1.5
+            "id": "o-11871",
+            "nameEn": "Extra Sundried Tomato",
+            "nameAr": "Extra Sundried Tomato",
+            "priceDelta": 0.6
           },
           {
-            "id": "o-9459",
+            "id": "o-12075",
             "nameEn": "Extra Chedder Cheese",
-            "nameAr": "اكسترا تشيدر تشيز",
+            "nameAr": "Extra Chedder Cheese",
             "priceDelta": 0.2
           }
         ]
@@ -20192,17 +16065,37 @@ export const generatedMenuItems: MenuItem[] = [
     ],
     "customizations": [
       {
+        "id": "g-3164",
+        "nameEn": "Extra vegetables",
+        "nameAr": "أضافات على الطعام",
+        "multiple": true,
+        "options": [
+          {
+            "id": "o-11784",
+            "nameEn": "Extra Tomato",
+            "nameAr": "اكسترا طماطم",
+            "priceDelta": 0
+          },
+          {
+            "id": "o-11786",
+            "nameEn": "Extra Olives",
+            "nameAr": "اكسترا زيتون",
+            "priceDelta": 0
+          },
+          {
+            "id": "o-11790",
+            "nameEn": "Extra Lettuce",
+            "nameAr": "Extra Lettuce",
+            "priceDelta": 0
+          }
+        ]
+      },
+      {
         "id": "g-2836",
         "nameEn": "Extra Food",
         "nameAr": "أضافات على الطعام",
         "multiple": true,
         "options": [
-          {
-            "id": "o-9660",
-            "nameEn": "Extra Salmon",
-            "nameAr": "اكسترا سالمون",
-            "priceDelta": 1.5
-          },
           {
             "id": "o-9661",
             "nameEn": "Extra Turkey",
@@ -20210,57 +16103,9 @@ export const generatedMenuItems: MenuItem[] = [
             "priceDelta": 0.6
           },
           {
-            "id": "o-9662",
-            "nameEn": "Extra Tomato",
-            "nameAr": "اكسترا طماطم",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-9663",
-            "nameEn": "Extra Sundried Tomato",
-            "nameAr": "اكسترا بندورة مجففة",
-            "priceDelta": 0.6
-          },
-          {
-            "id": "o-9664",
-            "nameEn": "Extra Olives",
-            "nameAr": "اكسترا زيتون",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-9665",
-            "nameEn": "Extra Lettuce",
-            "nameAr": "اكسترا خس",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-9666",
-            "nameEn": "Extra Guacamole",
-            "nameAr": "اكسترا جواكامولي",
-            "priceDelta": 1.5
-          },
-          {
-            "id": "o-9667",
-            "nameEn": "Extra Avocado",
-            "nameAr": "اكسترا افوكادو",
-            "priceDelta": 1.5
-          },
-          {
             "id": "o-9668",
             "nameEn": "Extra 3 Cheese",
             "nameAr": "اكسترا 3 أجبان",
-            "priceDelta": 1
-          },
-          {
-            "id": "o-9669",
-            "nameEn": "Extra Roast Beef",
-            "nameAr": "اكسترا روست بيف",
-            "priceDelta": 0.6
-          },
-          {
-            "id": "o-9671",
-            "nameEn": "Extra Halloumi",
-            "nameAr": "اكسترا حلوم",
             "priceDelta": 1
           },
           {
@@ -20276,90 +16121,16 @@ export const generatedMenuItems: MenuItem[] = [
             "priceDelta": 0.6
           },
           {
-            "id": "o-9674",
-            "nameEn": "Extra Chicken",
-            "nameAr": "اكسترا دجاج",
-            "priceDelta": 1.5
+            "id": "o-11859",
+            "nameEn": "Extra Sundried Tomato",
+            "nameAr": "Extra Sundried Tomato",
+            "priceDelta": 0.6
           },
           {
-            "id": "o-9675",
+            "id": "o-12063",
             "nameEn": "Extra Chedder Cheese",
-            "nameAr": "اكسترا تشيدر تشيز",
+            "nameAr": "Extra Chedder Cheese",
             "priceDelta": 0.2
-          }
-        ]
-      },
-      {
-        "id": "g-1667",
-        "nameEn": "Without",
-        "nameAr": "بدون اضافة",
-        "multiple": true,
-        "options": [
-          {
-            "id": "o-1964",
-            "nameEn": "Without Lettuce",
-            "nameAr": "بدون خس",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-1965",
-            "nameEn": "Without Black Olive",
-            "nameAr": " بدون زيتون اسود",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-1966",
-            "nameEn": "Without Tomato",
-            "nameAr": "بدون بندورة",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-1967",
-            "nameEn": "Without Roast Beef",
-            "nameAr": " بدون روست بيف",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-1968",
-            "nameEn": "Without Turkey",
-            "nameAr": "بدون تيركي",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-1969",
-            "nameEn": "Withoout Egg",
-            "nameAr": "بدون بيض",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-1970",
-            "nameEn": "Without Sun Dried Tomato",
-            "nameAr": "بدون بندورة مجففة ",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-1971",
-            "nameEn": "Without Cream Cheese",
-            "nameAr": "بدون كريم تشيز ",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-1972",
-            "nameEn": "Without Cheddar Cheese",
-            "nameAr": "بدون تشيدر تشيز ",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-1973",
-            "nameEn": "Without Avocado",
-            "nameAr": "بدون افوكادو ",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-1974",
-            "nameEn": "Without Guacamole",
-            "nameAr": "بدون جواكامولي",
-            "priceDelta": 0
           }
         ]
       }
@@ -20382,58 +16153,42 @@ export const generatedMenuItems: MenuItem[] = [
     ],
     "customizations": [
       {
+        "id": "g-3152",
+        "nameEn": "Extra vegetables",
+        "nameAr": "أضافات على الطعام",
+        "multiple": true,
+        "options": [
+          {
+            "id": "o-11700",
+            "nameEn": "Extra Tomato",
+            "nameAr": "اكسترا طماطم",
+            "priceDelta": 0
+          },
+          {
+            "id": "o-11702",
+            "nameEn": "Extra Olives",
+            "nameAr": "اكسترا زيتون",
+            "priceDelta": 0
+          },
+          {
+            "id": "o-11706",
+            "nameEn": "Extra Lettuce",
+            "nameAr": "Extra Lettuce",
+            "priceDelta": 0
+          }
+        ]
+      },
+      {
         "id": "g-2815",
         "nameEn": "Extra Food",
         "nameAr": "أضافات على الطعام",
         "multiple": true,
         "options": [
           {
-            "id": "o-9282",
-            "nameEn": "Extra Salmon",
-            "nameAr": "اكسترا سالمون",
-            "priceDelta": 1.5
-          },
-          {
             "id": "o-9283",
             "nameEn": "Extra Turkey",
             "nameAr": "اكسترا تيركي",
             "priceDelta": 0.6
-          },
-          {
-            "id": "o-9284",
-            "nameEn": "Extra Tomato",
-            "nameAr": "اكسترا طماطم",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-9285",
-            "nameEn": "Extra Sundried Tomato",
-            "nameAr": "اكسترا بندورة مجففة",
-            "priceDelta": 0.6
-          },
-          {
-            "id": "o-9286",
-            "nameEn": "Extra Olives",
-            "nameAr": "اكسترا زيتون",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-9287",
-            "nameEn": "Extra Lettuce",
-            "nameAr": "اكسترا خس",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-9288",
-            "nameEn": "Extra Guacamole",
-            "nameAr": "اكسترا جواكامولي",
-            "priceDelta": 1.5
-          },
-          {
-            "id": "o-9289",
-            "nameEn": "Extra Avocado",
-            "nameAr": "اكسترا افوكادو",
-            "priceDelta": 1.5
           },
           {
             "id": "o-9290",
@@ -20448,12 +16203,6 @@ export const generatedMenuItems: MenuItem[] = [
             "priceDelta": 0.6
           },
           {
-            "id": "o-9293",
-            "nameEn": "Extra Halloumi",
-            "nameAr": "اكسترا حلوم",
-            "priceDelta": 1
-          },
-          {
             "id": "o-9294",
             "nameEn": "Extra Egg",
             "nameAr": "اكسترا بيض",
@@ -20466,90 +16215,22 @@ export const generatedMenuItems: MenuItem[] = [
             "priceDelta": 0.6
           },
           {
-            "id": "o-9296",
-            "nameEn": "Extra Chicken",
-            "nameAr": "اكسترا دجاج",
+            "id": "o-11851",
+            "nameEn": "Extra Sundried Tomato",
+            "nameAr": "Extra Sundried Tomato",
+            "priceDelta": 0.6
+          },
+          {
+            "id": "o-11987",
+            "nameEn": "Extra Avocado",
+            "nameAr": "Extra Avocado",
             "priceDelta": 1.5
           },
           {
-            "id": "o-9297",
+            "id": "o-12055",
             "nameEn": "Extra Chedder Cheese",
-            "nameAr": "اكسترا تشيدر تشيز",
+            "nameAr": "Extra Chedder Cheese",
             "priceDelta": 0.2
-          }
-        ]
-      },
-      {
-        "id": "g-258",
-        "nameEn": "Without",
-        "nameAr": "بدون اضافة",
-        "multiple": true,
-        "options": [
-          {
-            "id": "o-683",
-            "nameEn": "Without Lettuce",
-            "nameAr": "بدون خس",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-684",
-            "nameEn": "Without Black Olive",
-            "nameAr": " بدون زيتون اسود",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-685",
-            "nameEn": "Without Tomato",
-            "nameAr": "بدون بندورة",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-686",
-            "nameEn": "Without Roast Beef",
-            "nameAr": " بدون روست بيف",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-687",
-            "nameEn": "Without Turkey",
-            "nameAr": "بدون تيركي",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-688",
-            "nameEn": "Withoout Egg",
-            "nameAr": "بدون بيض",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-689",
-            "nameEn": "Without Sun Dried Tomato",
-            "nameAr": "بدون بندورة مجففة ",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-690",
-            "nameEn": "Without Cream Cheese",
-            "nameAr": "بدون كريم تشيز ",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-691",
-            "nameEn": "Without Cheddar Cheese",
-            "nameAr": "بدون تشيدر تشيز ",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-692",
-            "nameEn": "Without Avocado",
-            "nameAr": "بدون افوكادو ",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-693",
-            "nameEn": "Without Guacamole",
-            "nameAr": "بدون جواكامولي",
-            "priceDelta": 0
           }
         ]
       }
@@ -20711,7 +16392,7 @@ export const generatedMenuItems: MenuItem[] = [
         "id": "g-1952",
         "nameEn": "Dough Type",
         "nameAr": "نوع العجين",
-        "multiple": true,
+        "multiple": false,
         "options": [
           {
             "id": "o-7876",
@@ -20842,6 +16523,23 @@ export const generatedMenuItems: MenuItem[] = [
     ]
   },
   {
+    "id": "p-12157",
+    "categoryId": "cat-10",
+    "nameEn": "Peanut Butter & Date Tart",
+    "nameAr": "قطعة تارت الفول السوداني",
+    "emoji": "",
+    "imageUrl": "/menu/p-12157.webp",
+    "sizes": [
+      {
+        "id": "M",
+        "nameEn": "Regular",
+        "nameAr": "عادي",
+        "price": 2.9
+      }
+    ],
+    "customizations": []
+  },
+  {
     "id": "p-11994",
     "categoryId": "cat-47",
     "nameEn": "Peanut oat bar",
@@ -20876,6 +16574,23 @@ export const generatedMenuItems: MenuItem[] = [
     "customizations": []
   },
   {
+    "id": "p-12158",
+    "categoryId": "cat-10",
+    "nameEn": "Pear & Almond Puff Pastry",
+    "nameAr": "باف بيستري الأجاص و اللوز",
+    "emoji": "",
+    "imageUrl": "/menu/p-12158.webp",
+    "sizes": [
+      {
+        "id": "M",
+        "nameEn": "Regular",
+        "nameAr": "عادي",
+        "price": 2.5
+      }
+    ],
+    "customizations": []
+  },
+  {
     "id": "p-10330",
     "categoryId": "cat-16",
     "nameEn": "Penne Rose Pasta",
@@ -20898,82 +16613,10 @@ export const generatedMenuItems: MenuItem[] = [
         "multiple": true,
         "options": [
           {
-            "id": "o-9246",
-            "nameEn": "Extra Salmon",
-            "nameAr": "اكسترا سالمون",
-            "priceDelta": 1.5
-          },
-          {
-            "id": "o-9247",
-            "nameEn": "Extra Turkey",
-            "nameAr": "اكسترا تيركي",
-            "priceDelta": 0.6
-          },
-          {
-            "id": "o-9248",
-            "nameEn": "Extra Tomato",
-            "nameAr": "اكسترا طماطم",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-9249",
-            "nameEn": "Extra Sundried Tomato",
-            "nameAr": "اكسترا بندورة مجففة",
-            "priceDelta": 0.6
-          },
-          {
-            "id": "o-9250",
-            "nameEn": "Extra Olives",
-            "nameAr": "اكسترا زيتون",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-9251",
-            "nameEn": "Extra Lettuce",
-            "nameAr": "اكسترا خس",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-9252",
-            "nameEn": "Extra Guacamole",
-            "nameAr": "اكسترا جواكامولي",
-            "priceDelta": 1.5
-          },
-          {
-            "id": "o-9253",
-            "nameEn": "Extra Avocado",
-            "nameAr": "اكسترا افوكادو",
-            "priceDelta": 1.5
-          },
-          {
             "id": "o-9254",
             "nameEn": "Extra 3 Cheese",
             "nameAr": "اكسترا 3 أجبان",
             "priceDelta": 1
-          },
-          {
-            "id": "o-9255",
-            "nameEn": "Extra Roast Beef",
-            "nameAr": "اكسترا روست بيف",
-            "priceDelta": 0.6
-          },
-          {
-            "id": "o-9257",
-            "nameEn": "Extra Halloumi",
-            "nameAr": "اكسترا حلوم",
-            "priceDelta": 1
-          },
-          {
-            "id": "o-9258",
-            "nameEn": "Extra Egg",
-            "nameAr": "اكسترا بيض",
-            "priceDelta": 0.45
-          },
-          {
-            "id": "o-9259",
-            "nameEn": "Extra Cream Cheese",
-            "nameAr": "اكسترا كريم تشيز",
-            "priceDelta": 0.6
           },
           {
             "id": "o-9260",
@@ -20982,10 +16625,10 @@ export const generatedMenuItems: MenuItem[] = [
             "priceDelta": 1.5
           },
           {
-            "id": "o-9261",
-            "nameEn": "Extra Chedder Cheese",
-            "nameAr": "اكسترا تشيدر تشيز",
-            "priceDelta": 0.2
+            "id": "o-11834",
+            "nameEn": "Extra Sundried Tomato",
+            "nameAr": "Extra Sundried Tomato",
+            "priceDelta": 0.6
           }
         ]
       }
@@ -21135,7 +16778,7 @@ export const generatedMenuItems: MenuItem[] = [
         "id": "g-1953",
         "nameEn": "Dough Type",
         "nameAr": "نوع العجين",
-        "multiple": true,
+        "multiple": false,
         "options": [
           {
             "id": "o-7877",
@@ -21320,93 +16963,21 @@ export const generatedMenuItems: MenuItem[] = [
         "multiple": true,
         "options": [
           {
-            "id": "o-9150",
-            "nameEn": "Extra Salmon",
-            "nameAr": "اكسترا سالمون",
-            "priceDelta": 1.5
-          },
-          {
-            "id": "o-9151",
-            "nameEn": "Extra Turkey",
-            "nameAr": "اكسترا تيركي",
-            "priceDelta": 0.6
-          },
-          {
-            "id": "o-9152",
-            "nameEn": "Extra Tomato",
-            "nameAr": "اكسترا طماطم",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-9153",
-            "nameEn": "Extra Sundried Tomato",
-            "nameAr": "اكسترا بندورة مجففة",
-            "priceDelta": 0.6
-          },
-          {
-            "id": "o-9154",
-            "nameEn": "Extra Olives",
-            "nameAr": "اكسترا زيتون",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-9155",
-            "nameEn": "Extra Lettuce",
-            "nameAr": "اكسترا خس",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-9156",
-            "nameEn": "Extra Guacamole",
-            "nameAr": "اكسترا جواكامولي",
-            "priceDelta": 1.5
-          },
-          {
-            "id": "o-9157",
-            "nameEn": "Extra Avocado",
-            "nameAr": "اكسترا افوكادو",
-            "priceDelta": 1.5
-          },
-          {
             "id": "o-9158",
             "nameEn": "Extra 3 Cheese",
             "nameAr": "اكسترا 3 أجبان",
             "priceDelta": 1
           },
           {
-            "id": "o-9159",
-            "nameEn": "Extra Roast Beef",
-            "nameAr": "اكسترا روست بيف",
+            "id": "o-11832",
+            "nameEn": "Extra Sundried Tomato",
+            "nameAr": "Extra Sundried Tomato",
             "priceDelta": 0.6
           },
           {
-            "id": "o-9161",
-            "nameEn": "Extra Halloumi",
-            "nameAr": "اكسترا حلوم",
-            "priceDelta": 1
-          },
-          {
-            "id": "o-9162",
-            "nameEn": "Extra Egg",
-            "nameAr": "اكسترا بيض",
-            "priceDelta": 0.45
-          },
-          {
-            "id": "o-9163",
-            "nameEn": "Extra Cream Cheese",
-            "nameAr": "اكسترا كريم تشيز",
-            "priceDelta": 0.6
-          },
-          {
-            "id": "o-9164",
-            "nameEn": "Extra Chicken",
-            "nameAr": "اكسترا دجاج",
-            "priceDelta": 1.5
-          },
-          {
-            "id": "o-9165",
+            "id": "o-12036",
             "nameEn": "Extra Chedder Cheese",
-            "nameAr": "اكسترا تشيدر تشيز",
+            "nameAr": "Extra Chedder Cheese",
             "priceDelta": 0.2
           }
         ]
@@ -21489,7 +17060,7 @@ export const generatedMenuItems: MenuItem[] = [
         "id": "g-1980",
         "nameEn": "Milk Type",
         "nameAr": "نوع الحليب",
-        "multiple": true,
+        "multiple": false,
         "options": [
           {
             "id": "o-7830",
@@ -21595,7 +17166,7 @@ export const generatedMenuItems: MenuItem[] = [
         "id": "g-102",
         "nameEn": "Bagel Type",
         "nameAr": "نوع البيغل",
-        "multiple": true,
+        "multiple": false,
         "options": [
           {
             "id": "o-402",
@@ -21739,56 +17310,6 @@ export const generatedMenuItems: MenuItem[] = [
     ]
   },
   {
-    "id": "p-10255",
-    "categoryId": "cat-10",
-    "nameEn": "Puff Pastry Apple Pie",
-    "nameAr": "بف بيستري فطيرة التفاح",
-    "emoji": "",
-    "imageUrl": "/menu/p-10255.webp",
-    "sizes": [
-      {
-        "id": "M",
-        "nameEn": "Regular",
-        "nameAr": "عادي",
-        "price": 2.5
-      }
-    ],
-    "customizations": [
-      {
-        "id": "g-2914",
-        "nameEn": "Extra Sweet",
-        "nameAr": "Extra Sweet",
-        "multiple": true,
-        "options": [
-          {
-            "id": "o-10499",
-            "nameEn": "Extra Strawberry",
-            "nameAr": "Extra Strawberry",
-            "priceDelta": 0.6
-          },
-          {
-            "id": "o-10500",
-            "nameEn": "Extra Nutella",
-            "nameAr": "Extra Nutella",
-            "priceDelta": 0.6
-          },
-          {
-            "id": "o-10502",
-            "nameEn": "Extra Pistachio",
-            "nameAr": "Extra Pistachio",
-            "priceDelta": 1
-          },
-          {
-            "id": "o-10501",
-            "nameEn": "Ice Cream",
-            "nameAr": "Ice Cream",
-            "priceDelta": 1
-          }
-        ]
-      }
-    ]
-  },
-  {
     "id": "p-10659",
     "categoryId": "cat-27",
     "nameEn": "Pumpkin Chai Latte",
@@ -21814,7 +17335,7 @@ export const generatedMenuItems: MenuItem[] = [
         "id": "g-2683",
         "nameEn": "Milk Type",
         "nameAr": "نوع الحليب",
-        "multiple": true,
+        "multiple": false,
         "options": [
           {
             "id": "o-8086",
@@ -21867,6 +17388,23 @@ export const generatedMenuItems: MenuItem[] = [
         ]
       }
     ]
+  },
+  {
+    "id": "p-12154",
+    "categoryId": "cat-10",
+    "nameEn": "Pumpkin Danish",
+    "nameAr": "دنش القرع",
+    "emoji": "",
+    "imageUrl": "/menu/p-12154.webp",
+    "sizes": [
+      {
+        "id": "M",
+        "nameEn": "Regular",
+        "nameAr": "عادي",
+        "price": 2.9
+      }
+    ],
+    "customizations": []
   },
   {
     "id": "p-10322",
@@ -22039,102 +17577,16 @@ export const generatedMenuItems: MenuItem[] = [
         "multiple": true,
         "options": [
           {
-            "id": "o-10224",
-            "nameEn": "Extra Salmon",
-            "nameAr": "اكسترا سالمون",
-            "priceDelta": 1.5
-          },
-          {
-            "id": "o-10227",
-            "nameEn": "Extra Sundried Tomato",
-            "nameAr": "اكسترا بندورة مجففة",
-            "priceDelta": 0.6
-          },
-          {
-            "id": "o-10230",
-            "nameEn": "Extra Guacamole",
-            "nameAr": "اكسترا جواكامولي",
-            "priceDelta": 1.5
-          },
-          {
-            "id": "o-10231",
-            "nameEn": "Extra Avocado",
-            "nameAr": "اكسترا افوكادو",
-            "priceDelta": 1.5
-          },
-          {
-            "id": "o-10235",
-            "nameEn": "Extra Halloumi",
-            "nameAr": "اكسترا حلوم",
-            "priceDelta": 1
-          },
-          {
             "id": "o-10238",
             "nameEn": "Extra Chicken",
             "nameAr": "اكسترا دجاج",
             "priceDelta": 1.5
-          }
-        ]
-      }
-    ]
-  },
-  {
-    "id": "p-10262",
-    "categoryId": "cat-11",
-    "nameEn": "Raspberry Almond Muffin",
-    "nameAr": "مفن رازبيري",
-    "emoji": "",
-    "imageUrl": "/menu/p-10262.webp",
-    "sizes": [
-      {
-        "id": "M",
-        "nameEn": "Regular",
-        "nameAr": "عادي",
-        "price": 1.9
-      }
-    ],
-    "customizations": [
-      {
-        "id": "g-2862",
-        "nameEn": "Extra Sweet",
-        "nameAr": "Extra Sweet",
-        "multiple": true,
-        "options": [
+          },
           {
-            "id": "o-10115",
-            "nameEn": "Extra Strawberry",
-            "nameAr": "Extra Strawberry",
+            "id": "o-11841",
+            "nameEn": "Extra Sundried Tomato",
+            "nameAr": "Extra Sundried Tomato",
             "priceDelta": 0.6
-          },
-          {
-            "id": "o-10116",
-            "nameEn": "Extra Nutella",
-            "nameAr": "Extra Nutella",
-            "priceDelta": 0.6
-          },
-          {
-            "id": "o-10118",
-            "nameEn": "Extra Pistachio",
-            "nameAr": "Extra Pistachio",
-            "priceDelta": 1
-          },
-          {
-            "id": "o-10119",
-            "nameEn": "Extra Cream",
-            "nameAr": "Extra Cream",
-            "priceDelta": 0.45
-          },
-          {
-            "id": "o-10120",
-            "nameEn": "Extra Nuts",
-            "nameAr": "Extra Nuts",
-            "priceDelta": 0.45
-          },
-          {
-            "id": "o-10117",
-            "nameEn": "Ice Cream",
-            "nameAr": "Ice Cream",
-            "priceDelta": 1
           }
         ]
       }
@@ -22162,20 +17614,20 @@ export const generatedMenuItems: MenuItem[] = [
       },
       {
         "id": "L",
-        "nameEn": "15",
-        "nameAr": "15",
+        "nameEn": "15 (تواصي)",
+        "nameAr": "15 (تواصي)",
         "price": 38
       },
       {
         "id": "L",
-        "nameEn": "20",
-        "nameAr": "20",
+        "nameEn": "20 (تواصي)",
+        "nameAr": "20 (تواصي)",
         "price": 50
       },
       {
         "id": "L",
-        "nameEn": "25",
-        "nameAr": "25",
+        "nameEn": "25 (تواصي)",
+        "nameAr": "25 (تواصي)",
         "price": 58
       }
     ],
@@ -22283,7 +17735,7 @@ export const generatedMenuItems: MenuItem[] = [
         "id": "g-99",
         "nameEn": "Bagel Type",
         "nameAr": "نوع البيغل",
-        "multiple": true,
+        "multiple": false,
         "options": [
           {
             "id": "o-374",
@@ -22330,54 +17782,6 @@ export const generatedMenuItems: MenuItem[] = [
         "multiple": true,
         "options": [
           {
-            "id": "o-9984",
-            "nameEn": "Extra Salmon",
-            "nameAr": "اكسترا سالمون",
-            "priceDelta": 1.5
-          },
-          {
-            "id": "o-9985",
-            "nameEn": "Extra Turkey",
-            "nameAr": "اكسترا تيركي",
-            "priceDelta": 0.6
-          },
-          {
-            "id": "o-9986",
-            "nameEn": "Extra Tomato",
-            "nameAr": "اكسترا طماطم",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-9987",
-            "nameEn": "Extra Sundried Tomato",
-            "nameAr": "اكسترا بندورة مجففة",
-            "priceDelta": 0.6
-          },
-          {
-            "id": "o-9988",
-            "nameEn": "Extra Olives",
-            "nameAr": "اكسترا زيتون",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-9989",
-            "nameEn": "Extra Lettuce",
-            "nameAr": "اكسترا خس",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-9990",
-            "nameEn": "Extra Guacamole",
-            "nameAr": "اكسترا جواكامولي",
-            "priceDelta": 1.5
-          },
-          {
-            "id": "o-9991",
-            "nameEn": "Extra Avocado",
-            "nameAr": "اكسترا افوكادو",
-            "priceDelta": 1.5
-          },
-          {
             "id": "o-9992",
             "nameEn": "Extra 3 Cheese",
             "nameAr": "اكسترا 3 أجبان",
@@ -22390,243 +17794,21 @@ export const generatedMenuItems: MenuItem[] = [
             "priceDelta": 0.6
           },
           {
-            "id": "o-9995",
-            "nameEn": "Extra Halloumi",
-            "nameAr": "اكسترا حلوم",
-            "priceDelta": 1
-          },
-          {
             "id": "o-9996",
             "nameEn": "Extra Egg",
             "nameAr": "اكسترا بيض",
             "priceDelta": 0.45
           },
           {
-            "id": "o-9997",
-            "nameEn": "Extra Cream Cheese",
-            "nameAr": "اكسترا كريم تشيز",
-            "priceDelta": 0.6
-          },
-          {
-            "id": "o-9998",
-            "nameEn": "Extra Chicken",
-            "nameAr": "اكسترا دجاج",
-            "priceDelta": 1.5
-          },
-          {
-            "id": "o-9999",
-            "nameEn": "Extra Chedder Cheese",
-            "nameAr": "اكسترا تشيدر تشيز",
-            "priceDelta": 0.2
-          }
-        ]
-      },
-      {
-        "id": "g-101",
-        "nameEn": "Without",
-        "nameAr": "بدون اضافة",
-        "multiple": true,
-        "options": [
-          {
-            "id": "o-391",
-            "nameEn": "Without Lettuce",
-            "nameAr": "بدون خس",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-392",
-            "nameEn": "Without Black Olive",
-            "nameAr": " بدون زيتون اسود",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-393",
-            "nameEn": "Without Tomato",
-            "nameAr": "بدون بندورة",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-394",
-            "nameEn": "Without Roast Beef",
-            "nameAr": " بدون روست بيف",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-395",
-            "nameEn": "Without Turkey",
-            "nameAr": "بدون تيركي",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-396",
-            "nameEn": "Withoout Egg",
-            "nameAr": "بدون بيض",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-397",
-            "nameEn": "Without Sun Dried Tomato",
-            "nameAr": "بدون بندورة مجففة ",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-398",
-            "nameEn": "Without Cream Cheese",
-            "nameAr": "بدون كريم تشيز ",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-399",
-            "nameEn": "Without Cheddar Cheese",
-            "nameAr": "بدون تشيدر تشيز ",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-400",
-            "nameEn": "Without Avocado",
-            "nameAr": "بدون افوكادو ",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-401",
-            "nameEn": "Without Guacamole",
-            "nameAr": "بدون جواكامولي",
-            "priceDelta": 0
-          }
-        ]
-      }
-    ]
-  },
-  {
-    "id": "p-10196",
-    "categoryId": "cat-6",
-    "nameEn": "Roast Beef Sandwich",
-    "nameAr": "ساندويش روست بيف",
-    "emoji": "",
-    "imageUrl": "/menu/p-10196.webp",
-    "sizes": [
-      {
-        "id": "M",
-        "nameEn": "Regular",
-        "nameAr": "عادي",
-        "price": 3.4
-      }
-    ],
-    "customizations": [
-      {
-        "id": "g-1942",
-        "nameEn": "Bread Type",
-        "nameAr": "نوع الخبز",
-        "multiple": true,
-        "options": [
-          {
-            "id": "o-2430",
-            "nameEn": "White Bread",
-            "nameAr": "خبز أبيض",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-2431",
-            "nameEn": "Brown Bread",
-            "nameAr": "خبز نخالة أسمر",
-            "priceDelta": 0
-          }
-        ]
-      },
-      {
-        "id": "g-2797",
-        "nameEn": "Extra Food",
-        "nameAr": "أضافات على الطعام",
-        "multiple": true,
-        "options": [
-          {
-            "id": "o-8970",
-            "nameEn": "Extra Salmon",
-            "nameAr": "اكسترا سالمون",
-            "priceDelta": 1.5
-          },
-          {
-            "id": "o-8971",
-            "nameEn": "Extra Turkey",
-            "nameAr": "اكسترا تيركي",
-            "priceDelta": 0.6
-          },
-          {
-            "id": "o-8972",
-            "nameEn": "Extra Tomato",
-            "nameAr": "اكسترا طماطم",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-8973",
+            "id": "o-11891",
             "nameEn": "Extra Sundried Tomato",
-            "nameAr": "اكسترا بندورة مجففة",
+            "nameAr": "Extra Sundried Tomato",
             "priceDelta": 0.6
           },
           {
-            "id": "o-8974",
-            "nameEn": "Extra Olives",
-            "nameAr": "اكسترا زيتون",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-8975",
-            "nameEn": "Extra Lettuce",
-            "nameAr": "اكسترا خس",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-8976",
-            "nameEn": "Extra Guacamole",
-            "nameAr": "اكسترا جواكامولي",
-            "priceDelta": 1.5
-          },
-          {
-            "id": "o-8977",
-            "nameEn": "Extra Avocado",
-            "nameAr": "اكسترا افوكادو",
-            "priceDelta": 1.5
-          },
-          {
-            "id": "o-8978",
-            "nameEn": "Extra 3 Cheese",
-            "nameAr": "اكسترا 3 أجبان",
-            "priceDelta": 1
-          },
-          {
-            "id": "o-8979",
-            "nameEn": "Extra Roast Beef",
-            "nameAr": "اكسترا روست بيف",
-            "priceDelta": 0.6
-          },
-          {
-            "id": "o-8981",
-            "nameEn": "Extra Halloumi",
-            "nameAr": "اكسترا حلوم",
-            "priceDelta": 1
-          },
-          {
-            "id": "o-8982",
-            "nameEn": "Extra Egg",
-            "nameAr": "اكسترا بيض",
-            "priceDelta": 0.45
-          },
-          {
-            "id": "o-8983",
-            "nameEn": "Extra Cream Cheese",
-            "nameAr": "اكسترا كريم تشيز",
-            "priceDelta": 0.6
-          },
-          {
-            "id": "o-8984",
-            "nameEn": "Extra Chicken",
-            "nameAr": "اكسترا دجاج",
-            "priceDelta": 1.5
-          },
-          {
-            "id": "o-8985",
+            "id": "o-12095",
             "nameEn": "Extra Chedder Cheese",
-            "nameAr": "اكسترا تشيدر تشيز",
+            "nameAr": "Extra Chedder Cheese",
             "priceDelta": 0.2
           }
         ]
@@ -22656,30 +17838,6 @@ export const generatedMenuItems: MenuItem[] = [
         "multiple": true,
         "options": [
           {
-            "id": "o-10206",
-            "nameEn": "Extra Salmon",
-            "nameAr": "اكسترا سالمون",
-            "priceDelta": 1.5
-          },
-          {
-            "id": "o-10209",
-            "nameEn": "Extra Sundried Tomato",
-            "nameAr": "اكسترا بندورة مجففة",
-            "priceDelta": 0.6
-          },
-          {
-            "id": "o-10212",
-            "nameEn": "Extra Guacamole",
-            "nameAr": "اكسترا جواكامولي",
-            "priceDelta": 1.5
-          },
-          {
-            "id": "o-10213",
-            "nameEn": "Extra Avocado",
-            "nameAr": "اكسترا افوكادو",
-            "priceDelta": 1.5
-          },
-          {
             "id": "o-10217",
             "nameEn": "Extra Halloumi",
             "nameAr": "اكسترا حلوم",
@@ -22690,6 +17848,12 @@ export const generatedMenuItems: MenuItem[] = [
             "nameEn": "Extra Chicken",
             "nameAr": "اكسترا دجاج",
             "priceDelta": 1.5
+          },
+          {
+            "id": "o-11840",
+            "nameEn": "Extra Sundried Tomato",
+            "nameAr": "Extra Sundried Tomato",
+            "priceDelta": 0.6
           }
         ]
       }
@@ -22715,7 +17879,7 @@ export const generatedMenuItems: MenuItem[] = [
         "id": "g-103",
         "nameEn": "Bagel Type",
         "nameAr": "نوع البيغل",
-        "multiple": true,
+        "multiple": false,
         "options": [
           {
             "id": "o-408",
@@ -22756,6 +17920,32 @@ export const generatedMenuItems: MenuItem[] = [
         ]
       },
       {
+        "id": "g-3153",
+        "nameEn": "Extra vegetables",
+        "nameAr": "أضافات على الطعام",
+        "multiple": true,
+        "options": [
+          {
+            "id": "o-11707",
+            "nameEn": "Extra Tomato",
+            "nameAr": "اكسترا طماطم",
+            "priceDelta": 0
+          },
+          {
+            "id": "o-11709",
+            "nameEn": "Extra Olives",
+            "nameAr": "اكسترا زيتون",
+            "priceDelta": 0
+          },
+          {
+            "id": "o-11713",
+            "nameEn": "Extra Lettuce",
+            "nameAr": "Extra Lettuce",
+            "priceDelta": 0
+          }
+        ]
+      },
+      {
         "id": "g-2834",
         "nameEn": "Extra Food",
         "nameAr": "أضافات على الطعام",
@@ -22768,162 +17958,16 @@ export const generatedMenuItems: MenuItem[] = [
             "priceDelta": 1.5
           },
           {
-            "id": "o-9625",
-            "nameEn": "Extra Turkey",
-            "nameAr": "اكسترا تيركي",
-            "priceDelta": 0.6
-          },
-          {
-            "id": "o-9626",
-            "nameEn": "Extra Tomato",
-            "nameAr": "اكسترا طماطم",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-9627",
-            "nameEn": "Extra Sundried Tomato",
-            "nameAr": "اكسترا بندورة مجففة",
-            "priceDelta": 0.6
-          },
-          {
-            "id": "o-9628",
-            "nameEn": "Extra Olives",
-            "nameAr": "اكسترا زيتون",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-9629",
-            "nameEn": "Extra Lettuce",
-            "nameAr": "اكسترا خس",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-9630",
-            "nameEn": "Extra Guacamole",
-            "nameAr": "اكسترا جواكامولي",
-            "priceDelta": 1.5
-          },
-          {
-            "id": "o-9631",
-            "nameEn": "Extra Avocado",
-            "nameAr": "اكسترا افوكادو",
-            "priceDelta": 1.5
-          },
-          {
-            "id": "o-9632",
-            "nameEn": "Extra 3 Cheese",
-            "nameAr": "اكسترا 3 أجبان",
-            "priceDelta": 1
-          },
-          {
-            "id": "o-9633",
-            "nameEn": "Extra Roast Beef",
-            "nameAr": "اكسترا روست بيف",
-            "priceDelta": 0.6
-          },
-          {
-            "id": "o-9635",
-            "nameEn": "Extra Halloumi",
-            "nameAr": "اكسترا حلوم",
-            "priceDelta": 1
-          },
-          {
-            "id": "o-9636",
-            "nameEn": "Extra Egg",
-            "nameAr": "اكسترا بيض",
-            "priceDelta": 0.45
-          },
-          {
             "id": "o-9637",
             "nameEn": "Extra Cream Cheese",
             "nameAr": "اكسترا كريم تشيز",
             "priceDelta": 0.6
           },
           {
-            "id": "o-9638",
-            "nameEn": "Extra Chicken",
-            "nameAr": "اكسترا دجاج",
-            "priceDelta": 1.5
-          },
-          {
-            "id": "o-9639",
-            "nameEn": "Extra Chedder Cheese",
-            "nameAr": "اكسترا تشيدر تشيز",
-            "priceDelta": 0.2
-          }
-        ]
-      },
-      {
-        "id": "g-105",
-        "nameEn": "Without",
-        "nameAr": "بدون اضافة",
-        "multiple": true,
-        "options": [
-          {
-            "id": "o-425",
-            "nameEn": "Without Lettuce",
-            "nameAr": "بدون خس",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-426",
-            "nameEn": "Without Black Olive",
-            "nameAr": " بدون زيتون اسود",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-427",
-            "nameEn": "Without Tomato",
-            "nameAr": "بدون بندورة",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-428",
-            "nameEn": "Without Roast Beef",
-            "nameAr": " بدون روست بيف",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-429",
-            "nameEn": "Without Turkey",
-            "nameAr": "بدون تيركي",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-430",
-            "nameEn": "Withoout Egg",
-            "nameAr": "بدون بيض",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-431",
-            "nameEn": "Without Sun Dried Tomato",
-            "nameAr": "بدون بندورة مجففة ",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-432",
-            "nameEn": "Without Cream Cheese",
-            "nameAr": "بدون كريم تشيز ",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-433",
-            "nameEn": "Without Cheddar Cheese",
-            "nameAr": "بدون تشيدر تشيز ",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-434",
-            "nameEn": "Without Avocado",
-            "nameAr": "بدون افوكادو ",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-435",
-            "nameEn": "Without Guacamole",
-            "nameAr": "بدون جواكامولي",
-            "priceDelta": 0
+            "id": "o-11881",
+            "nameEn": "Extra Sundried Tomato",
+            "nameAr": "Extra Sundried Tomato",
+            "priceDelta": 0.6
           }
         ]
       }
@@ -22946,75 +17990,27 @@ export const generatedMenuItems: MenuItem[] = [
     ],
     "customizations": [
       {
-        "id": "g-2070",
-        "nameEn": "Without",
-        "nameAr": "بدون اضافة",
+        "id": "g-3165",
+        "nameEn": "Extra vegetables",
+        "nameAr": "أضافات على الطعام",
         "multiple": true,
         "options": [
           {
-            "id": "o-3175",
-            "nameEn": "Without Lettuce",
-            "nameAr": "بدون خس",
+            "id": "o-11791",
+            "nameEn": "Extra Tomato",
+            "nameAr": "اكسترا طماطم",
             "priceDelta": 0
           },
           {
-            "id": "o-3176",
-            "nameEn": "Without Black Olive",
-            "nameAr": " بدون زيتون اسود",
+            "id": "o-11793",
+            "nameEn": "Extra Olives",
+            "nameAr": "اكسترا زيتون",
             "priceDelta": 0
           },
           {
-            "id": "o-3177",
-            "nameEn": "Without Tomato",
-            "nameAr": "بدون بندورة",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-3178",
-            "nameEn": "Without Roast Beef",
-            "nameAr": " بدون روست بيف",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-3179",
-            "nameEn": "Without Turkey",
-            "nameAr": "بدون تيركي",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-3180",
-            "nameEn": "Withoout Egg",
-            "nameAr": "بدون بيض",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-3181",
-            "nameEn": "Without Sun Dried Tomato",
-            "nameAr": "بدون بندورة مجففة ",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-3182",
-            "nameEn": "Without Cream Cheese",
-            "nameAr": "بدون كريم تشيز ",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-3183",
-            "nameEn": "Without Cheddar Cheese",
-            "nameAr": "بدون تشيدر تشيز ",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-3184",
-            "nameEn": "Without Avocado",
-            "nameAr": "بدون افوكادو ",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-3185",
-            "nameEn": "Without Guacamole",
-            "nameAr": "بدون جواكامولي",
+            "id": "o-11797",
+            "nameEn": "Extra Lettuce",
+            "nameAr": "Extra Lettuce",
             "priceDelta": 0
           }
         ]
@@ -23032,88 +18028,16 @@ export const generatedMenuItems: MenuItem[] = [
             "priceDelta": 1.5
           },
           {
-            "id": "o-9643",
-            "nameEn": "Extra Turkey",
-            "nameAr": "اكسترا تيركي",
-            "priceDelta": 0.6
-          },
-          {
-            "id": "o-9644",
-            "nameEn": "Extra Tomato",
-            "nameAr": "اكسترا طماطم",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-9645",
-            "nameEn": "Extra Sundried Tomato",
-            "nameAr": "اكسترا بندورة مجففة",
-            "priceDelta": 0.6
-          },
-          {
-            "id": "o-9646",
-            "nameEn": "Extra Olives",
-            "nameAr": "اكسترا زيتون",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-9647",
-            "nameEn": "Extra Lettuce",
-            "nameAr": "اكسترا خس",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-9648",
-            "nameEn": "Extra Guacamole",
-            "nameAr": "اكسترا جواكامولي",
-            "priceDelta": 1.5
-          },
-          {
-            "id": "o-9649",
-            "nameEn": "Extra Avocado",
-            "nameAr": "اكسترا افوكادو",
-            "priceDelta": 1.5
-          },
-          {
-            "id": "o-9650",
-            "nameEn": "Extra 3 Cheese",
-            "nameAr": "اكسترا 3 أجبان",
-            "priceDelta": 1
-          },
-          {
-            "id": "o-9651",
-            "nameEn": "Extra Roast Beef",
-            "nameAr": "اكسترا روست بيف",
-            "priceDelta": 0.6
-          },
-          {
-            "id": "o-9653",
-            "nameEn": "Extra Halloumi",
-            "nameAr": "اكسترا حلوم",
-            "priceDelta": 1
-          },
-          {
-            "id": "o-9654",
-            "nameEn": "Extra Egg",
-            "nameAr": "اكسترا بيض",
-            "priceDelta": 0.45
-          },
-          {
             "id": "o-9655",
             "nameEn": "Extra Cream Cheese",
             "nameAr": "اكسترا كريم تشيز",
             "priceDelta": 0.6
           },
           {
-            "id": "o-9656",
-            "nameEn": "Extra Chicken",
-            "nameAr": "اكسترا دجاج",
-            "priceDelta": 1.5
-          },
-          {
-            "id": "o-9657",
-            "nameEn": "Extra Chedder Cheese",
-            "nameAr": "اكسترا تشيدر تشيز",
-            "priceDelta": 0.2
+            "id": "o-11882",
+            "nameEn": "Extra Sundried Tomato",
+            "nameAr": "Extra Sundried Tomato",
+            "priceDelta": 0.6
           }
         ]
       }
@@ -23136,6 +18060,32 @@ export const generatedMenuItems: MenuItem[] = [
     ],
     "customizations": [
       {
+        "id": "g-3134",
+        "nameEn": "Extra vegetables",
+        "nameAr": "أضافات على الطعام",
+        "multiple": true,
+        "options": [
+          {
+            "id": "o-11574",
+            "nameEn": "Extra Tomato",
+            "nameAr": "اكسترا طماطم",
+            "priceDelta": 0
+          },
+          {
+            "id": "o-11576",
+            "nameEn": "Extra Olives",
+            "nameAr": "اكسترا زيتون",
+            "priceDelta": 0
+          },
+          {
+            "id": "o-11580",
+            "nameEn": "Extra Lettuce",
+            "nameAr": "Extra Lettuce",
+            "priceDelta": 0
+          }
+        ]
+      },
+      {
         "id": "g-2814",
         "nameEn": "Extra Food",
         "nameAr": "أضافات على الطعام",
@@ -23148,162 +18098,16 @@ export const generatedMenuItems: MenuItem[] = [
             "priceDelta": 1.5
           },
           {
-            "id": "o-9265",
-            "nameEn": "Extra Turkey",
-            "nameAr": "اكسترا تيركي",
-            "priceDelta": 0.6
-          },
-          {
-            "id": "o-9266",
-            "nameEn": "Extra Tomato",
-            "nameAr": "اكسترا طماطم",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-9267",
-            "nameEn": "Extra Sundried Tomato",
-            "nameAr": "اكسترا بندورة مجففة",
-            "priceDelta": 0.6
-          },
-          {
-            "id": "o-9268",
-            "nameEn": "Extra Olives",
-            "nameAr": "اكسترا زيتون",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-9269",
-            "nameEn": "Extra Lettuce",
-            "nameAr": "اكسترا خس",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-9270",
-            "nameEn": "Extra Guacamole",
-            "nameAr": "اكسترا جواكامولي",
-            "priceDelta": 1.5
-          },
-          {
-            "id": "o-9271",
-            "nameEn": "Extra Avocado",
-            "nameAr": "اكسترا افوكادو",
-            "priceDelta": 1.5
-          },
-          {
-            "id": "o-9272",
-            "nameEn": "Extra 3 Cheese",
-            "nameAr": "اكسترا 3 أجبان",
-            "priceDelta": 1
-          },
-          {
-            "id": "o-9273",
-            "nameEn": "Extra Roast Beef",
-            "nameAr": "اكسترا روست بيف",
-            "priceDelta": 0.6
-          },
-          {
-            "id": "o-9275",
-            "nameEn": "Extra Halloumi",
-            "nameAr": "اكسترا حلوم",
-            "priceDelta": 1
-          },
-          {
-            "id": "o-9276",
-            "nameEn": "Extra Egg",
-            "nameAr": "اكسترا بيض",
-            "priceDelta": 0.45
-          },
-          {
             "id": "o-9277",
             "nameEn": "Extra Cream Cheese",
             "nameAr": "اكسترا كريم تشيز",
             "priceDelta": 0.6
           },
           {
-            "id": "o-9278",
-            "nameEn": "Extra Chicken",
-            "nameAr": "اكسترا دجاج",
-            "priceDelta": 1.5
-          },
-          {
-            "id": "o-9279",
-            "nameEn": "Extra Chedder Cheese",
-            "nameAr": "اكسترا تشيدر تشيز",
-            "priceDelta": 0.2
-          }
-        ]
-      },
-      {
-        "id": "g-260",
-        "nameEn": "Without",
-        "nameAr": "بدون اضافة",
-        "multiple": true,
-        "options": [
-          {
-            "id": "o-705",
-            "nameEn": "Without Lettuce",
-            "nameAr": "بدون خس",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-706",
-            "nameEn": "Without Black Olive",
-            "nameAr": " بدون زيتون اسود",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-707",
-            "nameEn": "Without Tomato",
-            "nameAr": "بدون بندورة",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-708",
-            "nameEn": "Without Roast Beef",
-            "nameAr": " بدون روست بيف",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-709",
-            "nameEn": "Without Turkey",
-            "nameAr": "بدون تيركي",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-710",
-            "nameEn": "Withoout Egg",
-            "nameAr": "بدون بيض",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-711",
-            "nameEn": "Without Sun Dried Tomato",
-            "nameAr": "بدون بندورة مجففة ",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-712",
-            "nameEn": "Without Cream Cheese",
-            "nameAr": "بدون كريم تشيز ",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-713",
-            "nameEn": "Without Cheddar Cheese",
-            "nameAr": "بدون تشيدر تشيز ",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-714",
-            "nameEn": "Without Avocado",
-            "nameAr": "بدون افوكادو ",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-715",
-            "nameEn": "Without Guacamole",
-            "nameAr": "بدون جواكامولي",
-            "priceDelta": 0
+            "id": "o-11850",
+            "nameEn": "Extra Sundried Tomato",
+            "nameAr": "Extra Sundried Tomato",
+            "priceDelta": 0.6
           }
         ]
       }
@@ -23541,39 +18345,15 @@ export const generatedMenuItems: MenuItem[] = [
         "multiple": true,
         "options": [
           {
-            "id": "o-10038",
-            "nameEn": "Extra Salmon",
-            "nameAr": "اكسترا سالمون",
-            "priceDelta": 1.5
-          },
-          {
-            "id": "o-10041",
+            "id": "o-11836",
             "nameEn": "Extra Sundried Tomato",
-            "nameAr": "اكسترا بندورة مجففة",
+            "nameAr": "Extra Sundried Tomato",
             "priceDelta": 0.6
           },
           {
-            "id": "o-10044",
-            "nameEn": "Extra Guacamole",
-            "nameAr": "اكسترا جواكامولي",
-            "priceDelta": 1.5
-          },
-          {
-            "id": "o-10045",
+            "id": "o-11972",
             "nameEn": "Extra Avocado",
-            "nameAr": "اكسترا افوكادو",
-            "priceDelta": 1.5
-          },
-          {
-            "id": "o-10049",
-            "nameEn": "Extra Halloumi",
-            "nameAr": "اكسترا حلوم",
-            "priceDelta": 1
-          },
-          {
-            "id": "o-10052",
-            "nameEn": "Extra Chicken",
-            "nameAr": "اكسترا دجاج",
+            "nameAr": "Extra Avocado",
             "priceDelta": 1.5
           }
         ]
@@ -23593,23 +18373,6 @@ export const generatedMenuItems: MenuItem[] = [
         "nameEn": "Regular",
         "nameAr": "عادي",
         "price": 1.9
-      }
-    ],
-    "customizations": []
-  },
-  {
-    "id": "p-11945",
-    "categoryId": "cat-8",
-    "nameEn": "Signature Nature's Salad",
-    "nameAr": "سلطة الطبيعة المميزة",
-    "emoji": "",
-    "imageUrl": "/menu/p-11945.webp",
-    "sizes": [
-      {
-        "id": "M",
-        "nameEn": "Regular",
-        "nameAr": "عادي",
-        "price": 4.5
       }
     ],
     "customizations": []
@@ -23668,7 +18431,7 @@ export const generatedMenuItems: MenuItem[] = [
         "id": "g-1954",
         "nameEn": "Dough Type",
         "nameAr": "نوع العجين",
-        "multiple": true,
+        "multiple": false,
         "options": [
           {
             "id": "o-7878",
@@ -23780,7 +18543,7 @@ export const generatedMenuItems: MenuItem[] = [
         "id": "g-1955",
         "nameEn": "Dough Type",
         "nameAr": "نوع العجين",
-        "multiple": true,
+        "multiple": false,
         "options": [
           {
             "id": "o-7879",
@@ -23892,7 +18655,7 @@ export const generatedMenuItems: MenuItem[] = [
         "id": "g-1956",
         "nameEn": "Dough Type",
         "nameAr": "نوع العجين",
-        "multiple": true,
+        "multiple": false,
         "options": [
           {
             "id": "o-7880",
@@ -24010,7 +18773,7 @@ export const generatedMenuItems: MenuItem[] = [
         "id": "g-2642",
         "nameEn": "Milk Type",
         "nameAr": "نوع الحليب",
-        "multiple": true,
+        "multiple": false,
         "options": [
           {
             "id": "o-7932",
@@ -24066,7 +18829,7 @@ export const generatedMenuItems: MenuItem[] = [
         "id": "g-2759",
         "nameEn": "Coffee Flavor",
         "nameAr": "نكهة القهوة",
-        "multiple": true,
+        "multiple": false,
         "options": [
           {
             "id": "o-8451",
@@ -24196,26 +18959,26 @@ export const generatedMenuItems: MenuItem[] = [
       },
       {
         "id": "L",
-        "nameEn": "15",
-        "nameAr": "15",
+        "nameEn": "15 (تواصي)",
+        "nameAr": "15 (تواصي)",
         "price": 38
       },
       {
         "id": "L",
-        "nameEn": "20",
-        "nameAr": "20",
+        "nameEn": "20 (تواصي)",
+        "nameAr": "20 (تواصي)",
         "price": 50
       },
       {
         "id": "L",
-        "nameEn": "25",
-        "nameAr": "25",
+        "nameEn": "25 (تواصي)",
+        "nameAr": "25 (تواصي)",
         "price": 58
       },
       {
         "id": "L",
-        "nameEn": "30",
-        "nameAr": "30",
+        "nameEn": "30 (تواصي)",
+        "nameAr": "30 (تواصي)",
         "price": 70
       }
     ],
@@ -24296,7 +19059,7 @@ export const generatedMenuItems: MenuItem[] = [
         "id": "g-2054",
         "nameEn": "Milk Type",
         "nameAr": "نوع الحليب",
-        "multiple": true,
+        "multiple": false,
         "options": [
           {
             "id": "o-7842",
@@ -24582,40 +19345,6 @@ export const generatedMenuItems: MenuItem[] = [
     "customizations": []
   },
   {
-    "id": "p-11941",
-    "categoryId": "cat-8",
-    "nameEn": "Summer Ruby Salad",
-    "nameAr": "سلطة روبي الصيف",
-    "emoji": "",
-    "imageUrl": "/menu/p-11941.webp",
-    "sizes": [
-      {
-        "id": "M",
-        "nameEn": "Regular",
-        "nameAr": "عادي",
-        "price": 4.5
-      }
-    ],
-    "customizations": []
-  },
-  {
-    "id": "p-11946",
-    "categoryId": "cat-8",
-    "nameEn": "Sunshine Salad",
-    "nameAr": "سلطة أشعة الشمس",
-    "emoji": "",
-    "imageUrl": "/menu/p-11946.webp",
-    "sizes": [
-      {
-        "id": "M",
-        "nameEn": "Regular",
-        "nameAr": "عادي",
-        "price": 5.5
-      }
-    ],
-    "customizations": []
-  },
-  {
     "id": "p-12051",
     "categoryId": "cat-13",
     "nameEn": "Swirls Box",
@@ -24652,7 +19381,7 @@ export const generatedMenuItems: MenuItem[] = [
         "id": "g-2715",
         "nameEn": "Tea Types",
         "nameAr": "نوع الشاي",
-        "multiple": true,
+        "multiple": false,
         "options": [
           {
             "id": "o-8282",
@@ -24894,21 +19623,27 @@ export const generatedMenuItems: MenuItem[] = [
       },
       {
         "id": "L",
-        "nameEn": "15",
-        "nameAr": "15",
+        "nameEn": "15 (تواصي)",
+        "nameAr": "15 (تواصي)",
         "price": 30
       },
       {
         "id": "L",
-        "nameEn": "20",
-        "nameAr": "20",
+        "nameEn": "20 (تواصي)",
+        "nameAr": "20 (تواصي)",
         "price": 40
       },
       {
         "id": "L",
-        "nameEn": "25",
-        "nameAr": "25",
+        "nameEn": "25 (تواصي)",
+        "nameAr": "25 (تواصي)",
         "price": 50
+      },
+      {
+        "id": "L",
+        "nameEn": "(6-8) people تواصي",
+        "nameAr": "(6-8) people تواصي",
+        "price": 16
       }
     ],
     "customizations": [
@@ -25207,94 +19942,10 @@ export const generatedMenuItems: MenuItem[] = [
         "multiple": true,
         "options": [
           {
-            "id": "o-10074",
-            "nameEn": "Extra Salmon",
-            "nameAr": "اكسترا سالمون",
-            "priceDelta": 1.5
-          },
-          {
-            "id": "o-10075",
-            "nameEn": "Extra Turkey",
-            "nameAr": "اكسترا تيركي",
-            "priceDelta": 0.6
-          },
-          {
-            "id": "o-10076",
-            "nameEn": "Extra Tomato",
-            "nameAr": "اكسترا طماطم",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-10077",
+            "id": "o-11838",
             "nameEn": "Extra Sundried Tomato",
-            "nameAr": "اكسترا بندورة مجففة",
+            "nameAr": "Extra Sundried Tomato",
             "priceDelta": 0.6
-          },
-          {
-            "id": "o-10078",
-            "nameEn": "Extra Olives",
-            "nameAr": "اكسترا زيتون",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-10079",
-            "nameEn": "Extra Lettuce",
-            "nameAr": "اكسترا خس",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-10080",
-            "nameEn": "Extra Guacamole",
-            "nameAr": "اكسترا جواكامولي",
-            "priceDelta": 1.5
-          },
-          {
-            "id": "o-10081",
-            "nameEn": "Extra Avocado",
-            "nameAr": "اكسترا افوكادو",
-            "priceDelta": 1.5
-          },
-          {
-            "id": "o-10082",
-            "nameEn": "Extra 3 Cheese",
-            "nameAr": "اكسترا 3 أجبان",
-            "priceDelta": 1
-          },
-          {
-            "id": "o-10083",
-            "nameEn": "Extra Roast Beef",
-            "nameAr": "اكسترا روست بيف",
-            "priceDelta": 0.6
-          },
-          {
-            "id": "o-10085",
-            "nameEn": "Extra Halloumi",
-            "nameAr": "اكسترا حلوم",
-            "priceDelta": 1
-          },
-          {
-            "id": "o-10086",
-            "nameEn": "Extra Egg",
-            "nameAr": "اكسترا بيض",
-            "priceDelta": 0.45
-          },
-          {
-            "id": "o-10087",
-            "nameEn": "Extra Cream Cheese",
-            "nameAr": "اكسترا كريم تشيز",
-            "priceDelta": 0.6
-          },
-          {
-            "id": "o-10088",
-            "nameEn": "Extra Chicken",
-            "nameAr": "اكسترا دجاج",
-            "priceDelta": 1.5
-          },
-          {
-            "id": "o-10089",
-            "nameEn": "Extra Chedder Cheese",
-            "nameAr": "اكسترا تشيدر تشيز",
-            "priceDelta": 0.2
           }
         ]
       }
@@ -25337,7 +19988,7 @@ export const generatedMenuItems: MenuItem[] = [
         "id": "g-106",
         "nameEn": "Bagel Type",
         "nameAr": "نوع البيغل",
-        "multiple": true,
+        "multiple": false,
         "options": [
           {
             "id": "o-436",
@@ -25378,17 +20029,37 @@ export const generatedMenuItems: MenuItem[] = [
         ]
       },
       {
+        "id": "g-3154",
+        "nameEn": "Extra vegetables",
+        "nameAr": "أضافات على الطعام",
+        "multiple": true,
+        "options": [
+          {
+            "id": "o-11714",
+            "nameEn": "Extra Tomato",
+            "nameAr": "اكسترا طماطم",
+            "priceDelta": 0
+          },
+          {
+            "id": "o-11716",
+            "nameEn": "Extra Olives",
+            "nameAr": "اكسترا زيتون",
+            "priceDelta": 0
+          },
+          {
+            "id": "o-11720",
+            "nameEn": "Extra Lettuce",
+            "nameAr": "Extra Lettuce",
+            "priceDelta": 0
+          }
+        ]
+      },
+      {
         "id": "g-2853",
         "nameEn": "Extra Food",
         "nameAr": "أضافات على الطعام",
         "multiple": true,
         "options": [
-          {
-            "id": "o-9966",
-            "nameEn": "Extra Salmon",
-            "nameAr": "اكسترا سالمون",
-            "priceDelta": 1.5
-          },
           {
             "id": "o-9967",
             "nameEn": "Extra Turkey",
@@ -25396,57 +20067,9 @@ export const generatedMenuItems: MenuItem[] = [
             "priceDelta": 0.6
           },
           {
-            "id": "o-9968",
-            "nameEn": "Extra Tomato",
-            "nameAr": "اكسترا طماطم",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-9969",
-            "nameEn": "Extra Sundried Tomato",
-            "nameAr": "اكسترا بندورة مجففة",
-            "priceDelta": 0.6
-          },
-          {
-            "id": "o-9970",
-            "nameEn": "Extra Olives",
-            "nameAr": "اكسترا زيتون",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-9971",
-            "nameEn": "Extra Lettuce",
-            "nameAr": "اكسترا خس",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-9972",
-            "nameEn": "Extra Guacamole",
-            "nameAr": "اكسترا جواكامولي",
-            "priceDelta": 1.5
-          },
-          {
-            "id": "o-9973",
-            "nameEn": "Extra Avocado",
-            "nameAr": "اكسترا افوكادو",
-            "priceDelta": 1.5
-          },
-          {
             "id": "o-9974",
             "nameEn": "Extra 3 Cheese",
             "nameAr": "اكسترا 3 أجبان",
-            "priceDelta": 1
-          },
-          {
-            "id": "o-9975",
-            "nameEn": "Extra Roast Beef",
-            "nameAr": "اكسترا روست بيف",
-            "priceDelta": 0.6
-          },
-          {
-            "id": "o-9977",
-            "nameEn": "Extra Halloumi",
-            "nameAr": "اكسترا حلوم",
             "priceDelta": 1
           },
           {
@@ -25456,96 +20079,16 @@ export const generatedMenuItems: MenuItem[] = [
             "priceDelta": 0.45
           },
           {
-            "id": "o-9979",
-            "nameEn": "Extra Cream Cheese",
-            "nameAr": "اكسترا كريم تشيز",
+            "id": "o-11890",
+            "nameEn": "Extra Sundried Tomato",
+            "nameAr": "Extra Sundried Tomato",
             "priceDelta": 0.6
           },
           {
-            "id": "o-9980",
-            "nameEn": "Extra Chicken",
-            "nameAr": "اكسترا دجاج",
-            "priceDelta": 1.5
-          },
-          {
-            "id": "o-9981",
+            "id": "o-12094",
             "nameEn": "Extra Chedder Cheese",
-            "nameAr": "اكسترا تشيدر تشيز",
+            "nameAr": "Extra Chedder Cheese",
             "priceDelta": 0.2
-          }
-        ]
-      },
-      {
-        "id": "g-108",
-        "nameEn": "Without",
-        "nameAr": "بدون اضافة",
-        "multiple": true,
-        "options": [
-          {
-            "id": "o-453",
-            "nameEn": "Without Lettuce",
-            "nameAr": "بدون خس",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-454",
-            "nameEn": "Without Black Olive",
-            "nameAr": " بدون زيتون اسود",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-455",
-            "nameEn": "Without Tomato",
-            "nameAr": "بدون بندورة",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-456",
-            "nameEn": "Without Roast Beef",
-            "nameAr": " بدون روست بيف",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-457",
-            "nameEn": "Without Turkey",
-            "nameAr": "بدون تيركي",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-458",
-            "nameEn": "Withoout Egg",
-            "nameAr": "بدون بيض",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-459",
-            "nameEn": "Without Sun Dried Tomato",
-            "nameAr": "بدون بندورة مجففة ",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-460",
-            "nameEn": "Without Cream Cheese",
-            "nameAr": "بدون كريم تشيز ",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-461",
-            "nameEn": "Without Cheddar Cheese",
-            "nameAr": "بدون تشيدر تشيز ",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-462",
-            "nameEn": "Without Avocado",
-            "nameAr": "بدون افوكادو ",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-463",
-            "nameEn": "Without Guacamole",
-            "nameAr": "بدون جواكامولي",
-            "priceDelta": 0
           }
         ]
       }
@@ -25568,17 +20111,37 @@ export const generatedMenuItems: MenuItem[] = [
     ],
     "customizations": [
       {
+        "id": "g-3155",
+        "nameEn": "Extra vegetables",
+        "nameAr": "أضافات على الطعام",
+        "multiple": true,
+        "options": [
+          {
+            "id": "o-11721",
+            "nameEn": "Extra Tomato",
+            "nameAr": "اكسترا طماطم",
+            "priceDelta": 0
+          },
+          {
+            "id": "o-11723",
+            "nameEn": "Extra Olives",
+            "nameAr": "اكسترا زيتون",
+            "priceDelta": 0
+          },
+          {
+            "id": "o-11727",
+            "nameEn": "Extra Lettuce",
+            "nameAr": "Extra Lettuce",
+            "priceDelta": 0
+          }
+        ]
+      },
+      {
         "id": "g-2855",
         "nameEn": "Extra Food",
         "nameAr": "أضافات على الطعام",
         "multiple": true,
         "options": [
-          {
-            "id": "o-10002",
-            "nameEn": "Extra Salmon",
-            "nameAr": "اكسترا سالمون",
-            "priceDelta": 1.5
-          },
           {
             "id": "o-10003",
             "nameEn": "Extra Turkey",
@@ -25586,57 +20149,9 @@ export const generatedMenuItems: MenuItem[] = [
             "priceDelta": 0.6
           },
           {
-            "id": "o-10004",
-            "nameEn": "Extra Tomato",
-            "nameAr": "اكسترا طماطم",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-10005",
-            "nameEn": "Extra Sundried Tomato",
-            "nameAr": "اكسترا بندورة مجففة",
-            "priceDelta": 0.6
-          },
-          {
-            "id": "o-10006",
-            "nameEn": "Extra Olives",
-            "nameAr": "اكسترا زيتون",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-10007",
-            "nameEn": "Extra Lettuce",
-            "nameAr": "اكسترا خس",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-10008",
-            "nameEn": "Extra Guacamole",
-            "nameAr": "اكسترا جواكامولي",
-            "priceDelta": 1.5
-          },
-          {
-            "id": "o-10009",
-            "nameEn": "Extra Avocado",
-            "nameAr": "اكسترا افوكادو",
-            "priceDelta": 1.5
-          },
-          {
             "id": "o-10010",
             "nameEn": "Extra 3 Cheese",
             "nameAr": "اكسترا 3 أجبان",
-            "priceDelta": 1
-          },
-          {
-            "id": "o-10011",
-            "nameEn": "Extra Roast Beef",
-            "nameAr": "اكسترا روست بيف",
-            "priceDelta": 0.6
-          },
-          {
-            "id": "o-10013",
-            "nameEn": "Extra Halloumi",
-            "nameAr": "اكسترا حلوم",
             "priceDelta": 1
           },
           {
@@ -25646,96 +20161,16 @@ export const generatedMenuItems: MenuItem[] = [
             "priceDelta": 0.45
           },
           {
-            "id": "o-10015",
-            "nameEn": "Extra Cream Cheese",
-            "nameAr": "اكسترا كريم تشيز",
+            "id": "o-11892",
+            "nameEn": "Extra Sundried Tomato",
+            "nameAr": "Extra Sundried Tomato",
             "priceDelta": 0.6
           },
           {
-            "id": "o-10016",
-            "nameEn": "Extra Chicken",
-            "nameAr": "اكسترا دجاج",
-            "priceDelta": 1.5
-          },
-          {
-            "id": "o-10017",
+            "id": "o-12096",
             "nameEn": "Extra Chedder Cheese",
-            "nameAr": "اكسترا تشيدر تشيز",
+            "nameAr": "Extra Chedder Cheese",
             "priceDelta": 0.2
-          }
-        ]
-      },
-      {
-        "id": "g-2723",
-        "nameEn": "Without",
-        "nameAr": "بدون اضافة",
-        "multiple": true,
-        "options": [
-          {
-            "id": "o-8317",
-            "nameEn": "Without Lettuce",
-            "nameAr": "بدون خس",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-8318",
-            "nameEn": "Without Black Olive",
-            "nameAr": " بدون زيتون اسود",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-8319",
-            "nameEn": "Without Tomato",
-            "nameAr": "بدون بندورة",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-8320",
-            "nameEn": "Without Roast Beef",
-            "nameAr": " بدون روست بيف",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-8321",
-            "nameEn": "Without Turkey",
-            "nameAr": "بدون تيركي",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-8322",
-            "nameEn": "Withoout Egg",
-            "nameAr": "بدون بيض",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-8323",
-            "nameEn": "Without Sun Dried Tomato",
-            "nameAr": "بدون بندورة مجففة ",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-8324",
-            "nameEn": "Without Cream Cheese",
-            "nameAr": "بدون كريم تشيز ",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-8325",
-            "nameEn": "Without Cheddar Cheese",
-            "nameAr": "بدون تشيدر تشيز ",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-8326",
-            "nameEn": "Without Avocado",
-            "nameAr": "بدون افوكادو ",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-8327",
-            "nameEn": "Without Guacamole",
-            "nameAr": "بدون جواكامولي",
-            "priceDelta": 0
           }
         ]
       }
@@ -25761,7 +20196,7 @@ export const generatedMenuItems: MenuItem[] = [
         "id": "g-1943",
         "nameEn": "Bread Type",
         "nameAr": "نوع الخبز",
-        "multiple": true,
+        "multiple": false,
         "options": [
           {
             "id": "o-2432",
@@ -25784,52 +20219,10 @@ export const generatedMenuItems: MenuItem[] = [
         "multiple": true,
         "options": [
           {
-            "id": "o-8988",
-            "nameEn": "Extra Salmon",
-            "nameAr": "اكسترا سالمون",
-            "priceDelta": 1.5
-          },
-          {
             "id": "o-8989",
             "nameEn": "Extra Turkey",
             "nameAr": "اكسترا تيركي",
             "priceDelta": 0.6
-          },
-          {
-            "id": "o-8990",
-            "nameEn": "Extra Tomato",
-            "nameAr": "اكسترا طماطم",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-8991",
-            "nameEn": "Extra Sundried Tomato",
-            "nameAr": "اكسترا بندورة مجففة",
-            "priceDelta": 0.6
-          },
-          {
-            "id": "o-8992",
-            "nameEn": "Extra Olives",
-            "nameAr": "اكسترا زيتون",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-8993",
-            "nameEn": "Extra Lettuce",
-            "nameAr": "اكسترا خس",
-            "priceDelta": 0
-          },
-          {
-            "id": "o-8994",
-            "nameEn": "Extra Guacamole",
-            "nameAr": "اكسترا جواكامولي",
-            "priceDelta": 1.5
-          },
-          {
-            "id": "o-8995",
-            "nameEn": "Extra Avocado",
-            "nameAr": "اكسترا افوكادو",
-            "priceDelta": 1.5
           },
           {
             "id": "o-8996",
@@ -25838,40 +20231,42 @@ export const generatedMenuItems: MenuItem[] = [
             "priceDelta": 1
           },
           {
-            "id": "o-8997",
-            "nameEn": "Extra Roast Beef",
-            "nameAr": "اكسترا روست بيف",
+            "id": "o-11849",
+            "nameEn": "Extra Sundried Tomato",
+            "nameAr": "Extra Sundried Tomato",
             "priceDelta": 0.6
           },
           {
-            "id": "o-8999",
-            "nameEn": "Extra Halloumi",
-            "nameAr": "اكسترا حلوم",
-            "priceDelta": 1
-          },
-          {
-            "id": "o-9000",
-            "nameEn": "Extra Egg",
-            "nameAr": "اكسترا بيض",
-            "priceDelta": 0.45
-          },
-          {
-            "id": "o-9001",
-            "nameEn": "Extra Cream Cheese",
-            "nameAr": "اكسترا كريم تشيز",
-            "priceDelta": 0.6
-          },
-          {
-            "id": "o-9002",
-            "nameEn": "Extra Chicken",
-            "nameAr": "اكسترا دجاج",
-            "priceDelta": 1.5
-          },
-          {
-            "id": "o-9003",
+            "id": "o-12053",
             "nameEn": "Extra Chedder Cheese",
-            "nameAr": "اكسترا تشيدر تشيز",
+            "nameAr": "Extra Chedder Cheese",
             "priceDelta": 0.2
+          }
+        ]
+      },
+      {
+        "id": "g-3176",
+        "nameEn": "Extra vegetables",
+        "nameAr": "أضافات على الطعام",
+        "multiple": true,
+        "options": [
+          {
+            "id": "o-12119",
+            "nameEn": "Extra Tomato",
+            "nameAr": "اكسترا طماطم",
+            "priceDelta": 0
+          },
+          {
+            "id": "o-12120",
+            "nameEn": "Extra Olives",
+            "nameAr": "اكسترا زيتون",
+            "priceDelta": 0
+          },
+          {
+            "id": "o-12121",
+            "nameEn": "Extra Lettuce",
+            "nameAr": "Extra Lettuce",
+            "priceDelta": 0
           }
         ]
       }
@@ -25914,7 +20309,7 @@ export const generatedMenuItems: MenuItem[] = [
         "id": "g-3083",
         "nameEn": "Choose Grind Size:",
         "nameAr": "اختر حجم الطحن:",
-        "multiple": true,
+        "multiple": false,
         "options": [
           {
             "id": "o-11256",
@@ -25976,7 +20371,7 @@ export const generatedMenuItems: MenuItem[] = [
         "id": "g-3084",
         "nameEn": "Choose Grind Size:",
         "nameAr": "اختر حجم الطحن:",
-        "multiple": true,
+        "multiple": false,
         "options": [
           {
             "id": "o-11262",
@@ -26061,7 +20456,7 @@ export const generatedMenuItems: MenuItem[] = [
         "id": "g-2055",
         "nameEn": "Milk Type",
         "nameAr": "نوع الحليب",
-        "multiple": true,
+        "multiple": false,
         "options": [
           {
             "id": "o-7843",
@@ -26167,7 +20562,7 @@ export const generatedMenuItems: MenuItem[] = [
         "id": "g-2056",
         "nameEn": "Milk Type",
         "nameAr": "نوع الحليب",
-        "multiple": true,
+        "multiple": false,
         "options": [
           {
             "id": "o-7844",
@@ -26272,23 +20667,6 @@ export const generatedMenuItems: MenuItem[] = [
         ]
       }
     ]
-  },
-  {
-    "id": "p-11934",
-    "categoryId": "cat-10",
-    "nameEn": "Vanilla Mile-Feuille Piece",
-    "nameAr": "قطعة الملفيه",
-    "emoji": "",
-    "imageUrl": "/menu/p-11934.webp",
-    "sizes": [
-      {
-        "id": "M",
-        "nameEn": "Regular",
-        "nameAr": "عادي",
-        "price": 2.9
-      }
-    ],
-    "customizations": []
   },
   {
     "id": "p-10264",
@@ -26549,7 +20927,7 @@ export const generatedMenuItems: MenuItem[] = [
         "id": "g-1958",
         "nameEn": "Dough Type",
         "nameAr": "نوع العجين",
-        "multiple": true,
+        "multiple": false,
         "options": [
           {
             "id": "o-7882",
@@ -26642,40 +21020,6 @@ export const generatedMenuItems: MenuItem[] = [
     ]
   },
   {
-    "id": "p-11919",
-    "categoryId": "cat-14",
-    "nameEn": "White Chocolate Raspberry Mousse Full Cake",
-    "nameAr": "قالب كيك وايت تشوكليت رازبيري",
-    "emoji": "",
-    "imageUrl": "/menu/p-11919.webp",
-    "sizes": [
-      {
-        "id": "S",
-        "nameEn": "(6-8) people",
-        "nameAr": "(6-8) أشخاص",
-        "price": 30
-      }
-    ],
-    "customizations": []
-  },
-  {
-    "id": "p-11920",
-    "categoryId": "cat-10",
-    "nameEn": "White Chocolate Raspberry Mousse Piece",
-    "nameAr": "قطعة كيك وايت تشوكليت رازبيري",
-    "emoji": "",
-    "imageUrl": "/menu/p-11920.webp",
-    "sizes": [
-      {
-        "id": "M",
-        "nameEn": "Regular",
-        "nameAr": "عادي",
-        "price": 2.9
-      }
-    ],
-    "customizations": []
-  },
-  {
     "id": "p-10313",
     "categoryId": "cat-15",
     "nameEn": "Zaatar And Cheese Manousheh",
@@ -26695,7 +21039,7 @@ export const generatedMenuItems: MenuItem[] = [
         "id": "g-1959",
         "nameEn": "Dough Type",
         "nameAr": "نوع العجين",
-        "multiple": true,
+        "multiple": false,
         "options": [
           {
             "id": "o-7883",

@@ -23,12 +23,10 @@
  *     same attribute name, the variant gets its own id (`milk_2`), so no item
  *     is ever shown a choice or a price it does not have.
  *
- *   - SINGLE vs MULTI. Odoo has every attribute on this menu configured as a
- *     checkbox (`display_type = multi`), so the POS would let a latte carry
- *     three milks. SINGLE_CHOICE_ATTRIBUTES below lists the ones that are a
- *     choice of exactly one; they are emitted `required: true, multi: false`
- *     with a default. The durable fix is in Odoo (set those attributes to
- *     radio) — then this list retires itself because Odoo says so too.
+ *   - SINGLE vs MULTI comes from Odoo itself: `product.attribute.display_type`
+ *     (radio → one required choice with a default; checkbox → any number).
+ *     Milk Type, Coffee Flavor and Bagel Type are radio in Odoo (read
+ *     2026-09-25), so the feed and the POS ask the same question.
  *
  *   - SIZES. The app's cart knows three size ids (S/M/L); nine cakes have five
  *     sizes, which the app collapses. The feed gives every size its own id so
@@ -67,13 +65,6 @@ export const CATEGORY_BRANCH_LIMITS: Readonly<Record<string, readonly PublicBran
   Pizza: ['rabieh', 'circle8', 'ju', 'madina', 'shafa'],
   Pasta: ['rabieh', 'circle8', 'ju', 'madina', 'shafa'],
 };
-
-/** Attributes that are a choice of exactly one (see the header). */
-export const SINGLE_CHOICE_ATTRIBUTES: ReadonlySet<string> = new Set([
-  'Milk Type', 'Coffee Flavor', 'Bagel Type', 'Dough Type', 'Bread Type',
-  'Tea Types', 'Juice Type', 'Frozen Type', 'Mocha Flavor', 'Matcha Flavor',
-  'Hot Chocolate Flavor', 'Choose Grind Size:', 'Type', 'Extra Almond Latte',
-]);
 
 /** Stable, readable ids for the attributes the website will style specially. */
 const GROUP_SLUGS: Record<string, string> = {
@@ -170,7 +161,7 @@ export function tagsFor(item: MenuItem, categoryEn: string): PublicTag[] {
   if (/keto/i.test(en) || /كيتو/.test(ar)) tags.push('keto');
   if (/sugar[\s-]?free/i.test(en) || /خالي[ةه]? من السكر/.test(ar)) tags.push('sugar_free');
   if (/vegan/i.test(en) || /نباتي/.test(ar)) tags.push('vegan');
-  if (/season/i.test(categoryEn) || /pumpkin|gingerbread/i.test(en) || /بامكن|يقطين/.test(ar)) tags.push('seasonal');
+  if (/season/i.test(categoryEn) || /pumpkin|gingerbread|\bfall\b|autumn/i.test(en) || /بامكن|بمكن|يقطين|القرع|خريف/.test(ar)) tags.push('seasonal');
   return tags;
 }
 
@@ -196,6 +187,9 @@ function choicesOf(g: CustomizationGroup): PublicChoice[] {
 const signature = (name: string, choices: PublicChoice[]) =>
   `${name}::${choices.map((c) => `${c.name_en}:${c.price_delta}`).join('|')}`;
 
+const groupSignature = (g: CustomizationGroup, choices: PublicChoice[]) =>
+  `${g.multiple ? 'multi' : 'one'}::${signature(g.nameEn.trim(), choices)}`;
+
 export function buildPublicMenuFeed(input: PublicFeedInput): PublicMenuFeed {
   const catById = new Map(input.categories.map((c) => [c.id, c]));
   const allSlugs = PUBLIC_BRANCHES.map((b) => b.slug);
@@ -208,7 +202,7 @@ export function buildPublicMenuFeed(input: PublicFeedInput): PublicMenuFeed {
     for (const g of item.customizations) {
       const choices = choicesOf(g);
       if (!choices.length) continue;
-      const sig = signature(g.nameEn.trim(), choices);
+      const sig = groupSignature(g, choices);
       const v = variants.get(sig);
       if (v) v.n++; else variants.set(sig, { g, choices, n: 1 });
     }
@@ -221,7 +215,7 @@ export function buildPublicMenuFeed(input: PublicFeedInput): PublicMenuFeed {
     const name = g.nameEn.trim();
     const id = unique(GROUP_SLUGS[name] ?? slugify(name), takenGroupIds);
     groupIdBySig.set(sig, id);
-    const single = SINGLE_CHOICE_ATTRIBUTES.has(name);
+    const single = !g.multiple;
     const def = single ? (choices.find((c) => c.price_delta === 0) ?? choices[0]) : undefined;
     optionGroups.push({
       id, name_ar: g.nameAr.trim(), name_en: name,
@@ -252,7 +246,7 @@ export function buildPublicMenuFeed(input: PublicFeedInput): PublicMenuFeed {
       const groupIds = [...new Set(item.customizations
         .map((g) => {
           const choices = choicesOf(g);
-          return choices.length ? groupIdBySig.get(signature(g.nameEn.trim(), choices)) : undefined;
+          return choices.length ? groupIdBySig.get(groupSignature(g, choices)) : undefined;
         })
         .filter((id): id is string => !!id))];
       // The "from" price: cheapest size + the cheapest choice of every
