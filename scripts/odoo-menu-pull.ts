@@ -364,7 +364,9 @@ async function main() {
 // Pulled ${new Date().toISOString().slice(0, 10)}: ${outCats.length} categories, ${outItems.length} items, ${done} photos.
 `;
   writeFileSync('packages/shared/src/menu/menu.generated.ts',
-    `${header}\nexport const generatedCategories: Category[] = ${JSON.stringify(outCats, null, 2)};\n\n`
+    `${header}\n/** When this menu was pulled from Odoo — the public feed's updated_at. */\n`
+    + `export const menuPulledAt = '${new Date().toISOString().slice(0, 10)}';\n\n`
+    + `export const generatedCategories: Category[] = ${JSON.stringify(outCats, null, 2)};\n\n`
     + `export const generatedMenuItems: MenuItem[] = ${JSON.stringify(outItems, null, 2)};\n`);
   console.log('wrote packages/shared/src/menu/menu.generated.ts');
 }

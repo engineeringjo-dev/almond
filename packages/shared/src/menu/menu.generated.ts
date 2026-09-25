@@ -10,6 +10,9 @@ import type { Category, MenuItem } from '../types';
 //
 // Pulled 2026-09-08: 44 categories, 373 items, 306 photos.
 
+/** When this menu was pulled from Odoo — the public feed's `updated_at`. */
+export const menuPulledAt = '2026-09-08';
+
 export const generatedCategories: Category[] = [
   {
     "id": "cat-1",

@@ -28,3 +28,4 @@ playwright/.cache/
 
 # Test coverage reports (vitest --coverage, any workspace)
 coverage/
+/dist/
