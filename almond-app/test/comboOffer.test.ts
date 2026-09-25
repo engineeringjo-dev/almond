@@ -142,9 +142,13 @@ describe('O1 the cold-start pair', () => {
     // autumn menu: 375 (82 / 279 / 14) — still 96%.
     const kinds = menuItems.map((m) => itemKind(m.id));
     const pairable = kinds.filter((k) => k !== 'other').length;
-    expect(menuItems.length).toBe(375);
-    expect(kinds.filter((k) => k === 'drink').length).toBe(82);
-    expect(kinds.filter((k) => k === 'food').length).toBe(279);
+    // The menu now re-syncs from Odoo daily (.github/workflows/menu-sync.yml),
+    // so the census is held by its INVARIANTS, not today's exact counts: a new
+    // autumn latte must not turn the sync red. What the design needs is a
+    // real menu with plenty of both sides of a pair.
+    expect(menuItems.length).toBeGreaterThan(300);
+    expect(kinds.filter((k) => k === 'drink').length).toBeGreaterThan(50);
+    expect(kinds.filter((k) => k === 'food').length).toBeGreaterThan(200);
     // A "combo-eligible" menu filter would remove 14 of 375 items and hand the
     // member back the menu they were already looking at. The 14 are the coffee
     // equipment and the candles/flowers/gift-box "Sides" — genuinely neither.

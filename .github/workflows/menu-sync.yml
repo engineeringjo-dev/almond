@@ -1,0 +1,93 @@
+name: Menu sync from Odoo
+
+# Daily: pulls the shop's menu and photos from Odoo, re-measures upsell /
+# cross-sell / modifiers from the last 45 days of POS orders, and — only if
+# something changed AND the full gate is green — commits to main, which
+# redeploys the website and the public feed (/api/public/menu).
+#
+# GM, 2026-09-25: new items (the autumn menu) must reach the website and the
+# app without anyone running a script.
+#
+# READ-ONLY against Odoo: both scripts only call search_read/read. The
+# credentials live in repository secrets (Settings → Secrets and variables →
+# Actions): ODOO_URL, ODOO_DB, ODOO_LOGIN, ODOO_API_KEY. Use a dedicated Odoo
+# user with read-only rights, not an administrator's key. Secrets are never
+# given to workflows triggered from forks.
+
+on:
+  schedule:
+    # 02:30 UTC = 05:30 Amman, after the business day closes (~05:00).
+    - cron: '30 2 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: menu-sync
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    env:
+      ODOO_URL: ${{ secrets.ODOO_URL }}
+      ODOO_DB: ${{ secrets.ODOO_DB }}
+      ODOO_LOGIN: ${{ secrets.ODOO_LOGIN }}
+      ODOO_API_KEY: ${{ secrets.ODOO_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Secrets present?
+        run: |
+          for k in ODOO_URL ODOO_DB ODOO_LOGIN ODOO_API_KEY; do
+            if [ -z "${!k}" ]; then echo "::error::repository secret $k is not set"; exit 1; fi
+          done
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Pull menu + photos from Odoo (read-only)
+        run: npm run menu:pull
+
+      - name: Measure upsell / cross-sell / modifiers (read-only)
+        run: npm run menu:insights
+
+      - name: Anything changed?
+        id: diff
+        run: |
+          git add -A
+          if git diff --cached --quiet; then echo "changed=false" >> "$GITHUB_OUTPUT"; echo "Menu unchanged."; else
+            echo "changed=true" >> "$GITHUB_OUTPUT"; git diff --cached --stat | tail -5; fi
+
+      # The same gate as ci.yml. A menu that breaks a test is not published.
+      - name: Gate — lint, types, tests, build
+        if: steps.diff.outputs.changed == 'true'
+        run: |
+          npm run lint
+          npm run typecheck
+          npm test --workspace @almond/bff
+          npm test --workspace almond-app
+          npm test --workspace almond-web
+          npm run web:build
+
+      - name: Gate — E2E
+        if: steps.diff.outputs.changed == 'true'
+        run: |
+          npx playwright install --with-deps chromium
+          npm run test:e2e
+
+      - name: Commit to main
+        if: steps.diff.outputs.changed == 'true'
+        run: |
+          git config user.name "almond-menu-sync"
+          git config user.email "menu-sync@users.noreply.github.com"
+          git commit -m "Menu: daily sync from Odoo ($(date -u +%F))"
+          git push origin HEAD:main

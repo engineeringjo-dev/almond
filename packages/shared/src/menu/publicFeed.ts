@@ -108,7 +108,19 @@ export interface PublicItem {
   category_id: string; price: number; sizes: PublicSize[];
   option_group_ids: string[]; tags: PublicTag[]; branches: PublicBranchSlug[];
   image_url: string | null; available: boolean; sort: number;
+  upsell: PublicUpsell;
+  cross_sell: { item_id: string; attach_rate: number; lift: number }[];
 }
+/** What to offer ON this item — measured from Odoo POS orders. */
+export interface PublicUpsell {
+  /** Next size up from the cheapest, with the share of lines sold in it. */
+  size_upgrade: { from_size_id: string; to_size_id: string; extra_price: number; share: number } | null;
+  /** Paid choices customers add most (share of this item's lines). */
+  popular_choices: { group_id: string; choice_id: string; share: number }[];
+  /** Add-on products (top-level `modifiers`) rung with this item. */
+  modifiers: { modifier_id: string; share: number }[];
+}
+export interface PublicModifier { id: string; category: string; name_ar: string; name_en: string; price: number }
 export interface PublicCategory { id: string; name_ar: string; name_en: string; sort: number }
 export interface PublicMenuFeed {
   schema_version: typeof PUBLIC_MENU_SCHEMA_VERSION;
@@ -121,7 +133,24 @@ export interface PublicMenuFeed {
   categories: PublicCategory[];
   option_groups: PublicOptionGroup[];
   items: PublicItem[];
+  /** Add-on products Odoo sells as separate lines (Extra Cold Foam, Ice Cream…). */
+  modifiers: PublicModifier[];
+  /** The POS orders the upsell/cross-sell numbers were measured on. */
+  insights_window: { from: string; to: string; days: number; orders: number } | null;
   offers: never[];
+}
+
+/** The measured insights (scripts/odoo-menu-insights.ts → menu.insights.generated.ts),
+ *  typed structurally so this module still imports nothing but types. */
+export interface FeedInsights {
+  window: { from: string; to: string; days: number; orders: number };
+  modifiers: { id: string; categoryId: string; nameEn: string; nameAr: string; price: number }[];
+  items: Record<string, {
+    sizes: { name: string; share: number }[];
+    choices: { optionId: string; share: number }[];
+    modifiers: { modifierId: string; share: number }[];
+    crossSell: { itemId: string; attach: number; lift: number }[];
+  }>;
 }
 
 export interface PublicFeedInput {
@@ -134,7 +163,37 @@ export interface PublicFeedInput {
   assetBase: string;
   taxRate: number;
   pricesIncludeTax: boolean;
+  /** Optional: without it every item carries an empty upsell/cross_sell. */
+  insights?: FeedInsights;
 }
+
+/** Odoo's modifier-category names, for the `category` field. */
+const MODIFIER_CATEGORY_SLUGS: Record<string, string> = {
+  'cat-32': 'extra_food', 'cat-33': 'extra_pizza', 'cat-34': 'extra_drink',
+  'cat-35': 'extra_flavour', 'cat-38': 'extra_sweets', 'cat-39': 'extra_milk',
+};
+
+/**
+ * ARABIC NAMES FOR ADD-ON PRODUCTS. Odoo has none for these (read
+ * 2026-09-25). A STOPGAP like CATEGORY_AR in the pull script: an Arabic name
+ * set in Odoo wins, so entries retire themselves as Odoo is translated.
+ */
+const MODIFIER_AR: Record<string, string> = {
+  'Extra Avocado': 'أفوكادو إضافي', 'Extra Cold Foam': 'كولد فوم إضافي',
+  'Extra Decaf Coffee': 'قهوة ديكاف (منزوعة الكافيين)', 'Extra Mushroom': 'فطر إضافي',
+  'Extra Nutella': 'نوتيلا إضافية', 'Extra Nuts': 'مكسرات إضافية',
+  'Extra Shot': 'شوت إسبريسو إضافي', 'Extra Strawberry': 'فراولة إضافية',
+  'Ice Cream': 'آيس كريم', 'Extra Cream': 'كريمة إضافية', 'Extra Bubbles': 'ببلز إضافية',
+  'Extra Marshmallow': 'مارشميلو إضافي', 'Extra Honey': 'عسل إضافي', 'Extra Foam': 'رغوة إضافية',
+  'Extra Pistachio': 'فستق إضافي', 'Extra Almond Milk': 'حليب لوز', 'Extra Egg': 'بيض إضافي',
+  'Extra Cream Cheese': 'كريم تشيز إضافي', 'Extra Chedder Cheese': 'جبنة شيدر إضافية',
+  'Extra Halloumi': 'حلوم إضافي', 'Extra Chicken': 'دجاج إضافي', 'Extra Salmon': 'سلمون إضافي',
+  'Extra Guacamole': 'جواكامولي إضافي', 'Extra Turkey Roast': 'تيركي إضافي',
+  'Extra Roast Beef': 'روست بيف إضافي', 'Extra Tomato': 'بندورة إضافية',
+  'Extra Lettuce': 'خس إضافي', 'Extra Olives': 'زيتون إضافي', 'Extra 3 Cheese': 'ثلاث أجبان إضافية',
+  'Extra Sundried Tomato': 'بندورة مجففة إضافية', 'Extra ice cream': 'آيس كريم إضافي',
+};
+const hasArabic = (s: string) => /[\u0600-\u06FF]/.test(s);
 
 /** Photo width the pull writes (scripts/odoo-menu-pull.ts IMG_WIDTH). */
 const IMAGE_MAX_PX = 512;
@@ -233,6 +292,16 @@ export function buildPublicMenuFeed(input: PublicFeedInput): PublicMenuFeed {
     .map((c, sort) => ({ id: c.id, name_ar: c.nameAr.trim(), name_en: c.nameEn.trim(), sort }));
   const catSort = new Map(categories.map((c) => [c.id, c.sort]));
 
+  // ---- add-on products ----------------------------------------------------
+  const modifiers: PublicModifier[] = (input.insights?.modifiers ?? []).map((m) => ({
+    id: m.id,
+    category: MODIFIER_CATEGORY_SLUGS[m.categoryId] ?? 'extra',
+    name_ar: hasArabic(m.nameAr) ? m.nameAr : (MODIFIER_AR[m.nameEn] ?? m.nameEn),
+    name_en: m.nameEn,
+    price: round3(m.price),
+  }));
+  const modifierIds = new Set(modifiers.map((m) => m.id));
+
   // ---- items -------------------------------------------------------------
   const items: PublicItem[] = input.items
     .filter((i) => catSort.has(i.categoryId))
@@ -243,10 +312,19 @@ export function buildPublicMenuFeed(input: PublicFeedInput): PublicMenuFeed {
         id: unique(slugify(z.nameEn), sizeIds),
         name_ar: z.nameAr.trim(), name_en: z.nameEn.trim(), price: round3(z.price),
       }));
+      // app option id (o-<odoo value id>) → the feed's (group, choice)
+      const optionRef = new Map<string, { group_id: string; choice_id: string }>();
       const groupIds = [...new Set(item.customizations
         .map((g) => {
           const choices = choicesOf(g);
-          return choices.length ? groupIdBySig.get(groupSignature(g, choices)) : undefined;
+          const gid = choices.length ? groupIdBySig.get(groupSignature(g, choices)) : undefined;
+          if (gid) {
+            for (const o of g.options) {
+              const c = choices.find((x) => x.name_en === o.nameEn.trim() && x.price_delta === round3(o.priceDelta));
+              if (c) optionRef.set(o.id, { group_id: gid, choice_id: c.id });
+            }
+          }
+          return gid;
         })
         .filter((id): id is string => !!id))];
       // The "from" price: cheapest size + the cheapest choice of every
@@ -255,7 +333,26 @@ export function buildPublicMenuFeed(input: PublicFeedInput): PublicMenuFeed {
         .map((id) => groupById.get(id)!)
         .filter((g) => g.required)
         .reduce((s, g) => s + Math.min(...g.choices.map((c) => c.price_delta)), 0);
+      const ins = input.insights?.items[item.id];
+      const bySize = [...sizes].sort((a, b) => a.price - b.price);
+      const next = bySize.find((z) => z.price > bySize[0]!.price);
+      const upsell: PublicUpsell = {
+        size_upgrade: next ? {
+          from_size_id: bySize[0]!.id, to_size_id: next.id,
+          extra_price: round3(next.price - bySize[0]!.price),
+          share: ins?.sizes.find((z) => z.name === next.name_en)?.share ?? 0,
+        } : null,
+        popular_choices: (ins?.choices ?? [])
+          .map((c) => ({ ref: optionRef.get(c.optionId), share: c.share }))
+          .filter((c): c is { ref: { group_id: string; choice_id: string }; share: number } => !!c.ref)
+          .map((c) => ({ ...c.ref, share: c.share })),
+        modifiers: (ins?.modifiers ?? [])
+          .filter((m) => modifierIds.has(m.modifierId))
+          .map((m) => ({ modifier_id: m.modifierId, share: m.share })),
+      };
       return {
+        upsell,
+        cross_sell: (ins?.crossSell ?? []).map((c) => ({ item_id: c.itemId, attach_rate: c.attach, lift: c.lift })),
         id: item.id,
         odoo_template_id: Number(item.id.replace(/^p-/, '')),
         name_ar: item.nameAr.replace(/\s+/g, ' ').trim(),
@@ -275,6 +372,9 @@ export function buildPublicMenuFeed(input: PublicFeedInput): PublicMenuFeed {
     })
     .sort((a, b) => catSort.get(a.category_id)! - catSort.get(b.category_id)! || a.name_en.localeCompare(b.name_en));
   items.forEach((it, i) => { it.sort = i; });
+  // A cross-sell may only point at something the customer can order here.
+  const shipped = new Set(items.map((i) => i.id));
+  for (const it of items) it.cross_sell = it.cross_sell.filter((c) => shipped.has(c.item_id));
 
   return {
     schema_version: PUBLIC_MENU_SCHEMA_VERSION,
@@ -287,6 +387,11 @@ export function buildPublicMenuFeed(input: PublicFeedInput): PublicMenuFeed {
     categories,
     option_groups: optionGroups,
     items,
+    modifiers,
+    insights_window: input.insights ? {
+      from: input.insights.window.from, to: input.insights.window.to,
+      days: input.insights.window.days, orders: input.insights.window.orders,
+    } : null,
     offers: [],
   };
 }

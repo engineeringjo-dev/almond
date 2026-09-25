@@ -1,5 +1,6 @@
 import { buildPublicMenuFeed, type PublicMenuFeed } from '@almond/shared/menu/publicFeed';
 import { generatedCategories, generatedMenuItems, menuPulledAt } from '@almond/shared/menu/menu.generated';
+import { insightsWindow, itemInsights, modifierProducts } from '@almond/shared/menu/menu.insights.generated';
 import { config } from '@almond/shared/config';
 
 /** Helpers for GET /api/public/menu (app/api/public/menu/route.ts) — kept here
@@ -30,6 +31,7 @@ export function feedFor(base: string): string {
       assetBase: base,
       taxRate: config.TAX_RATE,
       pricesIncludeTax: config.PRICES_TAX_INCLUSIVE,
+      insights: { window: insightsWindow, modifiers: modifierProducts, items: itemInsights },
     });
     body = JSON.stringify(feed);
     cache.set(base, body);

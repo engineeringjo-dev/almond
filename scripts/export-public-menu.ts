@@ -15,6 +15,7 @@ import { cpSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { buildPublicMenuFeed } from '../packages/shared/src/menu/publicFeed';
 import { generatedCategories, generatedMenuItems, menuPulledAt } from '../packages/shared/src/menu/menu.generated';
+import { insightsWindow, itemInsights, modifierProducts } from '../packages/shared/src/menu/menu.insights.generated';
 import { config } from '../packages/shared/src/config';
 
 function arg(name: string, fallback: string): string {
@@ -32,6 +33,7 @@ const feed = buildPublicMenuFeed({
   assetBase: base,
   taxRate: config.TAX_RATE,
   pricesIncludeTax: config.PRICES_TAX_INCLUSIVE,
+  insights: { window: insightsWindow, modifiers: modifierProducts, items: itemInsights },
 });
 
 rmSync(out, { recursive: true, force: true });

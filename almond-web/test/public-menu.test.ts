@@ -3,6 +3,7 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { buildPublicMenuFeed, PUBLIC_BRANCHES } from '@almond/shared/menu/publicFeed';
 import { generatedCategories, generatedMenuItems, menuPulledAt } from '@almond/shared/menu/menu.generated';
+import { insightsWindow, itemInsights, modifierProducts } from '@almond/shared/menu/menu.insights.generated';
 import { GET, OPTIONS } from '@/app/api/public/menu/route';
 
 /**
@@ -22,13 +23,16 @@ const feed = buildPublicMenuFeed({
   assetBase: BASE,
   taxRate: 0.08,
   pricesIncludeTax: true,
+  insights: { window: insightsWindow, modifiers: modifierProducts, items: itemInsights },
 });
 const keys = (o: object) => Object.keys(o).sort();
 
 describe('public menu feed — only public fields', () => {
   it('pins the key set of every object', () => {
-    expect(keys(feed)).toEqual(['branches', 'categories', 'currency', 'image_max_px', 'items', 'offers',
-      'option_groups', 'prices_include_tax', 'schema_version', 'tax_rate', 'updated_at']);
+    expect(keys(feed)).toEqual(['branches', 'categories', 'currency', 'image_max_px', 'insights_window', 'items',
+      'modifiers', 'offers', 'option_groups', 'prices_include_tax', 'schema_version', 'tax_rate', 'updated_at']);
+    expect(keys(feed.insights_window!)).toEqual(['days', 'from', 'orders', 'to']);
+    for (const m of feed.modifiers) expect(keys(m)).toEqual(['category', 'id', 'name_ar', 'name_en', 'price']);
     for (const b of feed.branches) expect(keys(b)).toEqual(['app_branch_id', 'name_ar', 'name_en', 'slug']);
     for (const c of feed.categories) expect(keys(c)).toEqual(['id', 'name_ar', 'name_en', 'sort']);
     for (const g of feed.option_groups) {
@@ -36,9 +40,15 @@ describe('public menu feed — only public fields', () => {
       for (const ch of g.choices) expect(keys(ch)).toEqual(['id', 'name_ar', 'name_en', 'price_delta']);
     }
     for (const i of feed.items) {
-      expect(keys(i)).toEqual(['available', 'branches', 'category_id', 'desc_ar', 'desc_en', 'id', 'image_url',
-        'name_ar', 'name_en', 'odoo_template_id', 'option_group_ids', 'price', 'sizes', 'sort', 'tags']);
+      expect(keys(i)).toEqual(['available', 'branches', 'category_id', 'cross_sell', 'desc_ar', 'desc_en', 'id',
+        'image_url', 'name_ar', 'name_en', 'odoo_template_id', 'option_group_ids', 'price', 'sizes', 'sort', 'tags',
+        'upsell']);
       for (const z of i.sizes) expect(keys(z)).toEqual(['id', 'name_ar', 'name_en', 'price']);
+      expect(keys(i.upsell)).toEqual(['modifiers', 'popular_choices', 'size_upgrade']);
+      if (i.upsell.size_upgrade) expect(keys(i.upsell.size_upgrade)).toEqual(['extra_price', 'from_size_id', 'share', 'to_size_id']);
+      for (const c of i.upsell.popular_choices) expect(keys(c)).toEqual(['choice_id', 'group_id', 'share']);
+      for (const m of i.upsell.modifiers) expect(keys(m)).toEqual(['modifier_id', 'share']);
+      for (const c of i.cross_sell) expect(keys(c)).toEqual(['attach_rate', 'item_id', 'lift']);
     }
     expect(feed.offers).toEqual([]);
   });
@@ -119,6 +129,72 @@ describe('public menu feed — data the order page relies on', () => {
       if (i.image_url !== null) expect(i.image_url).toMatch(/^https:\/\/menu\.example\/menu\/p-\d+\.webp$/);
     }
     expect(feed.items.some((i) => i.image_url === null)).toBe(true);
+  });
+});
+
+describe('public menu feed — upsell, cross-sell, modifiers (measured in Odoo)', () => {
+  const byId = new Map(feed.items.map((i) => [i.id, i]));
+  const groups = new Map(feed.option_groups.map((g) => [g.id, g]));
+  const mods = new Set(feed.modifiers.map((m) => m.id));
+
+  it('every suggestion resolves to something the customer can actually order', () => {
+    for (const i of feed.items) {
+      for (const c of i.upsell.popular_choices) {
+        expect(i.option_group_ids, `${i.name_en} → ${c.group_id}`).toContain(c.group_id);
+        const choice = groups.get(c.group_id)!.choices.find((x) => x.id === c.choice_id);
+        expect(choice, `${i.name_en} → ${c.choice_id}`).toBeDefined();
+        expect(choice!.price_delta, 'only PAID choices are an upsell').toBeGreaterThan(0);
+      }
+      for (const m of i.upsell.modifiers) expect(mods.has(m.modifier_id)).toBe(true);
+      for (const c of i.cross_sell) {
+        const other = byId.get(c.item_id);
+        expect(other, `${i.name_en} → ${c.item_id}`).toBeDefined();
+        expect(other!.category_id, 'cross-sell crosses categories').not.toBe(i.category_id);
+        expect(c.lift).toBeGreaterThan(1);
+      }
+      const up = i.upsell.size_upgrade;
+      if (up) {
+        const from = i.sizes.find((z) => z.id === up.from_size_id)!, to = i.sizes.find((z) => z.id === up.to_size_id)!;
+        expect(to.price - from.price).toBeCloseTo(up.extra_price, 3);
+        expect(up.extra_price).toBeGreaterThan(0);
+      }
+    }
+    expect(feed.items.filter((i) => i.cross_sell.length).length).toBeGreaterThan(50);
+    expect(feed.items.filter((i) => i.upsell.popular_choices.length).length).toBeGreaterThan(30);
+  });
+
+  it('add-ons have Arabic names and customer prices (a 0.001 pump is free)', () => {
+    expect(feed.modifiers.length).toBeGreaterThan(0);
+    for (const m of feed.modifiers) {
+      expect(m.name_ar, m.name_en).toMatch(/[\u0600-\u06FF]/);
+      expect(m.price === 0 || m.price >= 0.1, m.name_en).toBe(true);
+    }
+  });
+
+  it('drops a suggestion that points at an add-on or item the feed does not carry', () => {
+    const id = generatedMenuItems[0]!.id;
+    const f = buildPublicMenuFeed({ categories: generatedCategories, items: generatedMenuItems,
+      updatedAt: menuPulledAt, assetBase: '', taxRate: 0.08, pricesIncludeTax: true,
+      insights: {
+        window: { from: '2026-01-01', to: '2026-01-02', days: 1, orders: 1 },
+        modifiers: [{ id: 'm-1', categoryId: 'cat-34', nameEn: 'Extra Shot', nameAr: 'Extra Shot', price: 0.4 }],
+        items: { [id]: { sizes: [], choices: [{ optionId: 'o-does-not-exist', share: 0.5 }],
+          modifiers: [{ modifierId: 'm-1', share: 0.1 }, { modifierId: 'm-unknown', share: 0.1 }],
+          crossSell: [{ itemId: 'p-not-on-menu', attach: 0.1, lift: 2 }] } },
+      } });
+    const it = f.items.find((i) => i.id === id)!;
+    expect(it.upsell.modifiers).toEqual([{ modifier_id: 'm-1', share: 0.1 }]);
+    expect(it.upsell.popular_choices).toEqual([]);
+    expect(it.cross_sell).toEqual([]);
+    expect(f.modifiers[0]!.name_ar).toBe('شوت إسبريسو إضافي');
+  });
+
+  it('without insights the feed still builds, with empty suggestions', () => {
+    const bare = buildPublicMenuFeed({ categories: generatedCategories, items: generatedMenuItems,
+      updatedAt: menuPulledAt, assetBase: '', taxRate: 0.08, pricesIncludeTax: true });
+    expect(bare.modifiers).toEqual([]);
+    expect(bare.insights_window).toBeNull();
+    expect(bare.items.every((i) => !i.cross_sell.length && !i.upsell.popular_choices.length)).toBe(true);
   });
 });
 

@@ -55,8 +55,16 @@ the same items, prices, milk choices and photos, all pulled from Odoo. It is
     "tags": [],                         // gluten_free | keto | sugar_free | vegan | seasonal
     "branches": ["mecca", "rabieh", "…"],
     "image_url": "https://almond-gules.vercel.app/menu/p-10357.webp",   // null when there is no photo
-    "available": true, "sort": 300
+    "available": true, "sort": 300,
+    "upsell": {                         // what to offer ON this item (measured, see below)
+      "size_upgrade": { "from_size_id": "small", "to_size_id": "medium", "extra_price": 0.6, "share": 0.39 },
+      "popular_choices": [{ "group_id": "milk", "choice_id": "lactose_free_milk", "share": 0.05 }],
+      "modifiers": [{ "modifier_id": "m-11374", "share": 0.02 }]
+    },
+    "cross_sell": [{ "item_id": "p-10260", "attach_rate": 0.03, "lift": 1.31 }]   // what to offer WITH it
   }],
+  "modifiers": [{ "id": "m-11374", "category": "extra_drink", "name_ar": "كولد فوم إضافي", "name_en": "Extra Cold Foam", "price": 0.6 }],
+  "insights_window": { "from": "2026-08-11", "to": "2026-09-25", "days": 45, "orders": 134306 },
   "offers": []                          // no price offers are active
 }
 ```
@@ -78,6 +86,45 @@ the same items, prices, milk choices and photos, all pulled from Odoo. It is
 - **Hot and iced** are separate items in Odoo ("Hot Latte" and "Iced Latte"),
   not an option. **Decaf** and **extra shot** are choices inside the
   `extra_drink` / `extra_frappe` groups.
+
+## Upsell, cross-sell and modifiers — measured from Odoo POS orders
+
+`npm run menu:insights` (`scripts/odoo-menu-insights.ts`, read-only) reads every
+paid POS order line of the last 45 days. Refund lines, and the catering till
+(70), are left out. It writes **only totals and percentages per product**:
+no order, customer, cashier or branch data. These three measurements go into
+the feed:
+
+| Field | How it is measured | How to show it |
+|---|---|---|
+| `upsell.size_upgrade` | The next size up, and the share of the item's sales in that size | «كبّرها لوسط +0.600» (upgrade to Medium for +0.600) |
+| `upsell.popular_choices` | **Paid** choices only (free ones such as Fresh Milk are defaults). An Odoo POS line records its choices with the same ids the menu uses, so this is a direct count | Show these first in the item's options |
+| `upsell.modifiers` | Odoo also sells add-ons as **separate products**: Extra Cold Foam, Ice Cream, Extra Shot… Odoo links them to no item, so the link is measured: an add-on rung **straight after** an item in the same order was added to that item | Show as «أضف …» (add …) with the price from top-level `modifiers` |
+| `cross_sell` | Items **from another category** in the same order (market basket). `attach_rate` = P(B given A); `lift` = how much more likely than for any order (> 1). A pair needs at least 25 orders, lift ≥ 1.1 and attach ≥ 2%. Gifts (Sides) and coffee tools are never suggested | «يطلبها معه عادةً» (usually ordered with it), after the item is added |
+
+- **Thresholds:** a choice or add-on needs at least 2% of the item's sales and
+  at least 15 occurrences.
+- **New items** (like this week's autumn drinks) have little history, so they
+  gain suggestions as they sell.
+- **Add-on names:** Odoo has no Arabic names for them, so `publicFeed.ts`
+  carries a stopgap map. An Arabic name set in Odoo replaces it.
+
+## Keeping it up to date — daily sync from Odoo
+
+`.github/workflows/menu-sync.yml` runs every day at 05:30 Amman time, and can
+also be started by hand from Actions → "Menu sync from Odoo" → Run. Each run:
+
+1. Pulls the menu and photos (`menu:pull`) and measures the insights
+   (`menu:insights`). Both are read-only.
+2. Stops if nothing changed.
+3. Runs the full gate (lint, types, tests, build, E2E).
+4. Only if everything passes, commits to `main`. That redeploys the website,
+   so the feed updates on its own.
+
+**Setup (once):** add the repository secrets `ODOO_URL`, `ODOO_DB`,
+`ODOO_LOGIN` and `ODOO_API_KEY`. Use a **dedicated Odoo user with read-only
+rights**, not an administrator's key: the scripts only read, and the key should
+not be able to do more.
 
 ## Where each value comes from
 
