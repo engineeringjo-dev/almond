@@ -99,15 +99,47 @@ the feed:
 |---|---|---|
 | `upsell.size_upgrade` | The next size up, and the share of the item's sales in that size | «كبّرها لوسط +0.600» (upgrade to Medium for +0.600) |
 | `upsell.popular_choices` | **Paid** choices only (free ones such as Fresh Milk are defaults). An Odoo POS line records its choices with the same ids the menu uses, so this is a direct count | Show these first in the item's options |
-| `upsell.modifiers` | Odoo also sells add-ons as **separate products**: Extra Cold Foam, Ice Cream, Extra Shot… Odoo links them to no item, so the link is measured: an add-on rung **straight after** an item in the same order was added to that item | Show as «أضف …» (add …) with the price from top-level `modifiers` |
+| `upsell.modifiers` | Odoo also sells add-ons as **separate products**: Extra Cold Foam, Ice Cream, Extra Shot… Odoo links them to no item, so the link is measured. Each add-on belongs to the **nearest preceding item of its own kind** in the same order: a drink add-on (Extra Drink, Extra Flavor, Special Milk) to the last drink, a food add-on (Extra Food, Pizza, Sweets) to the last food | Already inside the item as the «إضافات» option group (below); `upsell.modifiers` ranks them |
 | `cross_sell` | Items **from another category** in the same order (market basket). `attach_rate` = P(B given A); `lift` = how much more likely than for any order (> 1). A pair needs at least 25 orders, lift ≥ 1.1 and attach ≥ 2%. Gifts (Sides) and coffee tools are never suggested | «يطلبها معه عادةً» (usually ordered with it), after the item is added |
 
 - **Thresholds:** a choice or add-on needs at least 2% of the item's sales and
   at least 15 occurrences.
 - **New items** (like this week's autumn drinks) have little history, so they
   gain suggestions as they sell.
-- **Add-on names:** Odoo has no Arabic names for them, so `publicFeed.ts`
-  carries a stopgap map. An Arabic name set in Odoo replaces it.
+- **Add-on names:** Odoo has no Arabic names for them, so
+  `scripts/odoo-menu-insights.ts` carries a stopgap map. An Arabic name set in
+  Odoo replaces it.
+
+### Add-ons inside the item — «إضافات»
+
+`packages/shared/src/menu/addOns.ts` adds the measured add-on products to each
+item as one more optional, multi-choice group: «إضافات» / Add-ons, with option
+ids `m-<odoo template id>`. The app, the website, this feed and the server's
+re-pricing all read the same menu, so an add-on has one price everywhere and
+the browser can never set it.
+
+Two kinds of add-on are left out:
+- **One the item already offers as a choice.** Extra Shot, Decaf, Ice Cream and
+  Nutella already appear on many items, and offering them twice would charge
+  one shot twice. The names are matched without "Extra", "1 Pump Of" and
+  "Coffee".
+- **A free add-on.** A 0.001 pump is how the till prints a free flavour; a
+  free choice belongs among the attribute choices.
+
+**Sending to Odoo later:** a chosen add-on is its **own order line**
+(`product.template` = the number after `m-`), not an attribute value.
+
+## No order for nothing
+
+The server refuses:
+- **`item_unpriced`**: any line whose size plus choices comes to 0 or less;
+- **`order_total_zero`**: any order whose total is 0 or less (for example a
+  100% company discount).
+
+The same check guards the app's checkout and the card payment intent. The feed
+itself carries no size priced at 0 and no negative choice; tests check both.
+**The website must apply the same rule**: never send a WhatsApp order whose
+total is 0.
 
 ## Keeping it up to date — daily sync from Odoo
 

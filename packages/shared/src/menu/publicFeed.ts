@@ -173,27 +173,6 @@ const MODIFIER_CATEGORY_SLUGS: Record<string, string> = {
   'cat-35': 'extra_flavour', 'cat-38': 'extra_sweets', 'cat-39': 'extra_milk',
 };
 
-/**
- * ARABIC NAMES FOR ADD-ON PRODUCTS. Odoo has none for these (read
- * 2026-09-25). A STOPGAP like CATEGORY_AR in the pull script: an Arabic name
- * set in Odoo wins, so entries retire themselves as Odoo is translated.
- */
-const MODIFIER_AR: Record<string, string> = {
-  'Extra Avocado': 'أفوكادو إضافي', 'Extra Cold Foam': 'كولد فوم إضافي',
-  'Extra Decaf Coffee': 'قهوة ديكاف (منزوعة الكافيين)', 'Extra Mushroom': 'فطر إضافي',
-  'Extra Nutella': 'نوتيلا إضافية', 'Extra Nuts': 'مكسرات إضافية',
-  'Extra Shot': 'شوت إسبريسو إضافي', 'Extra Strawberry': 'فراولة إضافية',
-  'Ice Cream': 'آيس كريم', 'Extra Cream': 'كريمة إضافية', 'Extra Bubbles': 'ببلز إضافية',
-  'Extra Marshmallow': 'مارشميلو إضافي', 'Extra Honey': 'عسل إضافي', 'Extra Foam': 'رغوة إضافية',
-  'Extra Pistachio': 'فستق إضافي', 'Extra Almond Milk': 'حليب لوز', 'Extra Egg': 'بيض إضافي',
-  'Extra Cream Cheese': 'كريم تشيز إضافي', 'Extra Chedder Cheese': 'جبنة شيدر إضافية',
-  'Extra Halloumi': 'حلوم إضافي', 'Extra Chicken': 'دجاج إضافي', 'Extra Salmon': 'سلمون إضافي',
-  'Extra Guacamole': 'جواكامولي إضافي', 'Extra Turkey Roast': 'تيركي إضافي',
-  'Extra Roast Beef': 'روست بيف إضافي', 'Extra Tomato': 'بندورة إضافية',
-  'Extra Lettuce': 'خس إضافي', 'Extra Olives': 'زيتون إضافي', 'Extra 3 Cheese': 'ثلاث أجبان إضافية',
-  'Extra Sundried Tomato': 'بندورة مجففة إضافية', 'Extra ice cream': 'آيس كريم إضافي',
-};
-const hasArabic = (s: string) => /[\u0600-\u06FF]/.test(s);
 
 /** Photo width the pull writes (scripts/odoo-menu-pull.ts IMG_WIDTH). */
 const IMAGE_MAX_PX = 512;
@@ -296,7 +275,7 @@ export function buildPublicMenuFeed(input: PublicFeedInput): PublicMenuFeed {
   const modifiers: PublicModifier[] = (input.insights?.modifiers ?? []).map((m) => ({
     id: m.id,
     category: MODIFIER_CATEGORY_SLUGS[m.categoryId] ?? 'extra',
-    name_ar: hasArabic(m.nameAr) ? m.nameAr : (MODIFIER_AR[m.nameEn] ?? m.nameEn),
+    name_ar: m.nameAr,
     name_en: m.nameEn,
     price: round3(m.price),
   }));

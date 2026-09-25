@@ -8,6 +8,8 @@
  */
 import type { Branch, PaymentMethod, Category, MenuItem } from '../types';
 import { generatedCategories, generatedMenuItems } from './menu.generated';
+import { itemInsights, modifierProducts } from './menu.insights.generated';
+import { attachAddOns } from './addOns';
 
 // Branches (Revision Pack §G). Default hours 07:00–24:00 (mall branches follow
 // mall hours). Coordinates are APPROXIMATE per Amman area — TODO: replace with
@@ -35,4 +37,7 @@ export const paymentMethods: PaymentMethod[] = [
 
 // Real menu (Talabat export) is the active source.
 export const categories: Category[] = generatedCategories;
-export const menuItems: MenuItem[] = generatedMenuItems;
+// Odoo's add-on products (Extra Cold Foam…) join each item they are measured
+// on as an «إضافات» group — one menu for the app, the website, the feed and
+// the server's re-price (menu/addOns.ts).
+export const menuItems: MenuItem[] = attachAddOns(generatedMenuItems, modifierProducts, itemInsights);

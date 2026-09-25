@@ -31,6 +31,7 @@
     "./menu/menu.generated": "./src/menu/menu.generated.ts",
     "./menu/seed": "./src/menu/seed.ts",
     "./menu/publicFeed": "./src/menu/publicFeed.ts",
+    "./menu/addOns": "./src/menu/addOns.ts",
     "./menu/menu.insights.generated": "./src/menu/menu.insights.generated.ts",
     "./lib/categoryKind": "./src/lib/categoryKind.ts",
     "./lib/combo": "./src/lib/combo.ts",

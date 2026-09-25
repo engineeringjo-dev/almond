@@ -18,495 +18,102 @@ export interface ItemInsight {
 }
 export interface ModifierProduct { id: string; categoryId: string; nameEn: string; nameAr: string; price: number }
 
-export const insightsWindow = {"from":"2026-08-11","to":"2026-09-25","days":45,"orders":134306,"lines":273906} as const;
+export const insightsWindow = {"from":"2026-08-11","to":"2026-09-25","days":45,"orders":134244,"lines":273772} as const;
 
 export const modifierProducts: ModifierProduct[] = [
   {
     "id": "m-10596",
     "categoryId": "cat-32",
     "nameEn": "Extra Avocado",
-    "nameAr": "Extra Avocado",
+    "nameAr": "أفوكادو إضافي",
     "price": 1.5
   },
   {
     "id": "m-11374",
     "categoryId": "cat-34",
     "nameEn": "Extra Cold Foam",
-    "nameAr": "Extra Cold Foam",
+    "nameAr": "كولد فوم إضافي",
     "price": 0.6
   },
   {
     "id": "m-10613",
     "categoryId": "cat-34",
     "nameEn": "Extra Decaf Coffee",
-    "nameAr": "Extra Decaf Coffee",
+    "nameAr": "قهوة ديكاف (منزوعة الكافيين)",
     "price": 0.4
   },
   {
     "id": "m-10603",
     "categoryId": "cat-33",
     "nameEn": "Extra Mushroom",
-    "nameAr": "Extra Mushroom",
+    "nameAr": "فطر إضافي",
     "price": 0.6
   },
   {
     "id": "m-10762",
     "categoryId": "cat-38",
     "nameEn": "Extra Nutella",
-    "nameAr": "Extra Nutella",
+    "nameAr": "نوتيلا إضافية",
     "price": 1
   },
   {
     "id": "m-10616",
     "categoryId": "cat-34",
     "nameEn": "Extra Nuts",
-    "nameAr": "Extra Nuts",
+    "nameAr": "مكسرات إضافية",
     "price": 0.45
   },
   {
     "id": "m-10614",
     "categoryId": "cat-34",
     "nameEn": "Extra Shot",
-    "nameAr": "Extra Shot",
+    "nameAr": "شوت إسبريسو إضافي",
     "price": 0.4
   },
   {
     "id": "m-10835",
     "categoryId": "cat-32",
     "nameEn": "Extra Strawberry",
-    "nameAr": "Extra Strawberry",
+    "nameAr": "فراولة إضافية",
     "price": 0.6
   },
   {
     "id": "m-10792",
     "categoryId": "cat-32",
     "nameEn": "Ice Cream",
-    "nameAr": "Ice Cream",
+    "nameAr": "آيس كريم",
     "price": 1
   }
 ];
 
 export const itemInsights: Record<string, ItemInsight> = {
- "p-11830": {
-  "lines": 691,
-  "orders": 672,
+ "p-10161": {
+  "lines": 1028,
+  "orders": 985,
   "sizes": [],
   "choices": [],
   "modifiers": [],
   "crossSell": [
+   {
+    "itemId": "p-10384",
+    "attach": 0.069,
+    "lift": 2.48
+   },
    {
     "itemId": "p-10352",
-    "attach": 0.118,
-    "lift": 1.43
+    "attach": 0.095,
+    "lift": 1.16
    },
-   {
-    "itemId": "p-10334",
-    "attach": 0.071,
-    "lift": 1.15
-   }
-  ]
- },
- "p-10144": {
-  "lines": 892,
-  "orders": 882,
-  "sizes": [],
-  "choices": [],
-  "modifiers": [
-   {
-    "modifierId": "m-10762",
-    "share": 0.035
-   }
-  ],
-  "crossSell": [
    {
     "itemId": "p-10337",
-    "attach": 0.08,
-    "lift": 2.82
-   },
-   {
-    "itemId": "p-10338",
-    "attach": 0.07,
-    "lift": 1.43
-   },
-   {
-    "itemId": "p-10379",
-    "attach": 0.034,
-    "lift": 1.93
-   }
-  ]
- },
- "p-10162": {
-  "lines": 1636,
-  "orders": 1567,
-  "sizes": [],
-  "choices": [
-   {
-    "optionId": "o-9834",
-    "share": 0.028
-   }
-  ],
-  "modifiers": [],
-  "crossSell": [
-   {
-    "itemId": "p-10384",
-    "attach": 0.068,
-    "lift": 2.43
-   },
-   {
-    "itemId": "p-10334",
-    "attach": 0.101,
-    "lift": 1.63
-   },
-   {
-    "itemId": "p-10338",
-    "attach": 0.08,
-    "lift": 1.62
-   }
-  ]
- },
- "p-10169": {
-  "lines": 1340,
-  "orders": 1303,
-  "sizes": [],
-  "choices": [
-   {
-    "optionId": "o-11889",
-    "share": 0.028
-   }
-  ],
-  "modifiers": [],
-  "crossSell": [
-   {
-    "itemId": "p-10384",
-    "attach": 0.088,
-    "lift": 3.17
-   },
-   {
-    "itemId": "p-10379",
-    "attach": 0.055,
-    "lift": 3.13
-   },
-   {
-    "itemId": "p-10338",
-    "attach": 0.087,
-    "lift": 1.78
-   }
-  ]
- },
- "p-10384": {
-  "lines": 3788,
-  "orders": 3738,
-  "sizes": [
-   {
-    "name": "Small",
-    "share": 0.473
-   },
-   {
-    "name": "Medium",
-    "share": 0.388
-   },
-   {
-    "name": "Short",
-    "share": 0.01
-   }
-  ],
-  "choices": [],
-  "modifiers": [],
-  "crossSell": [
-   {
-    "itemId": "p-10163",
-    "attach": 0.044,
-    "lift": 2.99
-   },
-   {
-    "itemId": "p-10159",
     "attach": 0.039,
-    "lift": 2.81
-   },
-   {
-    "itemId": "p-10169",
-    "attach": 0.031,
-    "lift": 3.17
-   }
-  ]
- },
- "p-10352": {
-  "lines": 11591,
-  "orders": 11018,
-  "sizes": [
-   {
-    "name": "Small",
-    "share": 0.445
-   },
-   {
-    "name": "Medium",
-    "share": 0.358
-   }
-  ],
-  "choices": [
-   {
-    "optionId": "o-3105",
-    "share": 0.085
-   },
-   {
-    "optionId": "o-3102",
-    "share": 0.044
-   },
-   {
-    "optionId": "o-3104",
-    "share": 0.044
-   }
-  ],
-  "modifiers": [
-   {
-    "modifierId": "m-11374",
-    "share": 0.022
-   }
-  ],
-  "crossSell": []
- },
- "p-10338": {
-  "lines": 6887,
-  "orders": 6598,
-  "sizes": [
-   {
-    "name": "Small",
-    "share": 0.515
-   },
-   {
-    "name": "Medium",
-    "share": 0.266
-   },
-   {
-    "name": "Short",
-    "share": 0.006
-   }
-  ],
-  "choices": [
-   {
-    "optionId": "o-2576",
-    "share": 0.098
-   },
-   {
-    "optionId": "o-11110",
-    "share": 0.042
-   },
-   {
-    "optionId": "o-2575",
-    "share": 0.04
-   }
-  ],
-  "modifiers": [],
-  "crossSell": [
-   {
-    "itemId": "p-10163",
-    "attach": 0.021,
-    "lift": 1.42
-   }
-  ]
- },
- "p-10334": {
-  "lines": 8469,
-  "orders": 8315,
-  "sizes": [
-   {
-    "name": "Small",
-    "share": 0.586
-   },
-   {
-    "name": "Medium",
-    "share": 0.203
-   },
-   {
-    "name": "Short",
-    "share": 0.036
-   }
-  ],
-  "choices": [
-   {
-    "optionId": "o-10973",
-    "share": 0.051
-   }
-  ],
-  "modifiers": [],
-  "crossSell": [
-   {
-    "itemId": "p-10164",
-    "attach": 0.031,
-    "lift": 2.68
-   }
-  ]
- },
- "p-10387": {
-  "lines": 1381,
-  "orders": 1312,
-  "sizes": [],
-  "choices": [],
-  "modifiers": [],
-  "crossSell": [
-   {
-    "itemId": "p-10342",
-    "attach": 0.043,
-    "lift": 2.38
-   },
-   {
-    "itemId": "p-10382",
-    "attach": 0.024,
-    "lift": 1.18
-   }
-  ]
- },
- "p-10353": {
-  "lines": 9218,
-  "orders": 9088,
-  "sizes": [
-   {
-    "name": "Small",
-    "share": 0.516
-   },
-   {
-    "name": "Medium",
-    "share": 0.38
-   }
-  ],
-  "choices": [
-   {
-    "optionId": "o-10986",
-    "share": 0.031
-   }
-  ],
-  "modifiers": [],
-  "crossSell": [
-   {
-    "itemId": "p-10164",
-    "attach": 0.022,
-    "lift": 1.9
-   },
-   {
-    "itemId": "p-10260",
-    "attach": 0.027,
-    "lift": 1.12
-   }
-  ]
- },
- "p-10151": {
-  "lines": 707,
-  "orders": 695,
-  "sizes": [],
-  "choices": [],
-  "modifiers": [],
-  "crossSell": [
-   {
-    "itemId": "p-10353",
-    "attach": 0.128,
-    "lift": 1.89
-   },
-   {
-    "itemId": "p-10165",
-    "attach": 0.036,
-    "lift": 3.53
-   },
-   {
-    "itemId": "p-10338",
-    "attach": 0.081,
-    "lift": 1.64
-   }
-  ]
- },
- "p-10333": {
-  "lines": 3556,
-  "orders": 3494,
-  "sizes": [],
-  "choices": [
-   {
-    "optionId": "o-2569",
-    "share": 0.068
-   },
-   {
-    "optionId": "o-2566",
-    "share": 0.043
-   },
-   {
-    "optionId": "o-11106",
-    "share": 0.031
-   }
-  ],
-  "modifiers": [],
-  "crossSell": []
- },
- "p-10166": {
-  "lines": 676,
-  "orders": 657,
-  "sizes": [],
-  "choices": [
-   {
-    "optionId": "o-9895",
-    "share": 0.459
-   },
-   {
-    "optionId": "o-9903",
-    "share": 0.158
-   },
-   {
-    "optionId": "o-9902",
-    "share": 0.031
-   }
-  ],
-  "modifiers": [],
-  "crossSell": [
-   {
-    "itemId": "p-10384",
-    "attach": 0.061,
-    "lift": 2.19
-   },
-   {
-    "itemId": "p-10334",
-    "attach": 0.073,
-    "lift": 1.18
-   },
-   {
-    "itemId": "p-10352",
-    "attach": 0.093,
-    "lift": 1.13
-   }
-  ]
- },
- "p-10245": {
-  "lines": 816,
-  "orders": 813,
-  "sizes": [],
-  "choices": [
-   {
-    "optionId": "o-10469",
-    "share": 0.027
-   },
-   {
-    "optionId": "o-10470",
-    "share": 0.023
-   }
-  ],
-  "modifiers": [],
-  "crossSell": [
-   {
-    "itemId": "p-10337",
-    "attach": 0.07,
-    "lift": 2.46
-   },
-   {
-    "itemId": "p-10338",
-    "attach": 0.089,
-    "lift": 1.8
-   },
-   {
-    "itemId": "p-10344",
-    "attach": 0.092,
-    "lift": 1.38
+    "lift": 1.35
    }
   ]
  },
  "p-10386": {
-  "lines": 20659,
-  "orders": 18908,
+  "lines": 20640,
+  "orders": 18889,
   "sizes": [],
   "choices": [],
   "modifiers": [],
@@ -528,991 +135,9 @@ export const itemInsights: Record<string, ItemInsight> = {
    }
   ]
  },
- "p-10378": {
-  "lines": 1263,
-  "orders": 1216,
-  "sizes": [
-   {
-    "name": "Medium",
-    "share": 0.422
-   },
-   {
-    "name": "Small",
-    "share": 0.35
-   }
-  ],
-  "choices": [
-   {
-    "optionId": "o-3070",
-    "share": 0.174
-   },
-   {
-    "optionId": "o-3069",
-    "share": 0.044
-   },
-   {
-    "optionId": "o-3068",
-    "share": 0.041
-   }
-  ],
-  "modifiers": [
-   {
-    "modifierId": "m-11374",
-    "share": 0.034
-   }
-  ],
-  "crossSell": [
-   {
-    "itemId": "p-10165",
-    "attach": 0.024,
-    "lift": 2.34
-   },
-   {
-    "itemId": "p-10383",
-    "attach": 0.021,
-    "lift": 1.64
-   },
-   {
-    "itemId": "p-10243",
-    "attach": 0.049,
-    "lift": 1.21
-   }
-  ]
- },
- "p-10357": {
-  "lines": 11865,
-  "orders": 11508,
-  "sizes": [
-   {
-    "name": "Small",
-    "share": 0.453
-   },
-   {
-    "name": "Medium",
-    "share": 0.392
-   }
-  ],
-  "choices": [
-   {
-    "optionId": "o-3133",
-    "share": 0.047
-   },
-   {
-    "optionId": "o-3130",
-    "share": 0.025
-   },
-   {
-    "optionId": "o-11163",
-    "share": 0.02
-   }
-  ],
-  "modifiers": [
-   {
-    "modifierId": "m-11374",
-    "share": 0.022
-   }
-  ],
-  "crossSell": [
-   {
-    "itemId": "p-10260",
-    "attach": 0.031,
-    "lift": 1.31
-   }
-  ]
- },
- "p-10197": {
-  "lines": 1043,
-  "orders": 1033,
-  "sizes": [],
-  "choices": [],
-  "modifiers": [],
-  "crossSell": [
-   {
-    "itemId": "p-10384",
-    "attach": 0.077,
-    "lift": 2.78
-   },
-   {
-    "itemId": "p-10352",
-    "attach": 0.1,
-    "lift": 1.22
-   },
-   {
-    "itemId": "p-10339",
-    "attach": 0.029,
-    "lift": 1.92
-   }
-  ]
- },
- "p-10383": {
-  "lines": 1717,
-  "orders": 1684,
-  "sizes": [
-   {
-    "name": "Small",
-    "share": 0.464
-   },
-   {
-    "name": "Medium",
-    "share": 0.404
-   }
-  ],
-  "choices": [
-   {
-    "optionId": "o-7704",
-    "share": 0.147
-   },
-   {
-    "optionId": "o-7703",
-    "share": 0.062
-   },
-   {
-    "optionId": "o-7700",
-    "share": 0.058
-   }
-  ],
-  "modifiers": [
-   {
-    "modifierId": "m-11374",
-    "share": 0.031
-   }
-  ],
-  "crossSell": [
-   {
-    "itemId": "p-10260",
-    "attach": 0.027,
-    "lift": 1.13
-   }
-  ]
- },
- "p-10159": {
-  "lines": 1931,
-  "orders": 1879,
-  "sizes": [],
-  "choices": [],
-  "modifiers": [],
-  "crossSell": [
-   {
-    "itemId": "p-10384",
-    "attach": 0.078,
-    "lift": 2.81
-   },
-   {
-    "itemId": "p-10352",
-    "attach": 0.115,
-    "lift": 1.41
-   },
-   {
-    "itemId": "p-10205",
-    "attach": 0.03,
-    "lift": 1.93
-   }
-  ]
- },
- "p-10355": {
-  "lines": 1625,
-  "orders": 1561,
-  "sizes": [
-   {
-    "name": "Small",
-    "share": 0.362
-   },
-   {
-    "name": "Medium",
-    "share": 0.298
-   }
-  ],
-  "choices": [
-   {
-    "optionId": "o-3123",
-    "share": 0.06
-   },
-   {
-    "optionId": "o-3126",
-    "share": 0.052
-   }
-  ],
-  "modifiers": [
-   {
-    "modifierId": "m-11374",
-    "share": 0.022
-   }
-  ],
-  "crossSell": [
-   {
-    "itemId": "p-10243",
-    "attach": 0.05,
-    "lift": 1.24
-   },
-   {
-    "itemId": "p-10159",
-    "attach": 0.021,
-    "lift": 1.51
-   }
-  ]
- },
- "p-10168": {
-  "lines": 516,
-  "orders": 505,
-  "sizes": [],
-  "choices": [],
-  "modifiers": [],
-  "crossSell": [
-   {
-    "itemId": "p-10384",
-    "attach": 0.113,
-    "lift": 4.06
-   },
-   {
-    "itemId": "p-10379",
-    "attach": 0.065,
-    "lift": 3.7
-   },
-   {
-    "itemId": "p-10334",
-    "attach": 0.097,
-    "lift": 1.57
-   }
-  ]
- },
- "p-4469": {
-  "lines": 2611,
-  "orders": 2588,
-  "sizes": [],
-  "choices": [],
-  "modifiers": [],
-  "crossSell": [
-   {
-    "itemId": "p-12059",
-    "attach": 0.249,
-    "lift": 18.28
-   },
-   {
-    "itemId": "p-10357",
-    "attach": 0.187,
-    "lift": 2.18
-   },
-   {
-    "itemId": "p-10334",
-    "attach": 0.117,
-    "lift": 1.88
-   }
-  ]
- },
- "p-10319": {
-  "lines": 416,
-  "orders": 415,
-  "sizes": [],
-  "choices": [
-   {
-    "optionId": "o-2444",
-    "share": 0.178
-   }
-  ],
-  "modifiers": [],
-  "crossSell": [
-   {
-    "itemId": "p-10379",
-    "attach": 0.082,
-    "lift": 4.64
-   }
-  ]
- },
- "p-11799": {
-  "lines": 412,
-  "orders": 410,
-  "sizes": [],
-  "choices": [],
-  "modifiers": [],
-  "crossSell": [
-   {
-    "itemId": "p-10334",
-    "attach": 0.085,
-    "lift": 1.38
-   },
-   {
-    "itemId": "p-10352",
-    "attach": 0.098,
-    "lift": 1.19
-   }
-  ]
- },
- "p-10339": {
-  "lines": 2064,
-  "orders": 2029,
-  "sizes": [
-   {
-    "name": "Small",
-    "share": 0.554
-   },
-   {
-    "name": "Medium",
-    "share": 0.251
-   },
-   {
-    "name": "Short",
-    "share": 0.005
-   }
-  ],
-  "choices": [
-   {
-    "optionId": "o-2590",
-    "share": 0.049
-   }
-  ],
-  "modifiers": [],
-  "crossSell": [
-   {
-    "itemId": "p-10163",
-    "attach": 0.024,
-    "lift": 1.62
-   },
-   {
-    "itemId": "p-10260",
-    "attach": 0.028,
-    "lift": 1.19
-   }
-  ]
- },
- "p-10335": {
-  "lines": 817,
-  "orders": 803,
-  "sizes": [
-   {
-    "name": "Small",
-    "share": 0.562
-   },
-   {
-    "name": "Medium",
-    "share": 0.306
-   }
-  ],
-  "choices": [
-   {
-    "optionId": "o-2583",
-    "share": 0.086
-   },
-   {
-    "optionId": "o-2580",
-    "share": 0.026
-   },
-   {
-    "optionId": "o-2584",
-    "share": 0.023
-   }
-  ],
-  "modifiers": [
-   {
-    "modifierId": "m-10613",
-    "share": 0.026
-   }
-  ],
-  "crossSell": [
-   {
-    "itemId": "p-10260",
-    "attach": 0.034,
-    "lift": 1.42
-   }
-  ]
- },
- "p-11797": {
-  "lines": 1205,
-  "orders": 1188,
-  "sizes": [],
-  "choices": [],
-  "modifiers": [],
-  "crossSell": [
-   {
-    "itemId": "p-10205",
-    "attach": 0.058,
-    "lift": 3.69
-   },
-   {
-    "itemId": "p-10384",
-    "attach": 0.055,
-    "lift": 1.97
-   },
-   {
-    "itemId": "p-10338",
-    "attach": 0.072,
-    "lift": 1.46
-   }
-  ]
- },
- "p-10248": {
-  "lines": 1541,
-  "orders": 1535,
-  "sizes": [],
-  "choices": [],
-  "modifiers": [],
-  "crossSell": [
-   {
-    "itemId": "p-10344",
-    "attach": 0.087,
-    "lift": 1.3
-   },
-   {
-    "itemId": "p-10338",
-    "attach": 0.058,
-    "lift": 1.18
-   },
-   {
-    "itemId": "p-10337",
-    "attach": 0.036,
-    "lift": 1.26
-   }
-  ]
- },
- "p-10199": {
-  "lines": 554,
-  "orders": 551,
-  "sizes": [],
-  "choices": [],
-  "modifiers": [],
-  "crossSell": [
-   {
-    "itemId": "p-10243",
-    "attach": 0.051,
-    "lift": 1.27
-   }
-  ]
- },
- "p-10160": {
-  "lines": 768,
-  "orders": 756,
-  "sizes": [],
-  "choices": [],
-  "modifiers": [],
-  "crossSell": [
-   {
-    "itemId": "p-10384",
-    "attach": 0.07,
-    "lift": 2.52
-   },
-   {
-    "itemId": "p-10205",
-    "attach": 0.037,
-    "lift": 2.36
-   },
-   {
-    "itemId": "p-10382",
-    "attach": 0.041,
-    "lift": 1.99
-   }
-  ]
- },
- "p-10351": {
-  "lines": 4292,
-  "orders": 4023,
-  "sizes": [],
-  "choices": [],
-  "modifiers": [],
-  "crossSell": [
-   {
-    "itemId": "p-10379",
-    "attach": 0.021,
-    "lift": 1.17
-   }
-  ]
- },
- "p-11668": {
-  "lines": 818,
-  "orders": 812,
-  "sizes": [],
-  "choices": [
-   {
-    "optionId": "o-10723",
-    "share": 0.353
-   },
-   {
-    "optionId": "o-10722",
-    "share": 0.075
-   },
-   {
-    "optionId": "o-10721",
-    "share": 0.072
-   }
-  ],
-  "modifiers": [],
-  "crossSell": [
-   {
-    "itemId": "p-10357",
-    "attach": 0.108,
-    "lift": 1.26
-   },
-   {
-    "itemId": "p-10382",
-    "attach": 0.031,
-    "lift": 1.49
-   },
-   {
-    "itemId": "p-10365",
-    "attach": 0.044,
-    "lift": 1.1
-   }
-  ]
- },
- "p-10149": {
-  "lines": 767,
-  "orders": 760,
-  "sizes": [],
-  "choices": [],
-  "modifiers": [],
-  "crossSell": [
-   {
-    "itemId": "p-10384",
-    "attach": 0.062,
-    "lift": 2.22
-   },
-   {
-    "itemId": "p-10159",
-    "attach": 0.036,
-    "lift": 2.54
-   },
-   {
-    "itemId": "p-10334",
-    "attach": 0.086,
-    "lift": 1.38
-   }
-  ]
- },
- "p-10244": {
-  "lines": 1531,
-  "orders": 1517,
-  "sizes": [],
-  "choices": [
-   {
-    "optionId": "o-10621",
-    "share": 0.155
-   },
-   {
-    "optionId": "o-10619",
-    "share": 0.031
-   }
-  ],
-  "modifiers": [],
-  "crossSell": [
-   {
-    "itemId": "p-10357",
-    "attach": 0.119,
-    "lift": 1.39
-   },
-   {
-    "itemId": "p-10258",
-    "attach": 0.028,
-    "lift": 2.25
-   },
-   {
-    "itemId": "p-10260",
-    "attach": 0.038,
-    "lift": 1.59
-   }
-  ]
- },
- "p-10306": {
-  "lines": 1010,
-  "orders": 1010,
-  "sizes": [
-   {
-    "name": "(6-8) people",
-    "share": 0.371
-   },
-   {
-    "name": "(10-12) poeple",
-    "share": 0.3
-   },
-   {
-    "name": "25 (تواصي)",
-    "share": 0.002
-   },
-   {
-    "name": "15 (تواصي)",
-    "share": 0.002
-   },
-   {
-    "name": "20 (تواصي)",
-    "share": 0.001
-   }
-  ],
-  "choices": [],
-  "modifiers": [],
-  "crossSell": [
-   {
-    "itemId": "p-12059",
-    "attach": 0.027,
-    "lift": 1.96
-   }
-  ]
- },
- "p-10362": {
-  "lines": 271,
-  "orders": 266,
-  "sizes": [
-   {
-    "name": "Small",
-    "share": 0.373
-   },
-   {
-    "name": "Medium",
-    "share": 0.317
-   }
-  ],
-  "choices": [],
-  "modifiers": [],
-  "crossSell": []
- },
- "p-10201": {
-  "lines": 538,
-  "orders": 533,
-  "sizes": [],
-  "choices": [],
-  "modifiers": [],
-  "crossSell": [
-   {
-    "itemId": "p-10213",
-    "attach": 0.049,
-    "lift": 3.65
-   },
-   {
-    "itemId": "p-10384",
-    "attach": 0.062,
-    "lift": 2.22
-   }
-  ]
- },
- "p-10165": {
-  "lines": 1413,
-  "orders": 1368,
-  "sizes": [],
-  "choices": [
-   {
-    "optionId": "o-9877",
-    "share": 0.109
-   }
-  ],
-  "modifiers": [],
-  "crossSell": [
-   {
-    "itemId": "p-10334",
-    "attach": 0.11,
-    "lift": 1.78
-   },
-   {
-    "itemId": "p-10353",
-    "attach": 0.11,
-    "lift": 1.63
-   },
-   {
-    "itemId": "p-10352",
-    "attach": 0.109,
-    "lift": 1.33
-   }
-  ]
- },
- "p-10375": {
-  "lines": 692,
-  "orders": 680,
-  "sizes": [
-   {
-    "name": "Small",
-    "share": 0.487
-   },
-   {
-    "name": "Medium",
-    "share": 0.455
-   }
-  ],
-  "choices": [
-   {
-    "optionId": "o-3048",
-    "share": 0.035
-   }
-  ],
-  "modifiers": [
-   {
-    "modifierId": "m-10792",
-    "share": 0.064
-   }
-  ],
-  "crossSell": [
-   {
-    "itemId": "p-10365",
-    "attach": 0.056,
-    "lift": 1.39
-   }
-  ]
- },
- "p-10225": {
-  "lines": 816,
-  "orders": 813,
-  "sizes": [],
-  "choices": [
-   {
-    "optionId": "o-10566",
-    "share": 0.054
-   },
-   {
-    "optionId": "o-10565",
-    "share": 0.031
-   }
-  ],
-  "modifiers": [],
-  "crossSell": [
-   {
-    "itemId": "p-10344",
-    "attach": 0.113,
-    "lift": 1.69
-   },
-   {
-    "itemId": "p-10334",
-    "attach": 0.098,
-    "lift": 1.59
-   },
-   {
-    "itemId": "p-10338",
-    "attach": 0.081,
-    "lift": 1.65
-   }
-  ]
- },
- "p-10342": {
-  "lines": 2500,
-  "orders": 2452,
-  "sizes": [
-   {
-    "name": "Short",
-    "share": 0.968
-   }
-  ],
-  "choices": [
-   {
-    "optionId": "o-11077",
-    "share": 0.719
-   },
-   {
-    "optionId": "o-11078",
-    "share": 0.023
-   }
-  ],
-  "modifiers": [
-   {
-    "modifierId": "m-10614",
-    "share": 0.036
-   }
-  ],
-  "crossSell": []
- },
- "p-10356": {
-  "lines": 2147,
-  "orders": 2112,
-  "sizes": [
-   {
-    "name": "Small",
-    "share": 0.384
-   },
-   {
-    "name": "Medium",
-    "share": 0.375
-   }
-  ],
-  "choices": [
-   {
-    "optionId": "o-3098",
-    "share": 0.047
-   },
-   {
-    "optionId": "o-11139",
-    "share": 0.021
-   }
-  ],
-  "modifiers": [
-   {
-    "modifierId": "m-11374",
-    "share": 0.036
-   }
-  ],
-  "crossSell": [
-   {
-    "itemId": "p-10246",
-    "attach": 0.02,
-    "lift": 1.62
-   },
-   {
-    "itemId": "p-10243",
-    "attach": 0.046,
-    "lift": 1.16
-   },
-   {
-    "itemId": "p-10260",
-    "attach": 0.028,
-    "lift": 1.18
-   }
-  ]
- },
- "p-10249": {
-  "lines": 1204,
-  "orders": 1201,
-  "sizes": [],
-  "choices": [
-   {
-    "optionId": "o-10523",
-    "share": 0.039
-   }
-  ],
-  "modifiers": [],
-  "crossSell": [
-   {
-    "itemId": "p-10356",
-    "attach": 0.022,
-    "lift": 1.38
-   }
-  ]
- },
- "p-10163": {
-  "lines": 2007,
-  "orders": 1962,
-  "sizes": [],
-  "choices": [],
-  "modifiers": [],
-  "crossSell": [
-   {
-    "itemId": "p-10384",
-    "attach": 0.083,
-    "lift": 2.99
-   },
-   {
-    "itemId": "p-10379",
-    "attach": 0.048,
-    "lift": 2.74
-   },
-   {
-    "itemId": "p-10334",
-    "attach": 0.084,
-    "lift": 1.36
-   }
-  ]
- },
- "p-10358": {
-  "lines": 1638,
-  "orders": 1604,
-  "sizes": [
-   {
-    "name": "Small",
-    "share": 0.482
-   },
-   {
-    "name": "Medium",
-    "share": 0.393
-   }
-  ],
-  "choices": [
-   {
-    "optionId": "o-3112",
-    "share": 0.044
-   },
-   {
-    "optionId": "o-3109",
-    "share": 0.032
-   },
-   {
-    "optionId": "o-3111",
-    "share": 0.021
-   }
-  ],
-  "modifiers": [
-   {
-    "modifierId": "m-10613",
-    "share": 0.023
-   },
-   {
-    "modifierId": "m-11374",
-    "share": 0.021
-   }
-  ],
-  "crossSell": []
- },
- "p-11926": {
-  "lines": 379,
-  "orders": 374,
-  "sizes": [
-   {
-    "name": "Small",
-    "share": 0.53
-   },
-   {
-    "name": "Medium",
-    "share": 0.393
-   }
-  ],
-  "choices": [
-   {
-    "optionId": "o-11404",
-    "share": 0.045
-   }
-  ],
-  "modifiers": [],
-  "crossSell": []
- },
- "p-10371": {
-  "lines": 378,
-  "orders": 371,
-  "sizes": [
-   {
-    "name": "Small",
-    "share": 0.357
-   },
-   {
-    "name": "Medium",
-    "share": 0.267
-   }
-  ],
-  "choices": [],
-  "modifiers": [
-   {
-    "modifierId": "m-10792",
-    "share": 0.053
-   }
-  ],
-  "crossSell": [
-   {
-    "itemId": "p-10243",
-    "attach": 0.075,
-    "lift": 1.88
-   }
-  ]
- },
- "p-10313": {
-  "lines": 762,
-  "orders": 761,
-  "sizes": [],
-  "choices": [
-   {
-    "optionId": "o-2449",
-    "share": 0.278
-   }
-  ],
-  "modifiers": [],
-  "crossSell": [
-   {
-    "itemId": "p-10379",
-    "attach": 0.092,
-    "lift": 5.21
-   },
-   {
-    "itemId": "p-10384",
-    "attach": 0.068,
-    "lift": 2.46
-   },
-   {
-    "itemId": "p-10162",
-    "attach": 0.034,
-    "lift": 2.93
-   }
-  ]
- },
  "p-10337": {
-  "lines": 3992,
-  "orders": 3831,
+  "lines": 3991,
+  "orders": 3830,
   "sizes": [
    {
     "name": "Small",
@@ -1569,61 +194,99 @@ export const itemInsights: Record<string, ItemInsight> = {
    }
   ]
  },
- "p-10170": {
-  "lines": 652,
-  "orders": 640,
+ "p-10352": {
+  "lines": 11585,
+  "orders": 11012,
+  "sizes": [
+   {
+    "name": "Small",
+    "share": 0.445
+   },
+   {
+    "name": "Medium",
+    "share": 0.358
+   }
+  ],
+  "choices": [
+   {
+    "optionId": "o-3105",
+    "share": 0.085
+   },
+   {
+    "optionId": "o-3104",
+    "share": 0.044
+   },
+   {
+    "optionId": "o-3102",
+    "share": 0.044
+   }
+  ],
+  "modifiers": [
+   {
+    "modifierId": "m-11374",
+    "share": 0.022
+   }
+  ],
+  "crossSell": []
+ },
+ "p-10357": {
+  "lines": 11851,
+  "orders": 11494,
+  "sizes": [
+   {
+    "name": "Small",
+    "share": 0.453
+   },
+   {
+    "name": "Medium",
+    "share": 0.392
+   }
+  ],
+  "choices": [
+   {
+    "optionId": "o-3133",
+    "share": 0.047
+   },
+   {
+    "optionId": "o-3130",
+    "share": 0.025
+   },
+   {
+    "optionId": "o-11163",
+    "share": 0.02
+   }
+  ],
+  "modifiers": [
+   {
+    "modifierId": "m-11374",
+    "share": 0.022
+   }
+  ],
+  "crossSell": [
+   {
+    "itemId": "p-10260",
+    "attach": 0.031,
+    "lift": 1.31
+   }
+  ]
+ },
+ "p-10211": {
+  "lines": 829,
+  "orders": 824,
   "sizes": [],
   "choices": [],
   "modifiers": [],
   "crossSell": [
    {
-    "itemId": "p-10379",
-    "attach": 0.08,
-    "lift": 4.51
-   },
-   {
     "itemId": "p-10384",
-    "attach": 0.083,
-    "lift": 2.98
-   },
-   {
-    "itemId": "p-10344",
-    "attach": 0.119,
-    "lift": 1.77
-   }
-  ]
- },
- "p-10348": {
-  "lines": 869,
-  "orders": 853,
-  "sizes": [
-   {
-    "name": "Small",
-    "share": 0.633
-   },
-   {
-    "name": "Medium",
-    "share": 0.252
-   }
-  ],
-  "choices": [
-   {
-    "optionId": "o-2985",
-    "share": 0.036
-   }
-  ],
-  "modifiers": [],
-  "crossSell": [
-   {
-    "itemId": "p-10260",
-    "attach": 0.042,
-    "lift": 1.79
+    "attach": 0.039,
+    "lift": 1.4
    }
   ]
  },
  "p-10344": {
-  "lines": 9212,
-  "orders": 9002,
+  "lines": 9213,
+  "orders": 9003,
   "sizes": [
    {
     "name": "Small",
@@ -1642,14 +305,236 @@ export const itemInsights: Record<string, ItemInsight> = {
   "modifiers": [
    {
     "modifierId": "m-10614",
-    "share": 0.02
+    "share": 0.021
    }
   ],
   "crossSell": []
  },
+ "p-10334": {
+  "lines": 8464,
+  "orders": 8310,
+  "sizes": [
+   {
+    "name": "Small",
+    "share": 0.586
+   },
+   {
+    "name": "Medium",
+    "share": 0.203
+   },
+   {
+    "name": "Short",
+    "share": 0.037
+   }
+  ],
+  "choices": [
+   {
+    "optionId": "o-10973",
+    "share": 0.052
+   }
+  ],
+  "modifiers": [],
+  "crossSell": [
+   {
+    "itemId": "p-10164",
+    "attach": 0.031,
+    "lift": 2.68
+   }
+  ]
+ },
+ "p-10280": {
+  "lines": 488,
+  "orders": 483,
+  "sizes": [],
+  "choices": [],
+  "modifiers": [],
+  "crossSell": [
+   {
+    "itemId": "p-10338",
+    "attach": 0.056,
+    "lift": 1.14
+   }
+  ]
+ },
+ "p-10289": {
+  "lines": 882,
+  "orders": 876,
+  "sizes": [],
+  "choices": [],
+  "modifiers": [],
+  "crossSell": [
+   {
+    "itemId": "p-10243",
+    "attach": 0.053,
+    "lift": 1.31
+   }
+  ]
+ },
+ "p-10287": {
+  "lines": 539,
+  "orders": 535,
+  "sizes": [],
+  "choices": [],
+  "modifiers": [],
+  "crossSell": [
+   {
+    "itemId": "p-10243",
+    "attach": 0.054,
+    "lift": 1.35
+   }
+  ]
+ },
+ "p-10382": {
+  "lines": 2809,
+  "orders": 2767,
+  "sizes": [
+   {
+    "name": "Small",
+    "share": 0.503
+   },
+   {
+    "name": "Medium",
+    "share": 0.44
+   },
+   {
+    "name": "Short",
+    "share": 0
+   }
+  ],
+  "choices": [
+   {
+    "optionId": "o-11180",
+    "share": 0.091
+   }
+  ],
+  "modifiers": [],
+  "crossSell": [
+   {
+    "itemId": "p-10260",
+    "attach": 0.029,
+    "lift": 1.21
+   }
+  ]
+ },
+ "p-10333": {
+  "lines": 3556,
+  "orders": 3494,
+  "sizes": [],
+  "choices": [
+   {
+    "optionId": "o-2569",
+    "share": 0.068
+   },
+   {
+    "optionId": "o-2566",
+    "share": 0.043
+   },
+   {
+    "optionId": "o-11106",
+    "share": 0.031
+   }
+  ],
+  "modifiers": [],
+  "crossSell": []
+ },
+ "p-10165": {
+  "lines": 1412,
+  "orders": 1367,
+  "sizes": [],
+  "choices": [
+   {
+    "optionId": "o-9877",
+    "share": 0.11
+   }
+  ],
+  "modifiers": [],
+  "crossSell": [
+   {
+    "itemId": "p-10334",
+    "attach": 0.11,
+    "lift": 1.77
+   },
+   {
+    "itemId": "p-10353",
+    "attach": 0.11,
+    "lift": 1.63
+   },
+   {
+    "itemId": "p-10352",
+    "attach": 0.109,
+    "lift": 1.33
+   }
+  ]
+ },
+ "p-10339": {
+  "lines": 2060,
+  "orders": 2025,
+  "sizes": [
+   {
+    "name": "Small",
+    "share": 0.554
+   },
+   {
+    "name": "Medium",
+    "share": 0.251
+   },
+   {
+    "name": "Short",
+    "share": 0.005
+   }
+  ],
+  "choices": [
+   {
+    "optionId": "o-2590",
+    "share": 0.05
+   }
+  ],
+  "modifiers": [
+   {
+    "modifierId": "m-10613",
+    "share": 0.021
+   }
+  ],
+  "crossSell": [
+   {
+    "itemId": "p-10163",
+    "attach": 0.024,
+    "lift": 1.62
+   },
+   {
+    "itemId": "p-10260",
+    "attach": 0.028,
+    "lift": 1.19
+   }
+  ]
+ },
+ "p-10163": {
+  "lines": 2006,
+  "orders": 1961,
+  "sizes": [],
+  "choices": [],
+  "modifiers": [],
+  "crossSell": [
+   {
+    "itemId": "p-10384",
+    "attach": 0.083,
+    "lift": 2.99
+   },
+   {
+    "itemId": "p-10379",
+    "attach": 0.048,
+    "lift": 2.74
+   },
+   {
+    "itemId": "p-10334",
+    "attach": 0.084,
+    "lift": 1.36
+   }
+  ]
+ },
  "p-10205": {
-  "lines": 2138,
-  "orders": 2112,
+  "lines": 2136,
+  "orders": 2110,
   "sizes": [],
   "choices": [
    {
@@ -1670,7 +555,7 @@ export const itemInsights: Record<string, ItemInsight> = {
    {
     "itemId": "p-11797",
     "attach": 0.033,
-    "lift": 3.69
+    "lift": 3.7
    },
    {
     "itemId": "p-10243",
@@ -1684,22 +569,128 @@ export const itemInsights: Record<string, ItemInsight> = {
    }
   ]
  },
- "p-10152": {
-  "lines": 1201,
-  "orders": 1172,
+ "p-10298": {
+  "lines": 413,
+  "orders": 413,
+  "sizes": [
+   {
+    "name": "(10-12) poeple",
+    "share": 0.341
+   },
+   {
+    "name": "(6-8) people",
+    "share": 0.312
+   }
+  ],
+  "choices": [],
+  "modifiers": [],
+  "crossSell": []
+ },
+ "p-10655": {
+  "lines": 181,
+  "orders": 180,
+  "sizes": [],
+  "choices": [],
+  "modifiers": [],
+  "crossSell": []
+ },
+ "p-10383": {
+  "lines": 1715,
+  "orders": 1682,
+  "sizes": [
+   {
+    "name": "Small",
+    "share": 0.464
+   },
+   {
+    "name": "Medium",
+    "share": 0.404
+   }
+  ],
+  "choices": [
+   {
+    "optionId": "o-7704",
+    "share": 0.148
+   },
+   {
+    "optionId": "o-7703",
+    "share": 0.062
+   },
+   {
+    "optionId": "o-7700",
+    "share": 0.058
+   }
+  ],
+  "modifiers": [
+   {
+    "modifierId": "m-11374",
+    "share": 0.032
+   }
+  ],
+  "crossSell": [
+   {
+    "itemId": "p-10260",
+    "attach": 0.027,
+    "lift": 1.13
+   }
+  ]
+ },
+ "p-10338": {
+  "lines": 6888,
+  "orders": 6599,
+  "sizes": [
+   {
+    "name": "Small",
+    "share": 0.515
+   },
+   {
+    "name": "Medium",
+    "share": 0.266
+   },
+   {
+    "name": "Short",
+    "share": 0.006
+   }
+  ],
+  "choices": [
+   {
+    "optionId": "o-2576",
+    "share": 0.098
+   },
+   {
+    "optionId": "o-11110",
+    "share": 0.042
+   },
+   {
+    "optionId": "o-2575",
+    "share": 0.04
+   }
+  ],
+  "modifiers": [],
+  "crossSell": [
+   {
+    "itemId": "p-10163",
+    "attach": 0.021,
+    "lift": 1.43
+   }
+  ]
+ },
+ "p-10285": {
+  "lines": 88,
+  "orders": 87,
+  "sizes": [],
+  "choices": [],
+  "modifiers": [],
+  "crossSell": []
+ },
+ "p-10162": {
+  "lines": 1632,
+  "orders": 1563,
   "sizes": [],
   "choices": [
    {
-    "optionId": "o-9733",
-    "share": 0.49
-   },
-   {
-    "optionId": "o-9741",
-    "share": 0.126
-   },
-   {
-    "optionId": "o-9740",
-    "share": 0.042
+    "optionId": "o-9834",
+    "share": 0.028
    }
   ],
   "modifiers": [],
@@ -1707,279 +698,261 @@ export const itemInsights: Record<string, ItemInsight> = {
    {
     "itemId": "p-10384",
     "attach": 0.067,
-    "lift": 2.42
-   },
-   {
-    "itemId": "p-10163",
-    "attach": 0.037,
-    "lift": 2.51
-   },
-   {
-    "itemId": "p-10357",
-    "attach": 0.113,
-    "lift": 1.32
-   }
-  ]
- },
- "p-10246": {
-  "lines": 1693,
-  "orders": 1687,
-  "sizes": [],
-  "choices": [],
-  "modifiers": [],
-  "crossSell": [
-   {
-    "itemId": "p-10337",
-    "attach": 0.046,
-    "lift": 1.6
-   },
-   {
-    "itemId": "p-10356",
-    "attach": 0.025,
-    "lift": 1.62
-   },
-   {
-    "itemId": "p-10344",
-    "attach": 0.077,
-    "lift": 1.15
-   }
-  ]
- },
- "p-11925": {
-  "lines": 552,
-  "orders": 548,
-  "sizes": [
-   {
-    "name": "Small",
-    "share": 0.489
-   },
-   {
-    "name": "Medium",
-    "share": 0.487
-   }
-  ],
-  "choices": [
-   {
-    "optionId": "o-11391",
-    "share": 0.116
-   }
-  ],
-  "modifiers": [],
-  "crossSell": []
- },
- "p-10385": {
-  "lines": 1821,
-  "orders": 1807,
-  "sizes": [
-   {
-    "name": "Small",
-    "share": 0.495
-   },
-   {
-    "name": "Medium",
-    "share": 0.453
-   }
-  ],
-  "choices": [],
-  "modifiers": [
-   {
-    "modifierId": "m-10835",
-    "share": 0.048
-   }
-  ],
-  "crossSell": [
-   {
-    "itemId": "p-10260",
-    "attach": 0.029,
-    "lift": 1.22
-   }
-  ]
- },
- "p-12051": {
-  "lines": 416,
-  "orders": 412,
-  "sizes": [],
-  "choices": [],
-  "modifiers": [],
-  "crossSell": [
-   {
-    "itemId": "p-10243",
-    "attach": 0.068,
-    "lift": 1.69
-   },
-   {
-    "itemId": "p-10365",
-    "attach": 0.061,
-    "lift": 1.51
-   }
-  ]
- },
- "p-10388": {
-  "lines": 636,
-  "orders": 627,
-  "sizes": [
-   {
-    "name": "Small",
-    "share": 0.451
-   },
-   {
-    "name": "Medium",
-    "share": 0.403
-   }
-  ],
-  "choices": [
-   {
-    "optionId": "o-11185",
-    "share": 0.126
-   }
-  ],
-  "modifiers": [],
-  "crossSell": []
- },
- "p-10222": {
-  "lines": 657,
-  "orders": 656,
-  "sizes": [],
-  "choices": [],
-  "modifiers": [],
-  "crossSell": [
-   {
-    "itemId": "p-10344",
-    "attach": 0.111,
-    "lift": 1.66
-   },
-   {
-    "itemId": "p-10337",
-    "attach": 0.047,
-    "lift": 1.66
-   },
-   {
-    "itemId": "p-10338",
-    "attach": 0.063,
-    "lift": 1.27
-   }
-  ]
- },
- "p-11923": {
-  "lines": 455,
-  "orders": 453,
-  "sizes": [
-   {
-    "name": "Small",
-    "share": 0.453
-   },
-   {
-    "name": "Medium",
-    "share": 0.409
-   }
-  ],
-  "choices": [],
-  "modifiers": [
-   {
-    "modifierId": "m-11374",
-    "share": 0.042
-   }
-  ],
-  "crossSell": []
- },
- "p-10211": {
-  "lines": 830,
-  "orders": 825,
-  "sizes": [],
-  "choices": [],
-  "modifiers": [],
-  "crossSell": [
-   {
-    "itemId": "p-10384",
-    "attach": 0.039,
-    "lift": 1.39
-   }
-  ]
- },
- "p-11369": {
-  "lines": 383,
-  "orders": 375,
-  "sizes": [
-   {
-    "name": "Medium",
-    "share": 0.36
-   },
-   {
-    "name": "Small",
-    "share": 0.355
-   }
-  ],
-  "choices": [
-   {
-    "optionId": "o-8269",
-    "share": 0.091
-   },
-   {
-    "optionId": "o-8268",
-    "share": 0.052
-   }
-  ],
-  "modifiers": [
-   {
-    "modifierId": "m-11374",
-    "share": 0.123
-   }
-  ],
-  "crossSell": []
- },
- "p-10155": {
-  "lines": 358,
-  "orders": 356,
-  "sizes": [],
-  "choices": [],
-  "modifiers": [],
-  "crossSell": [
-   {
-    "itemId": "p-10384",
-    "attach": 0.096,
-    "lift": 3.43
+    "lift": 2.41
    },
    {
     "itemId": "p-10334",
-    "attach": 0.073,
-    "lift": 1.18
+    "attach": 0.1,
+    "lift": 1.62
    },
    {
-    "itemId": "p-10357",
-    "attach": 0.096,
-    "lift": 1.11
+    "itemId": "p-10338",
+    "attach": 0.08,
+    "lift": 1.63
    }
   ]
  },
- "p-10366": {
-  "lines": 360,
-  "orders": 356,
+ "p-10358": {
+  "lines": 1637,
+  "orders": 1603,
   "sizes": [
    {
-    "name": "Medium",
-    "share": 0.483
+    "name": "Small",
+    "share": 0.482
    },
    {
-    "name": "Small",
-    "share": 0.344
+    "name": "Medium",
+    "share": 0.393
    }
   ],
   "choices": [
    {
-    "optionId": "o-3013",
-    "share": 0.072
+    "optionId": "o-3112",
+    "share": 0.044
    },
    {
-    "optionId": "o-3014",
-    "share": 0.042
+    "optionId": "o-3109",
+    "share": 0.032
+   },
+   {
+    "optionId": "o-3111",
+    "share": 0.021
+   }
+  ],
+  "modifiers": [
+   {
+    "modifierId": "m-10613",
+    "share": 0.023
+   },
+   {
+    "modifierId": "m-11374",
+    "share": 0.021
+   }
+  ],
+  "crossSell": []
+ },
+ "p-10367": {
+  "lines": 394,
+  "orders": 381,
+  "sizes": [
+   {
+    "name": "Small",
+    "share": 0.292
+   },
+   {
+    "name": "Medium",
+    "share": 0.272
+   }
+  ],
+  "choices": [
+   {
+    "optionId": "o-2991",
+    "share": 0.096
+   },
+   {
+    "optionId": "o-2992",
+    "share": 0.043
+   }
+  ],
+  "modifiers": [
+   {
+    "modifierId": "m-10616",
+    "share": 0.053
+   }
+  ],
+  "crossSell": []
+ },
+ "p-10243": {
+  "lines": 6168,
+  "orders": 5395,
+  "sizes": [],
+  "choices": [],
+  "modifiers": [],
+  "crossSell": [
+   {
+    "itemId": "p-10260",
+    "attach": 0.033,
+    "lift": 1.4
+   },
+   {
+    "itemId": "p-10205",
+    "attach": 0.023,
+    "lift": 1.44
+   }
+  ]
+ },
+ "p-10369": {
+  "lines": 1086,
+  "orders": 1064,
+  "sizes": [
+   {
+    "name": "Medium",
+    "share": 0.355
+   },
+   {
+    "name": "Small",
+    "share": 0.275
+   }
+  ],
+  "choices": [
+   {
+    "optionId": "o-7948",
+    "share": 0.035
+   },
+   {
+    "optionId": "o-11022",
+    "share": 0.023
    }
   ],
   "modifiers": [
    {
     "modifierId": "m-10792",
-    "share": 0.061
+    "share": 0.11
    }
   ],
+  "crossSell": [
+   {
+    "itemId": "p-10356",
+    "attach": 0.039,
+    "lift": 2.51
+   },
+   {
+    "itemId": "p-10260",
+    "attach": 0.031,
+    "lift": 1.31
+   }
+  ]
+ },
+ "p-10231": {
+  "lines": 1229,
+  "orders": 1223,
+  "sizes": [],
+  "choices": [],
+  "modifiers": [],
+  "crossSell": [
+   {
+    "itemId": "p-10344",
+    "attach": 0.09,
+    "lift": 1.34
+   },
+   {
+    "itemId": "p-10357",
+    "attach": 0.096,
+    "lift": 1.13
+   },
+   {
+    "itemId": "p-12059",
+    "attach": 0.02,
+    "lift": 1.5
+   }
+  ]
+ },
+ "p-10169": {
+  "lines": 1338,
+  "orders": 1301,
+  "sizes": [],
+  "choices": [
+   {
+    "optionId": "o-11889",
+    "share": 0.028
+   }
+  ],
+  "modifiers": [],
+  "crossSell": [
+   {
+    "itemId": "p-10384",
+    "attach": 0.088,
+    "lift": 3.15
+   },
+   {
+    "itemId": "p-10379",
+    "attach": 0.055,
+    "lift": 3.13
+   },
+   {
+    "itemId": "p-10338",
+    "attach": 0.087,
+    "lift": 1.77
+   }
+  ]
+ },
+ "p-10342": {
+  "lines": 2499,
+  "orders": 2451,
+  "sizes": [
+   {
+    "name": "Short",
+    "share": 0.968
+   }
+  ],
+  "choices": [
+   {
+    "optionId": "o-11077",
+    "share": 0.719
+   },
+   {
+    "optionId": "o-11078",
+    "share": 0.023
+   }
+  ],
+  "modifiers": [
+   {
+    "modifierId": "m-10614",
+    "share": 0.036
+   }
+  ],
+  "crossSell": []
+ },
+ "p-10195": {
+  "lines": 885,
+  "orders": 881,
+  "sizes": [],
+  "choices": [],
+  "modifiers": [],
+  "crossSell": [
+   {
+    "itemId": "p-10384",
+    "attach": 0.095,
+    "lift": 3.43
+   },
+   {
+    "itemId": "p-12059",
+    "attach": 0.04,
+    "lift": 2.91
+   },
+   {
+    "itemId": "p-10379",
+    "attach": 0.036,
+    "lift": 2.06
+   }
+  ]
+ },
+ "p-10774": {
+  "lines": 201,
+  "orders": 201,
+  "sizes": [],
+  "choices": [],
+  "modifiers": [],
   "crossSell": []
  },
  "p-10365": {
@@ -2023,593 +996,69 @@ export const itemInsights: Record<string, ItemInsight> = {
    }
   ]
  },
- "p-10276": {
-  "lines": 332,
-  "orders": 330,
-  "sizes": [],
-  "choices": [],
-  "modifiers": [],
-  "crossSell": [
-   {
-    "itemId": "p-10352",
-    "attach": 0.103,
-    "lift": 1.26
-   }
-  ]
- },
- "p-10367": {
-  "lines": 395,
-  "orders": 382,
-  "sizes": [
-   {
-    "name": "Small",
-    "share": 0.294
-   },
-   {
-    "name": "Medium",
-    "share": 0.271
-   }
-  ],
-  "choices": [
-   {
-    "optionId": "o-2991",
-    "share": 0.096
-   },
-   {
-    "optionId": "o-2992",
-    "share": 0.043
-   }
-  ],
-  "modifiers": [
-   {
-    "modifierId": "m-10616",
-    "share": 0.053
-   }
-  ],
-  "crossSell": []
- },
- "p-10289": {
-  "lines": 883,
-  "orders": 877,
-  "sizes": [],
-  "choices": [],
-  "modifiers": [],
-  "crossSell": [
-   {
-    "itemId": "p-10243",
-    "attach": 0.052,
-    "lift": 1.31
-   }
-  ]
- },
- "p-10259": {
-  "lines": 592,
-  "orders": 584,
-  "sizes": [],
-  "choices": [],
-  "modifiers": [],
-  "crossSell": [
-   {
-    "itemId": "p-10243",
-    "attach": 0.072,
-    "lift": 1.79
-   },
-   {
-    "itemId": "p-10357",
-    "attach": 0.104,
-    "lift": 1.22
-   },
-   {
-    "itemId": "p-10352",
-    "attach": 0.094,
-    "lift": 1.15
-   }
-  ]
- },
- "p-10258": {
-  "lines": 1671,
-  "orders": 1656,
-  "sizes": [],
-  "choices": [],
-  "modifiers": [],
-  "crossSell": [
-   {
-    "itemId": "p-10357",
-    "attach": 0.136,
-    "lift": 1.59
-   },
-   {
-    "itemId": "p-10243",
-    "attach": 0.06,
-    "lift": 1.49
-   },
-   {
-    "itemId": "p-10244",
-    "attach": 0.025,
-    "lift": 2.25
-   }
-  ]
- },
- "p-10359": {
-  "lines": 670,
-  "orders": 663,
-  "sizes": [
-   {
-    "name": "Medium",
-    "share": 0.436
-   },
-   {
-    "name": "Small",
-    "share": 0.4
-   }
-  ],
-  "choices": [],
-  "modifiers": [],
-  "crossSell": []
- },
- "p-10761": {
-  "lines": 1842,
-  "orders": 1835,
-  "sizes": [
-   {
-    "name": "Medium",
-    "share": 0.496
-   },
-   {
-    "name": "Small",
-    "share": 0.44
-   }
-  ],
-  "choices": [
-   {
-    "optionId": "o-11182",
-    "share": 0.048
-   }
-  ],
-  "modifiers": [],
-  "crossSell": []
- },
- "p-10395": {
-  "lines": 164,
-  "orders": 163,
-  "sizes": [
-   {
-    "name": "Medium",
-    "share": 0.409
-   },
-   {
-    "name": "Small",
-    "share": 0.39
-   }
-  ],
-  "choices": [],
-  "modifiers": [],
-  "crossSell": []
- },
- "p-10345": {
-  "lines": 846,
-  "orders": 828,
-  "sizes": [],
-  "choices": [
-   {
-    "optionId": "o-2530",
-    "share": 0.079
-   },
-   {
-    "optionId": "o-2533",
-    "share": 0.047
-   },
-   {
-    "optionId": "o-11074",
-    "share": 0.039
-   }
-  ],
-  "modifiers": [],
-  "crossSell": []
- },
- "p-10377": {
-  "lines": 375,
-  "orders": 367,
-  "sizes": [
-   {
-    "name": "Small",
-    "share": 0.528
-   },
-   {
-    "name": "Medium",
-    "share": 0.32
-   }
-  ],
-  "choices": [],
-  "modifiers": [
-   {
-    "modifierId": "m-10792",
-    "share": 0.141
-   }
-  ],
-  "crossSell": [
-   {
-    "itemId": "p-10357",
-    "attach": 0.109,
-    "lift": 1.27
-   }
-  ]
- },
- "p-10300": {
-  "lines": 1832,
-  "orders": 1830,
-  "sizes": [
-   {
-    "name": "(6-8) people",
-    "share": 0.389
-   },
-   {
-    "name": "(10-12) poeple",
-    "share": 0.321
-   },
-   {
-    "name": "15 (تواصي)",
-    "share": 0.001
-   },
-   {
-    "name": "20 (تواصي)",
-    "share": 0.001
-   },
-   {
-    "name": "25 (تواصي)",
-    "share": 0.001
-   }
-  ],
-  "choices": [],
-  "modifiers": [],
-  "crossSell": [
-   {
-    "itemId": "p-12059",
-    "attach": 0.036,
-    "lift": 2.61
-   }
-  ]
- },
- "p-10379": {
-  "lines": 2431,
-  "orders": 2372,
-  "sizes": [],
-  "choices": [],
-  "modifiers": [],
-  "crossSell": [
-   {
-    "itemId": "p-10313",
-    "attach": 0.03,
-    "lift": 5.21
-   },
-   {
-    "itemId": "p-10163",
-    "attach": 0.04,
-    "lift": 2.74
-   },
-   {
-    "itemId": "p-10169",
-    "attach": 0.03,
-    "lift": 3.13
-   }
-  ]
- },
- "p-10317": {
-  "lines": 639,
-  "orders": 637,
-  "sizes": [],
-  "choices": [
-   {
-    "optionId": "o-2443",
-    "share": 0.271
-   }
-  ],
-  "modifiers": [],
-  "crossSell": [
-   {
-    "itemId": "p-10379",
-    "attach": 0.057,
-    "lift": 3.2
-   },
-   {
-    "itemId": "p-10384",
-    "attach": 0.058,
-    "lift": 2.09
-   }
-  ]
- },
- "p-10314": {
-  "lines": 585,
-  "orders": 583,
-  "sizes": [],
-  "choices": [
-   {
-    "optionId": "o-2448",
-    "share": 0.215
-   },
-   {
-    "optionId": "o-8914",
-    "share": 0.027
-   }
-  ],
-  "modifiers": [],
-  "crossSell": [
-   {
-    "itemId": "p-10379",
-    "attach": 0.081,
-    "lift": 4.56
-   },
-   {
-    "itemId": "p-10384",
-    "attach": 0.082,
-    "lift": 2.96
-   },
-   {
-    "itemId": "p-10243",
-    "attach": 0.051,
-    "lift": 1.28
-   }
-  ]
- },
- "p-10231": {
-  "lines": 1230,
-  "orders": 1224,
-  "sizes": [],
-  "choices": [],
-  "modifiers": [],
-  "crossSell": [
-   {
-    "itemId": "p-10344",
-    "attach": 0.091,
-    "lift": 1.35
-   },
-   {
-    "itemId": "p-10357",
-    "attach": 0.096,
-    "lift": 1.13
-   },
-   {
-    "itemId": "p-12059",
-    "attach": 0.02,
-    "lift": 1.5
-   }
-  ]
- },
- "p-10793": {
-  "lines": 222,
-  "orders": 222,
-  "sizes": [],
-  "choices": [],
-  "modifiers": [],
-  "crossSell": []
- },
- "p-10382": {
-  "lines": 2810,
-  "orders": 2768,
-  "sizes": [
-   {
-    "name": "Small",
-    "share": 0.503
-   },
-   {
-    "name": "Medium",
-    "share": 0.44
-   },
-   {
-    "name": "Short",
-    "share": 0
-   }
-  ],
-  "choices": [
-   {
-    "optionId": "o-11180",
-    "share": 0.091
-   }
-  ],
-  "modifiers": [],
-  "crossSell": [
-   {
-    "itemId": "p-10260",
-    "attach": 0.029,
-    "lift": 1.21
-   }
-  ]
- },
- "p-10161": {
-  "lines": 1029,
-  "orders": 986,
-  "sizes": [],
-  "choices": [],
-  "modifiers": [],
-  "crossSell": [
-   {
-    "itemId": "p-10384",
-    "attach": 0.069,
-    "lift": 2.48
-   },
-   {
-    "itemId": "p-10352",
-    "attach": 0.095,
-    "lift": 1.16
-   },
-   {
-    "itemId": "p-10337",
-    "attach": 0.039,
-    "lift": 1.35
-   }
-  ]
- },
- "p-10280": {
-  "lines": 488,
-  "orders": 483,
-  "sizes": [],
-  "choices": [],
-  "modifiers": [],
-  "crossSell": [
-   {
-    "itemId": "p-10338",
-    "attach": 0.056,
-    "lift": 1.14
-   }
-  ]
- },
- "p-10287": {
-  "lines": 538,
-  "orders": 534,
-  "sizes": [],
-  "choices": [],
-  "modifiers": [],
-  "crossSell": [
-   {
-    "itemId": "p-10243",
-    "attach": 0.054,
-    "lift": 1.35
-   }
-  ]
- },
- "p-10298": {
-  "lines": 413,
-  "orders": 413,
-  "sizes": [
-   {
-    "name": "(10-12) poeple",
-    "share": 0.341
-   },
-   {
-    "name": "(6-8) people",
-    "share": 0.312
-   }
-  ],
-  "choices": [],
-  "modifiers": [],
-  "crossSell": []
- },
- "p-10655": {
-  "lines": 181,
-  "orders": 180,
-  "sizes": [],
-  "choices": [],
-  "modifiers": [],
-  "crossSell": []
- },
- "p-10285": {
-  "lines": 88,
-  "orders": 87,
-  "sizes": [],
-  "choices": [],
-  "modifiers": [],
-  "crossSell": []
- },
- "p-10243": {
-  "lines": 6165,
-  "orders": 5392,
-  "sizes": [],
-  "choices": [],
-  "modifiers": [],
-  "crossSell": [
-   {
-    "itemId": "p-10260",
-    "attach": 0.033,
-    "lift": 1.39
-   },
-   {
-    "itemId": "p-10205",
-    "attach": 0.023,
-    "lift": 1.44
-   }
-  ]
- },
- "p-10369": {
-  "lines": 1085,
-  "orders": 1063,
-  "sizes": [
-   {
-    "name": "Medium",
-    "share": 0.355
-   },
-   {
-    "name": "Small",
-    "share": 0.276
-   }
-  ],
-  "choices": [
-   {
-    "optionId": "o-7948",
-    "share": 0.035
-   },
-   {
-    "optionId": "o-11022",
-    "share": 0.023
-   }
-  ],
-  "modifiers": [
-   {
-    "modifierId": "m-10792",
-    "share": 0.11
-   }
-  ],
-  "crossSell": [
-   {
-    "itemId": "p-10356",
-    "attach": 0.04,
-    "lift": 2.51
-   },
-   {
-    "itemId": "p-10260",
-    "attach": 0.031,
-    "lift": 1.31
-   }
-  ]
- },
- "p-10195": {
-  "lines": 884,
-  "orders": 880,
-  "sizes": [],
-  "choices": [],
-  "modifiers": [],
-  "crossSell": [
-   {
-    "itemId": "p-10384",
-    "attach": 0.095,
-    "lift": 3.43
-   },
-   {
-    "itemId": "p-12059",
-    "attach": 0.04,
-    "lift": 2.92
-   },
-   {
-    "itemId": "p-10379",
-    "attach": 0.036,
-    "lift": 2.06
-   }
-  ]
- },
- "p-10774": {
-  "lines": 201,
-  "orders": 201,
-  "sizes": [],
-  "choices": [],
-  "modifiers": [],
-  "crossSell": []
- },
  "p-10202": {
   "lines": 557,
   "orders": 555,
   "sizes": [],
   "choices": [],
   "modifiers": [],
+  "crossSell": []
+ },
+ "p-10377": {
+  "lines": 374,
+  "orders": 366,
+  "sizes": [
+   {
+    "name": "Small",
+    "share": 0.527
+   },
+   {
+    "name": "Medium",
+    "share": 0.321
+   }
+  ],
+  "choices": [],
+  "modifiers": [
+   {
+    "modifierId": "m-10792",
+    "share": 0.144
+   }
+  ],
   "crossSell": [
    {
-    "itemId": "p-10338",
-    "attach": 0.054,
-    "lift": 1.1
+    "itemId": "p-10357",
+    "attach": 0.109,
+    "lift": 1.28
+   }
+  ]
+ },
+ "p-4469": {
+  "lines": 2609,
+  "orders": 2586,
+  "sizes": [],
+  "choices": [],
+  "modifiers": [],
+  "crossSell": [
+   {
+    "itemId": "p-12059",
+    "attach": 0.249,
+    "lift": 18.29
+   },
+   {
+    "itemId": "p-10357",
+    "attach": 0.187,
+    "lift": 2.18
+   },
+   {
+    "itemId": "p-10334",
+    "attach": 0.117,
+    "lift": 1.89
    }
   ]
  },
  "p-10150": {
-  "lines": 609,
-  "orders": 594,
+  "lines": 611,
+  "orders": 596,
   "sizes": [],
   "choices": [
    {
@@ -2622,7 +1071,7 @@ export const itemInsights: Record<string, ItemInsight> = {
    {
     "itemId": "p-10334",
     "attach": 0.133,
-    "lift": 2.15
+    "lift": 2.14
    },
    {
     "itemId": "p-10384",
@@ -2632,21 +1081,64 @@ export const itemInsights: Record<string, ItemInsight> = {
    {
     "itemId": "p-10353",
     "attach": 0.082,
-    "lift": 1.22
+    "lift": 1.21
    }
   ]
  },
  "p-10156": {
-  "lines": 276,
-  "orders": 272,
+  "lines": 277,
+  "orders": 273,
   "sizes": [],
   "choices": [],
   "modifiers": [],
   "crossSell": []
  },
+ "p-10319": {
+  "lines": 415,
+  "orders": 414,
+  "sizes": [],
+  "choices": [
+   {
+    "optionId": "o-2444",
+    "share": 0.178
+   }
+  ],
+  "modifiers": [],
+  "crossSell": [
+   {
+    "itemId": "p-10379",
+    "attach": 0.082,
+    "lift": 4.65
+   }
+  ]
+ },
+ "p-10149": {
+  "lines": 764,
+  "orders": 757,
+  "sizes": [],
+  "choices": [],
+  "modifiers": [],
+  "crossSell": [
+   {
+    "itemId": "p-10384",
+    "attach": 0.062,
+    "lift": 2.23
+   },
+   {
+    "itemId": "p-10159",
+    "attach": 0.036,
+    "lift": 2.55
+   },
+   {
+    "itemId": "p-10334",
+    "attach": 0.085,
+    "lift": 1.37
+   }
+  ]
+ },
  "p-10210": {
-  "lines": 1025,
-  "orders": 1011,
+  "lines": 1026,
+  "orders": 1012,
   "sizes": [],
   "choices": [
    {
@@ -2658,7 +1150,7 @@ export const itemInsights: Record<string, ItemInsight> = {
   "crossSell": [
    {
     "itemId": "p-10384",
-    "attach": 0.045,
+    "attach": 0.044,
     "lift": 1.6
    },
    {
@@ -2690,6 +1182,41 @@ export const itemInsights: Record<string, ItemInsight> = {
   "modifiers": [],
   "crossSell": []
  },
+ "p-10300": {
+  "lines": 1833,
+  "orders": 1831,
+  "sizes": [
+   {
+    "name": "(6-8) people",
+    "share": 0.389
+   },
+   {
+    "name": "(10-12) poeple",
+    "share": 0.321
+   },
+   {
+    "name": "15 (تواصي)",
+    "share": 0.001
+   },
+   {
+    "name": "20 (تواصي)",
+    "share": 0.001
+   },
+   {
+    "name": "25 (تواصي)",
+    "share": 0.001
+   }
+  ],
+  "choices": [],
+  "modifiers": [],
+  "crossSell": [
+   {
+    "itemId": "p-12059",
+    "attach": 0.035,
+    "lift": 2.6
+   }
+  ]
+ },
  "p-10213": {
   "lines": 1801,
   "orders": 1794,
@@ -2714,6 +1241,57 @@ export const itemInsights: Record<string, ItemInsight> = {
    }
   ]
  },
+ "p-10199": {
+  "lines": 553,
+  "orders": 550,
+  "sizes": [],
+  "choices": [],
+  "modifiers": [],
+  "crossSell": [
+   {
+    "itemId": "p-10243",
+    "attach": 0.051,
+    "lift": 1.27
+   }
+  ]
+ },
+ "p-10152": {
+  "lines": 1199,
+  "orders": 1170,
+  "sizes": [],
+  "choices": [
+   {
+    "optionId": "o-9733",
+    "share": 0.49
+   },
+   {
+    "optionId": "o-9741",
+    "share": 0.126
+   },
+   {
+    "optionId": "o-9740",
+    "share": 0.042
+   }
+  ],
+  "modifiers": [],
+  "crossSell": [
+   {
+    "itemId": "p-10384",
+    "attach": 0.068,
+    "lift": 2.43
+   },
+   {
+    "itemId": "p-10163",
+    "attach": 0.037,
+    "lift": 2.52
+   },
+   {
+    "itemId": "p-10357",
+    "attach": 0.114,
+    "lift": 1.33
+   }
+  ]
+ },
  "p-12059": {
   "lines": 1849,
   "orders": 1831,
@@ -2724,7 +1302,7 @@ export const itemInsights: Record<string, ItemInsight> = {
    {
     "itemId": "p-10300",
     "attach": 0.035,
-    "lift": 2.61
+    "lift": 2.6
    },
    {
     "itemId": "p-10260",
@@ -2734,7 +1312,267 @@ export const itemInsights: Record<string, ItemInsight> = {
    {
     "itemId": "p-10152",
     "attach": 0.022,
-    "lift": 2.5
+    "lift": 2.51
+   }
+  ]
+ },
+ "p-10356": {
+  "lines": 2146,
+  "orders": 2111,
+  "sizes": [
+   {
+    "name": "Small",
+    "share": 0.384
+   },
+   {
+    "name": "Medium",
+    "share": 0.375
+   }
+  ],
+  "choices": [
+   {
+    "optionId": "o-3098",
+    "share": 0.047
+   },
+   {
+    "optionId": "o-11139",
+    "share": 0.021
+   }
+  ],
+  "modifiers": [
+   {
+    "modifierId": "m-11374",
+    "share": 0.036
+   }
+  ],
+  "crossSell": [
+   {
+    "itemId": "p-10246",
+    "attach": 0.02,
+    "lift": 1.62
+   },
+   {
+    "itemId": "p-10243",
+    "attach": 0.046,
+    "lift": 1.16
+   },
+   {
+    "itemId": "p-10260",
+    "attach": 0.028,
+    "lift": 1.18
+   }
+  ]
+ },
+ "p-10375": {
+  "lines": 690,
+  "orders": 678,
+  "sizes": [
+   {
+    "name": "Small",
+    "share": 0.488
+   },
+   {
+    "name": "Medium",
+    "share": 0.455
+   }
+  ],
+  "choices": [
+   {
+    "optionId": "o-3048",
+    "share": 0.035
+   }
+  ],
+  "modifiers": [
+   {
+    "modifierId": "m-10792",
+    "share": 0.064
+   }
+  ],
+  "crossSell": [
+   {
+    "itemId": "p-10365",
+    "attach": 0.056,
+    "lift": 1.39
+   }
+  ]
+ },
+ "p-10353": {
+  "lines": 9215,
+  "orders": 9085,
+  "sizes": [
+   {
+    "name": "Small",
+    "share": 0.516
+   },
+   {
+    "name": "Medium",
+    "share": 0.38
+   }
+  ],
+  "choices": [
+   {
+    "optionId": "o-10986",
+    "share": 0.031
+   }
+  ],
+  "modifiers": [],
+  "crossSell": [
+   {
+    "itemId": "p-10164",
+    "attach": 0.022,
+    "lift": 1.9
+   },
+   {
+    "itemId": "p-10260",
+    "attach": 0.027,
+    "lift": 1.13
+   }
+  ]
+ },
+ "p-10384": {
+  "lines": 3786,
+  "orders": 3736,
+  "sizes": [
+   {
+    "name": "Small",
+    "share": 0.473
+   },
+   {
+    "name": "Medium",
+    "share": 0.388
+   },
+   {
+    "name": "Short",
+    "share": 0.01
+   }
+  ],
+  "choices": [],
+  "modifiers": [],
+  "crossSell": [
+   {
+    "itemId": "p-10163",
+    "attach": 0.044,
+    "lift": 2.99
+   },
+   {
+    "itemId": "p-10159",
+    "attach": 0.039,
+    "lift": 2.81
+   },
+   {
+    "itemId": "p-10169",
+    "attach": 0.031,
+    "lift": 3.15
+   }
+  ]
+ },
+ "p-10259": {
+  "lines": 591,
+  "orders": 583,
+  "sizes": [],
+  "choices": [],
+  "modifiers": [],
+  "crossSell": [
+   {
+    "itemId": "p-10243",
+    "attach": 0.072,
+    "lift": 1.79
+   },
+   {
+    "itemId": "p-10357",
+    "attach": 0.105,
+    "lift": 1.22
+   },
+   {
+    "itemId": "p-10352",
+    "attach": 0.094,
+    "lift": 1.15
+   }
+  ]
+ },
+ "p-10151": {
+  "lines": 707,
+  "orders": 695,
+  "sizes": [],
+  "choices": [],
+  "modifiers": [],
+  "crossSell": [
+   {
+    "itemId": "p-10353",
+    "attach": 0.127,
+    "lift": 1.87
+   },
+   {
+    "itemId": "p-10165",
+    "attach": 0.036,
+    "lift": 3.53
+   },
+   {
+    "itemId": "p-10338",
+    "attach": 0.081,
+    "lift": 1.64
+   }
+  ]
+ },
+ "p-10313": {
+  "lines": 759,
+  "orders": 758,
+  "sizes": [],
+  "choices": [
+   {
+    "optionId": "o-2449",
+    "share": 0.278
+   }
+  ],
+  "modifiers": [],
+  "crossSell": [
+   {
+    "itemId": "p-10379",
+    "attach": 0.092,
+    "lift": 5.23
+   },
+   {
+    "itemId": "p-10384",
+    "attach": 0.069,
+    "lift": 2.47
+   },
+   {
+    "itemId": "p-10162",
+    "attach": 0.034,
+    "lift": 2.95
+   }
+  ]
+ },
+ "p-10245": {
+  "lines": 815,
+  "orders": 812,
+  "sizes": [],
+  "choices": [
+   {
+    "optionId": "o-10469",
+    "share": 0.027
+   },
+   {
+    "optionId": "o-10470",
+    "share": 0.023
+   }
+  ],
+  "modifiers": [],
+  "crossSell": [
+   {
+    "itemId": "p-10337",
+    "attach": 0.07,
+    "lift": 2.46
+   },
+   {
+    "itemId": "p-10338",
+    "attach": 0.089,
+    "lift": 1.8
+   },
+   {
+    "itemId": "p-10344",
+    "attach": 0.092,
+    "lift": 1.38
    }
   ]
  },
@@ -2758,8 +1596,8 @@ export const itemInsights: Record<string, ItemInsight> = {
   ]
  },
  "p-10260": {
-  "lines": 3205,
-  "orders": 3171,
+  "lines": 3206,
+  "orders": 3172,
   "sizes": [],
   "choices": [],
   "modifiers": [],
@@ -2772,12 +1610,150 @@ export const itemInsights: Record<string, ItemInsight> = {
    {
     "itemId": "p-10243",
     "attach": 0.056,
-    "lift": 1.39
+    "lift": 1.4
    },
    {
     "itemId": "p-12059",
     "attach": 0.024,
     "lift": 1.76
+   }
+  ]
+ },
+ "p-10159": {
+  "lines": 1929,
+  "orders": 1877,
+  "sizes": [],
+  "choices": [],
+  "modifiers": [],
+  "crossSell": [
+   {
+    "itemId": "p-10384",
+    "attach": 0.078,
+    "lift": 2.81
+   },
+   {
+    "itemId": "p-10352",
+    "attach": 0.116,
+    "lift": 1.41
+   },
+   {
+    "itemId": "p-10205",
+    "attach": 0.03,
+    "lift": 1.93
+   }
+  ]
+ },
+ "p-10351": {
+  "lines": 4282,
+  "orders": 4013,
+  "sizes": [],
+  "choices": [],
+  "modifiers": [],
+  "crossSell": [
+   {
+    "itemId": "p-10379",
+    "attach": 0.021,
+    "lift": 1.17
+   }
+  ]
+ },
+ "p-10306": {
+  "lines": 1010,
+  "orders": 1010,
+  "sizes": [
+   {
+    "name": "(6-8) people",
+    "share": 0.369
+   },
+   {
+    "name": "(10-12) poeple",
+    "share": 0.3
+   },
+   {
+    "name": "25 (تواصي)",
+    "share": 0.002
+   },
+   {
+    "name": "15 (تواصي)",
+    "share": 0.002
+   },
+   {
+    "name": "20 (تواصي)",
+    "share": 0.001
+   }
+  ],
+  "choices": [],
+  "modifiers": [],
+  "crossSell": [
+   {
+    "itemId": "p-12059",
+    "attach": 0.027,
+    "lift": 1.96
+   }
+  ]
+ },
+ "p-10385": {
+  "lines": 1820,
+  "orders": 1806,
+  "sizes": [
+   {
+    "name": "Small",
+    "share": 0.495
+   },
+   {
+    "name": "Medium",
+    "share": 0.453
+   }
+  ],
+  "choices": [],
+  "modifiers": [],
+  "crossSell": [
+   {
+    "itemId": "p-10260",
+    "attach": 0.029,
+    "lift": 1.22
+   }
+  ]
+ },
+ "p-10355": {
+  "lines": 1625,
+  "orders": 1561,
+  "sizes": [
+   {
+    "name": "Small",
+    "share": 0.362
+   },
+   {
+    "name": "Medium",
+    "share": 0.298
+   }
+  ],
+  "choices": [
+   {
+    "optionId": "o-3123",
+    "share": 0.06
+   },
+   {
+    "optionId": "o-3126",
+    "share": 0.052
+   }
+  ],
+  "modifiers": [
+   {
+    "modifierId": "m-11374",
+    "share": 0.022
+   }
+  ],
+  "crossSell": [
+   {
+    "itemId": "p-10243",
+    "attach": 0.051,
+    "lift": 1.26
+   },
+   {
+    "itemId": "p-10159",
+    "attach": 0.02,
+    "lift": 1.47
    }
   ]
  },
@@ -2833,6 +1809,148 @@ export const itemInsights: Record<string, ItemInsight> = {
     "lift": 1.32
    }
   ]
+ },
+ "p-11926": {
+  "lines": 378,
+  "orders": 373,
+  "sizes": [
+   {
+    "name": "Small",
+    "share": 0.532
+   },
+   {
+    "name": "Medium",
+    "share": 0.392
+   }
+  ],
+  "choices": [
+   {
+    "optionId": "o-11404",
+    "share": 0.045
+   }
+  ],
+  "modifiers": [],
+  "crossSell": []
+ },
+ "p-10249": {
+  "lines": 1202,
+  "orders": 1199,
+  "sizes": [],
+  "choices": [
+   {
+    "optionId": "o-10523",
+    "share": 0.039
+   }
+  ],
+  "modifiers": [],
+  "crossSell": [
+   {
+    "itemId": "p-10356",
+    "attach": 0.021,
+    "lift": 1.33
+   }
+  ]
+ },
+ "p-10317": {
+  "lines": 638,
+  "orders": 636,
+  "sizes": [],
+  "choices": [
+   {
+    "optionId": "o-2443",
+    "share": 0.27
+   }
+  ],
+  "modifiers": [],
+  "crossSell": [
+   {
+    "itemId": "p-10379",
+    "attach": 0.057,
+    "lift": 3.2
+   },
+   {
+    "itemId": "p-10384",
+    "attach": 0.058,
+    "lift": 2.09
+   }
+  ]
+ },
+ "p-10761": {
+  "lines": 1841,
+  "orders": 1834,
+  "sizes": [
+   {
+    "name": "Medium",
+    "share": 0.496
+   },
+   {
+    "name": "Small",
+    "share": 0.439
+   }
+  ],
+  "choices": [
+   {
+    "optionId": "o-11182",
+    "share": 0.048
+   }
+  ],
+  "modifiers": [],
+  "crossSell": []
+ },
+ "p-10244": {
+  "lines": 1529,
+  "orders": 1515,
+  "sizes": [],
+  "choices": [
+   {
+    "optionId": "o-10621",
+    "share": 0.156
+   },
+   {
+    "optionId": "o-10619",
+    "share": 0.031
+   }
+  ],
+  "modifiers": [],
+  "crossSell": [
+   {
+    "itemId": "p-10357",
+    "attach": 0.119,
+    "lift": 1.4
+   },
+   {
+    "itemId": "p-10258",
+    "attach": 0.028,
+    "lift": 2.25
+   },
+   {
+    "itemId": "p-10260",
+    "attach": 0.038,
+    "lift": 1.59
+   }
+  ]
+ },
+ "p-11923": {
+  "lines": 454,
+  "orders": 452,
+  "sizes": [
+   {
+    "name": "Small",
+    "share": 0.454
+   },
+   {
+    "name": "Medium",
+    "share": 0.407
+   }
+  ],
+  "choices": [],
+  "modifiers": [
+   {
+    "modifierId": "m-11374",
+    "share": 0.042
+   }
+  ],
+  "crossSell": []
  },
  "p-10331": {
   "lines": 214,
@@ -2894,8 +2012,8 @@ export const itemInsights: Record<string, ItemInsight> = {
   ]
  },
  "p-10215": {
-  "lines": 604,
-  "orders": 603,
+  "lines": 605,
+  "orders": 604,
   "sizes": [],
   "choices": [],
   "modifiers": [
@@ -2907,8 +2025,8 @@ export const itemInsights: Record<string, ItemInsight> = {
   "crossSell": []
  },
  "p-11591": {
-  "lines": 354,
-  "orders": 350,
+  "lines": 355,
+  "orders": 351,
   "sizes": [],
   "choices": [],
   "modifiers": [],
@@ -2928,6 +2046,78 @@ export const itemInsights: Record<string, ItemInsight> = {
    }
   ]
  },
+ "p-10379": {
+  "lines": 2430,
+  "orders": 2371,
+  "sizes": [],
+  "choices": [],
+  "modifiers": [],
+  "crossSell": [
+   {
+    "itemId": "p-10313",
+    "attach": 0.03,
+    "lift": 5.23
+   },
+   {
+    "itemId": "p-10163",
+    "attach": 0.04,
+    "lift": 2.74
+   },
+   {
+    "itemId": "p-10169",
+    "attach": 0.03,
+    "lift": 3.13
+   }
+  ]
+ },
+ "p-10168": {
+  "lines": 515,
+  "orders": 504,
+  "sizes": [],
+  "choices": [],
+  "modifiers": [],
+  "crossSell": [
+   {
+    "itemId": "p-10384",
+    "attach": 0.113,
+    "lift": 4.06
+   },
+   {
+    "itemId": "p-10379",
+    "attach": 0.065,
+    "lift": 3.71
+   },
+   {
+    "itemId": "p-10334",
+    "attach": 0.095,
+    "lift": 1.54
+   }
+  ]
+ },
+ "p-11797": {
+  "lines": 1202,
+  "orders": 1185,
+  "sizes": [],
+  "choices": [],
+  "modifiers": [],
+  "crossSell": [
+   {
+    "itemId": "p-10205",
+    "attach": 0.058,
+    "lift": 3.7
+   },
+   {
+    "itemId": "p-10384",
+    "attach": 0.055,
+    "lift": 1.97
+   },
+   {
+    "itemId": "p-10338",
+    "attach": 0.072,
+    "lift": 1.46
+   }
+  ]
+ },
  "p-10234": {
   "lines": 333,
   "orders": 333,
@@ -2937,8 +2127,8 @@ export const itemInsights: Record<string, ItemInsight> = {
   "crossSell": []
  },
  "p-11774": {
-  "lines": 271,
-  "orders": 271,
+  "lines": 272,
+  "orders": 272,
   "sizes": [],
   "choices": [],
   "modifiers": [],
@@ -2946,7 +2136,7 @@ export const itemInsights: Record<string, ItemInsight> = {
    {
     "itemId": "p-10384",
     "attach": 0.096,
-    "lift": 3.45
+    "lift": 3.43
    }
   ]
  },
@@ -2974,7 +2164,7 @@ export const itemInsights: Record<string, ItemInsight> = {
    {
     "itemId": "p-11983",
     "attach": 0.08,
-    "lift": 53.83
+    "lift": 53.81
    },
    {
     "itemId": "p-10230",
@@ -2989,8 +2179,8 @@ export const itemInsights: Record<string, ItemInsight> = {
   ]
  },
  "p-10239": {
-  "lines": 732,
-  "orders": 725,
+  "lines": 733,
+  "orders": 726,
   "sizes": [],
   "choices": [],
   "modifiers": [],
@@ -3003,12 +2193,12 @@ export const itemInsights: Record<string, ItemInsight> = {
    {
     "itemId": "p-10344",
     "attach": 0.084,
-    "lift": 1.26
+    "lift": 1.25
    },
    {
     "itemId": "p-10357",
     "attach": 0.101,
-    "lift": 1.18
+    "lift": 1.17
    }
   ]
  },
@@ -3068,6 +2258,51 @@ export const itemInsights: Record<string, ItemInsight> = {
   "modifiers": [],
   "crossSell": []
  },
+ "p-10345": {
+  "lines": 847,
+  "orders": 829,
+  "sizes": [],
+  "choices": [
+   {
+    "optionId": "o-2530",
+    "share": 0.079
+   },
+   {
+    "optionId": "o-2533",
+    "share": 0.047
+   },
+   {
+    "optionId": "o-11074",
+    "share": 0.039
+   }
+  ],
+  "modifiers": [],
+  "crossSell": []
+ },
+ "p-10246": {
+  "lines": 1692,
+  "orders": 1686,
+  "sizes": [],
+  "choices": [],
+  "modifiers": [],
+  "crossSell": [
+   {
+    "itemId": "p-10337",
+    "attach": 0.046,
+    "lift": 1.6
+   },
+   {
+    "itemId": "p-10356",
+    "attach": 0.026,
+    "lift": 1.62
+   },
+   {
+    "itemId": "p-10344",
+    "attach": 0.077,
+    "lift": 1.15
+   }
+  ]
+ },
  "p-10653": {
   "lines": 332,
   "orders": 332,
@@ -3115,7 +2350,7 @@ export const itemInsights: Record<string, ItemInsight> = {
    {
     "itemId": "p-10351",
     "attach": 0.04,
-    "lift": 1.33
+    "lift": 1.34
    },
    {
     "itemId": "p-10379",
@@ -3123,6 +2358,23 @@ export const itemInsights: Record<string, ItemInsight> = {
     "lift": 1.44
    }
   ]
+ },
+ "p-10359": {
+  "lines": 669,
+  "orders": 662,
+  "sizes": [
+   {
+    "name": "Medium",
+    "share": 0.435
+   },
+   {
+    "name": "Small",
+    "share": 0.401
+   }
+  ],
+  "choices": [],
+  "modifiers": [],
+  "crossSell": []
  },
  "p-10320": {
   "lines": 356,
@@ -3241,6 +2493,43 @@ export const itemInsights: Record<string, ItemInsight> = {
    }
   ]
  },
+ "p-10166": {
+  "lines": 673,
+  "orders": 654,
+  "sizes": [],
+  "choices": [
+   {
+    "optionId": "o-9895",
+    "share": 0.456
+   },
+   {
+    "optionId": "o-9903",
+    "share": 0.159
+   },
+   {
+    "optionId": "o-9902",
+    "share": 0.031
+   }
+  ],
+  "modifiers": [],
+  "crossSell": [
+   {
+    "itemId": "p-10384",
+    "attach": 0.061,
+    "lift": 2.2
+   },
+   {
+    "itemId": "p-10352",
+    "attach": 0.093,
+    "lift": 1.14
+   },
+   {
+    "itemId": "p-10353",
+    "attach": 0.078,
+    "lift": 1.15
+   }
+  ]
+ },
  "p-10332": {
   "lines": 434,
   "orders": 430,
@@ -3258,6 +2547,63 @@ export const itemInsights: Record<string, ItemInsight> = {
   "modifiers": [],
   "crossSell": []
  },
+ "p-10197": {
+  "lines": 1043,
+  "orders": 1033,
+  "sizes": [],
+  "choices": [],
+  "modifiers": [],
+  "crossSell": [
+   {
+    "itemId": "p-10384",
+    "attach": 0.077,
+    "lift": 2.78
+   },
+   {
+    "itemId": "p-10352",
+    "attach": 0.1,
+    "lift": 1.22
+   },
+   {
+    "itemId": "p-10339",
+    "attach": 0.029,
+    "lift": 1.93
+   }
+  ]
+ },
+ "p-10225": {
+  "lines": 814,
+  "orders": 811,
+  "sizes": [],
+  "choices": [
+   {
+    "optionId": "o-10566",
+    "share": 0.054
+   },
+   {
+    "optionId": "o-10565",
+    "share": 0.031
+   }
+  ],
+  "modifiers": [],
+  "crossSell": [
+   {
+    "itemId": "p-10344",
+    "attach": 0.113,
+    "lift": 1.69
+   },
+   {
+    "itemId": "p-10334",
+    "attach": 0.099,
+    "lift": 1.59
+   },
+   {
+    "itemId": "p-10338",
+    "attach": 0.081,
+    "lift": 1.66
+   }
+  ]
+ },
  "p-10237": {
   "lines": 531,
   "orders": 530,
@@ -3269,6 +2615,58 @@ export const itemInsights: Record<string, ItemInsight> = {
     "itemId": "p-10365",
     "attach": 0.047,
     "lift": 1.17
+   }
+  ]
+ },
+ "p-10170": {
+  "lines": 651,
+  "orders": 639,
+  "sizes": [],
+  "choices": [],
+  "modifiers": [],
+  "crossSell": [
+   {
+    "itemId": "p-10379",
+    "attach": 0.08,
+    "lift": 4.52
+   },
+   {
+    "itemId": "p-10384",
+    "attach": 0.083,
+    "lift": 2.98
+   },
+   {
+    "itemId": "p-10344",
+    "attach": 0.119,
+    "lift": 1.77
+   }
+  ]
+ },
+ "p-10348": {
+  "lines": 868,
+  "orders": 852,
+  "sizes": [
+   {
+    "name": "Small",
+    "share": 0.632
+   },
+   {
+    "name": "Medium",
+    "share": 0.252
+   }
+  ],
+  "choices": [
+   {
+    "optionId": "o-2985",
+    "share": 0.036
+   }
+  ],
+  "modifiers": [],
+  "crossSell": [
+   {
+    "itemId": "p-10260",
+    "attach": 0.042,
+    "lift": 1.79
    }
   ]
  },
@@ -3308,6 +2706,54 @@ export const itemInsights: Record<string, ItemInsight> = {
    }
   ]
  },
+ "p-10248": {
+  "lines": 1540,
+  "orders": 1534,
+  "sizes": [],
+  "choices": [],
+  "modifiers": [],
+  "crossSell": [
+   {
+    "itemId": "p-10344",
+    "attach": 0.087,
+    "lift": 1.3
+   },
+   {
+    "itemId": "p-10338",
+    "attach": 0.058,
+    "lift": 1.18
+   },
+   {
+    "itemId": "p-10337",
+    "attach": 0.036,
+    "lift": 1.26
+   }
+  ]
+ },
+ "p-10222": {
+  "lines": 656,
+  "orders": 655,
+  "sizes": [],
+  "choices": [],
+  "modifiers": [],
+  "crossSell": [
+   {
+    "itemId": "p-10344",
+    "attach": 0.111,
+    "lift": 1.66
+   },
+   {
+    "itemId": "p-10337",
+    "attach": 0.047,
+    "lift": 1.66
+   },
+   {
+    "itemId": "p-10338",
+    "attach": 0.063,
+    "lift": 1.27
+   }
+  ]
+ },
  "p-10279": {
   "lines": 206,
   "orders": 204,
@@ -3338,9 +2784,74 @@ export const itemInsights: Record<string, ItemInsight> = {
   "modifiers": [],
   "crossSell": []
  },
+ "p-10335": {
+  "lines": 816,
+  "orders": 802,
+  "sizes": [
+   {
+    "name": "Small",
+    "share": 0.563
+   },
+   {
+    "name": "Medium",
+    "share": 0.305
+   }
+  ],
+  "choices": [
+   {
+    "optionId": "o-2583",
+    "share": 0.086
+   },
+   {
+    "optionId": "o-2580",
+    "share": 0.026
+   },
+   {
+    "optionId": "o-2584",
+    "share": 0.023
+   }
+  ],
+  "modifiers": [
+   {
+    "modifierId": "m-10613",
+    "share": 0.026
+   }
+  ],
+  "crossSell": [
+   {
+    "itemId": "p-10260",
+    "attach": 0.034,
+    "lift": 1.42
+   }
+  ]
+ },
+ "p-10160": {
+  "lines": 767,
+  "orders": 755,
+  "sizes": [],
+  "choices": [],
+  "modifiers": [],
+  "crossSell": [
+   {
+    "itemId": "p-10384",
+    "attach": 0.07,
+    "lift": 2.52
+   },
+   {
+    "itemId": "p-10205",
+    "attach": 0.037,
+    "lift": 2.36
+   },
+   {
+    "itemId": "p-10382",
+    "attach": 0.041,
+    "lift": 1.99
+   }
+  ]
+ },
  "p-11798": {
-  "lines": 293,
-  "orders": 293,
+  "lines": 294,
+  "orders": 294,
   "sizes": [],
   "choices": [],
   "modifiers": [],
@@ -3382,6 +2893,25 @@ export const itemInsights: Record<string, ItemInsight> = {
   "choices": [],
   "modifiers": [],
   "crossSell": []
+ },
+ "p-10387": {
+  "lines": 1380,
+  "orders": 1311,
+  "sizes": [],
+  "choices": [],
+  "modifiers": [],
+  "crossSell": [
+   {
+    "itemId": "p-10342",
+    "attach": 0.043,
+    "lift": 2.38
+   },
+   {
+    "itemId": "p-10382",
+    "attach": 0.024,
+    "lift": 1.18
+   }
+  ]
  },
  "p-10299": {
   "lines": 405,
@@ -3425,7 +2955,7 @@ export const itemInsights: Record<string, ItemInsight> = {
   "modifiers": [
    {
     "modifierId": "m-10792",
-    "share": 0.129
+    "share": 0.131
    }
   ],
   "crossSell": [
@@ -3441,21 +2971,122 @@ export const itemInsights: Record<string, ItemInsight> = {
    }
   ]
  },
+ "p-10378": {
+  "lines": 1261,
+  "orders": 1214,
+  "sizes": [
+   {
+    "name": "Medium",
+    "share": 0.423
+   },
+   {
+    "name": "Small",
+    "share": 0.349
+   }
+  ],
+  "choices": [
+   {
+    "optionId": "o-3070",
+    "share": 0.174
+   },
+   {
+    "optionId": "o-3069",
+    "share": 0.044
+   },
+   {
+    "optionId": "o-3068",
+    "share": 0.041
+   }
+  ],
+  "modifiers": [
+   {
+    "modifierId": "m-11374",
+    "share": 0.035
+   }
+  ],
+  "crossSell": [
+   {
+    "itemId": "p-10165",
+    "attach": 0.024,
+    "lift": 2.35
+   },
+   {
+    "itemId": "p-10383",
+    "attach": 0.021,
+    "lift": 1.64
+   },
+   {
+    "itemId": "p-10243",
+    "attach": 0.049,
+    "lift": 1.21
+   }
+  ]
+ },
+ "p-12051": {
+  "lines": 415,
+  "orders": 411,
+  "sizes": [],
+  "choices": [],
+  "modifiers": [],
+  "crossSell": [
+   {
+    "itemId": "p-10243",
+    "attach": 0.068,
+    "lift": 1.7
+   },
+   {
+    "itemId": "p-10365",
+    "attach": 0.061,
+    "lift": 1.51
+   }
+  ]
+ },
  "p-10307": {
-  "lines": 444,
-  "orders": 444,
+  "lines": 445,
+  "orders": 445,
   "sizes": [
    {
     "name": "(6-8) people",
-    "share": 0.363
+    "share": 0.364
    },
    {
     "name": "(10-12) poeple",
-    "share": 0.282
+    "share": 0.281
    }
   ],
   "choices": [],
   "modifiers": [],
+  "crossSell": []
+ },
+ "p-10366": {
+  "lines": 359,
+  "orders": 355,
+  "sizes": [
+   {
+    "name": "Medium",
+    "share": 0.482
+   },
+   {
+    "name": "Small",
+    "share": 0.345
+   }
+  ],
+  "choices": [
+   {
+    "optionId": "o-3013",
+    "share": 0.072
+   },
+   {
+    "optionId": "o-3014",
+    "share": 0.042
+   }
+  ],
+  "modifiers": [
+   {
+    "modifierId": "m-10792",
+    "share": 0.061
+   }
+  ],
   "crossSell": []
  },
  "p-10209": {
@@ -3595,28 +3226,50 @@ export const itemInsights: Record<string, ItemInsight> = {
   "crossSell": []
  },
  "p-10791": {
-  "lines": 442,
-  "orders": 442,
+  "lines": 443,
+  "orders": 443,
   "sizes": [],
   "choices": [],
   "modifiers": [],
   "crossSell": [
    {
     "itemId": "p-10163",
-    "attach": 0.109,
-    "lift": 7.43
+    "attach": 0.108,
+    "lift": 7.42
    },
    {
     "itemId": "p-10149",
-    "attach": 0.075,
-    "lift": 13.19
+    "attach": 0.074,
+    "lift": 13.21
    },
    {
     "itemId": "p-12059",
     "attach": 0.084,
-    "lift": 6.14
+    "lift": 6.12
    }
   ]
+ },
+ "p-11925": {
+  "lines": 551,
+  "orders": 547,
+  "sizes": [
+   {
+    "name": "Small",
+    "share": 0.488
+   },
+   {
+    "name": "Medium",
+    "share": 0.488
+   }
+  ],
+  "choices": [
+   {
+    "optionId": "o-11391",
+    "share": 0.116
+   }
+  ],
+  "modifiers": [],
+  "crossSell": []
  },
  "p-10148": {
   "lines": 373,
@@ -3628,7 +3281,7 @@ export const itemInsights: Record<string, ItemInsight> = {
    {
     "itemId": "p-10162",
     "attach": 0.075,
-    "lift": 6.39
+    "lift": 6.41
    },
    {
     "itemId": "p-10352",
@@ -3742,7 +3395,7 @@ export const itemInsights: Record<string, ItemInsight> = {
   "modifiers": [
    {
     "modifierId": "m-10835",
-    "share": 0.022
+    "share": 0.023
    }
   ],
   "crossSell": []
@@ -3832,16 +3485,16 @@ export const itemInsights: Record<string, ItemInsight> = {
   "crossSell": []
  },
  "p-10303": {
-  "lines": 1019,
-  "orders": 1019,
+  "lines": 1020,
+  "orders": 1020,
   "sizes": [
    {
     "name": "(6-8) people",
-    "share": 0.331
+    "share": 0.33
    },
    {
     "name": "(10-12) poeple",
-    "share": 0.313
+    "share": 0.314
    }
   ],
   "choices": [],
@@ -3850,9 +3503,40 @@ export const itemInsights: Record<string, ItemInsight> = {
    {
     "itemId": "p-12059",
     "attach": 0.027,
-    "lift": 2.02
+    "lift": 2.01
    }
   ]
+ },
+ "p-11369": {
+  "lines": 382,
+  "orders": 374,
+  "sizes": [
+   {
+    "name": "Medium",
+    "share": 0.359
+   },
+   {
+    "name": "Small",
+    "share": 0.356
+   }
+  ],
+  "choices": [
+   {
+    "optionId": "o-8269",
+    "share": 0.092
+   },
+   {
+    "optionId": "o-8268",
+    "share": 0.052
+   }
+  ],
+  "modifiers": [
+   {
+    "modifierId": "m-11374",
+    "share": 0.123
+   }
+  ],
+  "crossSell": []
  },
  "p-10181": {
   "lines": 119,
@@ -3873,6 +3557,66 @@ export const itemInsights: Record<string, ItemInsight> = {
     "itemId": "p-10243",
     "attach": 0.053,
     "lift": 1.33
+   }
+  ]
+ },
+ "p-10258": {
+  "lines": 1671,
+  "orders": 1656,
+  "sizes": [],
+  "choices": [],
+  "modifiers": [],
+  "crossSell": [
+   {
+    "itemId": "p-10357",
+    "attach": 0.136,
+    "lift": 1.59
+   },
+   {
+    "itemId": "p-10243",
+    "attach": 0.06,
+    "lift": 1.49
+   },
+   {
+    "itemId": "p-10244",
+    "attach": 0.025,
+    "lift": 2.25
+   }
+  ]
+ },
+ "p-10362": {
+  "lines": 270,
+  "orders": 265,
+  "sizes": [
+   {
+    "name": "Small",
+    "share": 0.374
+   },
+   {
+    "name": "Medium",
+    "share": 0.315
+   }
+  ],
+  "choices": [],
+  "modifiers": [],
+  "crossSell": []
+ },
+ "p-11830": {
+  "lines": 690,
+  "orders": 671,
+  "sizes": [],
+  "choices": [],
+  "modifiers": [],
+  "crossSell": [
+   {
+    "itemId": "p-10352",
+    "attach": 0.118,
+    "lift": 1.44
+   },
+   {
+    "itemId": "p-10334",
+    "attach": 0.072,
+    "lift": 1.16
    }
   ]
  },
@@ -3981,9 +3725,61 @@ export const itemInsights: Record<string, ItemInsight> = {
   "modifiers": [],
   "crossSell": []
  },
+ "p-10314": {
+  "lines": 584,
+  "orders": 582,
+  "sizes": [],
+  "choices": [
+   {
+    "optionId": "o-2448",
+    "share": 0.214
+   },
+   {
+    "optionId": "o-8914",
+    "share": 0.027
+   }
+  ],
+  "modifiers": [],
+  "crossSell": [
+   {
+    "itemId": "p-10379",
+    "attach": 0.081,
+    "lift": 4.57
+   },
+   {
+    "itemId": "p-10384",
+    "attach": 0.082,
+    "lift": 2.96
+   },
+   {
+    "itemId": "p-10243",
+    "attach": 0.052,
+    "lift": 1.28
+   }
+  ]
+ },
+ "p-10201": {
+  "lines": 537,
+  "orders": 532,
+  "sizes": [],
+  "choices": [],
+  "modifiers": [],
+  "crossSell": [
+   {
+    "itemId": "p-10213",
+    "attach": 0.049,
+    "lift": 3.66
+   },
+   {
+    "itemId": "p-10384",
+    "attach": 0.062,
+    "lift": 2.23
+   }
+  ]
+ },
  "p-10304": {
-  "lines": 828,
-  "orders": 828,
+  "lines": 829,
+  "orders": 829,
   "sizes": [
    {
     "name": "(10-12) poeple",
@@ -4050,6 +3846,30 @@ export const itemInsights: Record<string, ItemInsight> = {
   "modifiers": [],
   "crossSell": []
  },
+ "p-10155": {
+  "lines": 357,
+  "orders": 355,
+  "sizes": [],
+  "choices": [],
+  "modifiers": [],
+  "crossSell": [
+   {
+    "itemId": "p-10384",
+    "attach": 0.096,
+    "lift": 3.44
+   },
+   {
+    "itemId": "p-10334",
+    "attach": 0.073,
+    "lift": 1.18
+   },
+   {
+    "itemId": "p-10357",
+    "attach": 0.096,
+    "lift": 1.12
+   }
+  ]
+ },
  "p-11983": {
   "lines": 200,
   "orders": 200,
@@ -4060,7 +3880,7 @@ export const itemInsights: Record<string, ItemInsight> = {
    {
     "itemId": "p-10394",
     "attach": 0.485,
-    "lift": 53.83
+    "lift": 53.81
    },
    {
     "itemId": "p-10357",
@@ -4068,6 +3888,23 @@ export const itemInsights: Record<string, ItemInsight> = {
     "lift": 1.46
    }
   ]
+ },
+ "p-10395": {
+  "lines": 163,
+  "orders": 162,
+  "sizes": [
+   {
+    "name": "Medium",
+    "share": 0.405
+   },
+   {
+    "name": "Small",
+    "share": 0.393
+   }
+  ],
+  "choices": [],
+  "modifiers": [],
+  "crossSell": []
  },
  "p-10654": {
   "lines": 449,
@@ -4084,7 +3921,7 @@ export const itemInsights: Record<string, ItemInsight> = {
    {
     "itemId": "p-10351",
     "attach": 0.067,
-    "lift": 2.23
+    "lift": 2.24
    },
    {
     "itemId": "p-10365",
@@ -4163,7 +4000,7 @@ export const itemInsights: Record<string, ItemInsight> = {
    {
     "itemId": "p-10303",
     "attach": 0.065,
-    "lift": 8.54
+    "lift": 8.53
    }
   ]
  },
@@ -4211,16 +4048,45 @@ export const itemInsights: Record<string, ItemInsight> = {
   "crossSell": []
  },
  "p-10650": {
-  "lines": 376,
-  "orders": 374,
+  "lines": 377,
+  "orders": 375,
   "sizes": [],
   "choices": [],
   "modifiers": [],
   "crossSell": [
    {
     "itemId": "p-10344",
-    "attach": 0.078,
-    "lift": 1.16
+    "attach": 0.077,
+    "lift": 1.15
+   }
+  ]
+ },
+ "p-10144": {
+  "lines": 891,
+  "orders": 881,
+  "sizes": [],
+  "choices": [],
+  "modifiers": [
+   {
+    "modifierId": "m-10762",
+    "share": 0.036
+   }
+  ],
+  "crossSell": [
+   {
+    "itemId": "p-10337",
+    "attach": 0.081,
+    "lift": 2.82
+   },
+   {
+    "itemId": "p-10338",
+    "attach": 0.07,
+    "lift": 1.43
+   },
+   {
+    "itemId": "p-10159",
+    "attach": 0.03,
+    "lift": 2.11
    }
   ]
  },
@@ -4249,6 +4115,43 @@ export const itemInsights: Record<string, ItemInsight> = {
   ],
   "modifiers": [],
   "crossSell": []
+ },
+ "p-11668": {
+  "lines": 817,
+  "orders": 811,
+  "sizes": [],
+  "choices": [
+   {
+    "optionId": "o-10723",
+    "share": 0.354
+   },
+   {
+    "optionId": "o-10722",
+    "share": 0.075
+   },
+   {
+    "optionId": "o-10721",
+    "share": 0.072
+   }
+  ],
+  "modifiers": [],
+  "crossSell": [
+   {
+    "itemId": "p-10357",
+    "attach": 0.109,
+    "lift": 1.27
+   },
+   {
+    "itemId": "p-10382",
+    "attach": 0.031,
+    "lift": 1.5
+   },
+   {
+    "itemId": "p-10365",
+    "attach": 0.044,
+    "lift": 1.1
+   }
+  ]
  },
  "p-10254": {
   "lines": 223,
@@ -4283,6 +4186,25 @@ export const itemInsights: Record<string, ItemInsight> = {
   "modifiers": [],
   "crossSell": []
  },
+ "p-11799": {
+  "lines": 411,
+  "orders": 409,
+  "sizes": [],
+  "choices": [],
+  "modifiers": [],
+  "crossSell": [
+   {
+    "itemId": "p-10334",
+    "attach": 0.086,
+    "lift": 1.38
+   },
+   {
+    "itemId": "p-10352",
+    "attach": 0.098,
+    "lift": 1.19
+   }
+  ]
+ },
  "p-10265": {
   "lines": 552,
   "orders": 550,
@@ -4308,12 +4230,12 @@ export const itemInsights: Record<string, ItemInsight> = {
   ]
  },
  "p-10649": {
-  "lines": 341,
-  "orders": 340,
+  "lines": 342,
+  "orders": 341,
   "sizes": [
    {
     "name": "(6-8) people",
-    "share": 0.446
+    "share": 0.444
    },
    {
     "name": "(10-12) poeple",
@@ -4395,6 +4317,28 @@ export const itemInsights: Record<string, ItemInsight> = {
   "modifiers": [],
   "crossSell": []
  },
+ "p-10388": {
+  "lines": 635,
+  "orders": 626,
+  "sizes": [
+   {
+    "name": "Small",
+    "share": 0.452
+   },
+   {
+    "name": "Medium",
+    "share": 0.403
+   }
+  ],
+  "choices": [
+   {
+    "optionId": "o-11185",
+    "share": 0.126
+   }
+  ],
+  "modifiers": [],
+  "crossSell": []
+ },
  "p-10308": {
   "lines": 69,
   "orders": 69,
@@ -4409,16 +4353,16 @@ export const itemInsights: Record<string, ItemInsight> = {
   "crossSell": []
  },
  "p-10347": {
-  "lines": 108,
-  "orders": 108,
+  "lines": 109,
+  "orders": 109,
   "sizes": [
    {
     "name": "Small",
-    "share": 0.593
+    "share": 0.587
    },
    {
     "name": "Medium",
-    "share": 0.13
+    "share": 0.128
    }
   ],
   "choices": [],
@@ -4623,8 +4567,8 @@ export const itemInsights: Record<string, ItemInsight> = {
   "crossSell": []
  },
  "p-10837": {
-  "lines": 414,
-  "orders": 414,
+  "lines": 415,
+  "orders": 415,
   "sizes": [],
   "choices": [],
   "modifiers": [],
@@ -4632,12 +4576,12 @@ export const itemInsights: Record<string, ItemInsight> = {
    {
     "itemId": "p-10300",
     "attach": 0.08,
-    "lift": 5.85
+    "lift": 5.83
    },
    {
     "itemId": "p-10303",
     "attach": 0.06,
-    "lift": 7.96
+    "lift": 7.93
    }
   ]
  },
@@ -4708,6 +4652,34 @@ export const itemInsights: Record<string, ItemInsight> = {
   "choices": [],
   "modifiers": [],
   "crossSell": []
+ },
+ "p-10371": {
+  "lines": 377,
+  "orders": 370,
+  "sizes": [
+   {
+    "name": "Small",
+    "share": 0.358
+   },
+   {
+    "name": "Medium",
+    "share": 0.268
+   }
+  ],
+  "choices": [],
+  "modifiers": [
+   {
+    "modifierId": "m-10792",
+    "share": 0.053
+   }
+  ],
+  "crossSell": [
+   {
+    "itemId": "p-10243",
+    "attach": 0.076,
+    "lift": 1.88
+   }
+  ]
  },
  "p-10343": {
   "lines": 582,
@@ -4830,6 +4802,20 @@ export const itemInsights: Record<string, ItemInsight> = {
   "modifiers": [],
   "crossSell": []
  },
+ "p-10276": {
+  "lines": 331,
+  "orders": 329,
+  "sizes": [],
+  "choices": [],
+  "modifiers": [],
+  "crossSell": [
+   {
+    "itemId": "p-10352",
+    "attach": 0.103,
+    "lift": 1.26
+   }
+  ]
+ },
  "p-10328": {
   "lines": 90,
   "orders": 90,
@@ -4906,8 +4892,8 @@ export const itemInsights: Record<string, ItemInsight> = {
   "crossSell": []
  },
  "p-10549": {
-  "lines": 48,
-  "orders": 48,
+  "lines": 49,
+  "orders": 49,
   "sizes": [],
   "choices": [],
   "modifiers": [],
@@ -4973,8 +4959,8 @@ export const itemInsights: Record<string, ItemInsight> = {
   "crossSell": []
  },
  "p-10221": {
-  "lines": 518,
-  "orders": 516,
+  "lines": 519,
+  "orders": 517,
   "sizes": [],
   "choices": [],
   "modifiers": [],
@@ -5054,8 +5040,8 @@ export const itemInsights: Record<string, ItemInsight> = {
   "crossSell": []
  },
  "p-2694": {
-  "lines": 260,
-  "orders": 258,
+  "lines": 261,
+  "orders": 259,
   "sizes": [],
   "choices": [],
   "modifiers": [],
@@ -5072,6 +5058,14 @@ export const itemInsights: Record<string, ItemInsight> = {
  "p-10185": {
   "lines": 52,
   "orders": 52,
+  "sizes": [],
+  "choices": [],
+  "modifiers": [],
+  "crossSell": []
+ },
+ "p-10793": {
+  "lines": 221,
+  "orders": 221,
   "sizes": [],
   "choices": [],
   "modifiers": [],
@@ -5442,16 +5436,16 @@ export const itemInsights: Record<string, ItemInsight> = {
   "crossSell": []
  },
  "p-12086": {
-  "lines": 390,
-  "orders": 390,
+  "lines": 391,
+  "orders": 391,
   "sizes": [],
   "choices": [],
   "modifiers": [],
   "crossSell": []
  },
  "p-12083": {
-  "lines": 265,
-  "orders": 264,
+  "lines": 266,
+  "orders": 265,
   "sizes": [],
   "choices": [],
   "modifiers": [],
@@ -5477,8 +5471,8 @@ export const itemInsights: Record<string, ItemInsight> = {
   ]
  },
  "p-12085": {
-  "lines": 374,
-  "orders": 373,
+  "lines": 375,
+  "orders": 374,
   "sizes": [],
   "choices": [],
   "modifiers": [],
@@ -5486,12 +5480,12 @@ export const itemInsights: Record<string, ItemInsight> = {
    {
     "itemId": "p-10384",
     "attach": 0.094,
-    "lift": 3.37
+    "lift": 3.36
    },
    {
     "itemId": "p-10338",
     "attach": 0.091,
-    "lift": 1.86
+    "lift": 1.85
    },
    {
     "itemId": "p-10344",
@@ -5685,8 +5679,8 @@ export const itemInsights: Record<string, ItemInsight> = {
   "crossSell": []
  },
  "p-12134": {
-  "lines": 22,
-  "orders": 22,
+  "lines": 23,
+  "orders": 23,
   "sizes": [],
   "choices": [],
   "modifiers": [],
@@ -5701,16 +5695,16 @@ export const itemInsights: Record<string, ItemInsight> = {
   "crossSell": []
  },
  "p-12185": {
-  "lines": 71,
-  "orders": 70,
+  "lines": 72,
+  "orders": 71,
   "sizes": [
    {
     "name": "Small",
-    "share": 0.761
+    "share": 0.75
    },
    {
     "name": "Medium",
-    "share": 0.169
+    "share": 0.181
    }
   ],
   "choices": [],
@@ -5718,16 +5712,16 @@ export const itemInsights: Record<string, ItemInsight> = {
   "crossSell": []
  },
  "p-12187": {
-  "lines": 96,
-  "orders": 95,
+  "lines": 97,
+  "orders": 96,
   "sizes": [
    {
     "name": "Small",
-    "share": 0.552
+    "share": 0.546
    },
    {
     "name": "Medium",
-    "share": 0.396
+    "share": 0.392
    }
   ],
   "choices": [],
@@ -5760,16 +5754,16 @@ export const itemInsights: Record<string, ItemInsight> = {
   "crossSell": []
  },
  "p-12182": {
-  "lines": 42,
-  "orders": 42,
+  "lines": 44,
+  "orders": 44,
   "sizes": [
    {
     "name": "Small",
-    "share": 0.714
+    "share": 0.682
    },
    {
     "name": "Medium",
-    "share": 0.238
+    "share": 0.25
    }
   ],
   "choices": [],
@@ -5777,16 +5771,16 @@ export const itemInsights: Record<string, ItemInsight> = {
   "crossSell": []
  },
  "p-12188": {
-  "lines": 111,
-  "orders": 110,
+  "lines": 112,
+  "orders": 111,
   "sizes": [
    {
     "name": "Small",
-    "share": 0.595
+    "share": 0.589
    },
    {
     "name": "Medium",
-    "share": 0.324
+    "share": 0.33
    }
   ],
   "choices": [],

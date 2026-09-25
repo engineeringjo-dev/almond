@@ -24,8 +24,12 @@
  *   2. MODIFIERS — Odoo also sells add-ons as separate products (POS
  *      categories 32–35, 38, 39: Extra Cold Foam, Extra Shot, 1 Pump Of
  *      Caramel…). Odoo links them to NOTHING (no optional products, no combos —
- *      read 2026-09-25), so the link is measured: a modifier line that comes
- *      straight after an item's line in the same order was added to that item.
+ *      read 2026-09-25), so the link is measured from the order itself: the
+ *      add-on belongs to the NEAREST PRECEDING item OF ITS OWN KIND in the same
+ *      order. A drink add-on (Extra Drink/Flavor/Special Milk) attaches to the
+ *      last drink rung before it, a food add-on (Extra Food/Pizza/Sweets) to
+ *      the last food — so "Latte, Croissant, Extra Shot" puts the shot on the
+ *      latte, where plain "previous line" put it on the croissant.
  *
  *   3. CROSS-SELL — items in the same order (market-basket): attach rate
  *      P(B | A) and lift P(B | A) / P(B). Only pairs across DIFFERENT categories
@@ -40,6 +44,10 @@ const COMPANIES = [1, 2, 3, 4];
 
 /** Same sets as scripts/odoo-menu-pull.ts. */
 const MODIFIER_CATEGORIES = new Set([32, 33, 34, 35, 38, 39]);
+/** Which kind of item each add-on category belongs to. */
+const DRINK_MODIFIER_CATEGORIES = new Set([34, 35, 39]);   // Extra Drink, Extra Flavor, Extra Special Milk
+/** The two roots of Odoo's POS category tree. */
+const DRINK_ROOT = 28, FOOD_ROOT = 1;
 /** Till 70 is the catering point — event orders are not shop baskets. */
 const EXCLUDED_CONFIGS = [70];
 /** Modifier-category products that are not add-ons a customer picks:
@@ -90,6 +98,28 @@ const call = <T>(model: string, method: string, args: unknown[], kwargs: Record<
 interface LineRow { id: number; order_id: [number, string]; product_id: [number, string]; attribute_value_ids: number[]; qty: number }
 interface TmplRow { id: number; name: string; list_price: number; pos_categ_ids: number[]; available_in_pos: boolean; active: boolean }
 
+/**
+ * ARABIC NAMES FOR ADD-ON PRODUCTS. Odoo has none for these (read
+ * 2026-09-25). A STOPGAP like CATEGORY_AR in scripts/odoo-menu-pull.ts: an Arabic
+ * name set in Odoo wins, so entries retire themselves as Odoo is translated.
+ */
+const MODIFIER_AR: Record<string, string> = {
+  'Extra Avocado': 'أفوكادو إضافي', 'Extra Cold Foam': 'كولد فوم إضافي',
+  'Extra Decaf Coffee': 'قهوة ديكاف (منزوعة الكافيين)', 'Extra Mushroom': 'فطر إضافي',
+  'Extra Nutella': 'نوتيلا إضافية', 'Extra Nuts': 'مكسرات إضافية',
+  'Extra Shot': 'شوت إسبريسو إضافي', 'Extra Strawberry': 'فراولة إضافية',
+  'Ice Cream': 'آيس كريم', 'Extra Cream': 'كريمة إضافية', 'Extra Bubbles': 'ببلز إضافية',
+  'Extra Marshmallow': 'مارشميلو إضافي', 'Extra Honey': 'عسل إضافي', 'Extra Foam': 'رغوة إضافية',
+  'Extra Pistachio': 'فستق إضافي', 'Extra Almond Milk': 'حليب لوز', 'Extra Egg': 'بيض إضافي',
+  'Extra Cream Cheese': 'كريم تشيز إضافي', 'Extra Chedder Cheese': 'جبنة شيدر إضافية',
+  'Extra Halloumi': 'حلوم إضافي', 'Extra Chicken': 'دجاج إضافي', 'Extra Salmon': 'سلمون إضافي',
+  'Extra Guacamole': 'جواكامولي إضافي', 'Extra Turkey Roast': 'تيركي إضافي',
+  'Extra Roast Beef': 'روست بيف إضافي', 'Extra Tomato': 'بندورة إضافية',
+  'Extra Lettuce': 'خس إضافي', 'Extra Olives': 'زيتون إضافي', 'Extra 3 Cheese': 'ثلاث أجبان إضافية',
+  'Extra Sundried Tomato': 'بندورة مجففة إضافية', 'Extra ice cream': 'آيس كريم إضافي',
+};
+const hasArabic = (s: string) => /[\u0600-\u06FF]/.test(s);
+
 const round = (n: number, d = 3) => Math.round(n * 10 ** d) / 10 ** d;
 
 async function main() {
@@ -139,6 +169,17 @@ async function main() {
     && !t.pos_categ_ids.some((c) => MODIFIER_CATEGORIES.has(c));
   const catOf = (t: TmplRow) => t.pos_categ_ids[0]!;
 
+  // Item kind from the POS category tree (Drink / Food roots).
+  const catRows = await call<{ id: number; parent_id: [number, string] | false }[]>('pos.category', 'search_read',
+    [[]], { fields: ['parent_id'] });
+  const parent = new Map(catRows.map((c) => [c.id, c.parent_id ? c.parent_id[0] : 0]));
+  const rootOf = (c: number) => { let x = c, n = 0; while (parent.get(x) && n++ < 10) x = parent.get(x)!; return x; };
+  const kindOf = (t: TmplRow): 'drink' | 'food' | 'other' => {
+    const r = rootOf(catOf(t));
+    return r === DRINK_ROOT ? 'drink' : r === FOOD_ROOT ? 'food' : 'other';
+  };
+  const modKind = (t: TmplRow) => (t.pos_categ_ids.some((c) => DRINK_MODIFIER_CATEGORIES.has(c)) ? 'drink' : 'food');
+
   // ---- walk each order in line order ---------------------------------------
   const byOrder = new Map<number, LineRow[]>();
   for (const l of lines) (byOrder.get(l.order_id[0]) ?? byOrder.set(l.order_id[0], []).get(l.order_id[0])!).push(l);
@@ -149,24 +190,27 @@ async function main() {
   const modCount = new Map<number, Map<number, number>>();     // tmpl → modifier tmpl → times
   const pairCount = new Map<string, number>();
   let basketOrders = 0;
+  let unattached = 0;
   const bump = <K>(m: Map<K, number>, k: K, n = 1) => m.set(k, (m.get(k) ?? 0) + n);
 
   for (const ls of byOrder.values()) {
     ls.sort((a, b) => a.id - b.id);
     const inOrder = new Set<number>();
-    let prevItem: number | null = null;
+    const lastOfKind: Record<'drink' | 'food', number | null> = { drink: null, food: null };
     for (const l of ls) {
       const t = tmpls.get(tmplOf.get(l.product_id[0])!);
       if (!t) continue;
       if (isModifier(t)) {
-        if (prevItem !== null) {
-          const m = modCount.get(prevItem) ?? modCount.set(prevItem, new Map()).get(prevItem)!;
+        const target = lastOfKind[modKind(t)];
+        if (target !== null) {
+          const m = modCount.get(target) ?? modCount.set(target, new Map()).get(target)!;
           bump(m, t.id);
-        }
+        } else unattached++;
         continue;
       }
-      if (!isItem(t)) { prevItem = null; continue; }
-      prevItem = t.id;
+      if (!isItem(t)) continue;
+      const k = kindOf(t);
+      if (k !== 'other') lastOfKind[k] = t.id;
       bump(itemLines, t.id);
       inOrder.add(t.id);
       const cm = choiceCount.get(t.id) ?? choiceCount.set(t.id, new Map()).get(t.id)!;
@@ -250,7 +294,7 @@ async function main() {
     id: `m-${r.id}`,
     categoryId: `cat-${r.pos_categ_ids.find((c) => MODIFIER_CATEGORIES.has(c))}`,
     nameEn: r.name.trim(),
-    nameAr: (arById.get(r.id) ?? r.name).trim(),
+    nameAr: ((n) => (hasArabic(n) ? n : (MODIFIER_AR[r.name.trim()] ?? n)))((arById.get(r.id) ?? r.name).trim()),
     // 0.001 is how the shop rings up a FREE pump (so it still prints on the
     // barista ticket); to a customer it is free.
     price: r.list_price <= 0.001 ? 0 : round(r.list_price),
@@ -288,6 +332,7 @@ export const itemInsights: Record<string, ItemInsight> = ${JSON.stringify(out, n
   const withC = Object.values(out).filter((o) => o.choices.length).length;
   const withM = Object.values(out).filter((o) => o.modifiers.length).length;
   console.log(`window ${window.from}..${window.to}: ${basketOrders} orders, ${lines.length} lines`);
+  console.log(`add-on lines with no item of their kind before them (not attached): ${unattached}`);
   console.log(`items ${Object.keys(out).length}: cross-sell ${withX}, paid choices ${withC}, modifiers ${withM}; modifier catalogue ${modifiers.length}`);
 }
 

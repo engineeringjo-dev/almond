@@ -1,5 +1,6 @@
 import { buildPublicMenuFeed, type PublicMenuFeed } from '@almond/shared/menu/publicFeed';
-import { generatedCategories, generatedMenuItems, menuPulledAt } from '@almond/shared/menu/menu.generated';
+import { generatedCategories, menuPulledAt } from '@almond/shared/menu/menu.generated';
+import { menuItems } from '@almond/shared/menu/seed';
 import { insightsWindow, itemInsights, modifierProducts } from '@almond/shared/menu/menu.insights.generated';
 import { config } from '@almond/shared/config';
 
@@ -26,7 +27,7 @@ export function feedFor(base: string): string {
   if (!body) {
     const feed: PublicMenuFeed = buildPublicMenuFeed({
       categories: generatedCategories,
-      items: generatedMenuItems,
+      items: menuItems,
       updatedAt: menuPulledAt,
       assetBase: base,
       taxRate: config.TAX_RATE,

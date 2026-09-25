@@ -14,7 +14,8 @@
 import { cpSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { buildPublicMenuFeed } from '../packages/shared/src/menu/publicFeed';
-import { generatedCategories, generatedMenuItems, menuPulledAt } from '../packages/shared/src/menu/menu.generated';
+import { generatedCategories, menuPulledAt } from '../packages/shared/src/menu/menu.generated';
+import { menuItems } from '../packages/shared/src/menu/seed';
 import { insightsWindow, itemInsights, modifierProducts } from '../packages/shared/src/menu/menu.insights.generated';
 import { config } from '../packages/shared/src/config';
 
@@ -28,7 +29,7 @@ const base = arg('base', 'https://almond-gules.vercel.app').replace(/\/+$/, '');
 
 const feed = buildPublicMenuFeed({
   categories: generatedCategories,
-  items: generatedMenuItems,
+  items: menuItems,
   updatedAt: menuPulledAt,
   assetBase: base,
   taxRate: config.TAX_RATE,
@@ -40,7 +41,7 @@ rmSync(out, { recursive: true, force: true });
 mkdirSync(join(out, 'menu'), { recursive: true });
 writeFileSync(join(out, 'menu.json'), `${JSON.stringify(feed, null, 2)}\n`);
 let photos = 0;
-for (const item of generatedMenuItems) {
+for (const item of menuItems) {
   if (!item.imageUrl) continue;
   cpSync(join('almond-web', 'public', item.imageUrl), join(out, item.imageUrl));
   photos++;

@@ -3,7 +3,7 @@ import { computeTotals, buildLineId, type CartTotals } from '@almond/shared/cart
 import { basketHasDrink, comboBasket } from '@almond/shared/lib/combo';
 import type { ComboBasket } from '@almond/shared/loyalty/earn';
 import type { CartItem, CartCustomization } from '@almond/shared/types';
-import { badRequest } from './http-error';
+import { badRequest, HttpError } from './http-error';
 import type { CheckoutLine } from './backend/types';
 
 /** The same subtotal `computeTotals` computes, exposed so a discount can be
@@ -43,6 +43,12 @@ export function reprice(lines: CheckoutLine[], discountFor?: (subtotal: number) 
       }
       throw badRequest(`unknown option ${optId} for ${l.itemId}`);
     });
+    // 🔴 NO LINE FOR NOTHING (GM, 2026-09-25: «ما حدا يقدر يطلب اوردر يطلع
+    // نتيجته ٠»). The menu pull already drops items whose cheapest complete
+    // configuration is 0, but a line is priced HERE, so this is where it is
+    // enforced: a size and choices that add up to 0 or less are refused.
+    const unit = size.price + customizations.reduce((s, c) => s + c.priceDelta, 0);
+    if (!(unit > 0)) throw new HttpError(400, 'item_unpriced', `no price for ${l.itemId}`);
     const qty = Math.max(1, Math.floor(l.qty || 1));
     return {
       lineId: buildLineId(item.id, size.id, customizations),
@@ -53,6 +59,9 @@ export function reprice(lines: CheckoutLine[], discountFor?: (subtotal: number) 
     };
   });
   const totals = computeTotals(items, discountFor ? discountFor(subtotalOf(items)) : 0);
+  // …and no ORDER for nothing: a standing discount set to 100% (or anything
+  // else that zeroes the bill) is refused, not placed as a free order.
+  if (!(totals.total > 0)) throw new HttpError(400, 'order_total_zero', 'order total must be greater than zero');
   return {
     items,
     /**

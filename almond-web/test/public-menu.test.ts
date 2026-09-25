@@ -3,6 +3,7 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { buildPublicMenuFeed, PUBLIC_BRANCHES } from '@almond/shared/menu/publicFeed';
 import { generatedCategories, generatedMenuItems, menuPulledAt } from '@almond/shared/menu/menu.generated';
+import { menuItems } from '@almond/shared/menu/seed';
 import { insightsWindow, itemInsights, modifierProducts } from '@almond/shared/menu/menu.insights.generated';
 import { GET, OPTIONS } from '@/app/api/public/menu/route';
 
@@ -18,7 +19,7 @@ import { GET, OPTIONS } from '@/app/api/public/menu/route';
 const BASE = 'https://menu.example';
 const feed = buildPublicMenuFeed({
   categories: generatedCategories,
-  items: generatedMenuItems,
+  items: menuItems,          // what the route serves: the Odoo menu + measured add-ons
   updatedAt: menuPulledAt,
   assetBase: BASE,
   taxRate: 0.08,
@@ -104,6 +105,21 @@ describe('public menu feed — data the order page relies on', () => {
       soy_milk: 0.4, coconut_milk: 0.4, lactose_free_milk: 0.4 });
   });
 
+  it('offers the measured add-ons as an «إضافات» group — Cold Foam on the iced latte', () => {
+    const latte = feed.items.find((i) => i.name_en === 'Iced Latte')!;
+    const addOns = latte.option_group_ids.map((id) => feed.option_groups.find((g) => g.id === id)!)
+      .find((g) => g.name_en === 'Add-ons')!;
+    expect(addOns).toMatchObject({ name_ar: 'إضافات', required: false, multi: true });
+    expect(addOns.choices.find((c) => c.name_en === 'Extra Cold Foam')!.price_delta).toBe(0.6);
+  });
+
+  it('every size and every choice has a price: sizes > 0, choices never negative', () => {
+    for (const i of feed.items) {
+      for (const z of i.sizes) expect(z.price, `${i.name_en}:${z.name_en}`).toBeGreaterThan(0);
+    }
+    for (const g of feed.option_groups) for (const c of g.choices) expect(c.price_delta).toBeGreaterThanOrEqual(0);
+  });
+
   it('keeps five cake sizes as five sizes (the app collapses them to S/M/L)', () => {
     expect(feed.items.some((i) => i.sizes.length === 5)).toBe(true);
   });
@@ -186,7 +202,7 @@ describe('public menu feed — upsell, cross-sell, modifiers (measured in Odoo)'
     expect(it.upsell.modifiers).toEqual([{ modifier_id: 'm-1', share: 0.1 }]);
     expect(it.upsell.popular_choices).toEqual([]);
     expect(it.cross_sell).toEqual([]);
-    expect(f.modifiers[0]!.name_ar).toBe('شوت إسبريسو إضافي');
+    expect(f.modifiers[0]!.name_ar).toBe('Extra Shot'); // passed through; Arabic comes from the insights script
   });
 
   it('without insights the feed still builds, with empty suggestions', () => {
