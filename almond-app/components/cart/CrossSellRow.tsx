@@ -70,7 +70,10 @@ export function CrossSellRow({ items }: { items: CartItem[] }) {
             <Text variant="bodyBold" color={colors.dark}>
               {comboName}
             </Text>
-            <Text variant="price">{comboPrice}</Text>
+            {/* dark, not the violet price tint: violet on this banner is 4.18:1 */}
+            <Text variant="price" color={colors.dark}>
+              {comboPrice}
+            </Text>
           </View>
           <View style={styles.comboCta}>
             <Text variant="caption" color={colors.dark} style={styles.addLabel}>
