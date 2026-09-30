@@ -181,5 +181,16 @@ export const timing = {
   base: 300, // 300ms ease for standard animations
 } as const;
 
-export const tokens = { colors, spacing, radius, shadow, fontFamily, fontSize, timing };
+/**
+ * Widths for tablet, desktop and a wide browser window. The app is laid out
+ * for a phone; on a wide window the journey screens and the bottom sheet stop
+ * at a readable width, centred, instead of stretching a 700 px card and a
+ * 1,400 px button across the glass (audit P2).
+ */
+export const layout = {
+  contentMaxWidth: 680, // journey screens: menu grid, cart, review
+  sheetMaxWidth: 560, // bottom sheets, centred
+} as const;
+
+export const tokens = { colors, spacing, radius, shadow, fontFamily, fontSize, timing, layout };
 export type Tokens = typeof tokens;

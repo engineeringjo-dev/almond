@@ -71,6 +71,7 @@ describe('M2 every moving animation asks', () => {
   const src = (rel: string) => readFileSync(join(__dirname, '..', rel), 'utf8');
   const files = [
     'components/ui/FadeIn.tsx',
+    'components/ui/BottomSheet.tsx',
     'components/ui/CartToast.tsx',
     'components/ui/Skeleton.tsx',
     'components/order/StatusTimeline.tsx',

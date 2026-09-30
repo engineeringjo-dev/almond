@@ -51,6 +51,7 @@ export function RatingSheet({ visible, onClose, branchName, branchId, orderId }:
       visible={visible}
       onClose={reset}
       title={result ? undefined : t('track.rateTitle', { branch: branchName })}
+      label={t('track.rateTitle', { branch: branchName })}
       footer={
         result ? (
           <Button title={t('common.ok')} onPress={reset} />

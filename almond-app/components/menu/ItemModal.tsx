@@ -108,6 +108,7 @@ export function ItemModal({ item, visible, onClose }: Props) {
     <BottomSheet
       visible={visible}
       onClose={onClose}
+      label={lang === 'ar' ? item.nameAr : item.nameEn}
       footer={
         <Button title={`${t('menu.addToCart')} · ${formatJOD(total, lang)}`} onPress={onAdd} />
       }
