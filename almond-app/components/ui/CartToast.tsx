@@ -7,6 +7,7 @@ import { Text } from './Text';
 import { Icon } from './Icon';
 import { colors, spacing, radius, shadow } from '@/constants/theme';
 import { useI18n } from '@/hooks/useI18n';
+import { useReducedMotion } from '@/hooks/useReducedMotion';
 import { iconForItem } from '@/lib/productIcon';
 import { useToastStore } from '@/stores/toastStore';
 
@@ -18,19 +19,22 @@ export function CartToast() {
   const { t, lang } = useI18n();
   const insets = useSafeAreaInsets();
   const { visible, kind, itemId, nameAr, nameEn, message, seq, hide } = useToastStore();
+  const reduced = useReducedMotion();
   const y = useRef(new Animated.Value(80)).current;
   const opacity = useRef(new Animated.Value(0)).current;
   const isError = kind === 'error';
 
   useEffect(() => {
     if (!visible) return;
+    // Reduce Motion: the toast fades in place instead of springing up.
+    if (reduced) y.setValue(0);
     Animated.parallel([
-      Animated.spring(y, { toValue: 0, useNativeDriver: true, friction: 9 }),
+      reduced ? Animated.delay(0) : Animated.spring(y, { toValue: 0, useNativeDriver: true, friction: 9 }),
       Animated.timing(opacity, { toValue: 1, duration: 180, useNativeDriver: true }),
     ]).start();
     const timer = setTimeout(() => {
       Animated.parallel([
-        Animated.timing(y, { toValue: 80, duration: 220, useNativeDriver: true }),
+        reduced ? Animated.delay(0) : Animated.timing(y, { toValue: 80, duration: 220, useNativeDriver: true }),
         Animated.timing(opacity, { toValue: 0, duration: 220, useNativeDriver: true }),
       ]).start(() => hide());
     }, isError ? 3200 : 1800);
@@ -39,7 +43,7 @@ export function CartToast() {
     // changes together with `seq` (showAdded/showError set both), and `y`,
     // `opacity` (ref-held Animated values) and `hide` (a zustand action) are
     // stable, so listing them changes nothing at runtime.
-  }, [seq, visible, isError, hide, y, opacity]);
+  }, [seq, visible, isError, hide, y, opacity, reduced]);
 
   if (!visible) return null;
 

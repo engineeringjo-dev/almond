@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { AppState, InteractionManager } from 'react-native';
+import { AppState, InteractionManager, View } from 'react-native';
 import { Stack } from 'expo-router';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -9,15 +9,18 @@ import * as SplashScreen from 'expo-splash-screen';
 
 import { initI18n } from '@/lib/i18n';
 import { applyWebViewportFix } from '@/lib/webViewportFix';
+import { applySpaceActivation } from '@/lib/spaceKey';
+import { rootDirectionProps } from '@/lib/direction';
 import { useAppStore } from '@/stores/appStore';
 import { useAuthStore } from '@/stores/authStore';
 import { useFavouritesStore } from '@/stores/favouritesStore';
 import { usePromoStore } from '@/stores/promoStore';
 import { usePromotionStore } from '@/stores/promotionStore';
 import { useAppFonts } from '@/constants/fonts';
+import { useReducedMotion } from '@/hooks/useReducedMotion';
 import { ErrorBoundary } from '@/components/ui/ErrorBoundary';
 import { CartToast } from '@/components/ui/CartToast';
-import { colors } from '@/constants/theme';
+import { colors, layout } from '@/constants/theme';
 import { hydrateMenuFromCache, refreshMenu } from '@/services/menuSync';
 
 // Initialize i18n as early as possible (AR default).
@@ -26,6 +29,10 @@ initI18n();
 // Web: pin the app to the dynamic viewport height so the bottom tab bar clears
 // the device's system navigation bar (no-op on native).
 applyWebViewportFix();
+
+// Web: Space checks a radio/checkbox and selects a tab, as their roles promise
+// (react-native-web only honours Space on buttons). No-op on native.
+applySpaceActivation();
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
@@ -38,6 +45,17 @@ const queryClient = new QueryClient({
   },
 });
 
+/** Stack screens of the ordering journey (the Order tab caps itself). */
+const JOURNEY_SCREENS = new Set(['cart']);
+
+/** A journey screen's column on a wide window: centred, capped (theme `layout`). */
+const journeyContent = {
+  backgroundColor: colors.cream,
+  width: '100%',
+  maxWidth: layout.contentMaxWidth,
+  alignSelf: 'center',
+} as const;
+
 /** How often returning to the app may re-check the menu. */
 const MENU_REFRESH_MIN_MS = 5 * 60 * 1000;
 /** After the first screen settles, before the menu sync starts. */
@@ -47,11 +65,13 @@ export default function RootLayout() {
   const [fontsLoaded] = useAppFonts();
   const hydrate = useAppStore((s) => s.hydrate);
   const hydrated = useAppStore((s) => s.hydrated);
+  const lang = useAppStore((s) => s.lang);
   const hydrateAuth = useAuthStore((s) => s.hydrate);
   const hydrateFavourites = useFavouritesStore((s) => s.hydrate);
   const hydratePromo = usePromoStore((s) => s.hydrate);
   const hydratePromotion = usePromotionStore((s) => s.hydrate);
   const [ready, setReady] = useState(false);
+  const reducedMotion = useReducedMotion();
 
   useEffect(() => {
     hydrate();
@@ -101,16 +121,25 @@ export default function RootLayout() {
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
+      {/* Web: start/end resolve in the language's direction (lib/direction).
+          The tree inside keeps its indentation, to keep this diff small. */}
+      <View style={{ flex: 1 }} {...rootDirectionProps(lang)}>
       <SafeAreaProvider>
         <QueryClientProvider client={queryClient}>
           <ErrorBoundary>
           <StatusBar style="dark" />
           <Stack
-            screenOptions={{
+            screenOptions={({ route }) => ({
               headerShown: false,
-              contentStyle: { backgroundColor: colors.cream },
-              animation: 'fade',
-            }}
+              // Journey screens (the cart) sit centred at a readable width on a
+              // tablet / wide window, like the Order tab; a phone is narrower
+              // than the cap and unchanged.
+              contentStyle: JOURNEY_SCREENS.has(route.name) ? journeyContent : { backgroundColor: colors.cream },
+              // The platform's own push/pop (a slide on iOS, Material on
+              // Android) keeps edge-swipe back legible; under Reduce Motion /
+              // Remove animations a crossfade replaces it (audit P2).
+              animation: reducedMotion ? 'fade' : 'default',
+            })}
           >
             <Stack.Screen name="index" />
             <Stack.Screen name="onboarding" />
@@ -137,6 +166,7 @@ export default function RootLayout() {
           </ErrorBoundary>
         </QueryClientProvider>
       </SafeAreaProvider>
+      </View>
     </GestureHandlerRootView>
   );
 }

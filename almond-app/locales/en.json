@@ -134,6 +134,7 @@
   },
   "menu": {
     "title": "Menu",
+    "fromPrice": "from {{price}}",
     "searchPlaceholder": "Search for a drink or dish",
     "noResults": "No results found",
     "addToCart": "Add to cart",
@@ -564,6 +565,7 @@
   },
   "transfer": {
     "title": "Send to a friend",
+    "kindLabel": "What to send",
     "kindPoints": "Points",
     "kindWallet": "Wallet balance",
     "havePoints": "You have {{points}} points",

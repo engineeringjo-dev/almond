@@ -17,6 +17,7 @@ import { Icon } from '@/components/ui/Icon';
 import { Logo } from '@/components/ui/Logo';
 import { colors, spacing, radius, shadow } from '@/constants/theme';
 import { useI18n } from '@/hooks/useI18n';
+import { useReducedMotion } from '@/hooks/useReducedMotion';
 import { formatNumber } from '@/lib/format';
 import { posQrExpiresAt, posQrMsUntilExpiry, posQrStatus } from '@/lib/posQr';
 import { useLoyaltyBalance, usePosToken, useScanStatus } from '@/hooks/useLoyalty';
@@ -139,10 +140,15 @@ export default function PayScreen() {
     }, []),
   );
 
-  // "Ready to scan" pulse — a clear active signifier.
+  // "Ready to scan" pulse — a clear active signifier; still under Reduce Motion.
+  const reduced = useReducedMotion();
   const pulse = useRef(new Animated.Value(0)).current;
   useFocusEffect(
     useCallback(() => {
+      if (reduced) {
+        pulse.setValue(0);
+        return undefined;
+      }
       const loop = Animated.loop(
         Animated.sequence([
           Animated.timing(pulse, { toValue: 1, duration: 1100, useNativeDriver: true }),
@@ -151,7 +157,7 @@ export default function PayScreen() {
       );
       loop.start();
       return () => loop.stop();
-    }, [pulse]),
+    }, [pulse, reduced]),
   );
   const pulseScale = pulse.interpolate({ inputRange: [0, 1], outputRange: [1, 1.04] });
 

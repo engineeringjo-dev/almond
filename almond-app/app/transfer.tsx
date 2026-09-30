@@ -11,6 +11,7 @@ import { config } from '@/constants/config';
 import { useI18n } from '@/hooks/useI18n';
 import { useLoyaltyBalance, usePreviewTransfer, useSendTransfer, useWallet } from '@/hooks/useLoyalty';
 import { apiErrorCode, newIdempotencyKey } from '@/lib/apiClient';
+import { choiceA11y, choiceGroupA11y } from '@/lib/a11y';
 import { formatJOD, formatNumber } from '@/lib/format';
 import { toWesternDigits } from '@almond/shared/lib/phone';
 import type { TransferKind } from '@almond/shared/loyalty/transfer';
@@ -92,7 +93,7 @@ export default function TransferScreen() {
       <Stack.Screen options={{ headerShown: true, title: t('transfer.title') }} />
       <Screen>
         {step !== 'done' ? (
-          <View style={styles.kindRow} accessibilityRole="radiogroup">
+          <View style={styles.kindRow} {...choiceGroupA11y(false, t('transfer.kindLabel'))}>
             {(['points', 'wallet'] as const).map((k) => {
               const active = kind === k;
               return (
@@ -100,8 +101,7 @@ export default function TransferScreen() {
                   key={k}
                   style={[styles.kindChip, active && styles.kindActive]}
                   onPress={() => { setKind(k); setIdemKey(null); send.reset(); }}
-                  accessibilityRole="radio"
-                  accessibilityState={{ checked: active }}
+                  {...choiceA11y('radio', active, k === 'points' ? t('transfer.kindPoints') : t('transfer.kindWallet'))}
                 >
                   <Text variant="bodyBold" color={active ? colors.white : colors.warmGray}>
                     {k === 'points' ? t('transfer.kindPoints') : t('transfer.kindWallet')}

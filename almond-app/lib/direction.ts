@@ -53,3 +53,56 @@ export function layoutFollowsLanguage(
 ): boolean {
   return platform === 'web' || nativeRTL === isRTL(lang);
 }
+
+/**
+ * The `textAlign` that puts a paragraph of UI text at the reading START of the
+ * interface — not of the string (audit P2: «EXTRA Drink» and «Iced Latte»
+ * hugged the left inside Arabic sections while «إضافات» hugged the right).
+ *
+ * Each string still picks its own base direction, so an English name keeps its
+ * word order and punctuation (react-native-web renders root text `dir="auto"`;
+ * native keeps writingDirection 'auto'); only the side it sits on is the UI's.
+ *
+ * Web: a physical side, because `start` there resolves against the string's
+ * own `dir="auto"`. Native: React Native swaps textAlign left↔right while the
+ * layout is RTL, so the physical side is named through that swap — 'left' is
+ * the start once I18nManager matches the language, the far side before the
+ * post-switch reload.
+ */
+export function startTextAlign(
+  lang: Lang,
+  platform: string = Platform.OS,
+  nativeRTL: boolean = I18nManager.isRTL,
+): 'left' | 'right' {
+  const physical = isRTL(lang) ? 'right' : 'left';
+  if (platform === 'web' || !nativeRTL) return physical;
+  return physical === 'right' ? 'left' : 'right';
+}
+
+/**
+ * The lucide chevron that points FORWARD (towards the reading end) in `lang`:
+ * a row's "open" affordance. Drawn icons do not mirror, so the choice follows
+ * the language alone — unlike the old «‹»/«›» glyphs, bidi-mirrored characters
+ * whose drawn direction depends on the base direction each platform resolves
+ * for a neutral-only string (inside an RTL paragraph «‹» is drawn as «›»).
+ */
+export function forwardChevron(lang: Lang): 'chevron-left' | 'chevron-right' {
+  return isRTL(lang) ? 'chevron-left' : 'chevron-right';
+}
+
+/**
+ * WEB ONLY: the `dir` prop for the app's root View.
+ *
+ * <html dir> (applyDocumentDirection) mirrors what CSS lays out — flex rows,
+ * text. But react-native-web resolves the LOGICAL style props (`start`/`end`,
+ * `marginStart`, `paddingEnd`, `borderTopStartRadius`, textAlign 'start') from
+ * its own locale context, which defaults to 'ltr' and never reads <html>. So in
+ * Arabic every `start` still meant left on the web: the BR badge, the item
+ * sheet's ♥, the trailing padding of the category row — the opposite of the
+ * same code on a phone. A View with `dir` provides that context to everything
+ * under it (react-native-web createElement → LocaleProvider), so the web build
+ * resolves them the way I18nManager does natively. Native: nothing to add.
+ */
+export function rootDirectionProps(lang: Lang, platform: string = Platform.OS): { dir?: 'rtl' | 'ltr' } {
+  return platform === 'web' ? { dir: documentDirection(lang).dir } : {};
+}

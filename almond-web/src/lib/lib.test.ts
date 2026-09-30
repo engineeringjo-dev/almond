@@ -3,7 +3,7 @@ import type { Branch } from '@almond/shared/types';
 import { branches } from '@almond/shared/menu';
 import { resolvePromo } from '@/lib/promo';
 import { haversineKm, withDistances } from '@/lib/distance';
-import { asLang } from '@/lib/format';
+import { asLang, formatDate, formatJOD, formatTime } from '@/lib/format';
 import { cn } from '@/lib/cn';
 
 /**
@@ -96,5 +96,23 @@ describe('asLang', () => {
 describe('cn', () => {
   it('joins truthy classes and drops falsy ones', () => {
     expect(cn('a', false, null, undefined, 'b', { c: true, d: false }, ['e'])).toBe('a b c e');
+  });
+});
+
+describe('shared date/time formatting (one digit system with prices)', () => {
+  // The website shares @almond/shared/lib/format with the app: its rewards
+  // and wallet history print a date next to a Latin «12.500 د.أ».
+  const AT = '2026-09-30T06:07:00.000Z';
+  const ARABIC_INDIC = /[\u0660-\u0669\u06F0-\u06F9]/;
+
+  it('Arabic dates and times carry Latin digits, like the prices beside them', () => {
+    expect(formatDate(AT, 'ar')).not.toMatch(ARABIC_INDIC);
+    expect(formatDate(AT, 'ar')).toMatch(/^30 /);
+    expect(formatTime(AT, 'ar')).toMatch(/09:07/);
+    expect(formatJOD(12.5, 'ar')).toBe('12.500 د.أ');
+  });
+
+  it('English is unchanged', () => {
+    expect(formatDate(AT, 'en')).toBe('Sep 30');
   });
 });

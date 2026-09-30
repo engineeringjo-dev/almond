@@ -12,10 +12,11 @@ import { config } from '@/constants/config';
 import { useI18n } from '@/hooks/useI18n';
 import { formatJOD } from '@/lib/format';
 import { iconForCategory } from '@/lib/productIcon';
+import { secondaryName } from '@/lib/itemName';
 import { nutritionFor } from '@/lib/nutrition';
 import { getSizeUpsell, getItemPairings } from '@/lib/recommendations';
 import { addSheetToCart, quickAddPrice, sheetTotal, stagedPairingsLine, togglePairing } from '@/lib/pairings';
-import { choiceA11y, choiceGroupA11y } from '@/lib/a11y';
+import { choiceA11y, choiceGroupA11y, MIN_TOUCH_TARGET } from '@/lib/a11y';
 import { useCartStore } from '@/stores/cartStore';
 import { useFavouritesStore } from '@/stores/favouritesStore';
 import type { MenuItem, ItemSize, CartCustomization } from '@/types';
@@ -110,6 +111,7 @@ export function ItemModal({ item, visible, onClose }: Props) {
     <BottomSheet
       visible={visible}
       onClose={onClose}
+      label={lang === 'ar' ? item.nameAr : item.nameEn}
       footer={
         <View style={styles.footer}>
           <View aria-live="polite">
@@ -144,10 +146,12 @@ export function ItemModal({ item, visible, onClose }: Props) {
             <Icon name={iconForCategory(item.categoryId)} size={52} color={colors.brown} strokeWidth={1.6} />
           )}
         </View>
-        <Text variant="h2">{lang === 'ar' ? item.nameAr : item.nameEn}</Text>
-        <Text variant="caption" color={colors.warmGray}>
-          {lang === 'ar' ? item.nameEn : item.nameAr}
-        </Text>
+        <Text variant="h2" center>{lang === 'ar' ? item.nameAr : item.nameEn}</Text>
+        {secondaryName(item, lang) ? (
+          <Text variant="caption" color={colors.warmGray} center>
+            {secondaryName(item, lang)}
+          </Text>
+        ) : null}
         {item.descAr ? (
           <Text variant="body" color={colors.warmGray} center style={styles.desc}>
             {lang === 'ar' ? item.descAr : item.descEn}
@@ -381,9 +385,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.xs,
-    backgroundColor: colors.cardBg,
+    minHeight: MIN_TOUCH_TARGET,
+    backgroundColor: colors.surface,
     borderWidth: 1.5,
-    borderColor: colors.lightGold,
+    borderColor: colors.outline,
     borderRadius: radius.pill,
     paddingVertical: spacing.sm,
     paddingHorizontal: spacing.md,
@@ -398,18 +403,20 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: spacing.md,
     borderRadius: radius.md,
-    backgroundColor: colors.cardBg,
+    backgroundColor: colors.surface,
     borderWidth: 1.5,
-    borderColor: 'transparent',
+    borderColor: colors.outline,
   },
   sizeChipActive: { borderColor: colors.gold, backgroundColor: colors.lightGold },
   optChip: {
+    minHeight: MIN_TOUCH_TARGET,
+    justifyContent: 'center',
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
     borderRadius: radius.pill,
-    backgroundColor: colors.cardBg,
+    backgroundColor: colors.surface,
     borderWidth: 1.5,
-    borderColor: 'transparent',
+    borderColor: colors.outline,
   },
   optChipActive: { borderColor: colors.gold, backgroundColor: colors.lightGold },
 });

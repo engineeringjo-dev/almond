@@ -7,6 +7,7 @@ import { colors, radius, spacing, shadow } from '@/constants/theme';
 import { useI18n } from '@/hooks/useI18n';
 import { formatJOD } from '@/lib/format';
 import { iconForCategory } from '@/lib/productIcon';
+import { secondaryName } from '@/lib/itemName';
 import type { MenuItem } from '@/types';
 import { itemFromPrice } from '@almond/shared/menu';
 
@@ -20,6 +21,7 @@ function MenuItemCardBase({ item, onPress }: Props) {
   const { t, lang } = useI18n();
   const minPrice = itemFromPrice(item);
   const soldOut = item.inStock === false;
+  const other = secondaryName(item, lang);
 
   return (
     <Pressable
@@ -52,12 +54,17 @@ function MenuItemCardBase({ item, onPress }: Props) {
       <Text variant="bodyBold" numberOfLines={1}>
         {lang === 'ar' ? item.nameAr : item.nameEn}
       </Text>
-      <Text variant="caption" color={colors.warmGray} numberOfLines={1}>
-        {lang === 'ar' ? item.nameEn : item.nameAr}
-      </Text>
+      {/* The other language's name, only when Odoo has a translation —
+          untranslated items printed the same name twice. */}
+      {other ? (
+        <Text variant="caption" color={colors.warmGray} numberOfLines={1}>
+          {other}
+        </Text>
+      ) : null}
       <Text variant="price" style={styles.price}>
-        {item.sizes.length > 1 ? `${lang === 'ar' ? 'من ' : 'from '}` : ''}
-        {formatJOD(minPrice, lang)}
+        {item.sizes.length > 1
+          ? t('menu.fromPrice', { price: formatJOD(minPrice, lang) })
+          : formatJOD(minPrice, lang)}
       </Text>
     </Pressable>
   );
@@ -105,5 +112,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     borderRadius: radius.md,
   },
-  price: { marginTop: spacing.xs },
+  // Pinned to the tile's foot, so prices line up across a row whether or not
+  // a tile has a second name line.
+  price: { marginTop: 'auto', paddingTop: spacing.xs },
 });

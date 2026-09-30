@@ -2,6 +2,7 @@ import { View, StyleSheet, Pressable } from 'react-native';
 import { Text } from './Text';
 import { colors, radius, spacing } from '@/constants/theme';
 import { useI18n } from '@/hooks/useI18n';
+import { MIN_TOUCH_TARGET } from '@/lib/a11y';
 
 interface Props {
   value: number;
@@ -49,9 +50,10 @@ export function Stepper({ value, onChange, min = 1, max = 99, label }: Props) {
 
 const styles = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
+  // 44 pt / 48 dp on every platform: hitSlop is ignored on the web.
   btn: {
-    width: 36,
-    height: 36,
+    width: MIN_TOUCH_TARGET,
+    height: MIN_TOUCH_TARGET,
     borderRadius: radius.sm,
     backgroundColor: colors.neutralWarm,
     alignItems: 'center',

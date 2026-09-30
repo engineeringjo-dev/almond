@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/Button';
 import { colors, spacing, radius, fontFamily } from '@/constants/theme';
 import { config } from '@/constants/config';
 import { useI18n } from '@/hooks/useI18n';
+import { choiceA11y, choiceGroupA11y } from '@/lib/a11y';
 import { formatNumber } from '@/lib/format';
 import { useUpdateProfile } from '@/hooks/useLoyalty';
 import { useAuthStore, useUser } from '@/stores/authStore';
@@ -206,7 +207,7 @@ export default function ProfileDetailsScreen() {
           </Text>
           {/* Two ids, never display text: the server stores 'male' | 'female'
               whatever language the member reads. */}
-          <View style={styles.genderRow} accessibilityRole="radiogroup">
+          <View style={styles.genderRow} {...choiceGroupA11y(false, t('details.genderLabel'))}>
             {GENDERS.map((g) => {
               const active = gender === g;
               return (
@@ -214,8 +215,9 @@ export default function ProfileDetailsScreen() {
                   key={g}
                   style={[styles.genderChip, active && styles.genderActive]}
                   onPress={() => setGender(g)}
-                  accessibilityRole="radio"
-                  accessibilityState={{ checked: active }}
+                  // role + aria-checked: react-native-web drops accessibilityState,
+                  // so the chosen answer was silent on the web build.
+                  {...choiceA11y('radio', active, g === 'male' ? t('details.genderMale') : t('details.genderFemale'))}
                 >
                   <Text variant="bodyBold" color={active ? colors.white : colors.warmGray}>
                     {g === 'male' ? t('details.genderMale') : t('details.genderFemale')}

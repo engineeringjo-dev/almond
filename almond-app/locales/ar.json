@@ -134,6 +134,7 @@
   },
   "menu": {
     "title": "القائمة",
+    "fromPrice": "من {{price}}",
     "searchPlaceholder": "ابحث عن مشروب أو طبق",
     "noResults": "لا توجد نتائج للبحث",
     "addToCart": "أضف للسلة",
@@ -564,6 +565,7 @@
   },
   "transfer": {
     "title": "أرسل لصديق",
+    "kindLabel": "ماذا ترسل؟",
     "kindPoints": "نقاط",
     "kindWallet": "رصيد المحفظة",
     "havePoints": "لديك {{points}} نقطة",

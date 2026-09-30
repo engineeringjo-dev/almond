@@ -3,7 +3,7 @@ import { Text } from './Text';
 import { Icon, type IconName } from './Icon';
 import { colors, spacing, radius } from '@/constants/theme';
 import { useI18n } from '@/hooks/useI18n';
-import { layoutFollowsLanguage } from '@/lib/direction';
+import { forwardChevron, layoutFollowsLanguage } from '@/lib/direction';
 
 interface Props {
   icon: IconName;
@@ -14,7 +14,7 @@ interface Props {
 }
 
 export function ListRow({ icon, label, value, onPress, danger }: Props) {
-  const { isRTL, lang } = useI18n();
+  const { lang } = useI18n();
   const tint = danger ? colors.red : colors.primary;
   return (
     <Pressable
@@ -39,7 +39,13 @@ export function ListRow({ icon, label, value, onPress, danger }: Props) {
           {value}
         </Text>
       ) : null}
-      <Text style={styles.chevron}>{isRTL ? '‹' : '›'}</Text>
+      {/* A drawn chevron, like BackButton's. «‹»/«›» are bidi-MIRRORED
+          characters: which way they are drawn depends on the base direction
+          the platform resolves for a neutral-only string (LTR on the web, so
+          it happened to look right there; a native RTL paragraph draws «‹» as
+          «›» — one more mirror on top of the layout's). An icon does not
+          mirror, so the language alone picks the side. */}
+      <Icon name={forwardChevron(lang)} size={20} color={colors.warmGray} strokeWidth={2} />
     </Pressable>
   );
 }
@@ -61,5 +67,4 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   label: { flex: 1 },
-  chevron: { fontSize: 24, color: colors.warmGray },
 });

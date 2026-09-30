@@ -1,4 +1,4 @@
-import type { ViewProps } from 'react-native';
+import { Platform, type ViewProps } from 'react-native';
 
 /**
  * SELECTION SEMANTICS FOR CUSTOM CHIPS.
@@ -31,3 +31,15 @@ export function choiceGroupA11y(multiple: boolean, label: string): A11yProps {
 export function tabA11y(selected: boolean, label: string): A11yProps {
   return { role: 'tab', 'aria-selected': selected, 'aria-label': label };
 }
+
+/**
+ * The smallest touch target, per platform: 44 pt (Apple HIG) on iOS and the
+ * web, 48 dp (Material 3) on Android. React Native units are points on iOS and
+ * dp on Android, so one number cannot satisfy both. Sized, not hitSlop'd —
+ * react-native-web ignores hitSlop.
+ */
+export function minTouchTarget(platform: string = Platform.OS): 44 | 48 {
+  return platform === 'android' ? 48 : 44;
+}
+
+export const MIN_TOUCH_TARGET = minTouchTarget();

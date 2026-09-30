@@ -1,7 +1,7 @@
 import { Pressable, StyleSheet, View, GestureResponderEvent, type Role } from 'react-native';
 import { Icon } from './Icon';
 import { Text } from './Text';
-import { colors, shadow } from '@/constants/theme';
+import { colors, fontFamily, shadow } from '@/constants/theme';
 import { useI18n } from '@/hooks/useI18n';
 import { tabA11y } from '@/lib/a11y';
 
@@ -53,5 +53,7 @@ const styles = StyleSheet.create({
     ...shadow.raised,
   },
   fabFocused: { backgroundColor: colors.dark },
-  label: { fontSize: 10, lineHeight: 15, marginTop: 2 },
+  // The same type as its sibling tabs (tabBarLabelStyle in (tabs)/_layout):
+  // 11 pt is the iOS floor; it was 10.
+  label: { fontFamily: fontFamily.medium, fontSize: 11, lineHeight: 16, marginTop: 2 },
 });

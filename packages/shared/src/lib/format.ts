@@ -1,4 +1,5 @@
 import type { Lang } from '../types';
+import { toWesternDigits } from './phone';
 
 /**
  * Almond operates in Jordan — Asia/Amman, permanently UTC+3 (no DST since 2022).
@@ -76,23 +77,32 @@ export function formatNumber(value: number, _lang: Lang): string {
   return new Intl.NumberFormat('en-US').format(value);
 }
 
+/**
+ * ONE DIGIT SYSTEM ON A SCREEN. Money and points are Latin in both languages
+ * (Jordanian commercial convention, above), but `Intl('ar-JO')` writes dates
+ * and times in Arabic-Indic digits — so a previous-orders card printed
+ * «٣٠ أيلول» beside «3.500 د.أ» (audit P2). Dates and times now ask for the
+ * Latin numbering system explicitly (`-u-nu-latn` + `numberingSystem`), and
+ * the output is folded to Latin as well, for any engine that ignores both
+ * (older Hermes/ICU builds). Month and AM/PM words stay Arabic.
+ */
+export const DATE_LOCALE: Record<Lang, string> = { ar: 'ar-JO-u-nu-latn', en: 'en-US' };
+
+function formatDateTime(d: Date, lang: Lang, options: Intl.DateTimeFormatOptions): string {
+  return toWesternDigits(
+    new Intl.DateTimeFormat(DATE_LOCALE[lang], { ...options, numberingSystem: 'latn' }).format(d),
+  );
+}
+
 /** Short time HH:MM for a given ISO/date. */
 export function formatTime(date: string | Date, lang: Lang): string {
   const d = typeof date === 'string' ? new Date(date) : date;
-  return new Intl.DateTimeFormat(lang === 'ar' ? 'ar-JO' : 'en-US', {
-    timeZone: AMMAN_TZ,
-    hour: '2-digit',
-    minute: '2-digit',
-  }).format(d);
+  return formatDateTime(d, lang, { timeZone: AMMAN_TZ, hour: '2-digit', minute: '2-digit' });
 }
 
 export function formatDate(date: string | Date, lang: Lang): string {
   const d = typeof date === 'string' ? new Date(date) : date;
-  return new Intl.DateTimeFormat(lang === 'ar' ? 'ar-JO' : 'en-US', {
-    timeZone: AMMAN_TZ,
-    day: 'numeric',
-    month: 'short',
-  }).format(d);
+  return formatDateTime(d, lang, { timeZone: AMMAN_TZ, day: 'numeric', month: 'short' });
 }
 
 /**
@@ -108,9 +118,5 @@ export function formatDate(date: string | Date, lang: Lang): string {
  */
 export function formatDayKey(day: string, lang: Lang): string {
   const [y, m, d] = day.split('-').map(Number);
-  return new Intl.DateTimeFormat(lang === 'ar' ? 'ar-JO' : 'en-US', {
-    timeZone: 'UTC',
-    day: 'numeric',
-    month: 'short',
-  }).format(new Date(Date.UTC(y, m - 1, d)));
+  return formatDateTime(new Date(Date.UTC(y, m - 1, d)), lang, { timeZone: 'UTC', day: 'numeric', month: 'short' });
 }
