@@ -3,6 +3,7 @@ import { Text } from './Text';
 import { Icon, type IconName } from './Icon';
 import { colors, spacing, radius } from '@/constants/theme';
 import { useI18n } from '@/hooks/useI18n';
+import { layoutFollowsLanguage } from '@/lib/direction';
 
 interface Props {
   icon: IconName;
@@ -13,13 +14,15 @@ interface Props {
 }
 
 export function ListRow({ icon, label, value, onPress, danger }: Props) {
-  const { isRTL } = useI18n();
+  const { isRTL, lang } = useI18n();
   const tint = danger ? colors.red : colors.primary;
   return (
     <Pressable
       style={({ pressed }) => [
         styles.row,
-        { flexDirection: isRTL ? 'row-reverse' : 'row' },
+        // `row` already reads right-to-left wherever the layout is mirrored;
+        // reverse only where it is not, or Arabic rows come out LTR again.
+        { flexDirection: layoutFollowsLanguage(lang) ? 'row' : 'row-reverse' },
         pressed && styles.pressed,
       ]}
       onPress={onPress}

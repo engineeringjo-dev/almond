@@ -57,7 +57,8 @@ const styles = StyleSheet.create({
     fontFamily: fontFamily.regular,
     fontSize: fontSize.md,
     color: colors.dark,
-    textAlign: 'left',
+    // No physical `left`: the field starts where the reading starts, beside
+    // the icon, now that the web build carries <html dir>.
   },
   clear: { color: colors.warmGray, fontSize: 16 },
 });

@@ -6,6 +6,7 @@ import { I18nManager } from 'react-native';
 import ar from '@/locales/ar.json';
 import en from '@/locales/en.json';
 import type { Lang } from '@/types';
+import { applyDocumentDirection, isRTL } from '@/lib/direction';
 
 export const LANG_STORAGE_KEY = 'almond.lang';
 
@@ -22,6 +23,7 @@ function detectInitialLang(): Lang {
 
 export function initI18n(initialLang?: Lang) {
   const lang = initialLang ?? detectInitialLang();
+  applyDocumentDirection(lang);
   if (!i18n.isInitialized) {
     i18n.use(initReactI18next).init({
       resources,
@@ -34,15 +36,15 @@ export function initI18n(initialLang?: Lang) {
   return i18n;
 }
 
-export function isRTL(lang: Lang): boolean {
-  return lang === 'ar';
-}
+export { isRTL };
 
 /**
  * Apply RTL direction. I18nManager.forceRTL requires an app reload to take
  * full effect on native; we set it so layouts using start/end mirror correctly.
+ * On web the document root carries it instead (applyDocumentDirection).
  */
 export function applyRTL(lang: Lang) {
+  applyDocumentDirection(lang);
   const rtl = isRTL(lang);
   if (I18nManager.isRTL !== rtl) {
     I18nManager.allowRTL(rtl);

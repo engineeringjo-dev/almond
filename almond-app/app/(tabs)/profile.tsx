@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { View, StyleSheet, Platform } from 'react-native';
+import { View, StyleSheet } from 'react-native';
 import { router } from 'expo-router';
 
 import { Screen } from '@/components/ui/Screen';
@@ -13,6 +13,7 @@ import { TierBadge } from '@/components/loyalty/TierBadge';
 import { LanguageSheet } from '@/components/profile/LanguageSheet';
 import { colors, spacing, radius, shadow } from '@/constants/theme';
 import { useI18n } from '@/hooks/useI18n';
+import { layoutFollowsLanguage } from '@/lib/direction';
 import { formatJOD } from '@/lib/format';
 import { config } from '@/constants/config';
 import { isProfileComplete } from '@almond/shared/loyalty/profile';
@@ -20,10 +21,11 @@ import { useAuthStore } from '@/stores/authStore';
 import { useLoyaltyBalance, useWallet } from '@/hooks/useLoyalty';
 
 export default function ProfileScreen() {
-  const { t, lang, isRTL } = useI18n();
-  // Reading-start edge so the name + tier badge hug the correct side on web
-  // (native flips automatically).
-  const startEdge = Platform.OS === 'web' && isRTL ? 'flex-end' : 'flex-start';
+  const { t, lang } = useI18n();
+  // Reading-start edge for the name + tier badge. The web build now carries
+  // <html dir>, so flex-start IS the reading start there too; only a native
+  // layout not yet mirrored for the language needs the far edge.
+  const startEdge = layoutFollowsLanguage(lang) ? 'flex-start' : 'flex-end';
   const user = useAuthStore((s) => s.user);
   const logout = useAuthStore((s) => s.logout);
   const { data: balance } = useLoyaltyBalance();
