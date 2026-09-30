@@ -127,6 +127,7 @@
   },
   "menu": {
     "title": "القائمة",
+    "fromPrice": "من {{price}}",
     "searchPlaceholder": "ابحث عن مشروب أو طبق",
     "noResults": "لا توجد نتائج للبحث",
     "addToCart": "أضف للسلة",

@@ -12,6 +12,7 @@ import { config } from '@/constants/config';
 import { useI18n } from '@/hooks/useI18n';
 import { formatJOD } from '@/lib/format';
 import { iconForCategory } from '@/lib/productIcon';
+import { secondaryName } from '@/lib/itemName';
 import { nutritionFor } from '@/lib/nutrition';
 import { getSizeUpsell, getItemPairings } from '@/lib/recommendations';
 import { addSheetToCart, quickAddPrice, sheetTotal, togglePairing } from '@/lib/pairings';
@@ -131,10 +132,12 @@ export function ItemModal({ item, visible, onClose }: Props) {
             <Icon name={iconForCategory(item.categoryId)} size={52} color={colors.brown} strokeWidth={1.6} />
           )}
         </View>
-        <Text variant="h2">{lang === 'ar' ? item.nameAr : item.nameEn}</Text>
-        <Text variant="caption" color={colors.warmGray}>
-          {lang === 'ar' ? item.nameEn : item.nameAr}
-        </Text>
+        <Text variant="h2" center>{lang === 'ar' ? item.nameAr : item.nameEn}</Text>
+        {secondaryName(item, lang) ? (
+          <Text variant="caption" color={colors.warmGray} center>
+            {secondaryName(item, lang)}
+          </Text>
+        ) : null}
         {item.descAr ? (
           <Text variant="body" color={colors.warmGray} center style={styles.desc}>
             {lang === 'ar' ? item.descAr : item.descEn}
