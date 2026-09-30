@@ -22,7 +22,11 @@
     "free": "مجاناً",
     "add": "إضافة",
     "confirm": "تأكيد",
-    "error": "حدث خطأ ما"
+    "error": "حدث خطأ ما",
+    "withPrice": "{{name}}، {{price}}",
+    "decrease": "إنقاص الكمية",
+    "increase": "زيادة الكمية",
+    "clearSearch": "مسح البحث"
   },
   "onboarding": {
     "slide1Title": "أهلاً بك في ألموند",
@@ -198,7 +202,11 @@
     "branchError": "تعذّر تحميل الفروع — اضغط لإعادة المحاولة",
     "branchChoose": "اختر الفرع",
     "reviewNeedsBranch": "اختر فرعاً لتتمكّن من مراجعة طلبك",
-    "comboAddItem": "أضف {{name}} بسعر {{price}} واكسب {{points}} نقطة"
+    "comboAddItem": "أضف {{name}} بسعر {{price}} واكسب {{points}} نقطة",
+    "decreaseQty": "إنقاص كمية {{name}}",
+    "increaseQty": "زيادة كمية {{name}}",
+    "removeItem": "حذف {{name}} من السلة",
+    "curbsideSwitch": "استلام من السيارة"
   },
   "payment": {
     "cash": "نقداً",

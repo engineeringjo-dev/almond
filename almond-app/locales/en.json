@@ -22,7 +22,11 @@
     "free": "Free",
     "add": "Add",
     "confirm": "Confirm",
-    "error": "Something went wrong"
+    "error": "Something went wrong",
+    "withPrice": "{{name}}, {{price}}",
+    "decrease": "Decrease quantity",
+    "increase": "Increase quantity",
+    "clearSearch": "Clear search"
   },
   "onboarding": {
     "slide1Title": "Welcome to Almond",
@@ -198,7 +202,11 @@
     "branchError": "Couldn't load branches — tap to try again",
     "branchChoose": "Choose a branch",
     "reviewNeedsBranch": "Choose a branch to review your order",
-    "comboAddItem": "Add {{name}} for {{price}} and earn {{points}} points"
+    "comboAddItem": "Add {{name}} for {{price}} and earn {{points}} points",
+    "decreaseQty": "Decrease {{name}} quantity",
+    "increaseQty": "Increase {{name}} quantity",
+    "removeItem": "Remove {{name}} from cart",
+    "curbsideSwitch": "Curbside pickup"
   },
   "payment": {
     "cash": "Cash",

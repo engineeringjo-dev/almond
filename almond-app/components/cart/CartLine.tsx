@@ -10,7 +10,7 @@ import { lineUnitPrice, useCartStore } from '@/stores/cartStore';
 import type { CartItem } from '@/types';
 
 export function CartLine({ line }: { line: CartItem }) {
-  const { lang } = useI18n();
+  const { t, lang } = useI18n();
   const incLine = useCartStore((s) => s.incLine);
   const decLine = useCartStore((s) => s.decLine);
   const removeLine = useCartStore((s) => s.removeLine);
@@ -20,6 +20,7 @@ export function CartLine({ line }: { line: CartItem }) {
     .join('، ');
   const sizeLabel = lang === 'ar' ? line.sizeNameAr : line.sizeNameEn;
   const lineTotal = lineUnitPrice(line) * line.qty;
+  const name = lang === 'ar' ? line.nameAr : line.nameEn;
 
   return (
     <View style={styles.row}>
@@ -28,7 +29,7 @@ export function CartLine({ line }: { line: CartItem }) {
       </View>
       <View style={styles.body}>
         <Text variant="bodyBold" numberOfLines={1}>
-          {lang === 'ar' ? line.nameAr : line.nameEn}
+          {name}
         </Text>
         <Text variant="caption" color={colors.warmGray} numberOfLines={1}>
           {sizeLabel}
@@ -43,11 +44,17 @@ export function CartLine({ line }: { line: CartItem }) {
           value={line.qty}
           min={0}
           onChange={(v) => (v > line.qty ? incLine(line.lineId) : decLine(line.lineId))}
+          label={name}
         />
-        <Pressable onPress={() => removeLine(line.lineId)} hitSlop={8}>
-          <Text variant="caption" color={colors.red}>
-            🗑️
-          </Text>
+        {/* A named, 44×44 target (a 17×20 🗑️ emoji before, read as "wastebasket"
+            or nothing). Sized, not hitSlop'd: react-native-web ignores hitSlop. */}
+        <Pressable
+          onPress={() => removeLine(line.lineId)}
+          style={({ pressed }) => [styles.remove, pressed && styles.removePressed]}
+          accessibilityRole="button"
+          accessibilityLabel={t('cart.removeItem', { name })}
+        >
+          <Icon name="trash" size={18} color={colors.red} strokeWidth={2} />
         </Pressable>
       </View>
     </View>
@@ -73,5 +80,13 @@ const styles = StyleSheet.create({
   emoji: { fontSize: 30 },
   body: { flex: 1, gap: 2 },
   price: { marginTop: spacing.xs },
-  controls: { alignItems: 'center', justifyContent: 'space-between', gap: spacing.sm },
+  controls: { alignItems: 'center', justifyContent: 'space-between', gap: spacing.xs },
+  remove: {
+    width: 44,
+    height: 44,
+    borderRadius: radius.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  removePressed: { backgroundColor: colors.neutralWarm },
 });

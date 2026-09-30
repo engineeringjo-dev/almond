@@ -15,6 +15,7 @@ import { iconForCategory } from '@/lib/productIcon';
 import { nutritionFor } from '@/lib/nutrition';
 import { getSizeUpsell, getItemPairings } from '@/lib/recommendations';
 import { addSheetToCart, quickAddPrice, sheetTotal, togglePairing } from '@/lib/pairings';
+import { choiceA11y, choiceGroupA11y } from '@/lib/a11y';
 import { useCartStore } from '@/stores/cartStore';
 import { useFavouritesStore } from '@/stores/favouritesStore';
 import type { MenuItem, ItemSize, CartCustomization } from '@/types';
@@ -183,12 +184,20 @@ export function ItemModal({ item, visible, onClose }: Props) {
 
       {item.sizes.length > 1 ? (
         <Section title={t('menu.size')}>
-          <View style={styles.optionRow}>
+          <View style={styles.optionRow} {...choiceGroupA11y(false, t('menu.size'))}>
             {item.sizes.map((s) => (
               <Pressable
                 key={s.id}
                 style={[styles.sizeChip, s.id === sizeId && styles.sizeChipActive]}
                 onPress={() => setSizeId(s.id)}
+                {...choiceA11y(
+                  'radio',
+                  s.id === sizeId,
+                  t('common.withPrice', {
+                    name: lang === 'ar' ? s.nameAr : s.nameEn,
+                    price: formatJOD(s.price, lang),
+                  }),
+                )}
               >
                 <Text variant="bodyBold" color={s.id === sizeId ? colors.dark : colors.warmGray}>
                   {lang === 'ar' ? s.nameAr : s.nameEn}
@@ -204,7 +213,7 @@ export function ItemModal({ item, visible, onClose }: Props) {
 
       {/* Size upsell (Starbucks "upsize") */}
       {upsell ? (
-        <Pressable style={styles.upsell} onPress={() => setSizeId(upsell.size.id)}>
+        <Pressable style={styles.upsell} onPress={() => setSizeId(upsell.size.id)} accessibilityRole="button">
           <Icon name="arrow-up" size={18} color={colors.dark} strokeWidth={2.2} />
           <Text variant="bodyBold" color={colors.dark} style={styles.flex}>
             {t('menu.upsize', {
@@ -217,14 +226,25 @@ export function ItemModal({ item, visible, onClose }: Props) {
 
       {item.customizations.map((g) => (
         <Section key={g.id} title={lang === 'ar' ? g.nameAr : g.nameEn}>
-          <View style={styles.optionWrap}>
+          {/* One answer (milk, size-like choices) is a radiogroup; many
+              («إضافات», flavours) are checkboxes — so a screen reader says
+              which, and which are on. */}
+          <View style={styles.optionWrap} {...choiceGroupA11y(g.multiple, lang === 'ar' ? g.nameAr : g.nameEn)}>
             {g.options.map((o) => {
               const isSel = (selected[g.id] ?? []).includes(o.id);
+              const name = lang === 'ar' ? o.nameAr : o.nameEn;
               return (
                 <Pressable
                   key={o.id}
                   style={[styles.optChip, isSel && styles.optChipActive]}
                   onPress={() => toggle(g.id, o.id, g.multiple)}
+                  {...choiceA11y(
+                    g.multiple ? 'checkbox' : 'radio',
+                    isSel,
+                    o.priceDelta > 0
+                      ? t('common.withPrice', { name, price: `+${formatJOD(o.priceDelta, lang)}` })
+                      : name,
+                  )}
                 >
                   <Text variant="caption" color={isSel ? colors.dark : colors.warmGray}>
                     {lang === 'ar' ? o.nameAr : o.nameEn}
@@ -244,7 +264,7 @@ export function ItemModal({ item, visible, onClose }: Props) {
       {/* Cross-sell: goes great with */}
       {pairings.length > 0 ? (
         <Section title={t('menu.pairsWith')}>
-          <View style={styles.pairWrap}>
+          <View style={styles.pairWrap} {...choiceGroupA11y(true, t('menu.pairsWith'))}>
             {pairings.map((p) => {
               // A tick, not an add: a second tap takes it back off, and nothing
               // reaches the cart until «أضف للسلة» (which now counts it).
@@ -256,6 +276,7 @@ export function ItemModal({ item, visible, onClose }: Props) {
                   key={p.id}
                   style={[styles.pairChip, isStaged && styles.pairChipAdded]}
                   onPress={() => setStaged((prev) => togglePairing(prev, p.id))}
+                  {...choiceA11y('checkbox', isStaged, t('common.withPrice', { name, price }))}
                 >
                   <Icon
                     name={isStaged ? 'check' : iconForCategory(p.categoryId)}

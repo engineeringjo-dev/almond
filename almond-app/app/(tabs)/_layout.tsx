@@ -74,9 +74,12 @@ export default function TabsLayout() {
         name="pay"
         options={{
           title: t('tabs.barcode'),
+          // The bar hands its tabs `aria-selected`, not accessibilityState — the
+          // old read was always false, so the FAB never showed it was active.
           tabBarButton: (props) => (
             <TabBarBarcodeButton
-              focused={props.accessibilityState?.selected ?? false}
+              focused={props['aria-selected'] === true}
+              role={props.role}
               onPress={props.onPress}
             />
           ),

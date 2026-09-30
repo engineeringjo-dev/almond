@@ -11,20 +11,29 @@ interface Props {
 
 export function SearchBar({ value, onChangeText, placeholder }: Props) {
   const { t } = useI18n();
+  const hint = placeholder ?? t('common.search');
   return (
     <View style={styles.wrap}>
-      <Text style={styles.icon}>🔍</Text>
+      <Text style={styles.icon} aria-hidden>
+        🔍
+      </Text>
       <TextInput
         style={styles.input}
+        aria-label={hint}
         value={value}
         onChangeText={onChangeText}
-        placeholder={placeholder ?? t('common.search')}
+        placeholder={hint}
         placeholderTextColor={colors.warmGray}
         returnKeyType="search"
         clearButtonMode="while-editing"
       />
       {value.length > 0 ? (
-        <Pressable onPress={() => onChangeText('')} hitSlop={10}>
+        <Pressable
+          onPress={() => onChangeText('')}
+          hitSlop={10}
+          accessibilityRole="button"
+          accessibilityLabel={t('common.clearSearch')}
+        >
           <Text style={styles.clear}>✕</Text>
         </Pressable>
       ) : null}

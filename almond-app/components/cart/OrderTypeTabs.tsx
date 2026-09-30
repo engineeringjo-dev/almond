@@ -2,6 +2,7 @@ import { View, StyleSheet, Pressable } from 'react-native';
 import { Text } from '@/components/ui/Text';
 import { colors, radius, spacing } from '@/constants/theme';
 import { useI18n } from '@/hooks/useI18n';
+import { tabA11y } from '@/lib/a11y';
 import type { OrderType } from '@/types';
 
 interface Props {
@@ -18,7 +19,9 @@ const tabs: { id: OrderType; key: string; emoji: string }[] = [
 export function OrderTypeTabs({ value, onChange }: Props) {
   const { t } = useI18n();
   return (
-    <View style={styles.row}>
+    // A tablist, so each tab is announced in its set ("tab, 2 of 3") — a lone
+    // role="tab" outside one fails axe aria-required-parent.
+    <View style={styles.row} role="tablist">
       {tabs.map((tab) => {
         const active = tab.id === value;
         return (
@@ -26,8 +29,7 @@ export function OrderTypeTabs({ value, onChange }: Props) {
             key={tab.id}
             style={[styles.tab, active && styles.tabActive]}
             onPress={() => onChange(tab.id)}
-            accessibilityRole="tab"
-            accessibilityState={{ selected: active }}
+            {...tabA11y(active, t(tab.key))}
           >
             <Text style={styles.emoji}>{tab.emoji}</Text>
             <Text variant="caption" color={active ? colors.dark : colors.warmGray}>

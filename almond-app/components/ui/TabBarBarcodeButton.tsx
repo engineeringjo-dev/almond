@@ -1,12 +1,15 @@
-import { Pressable, StyleSheet, View, GestureResponderEvent } from 'react-native';
+import { Pressable, StyleSheet, View, GestureResponderEvent, type Role } from 'react-native';
 import { Icon } from './Icon';
 import { Text } from './Text';
 import { colors, shadow } from '@/constants/theme';
 import { useI18n } from '@/hooks/useI18n';
+import { tabA11y } from '@/lib/a11y';
 
 interface Props {
   focused: boolean;
   onPress?: (e: GestureResponderEvent) => void;
+  /** The role the tab bar gives its own tabs ('tab'; 'button' on iOS). */
+  role?: Role;
 }
 
 /**
@@ -14,15 +17,16 @@ interface Props {
  * elevated above the bar in the brand colour so "scan to pay & earn" is always
  * the most reachable action — Starbucks' centre-scan pattern.
  */
-export function TabBarBarcodeButton({ focused, onPress }: Props) {
+export function TabBarBarcodeButton({ focused, onPress, role }: Props) {
   const { t } = useI18n();
   return (
     <Pressable
       onPress={onPress}
       style={styles.wrap}
-      accessibilityRole="button"
-      accessibilityLabel={t('tabs.barcode')}
-      accessibilityState={{ selected: focused }}
+      // One of the bar's five tabs, announced like its siblings — a "button"
+      // inside the tablist broke it (axe aria-required-children).
+      {...tabA11y(focused, t('tabs.barcode'))}
+      role={role ?? 'tab'}
     >
       <View style={[styles.fab, focused && styles.fabFocused]}>
         <Icon name="qr" size={26} color={colors.white} strokeWidth={2.2} />

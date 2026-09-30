@@ -181,7 +181,7 @@ function SettingRow({
           </Text>
         ) : null}
       </View>
-      <Toggle value={value} onValueChange={onChange} />
+      <Toggle value={value} onValueChange={onChange} label={label} />
     </View>
   );
 }

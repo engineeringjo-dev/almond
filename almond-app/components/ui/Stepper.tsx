@@ -1,15 +1,19 @@
 import { View, StyleSheet, Pressable } from 'react-native';
 import { Text } from './Text';
 import { colors, radius, spacing } from '@/constants/theme';
+import { useI18n } from '@/hooks/useI18n';
 
 interface Props {
   value: number;
   onChange: (v: number) => void;
   min?: number;
   max?: number;
+  /** What is being counted (an item name), so each button says whose quantity it changes. */
+  label?: string;
 }
 
-export function Stepper({ value, onChange, min = 1, max = 99 }: Props) {
+export function Stepper({ value, onChange, min = 1, max = 99, label }: Props) {
+  const { t } = useI18n();
   return (
     <View style={styles.row}>
       <Pressable
@@ -17,7 +21,8 @@ export function Stepper({ value, onChange, min = 1, max = 99 }: Props) {
         onPress={() => value > min && onChange(value - 1)}
         disabled={value <= min}
         hitSlop={6}
-        accessibilityLabel="decrease"
+        accessibilityRole="button"
+        accessibilityLabel={label ? t('cart.decreaseQty', { name: label }) : t('common.decrease')}
       >
         <Text variant="h2" color={colors.dark}>
           −
@@ -31,7 +36,8 @@ export function Stepper({ value, onChange, min = 1, max = 99 }: Props) {
         onPress={() => value < max && onChange(value + 1)}
         disabled={value >= max}
         hitSlop={6}
-        accessibilityLabel="increase"
+        accessibilityRole="button"
+        accessibilityLabel={label ? t('cart.increaseQty', { name: label }) : t('common.increase')}
       >
         <Text variant="h2" color={colors.dark}>
           +

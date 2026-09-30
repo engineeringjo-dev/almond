@@ -261,7 +261,7 @@ export default function CartScreen() {
                     <Text variant="bodyBold">{t('cart.curbside')}</Text>
                     <Text variant="caption" color={colors.warmGray}>{t('cart.curbsideHint')}</Text>
                   </View>
-                  <Toggle value={curbside} onValueChange={setCurbside} />
+                  <Toggle value={curbside} onValueChange={setCurbside} label={t('cart.curbsideSwitch')} />
                 </View>
                 {curbside ? (
                   <TextInput
