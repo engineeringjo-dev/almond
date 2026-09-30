@@ -7,6 +7,7 @@ import { Text } from '@/components/ui/Text';
 import { Button } from '@/components/ui/Button';
 import { colors, spacing, radius } from '@/constants/theme';
 import { useI18n } from '@/hooks/useI18n';
+import { useReducedMotion } from '@/hooks/useReducedMotion';
 import { useOrder, useCancelOrder } from '@/hooks/useOrder';
 import { useCartStore } from '@/stores/cartStore';
 import { formatTime } from '@/lib/format';
@@ -19,7 +20,8 @@ export default function OrderConfirm() {
   const { data: order } = useOrder(id ?? '');
   const cancelOrder = useCancelOrder();
   const addLine = useCartStore((s) => s.addLine);
-  const scale = useRef(new Animated.Value(0)).current;
+  const reduced = useReducedMotion();
+  const scale = useRef(new Animated.Value(reduced ? 1 : 0)).current;
 
   // 30s cancel/modify grace window (Master Pack Part 3).
   const [secondsLeft, setSecondsLeft] = useState(CANCEL_WINDOW_SECONDS);
@@ -43,13 +45,18 @@ export default function OrderConfirm() {
   };
 
   useEffect(() => {
+    // Reduce Motion: the check is simply there, without the bounce.
+    if (reduced) {
+      scale.setValue(1);
+      return;
+    }
     Animated.spring(scale, {
       toValue: 1,
       friction: 4,
       tension: 80,
       useNativeDriver: true,
     }).start();
-  }, [scale]);
+  }, [scale, reduced]);
 
   return (
     <SafeAreaView style={styles.safe}>

@@ -3,6 +3,7 @@ import { View, StyleSheet, Animated } from 'react-native';
 import { Text } from '@/components/ui/Text';
 import { colors, spacing } from '@/constants/theme';
 import { useI18n } from '@/hooks/useI18n';
+import { useReducedMotion } from '@/hooks/useReducedMotion';
 import type { OrderStatus } from '@/types';
 
 const STEPS: { status: OrderStatus; key: string; emoji: string }[] = [
@@ -18,9 +19,15 @@ export function StatusTimeline({ status }: { status: OrderStatus }) {
   const { t } = useI18n();
   const currentIdx = ORDER.indexOf(status);
 
-  // Pulsing "live" ring on the active step.
+  // Pulsing "live" ring on the active step — held still under Reduce Motion
+  // (the active step keeps its colour; the ring's growth was the movement).
+  const reduced = useReducedMotion();
   const pulse = useRef(new Animated.Value(0)).current;
   useEffect(() => {
+    if (reduced) {
+      pulse.setValue(0);
+      return;
+    }
     const loop = Animated.loop(
       Animated.sequence([
         Animated.timing(pulse, { toValue: 1, duration: 1100, useNativeDriver: true }),
@@ -29,7 +36,7 @@ export function StatusTimeline({ status }: { status: OrderStatus }) {
     );
     loop.start();
     return () => loop.stop();
-  }, [pulse]);
+  }, [pulse, reduced]);
   const ringScale = pulse.interpolate({ inputRange: [0, 1], outputRange: [1, 1.7] });
   const ringOpacity = pulse.interpolate({ inputRange: [0, 1], outputRange: [0.45, 0] });
 

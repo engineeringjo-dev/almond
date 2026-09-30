@@ -16,6 +16,7 @@ import { useFavouritesStore } from '@/stores/favouritesStore';
 import { usePromoStore } from '@/stores/promoStore';
 import { usePromotionStore } from '@/stores/promotionStore';
 import { useAppFonts } from '@/constants/fonts';
+import { useReducedMotion } from '@/hooks/useReducedMotion';
 import { ErrorBoundary } from '@/components/ui/ErrorBoundary';
 import { CartToast } from '@/components/ui/CartToast';
 import { colors } from '@/constants/theme';
@@ -57,6 +58,7 @@ export default function RootLayout() {
   const hydratePromo = usePromoStore((s) => s.hydrate);
   const hydratePromotion = usePromotionStore((s) => s.hydrate);
   const [ready, setReady] = useState(false);
+  const reducedMotion = useReducedMotion();
 
   useEffect(() => {
     hydrate();
@@ -114,7 +116,10 @@ export default function RootLayout() {
             screenOptions={{
               headerShown: false,
               contentStyle: { backgroundColor: colors.cream },
-              animation: 'fade',
+              // The platform's own push/pop (a slide on iOS, Material on
+              // Android) keeps edge-swipe back legible; under Reduce Motion /
+              // Remove animations a crossfade replaces it (audit P2).
+              animation: reducedMotion ? 'fade' : 'default',
             }}
           >
             <Stack.Screen name="index" />
