@@ -15,6 +15,19 @@ export interface AppTheme {
   neutralWarm: string;
   cream: string;
   cardBg: string;
+  /**
+   * The fill of a resting CONTROL (an unselected chip, a search field) — one
+   * step off the page and card, so it reads as something to press. `cream` and
+   * `cardBg` are both white in the violet theme (audit P2: unselected chips
+   * looked like plain text); secondary text stays ≥4.5:1 on it.
+   */
+  surface: string;
+  /**
+   * The boundary of a control: ≥3:1 against the page, the card and `surface`
+   * (WCAG 1.4.11 non-text contrast), so a chip or a field is findable without
+   * relying on its fill.
+   */
+  outline: string;
   textPrimary: string;
   textSecondary: string;
   success: string;
@@ -33,6 +46,8 @@ export const greenTheme: AppTheme = {
   neutralWarm: '#ECE7F6', // soft lavender tint (icon chips / thumbs / dividers)
   cream: '#FFFFFF', // pure white backgrounds (was beige)
   cardBg: '#FFFFFF',
+  surface: '#F5F3FA', // lavender-tinted control fill: 5.05:1 secondary text, 12.7:1 primary text
+  outline: '#8C84A6', // 3.52:1 on white, 3.20:1 on surface
   textPrimary: '#2E2552',
   textSecondary: '#6B6484', // muted violet-gray secondary text (WCAG AA ~4.9:1 on white)
   success: '#6C5CB4', // violet (was green) — success/added/open
@@ -49,6 +64,8 @@ export const almondTheme: AppTheme = {
   neutralWarm: '#EFE6D6',
   cream: '#F7F1E6',
   cardBg: '#FFFFFF',
+  surface: '#FFFFFF', // controls sit white on the cream page
+  outline: '#8F7F6B', // 3.45:1 on cream, 3.88:1 on white
   textPrimary: '#1A0F08',
   textSecondary: '#8A7A66',
   success: '#2D6A4F',
@@ -69,6 +86,8 @@ export const colors = {
   lightGold: theme.accentLight,
   cream: theme.cream, // warm background
   cardBg: theme.cardBg, // clean cards
+  surface: theme.surface, // resting control fill (chips, fields)
+  outline: theme.outline, // control boundary, ≥3:1
   warmGray: theme.textSecondary, // secondary text only
   green: theme.success, // success
   red: theme.error, // error / closed

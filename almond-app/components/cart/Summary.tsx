@@ -62,7 +62,7 @@ function Row({
 const styles = StyleSheet.create({
   wrap: { gap: spacing.sm },
   row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  divider: { height: 1, backgroundColor: colors.cardBg, marginVertical: spacing.xs },
+  divider: { height: 1, backgroundColor: colors.neutralWarm, marginVertical: spacing.xs },
   earn: {
     flexDirection: 'row',
     alignItems: 'center',
