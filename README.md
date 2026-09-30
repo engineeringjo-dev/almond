@@ -215,6 +215,11 @@ not follow them over the Current ones.
 - **No secrets in any client bundle** — nothing secret behind `NEXT_PUBLIC_` or
   `EXPO_PUBLIC_`.
 - **Commit messages carry the reasoning.** They are long on purpose.
+- **Interface work goes through the design skills** in `.claude/skills/`
+  (`impeccable`, `design-taste-frontend`, `emil-design-eng`, advisory mode, no
+  scripts). Claude Code loads them automatically; `/impeccable audit <screen>`
+  before a change, and `craft-floor.md` before every UI edit.
+  See [`.claude/skills/WEB-DESIGN-SKILLS.md`](.claude/skills/WEB-DESIGN-SKILLS.md).
 
 ## Ownership and contacts
 
