@@ -3,6 +3,7 @@ import { Text } from '@/components/ui/Text';
 import { Icon } from '@/components/ui/Icon';
 import { colors, radius, spacing } from '@/constants/theme';
 import { useI18n } from '@/hooks/useI18n';
+import { tabA11y } from '@/lib/a11y';
 import { iconForCategory } from '@/lib/productIcon';
 import type { Category } from '@/types';
 
@@ -13,22 +14,27 @@ interface Props {
 }
 
 export function CategoryChips({ categories, activeId, onSelect }: Props) {
-  const { lang } = useI18n();
+  const { t, lang } = useI18n();
   return (
     <ScrollView
       horizontal
       showsHorizontalScrollIndicator={false}
       contentContainerStyle={styles.row}
+      // One category shows at a time: a tablist whose tabs say which is on.
+      // `accessibilityState` never reached the web build (react-native-web
+      // 0.21 drops it), so the choice was silent there.
+      role="tablist"
+      aria-label={t('order.categories')}
     >
       {categories.map((c) => {
         const active = c.id === activeId;
+        const name = lang === 'ar' ? c.nameAr : c.nameEn;
         return (
           <Pressable
             key={c.id}
             onPress={() => onSelect(c.id)}
             style={[styles.chip, active && styles.chipActive]}
-            accessibilityRole="button"
-            accessibilityState={{ selected: active }}
+            {...tabA11y(active, name)}
           >
             <Icon
               name={iconForCategory(c.id)}
@@ -37,7 +43,7 @@ export function CategoryChips({ categories, activeId, onSelect }: Props) {
               strokeWidth={2}
             />
             <Text variant="bodyBold" color={active ? colors.white : colors.warmGray}>
-              {lang === 'ar' ? c.nameAr : c.nameEn}
+              {name}
             </Text>
           </Pressable>
         );
@@ -52,10 +58,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.xs,
+    minHeight: 44,
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.sm,
     borderRadius: radius.pill,
-    backgroundColor: colors.cardBg,
+    // A resting chip is a control: its own fill and a ≥3:1 edge, not white on white.
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.outline,
   },
-  chipActive: { backgroundColor: colors.primary },
+  chipActive: { backgroundColor: colors.primary, borderColor: colors.primary },
 });

@@ -21,6 +21,7 @@ import { colors, spacing, radius, shadow } from '@/constants/theme';
 import { useI18n } from '@/hooks/useI18n';
 import { useCategories, useMenuItems } from '@/hooks/useMenu';
 import { useOrderHistory } from '@/hooks/useOrder';
+import { tabA11y } from '@/lib/a11y';
 import { formatJOD, formatDate } from '@/lib/format';
 import { menuImage } from '@/lib/menuImage';
 import { iconForCategory, iconForItem } from '@/lib/productIcon';
@@ -95,8 +96,9 @@ export default function OrderScreen() {
         </View>
       </View>
 
-      {/* Top sub-tabs */}
-      <View style={styles.subTabs}>
+      {/* Top sub-tabs: a tablist, so the open one is announced — the old
+          accessibilityState never reached the web build. */}
+      <View style={styles.subTabs} role="tablist" aria-label={t('tabs.order')}>
         {SUB_TABS.map((s) => {
           const active = s.id === tab;
           return (
@@ -104,8 +106,7 @@ export default function OrderScreen() {
               key={s.id}
               onPress={() => setTab(s.id)}
               style={styles.subTab}
-              accessibilityRole="button"
-              accessibilityState={{ selected: active }}
+              {...tabA11y(active, t(s.label))}
             >
               <Text variant="bodyBold" color={active ? colors.primary : colors.warmGray}>
                 {t(s.label)}
@@ -448,7 +449,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: colors.neutralWarm,
   },
-  subTab: { alignItems: 'center', paddingBottom: spacing.sm },
+  subTab: { alignItems: 'center', justifyContent: 'flex-end', minHeight: 44, paddingBottom: spacing.sm },
   subTabUnderline: {
     height: 3,
     width: '100%',

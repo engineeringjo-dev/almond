@@ -501,6 +501,7 @@
   },
   "transfer": {
     "title": "أرسل لصديق",
+    "kindLabel": "ماذا ترسل؟",
     "kindPoints": "نقاط",
     "kindWallet": "رصيد المحفظة",
     "havePoints": "لديك {{points}} نقطة",

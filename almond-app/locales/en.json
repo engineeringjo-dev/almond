@@ -501,6 +501,7 @@
   },
   "transfer": {
     "title": "Send to a friend",
+    "kindLabel": "What to send",
     "kindPoints": "Points",
     "kindWallet": "Wallet balance",
     "havePoints": "You have {{points}} points",
