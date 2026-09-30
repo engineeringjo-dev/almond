@@ -5,6 +5,8 @@ import {
   StyleSheet,
   ActivityIndicator,
   RefreshControl,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { SafeAreaView, Edge } from 'react-native-safe-area-context';
 import { colors, spacing } from '@/constants/theme';
@@ -74,17 +76,33 @@ export function Screen({
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: background }]} edges={edges}>
       {scroll && !loading && !error ? (
-        <ScrollView
-          contentContainerStyle={[styles.content, contentStyle]}
-          showsVerticalScrollIndicator={false}
-          refreshControl={
-            onRefresh ? (
-              <RefreshControl refreshing={!!refreshing} onRefresh={onRefresh} tintColor={colors.gold} />
-            ) : undefined
-          }
+        // KEYBOARD (audit P2): the promo and car-info fields sat under the
+        // keyboard with nothing to lift them. The avoiding view shrinks the
+        // scroll area by however much of THIS screen the keyboard covers (a
+        // footer or tab bar below the screen is subtracted by its own frame),
+        // and the platform then scrolls the focused field into view. 'padding'
+        // on both platforms: Android is edge-to-edge, so the window no longer
+        // resizes for the keyboard on its own. Web: a plain view.
+        <KeyboardAvoidingView
+          style={styles.flex}
+          behavior={Platform.OS === 'web' ? undefined : 'padding'}
         >
-          {body}
-        </ScrollView>
+          <ScrollView
+            contentContainerStyle={[styles.content, contentStyle]}
+            showsVerticalScrollIndicator={false}
+            // A tap on «تطبيق» with the keyboard up applies the code on the
+            // first tap, instead of only closing the keyboard.
+            keyboardShouldPersistTaps="handled"
+            keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
+            refreshControl={
+              onRefresh ? (
+                <RefreshControl refreshing={!!refreshing} onRefresh={onRefresh} tintColor={colors.gold} />
+              ) : undefined
+            }
+          >
+            {body}
+          </ScrollView>
+        </KeyboardAvoidingView>
       ) : (
         <View style={[styles.flex, (loading || error) && styles.center]}>{body}</View>
       )}
