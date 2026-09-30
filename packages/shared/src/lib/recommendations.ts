@@ -211,12 +211,78 @@ export function getComboStarter(): ComboStarter | null {
   return { drink: drink.item, drinkSize: drink.size, food: food.item, foodSize: food.size };
 }
 
+/**
+ * A PAIRING IS A COMPANION, NOT AN OCCASION PURCHASE.
+ *
+ * «يُطلب عادةً مع» under an iced latte (3.950) offered «قالب لينزار التفاح» —
+ * a 16.000 JOD whole cake — one tap away from the drink (audit P2). Measured
+ * over the bundled menu (375 items, 1,500 item-page pairings): 61 were whole
+ * cakes, and 326 were priced over twice the item they were suggested for. A
+ * whole cake, a mold or a boxed pack is bought for an occasion; nobody adds
+ * one to a coffee because it "goes with" it.
+ *
+ * The rule, both halves needed:
+ *  1. KIND — never a whole cake / mold / pack: the categories «كيكات كاملة»,
+ *     «كيك كامل خالٍ من الجلوتين» and «علب حلويات», and any item NAMED as one
+ *     («قالب …», "… Full Cake"/"Full Cheesecake"), because the menu files some
+ *     of them outside those categories.
+ *  2. PRICE — at most COMPANION_PRICE_RATIO × the item's price, but never a
+ *     ceiling below COMPANION_PRICE_FLOOR: a 0.500 tea may still suggest a
+ *     2.900 cake slice (the floor sits under the measured 5.85 JOD member
+ *     basket), while a latte cannot suggest a 16.000 anything.
+ * Within what is left, the measured order is untouched.
+ */
+export const COMPANION_PRICE_RATIO = 2;
+export const COMPANION_PRICE_FLOOR = 5;
+
+const OCCASION_CATEGORY = /full cake|full cheesecake|sweet packs?/i;
+const OCCASION_NAME_EN = /\bfull (cake|cheesecake)\b/i;
+const OCCASION_NAME_AR = /قالب|كيك(ة)? كامل/;
+
+// Keyed on the categories array itself: a menu pulled at runtime (setMenu)
+// replaces it, and the names must follow.
+let namesFor: { categories: readonly { id: string; nameEn: string }[]; byId: Map<string, string> } | null = null;
+function categoryName(id: string): string {
+  const { categories } = getMenu();
+  if (namesFor?.categories !== categories) {
+    namesFor = { categories, byId: new Map(categories.map((c) => [c.id, c.nameEn || ''])) };
+  }
+  return namesFor.byId.get(id) ?? '';
+}
+
+/** Cheapest priced size — what the chip quotes is the first size, so is this. */
+function basePrice(m: MenuItem): number {
+  return m.sizes[0]?.price ?? 0;
+}
+
+/** A whole cake, a mold or a boxed pack — bought for an occasion, not alongside. */
+export function isOccasionItem(m: MenuItem): boolean {
+  return (
+    OCCASION_CATEGORY.test(categoryName(m.categoryId)) ||
+    OCCASION_NAME_EN.test(m.nameEn || '') ||
+    OCCASION_NAME_AR.test(m.nameAr || '')
+  );
+}
+
+/** May `candidate` be offered as a pairing on `item`'s page? */
+export function isCompanion(item: MenuItem, candidate: MenuItem): boolean {
+  if (isOccasionItem(candidate)) return false;
+  const ceiling = Math.max(COMPANION_PRICE_RATIO * basePrice(item), COMPANION_PRICE_FLOOR);
+  return basePrice(candidate) <= ceiling;
+}
+
 /** Cross-sell for the item modal: "goes great with" the item being viewed. */
 export function getItemPairings(item: MenuItem, max = 4): MenuItem[] {
-  // Measured "bought together" first; then drinks pair with food, food with drinks.
+  // Measured "bought together" first; then drinks pair with food, food with
+  // drinks — only companions (above), in the order they were ranked.
   const target: CategoryKind = categoryKind(item.categoryId) === 'drink' ? 'food' : 'drink';
   const self = new Set([item.id]);
-  return measuredThenRules(measuredPairs([item.id], self), pickByKind(target, self, max), max);
+  const companion = (m: MenuItem) => isCompanion(item, m);
+  return measuredThenRules(
+    measuredPairs([item.id], self).filter(companion),
+    pickByKind(target, self, Number.POSITIVE_INFINITY).filter(companion),
+    max,
+  );
 }
 
 export interface SizeUpsell {
