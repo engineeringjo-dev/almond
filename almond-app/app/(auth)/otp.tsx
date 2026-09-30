@@ -16,13 +16,14 @@ import { colors, spacing, radius } from '@/constants/theme';
 import { useI18n } from '@/hooks/useI18n';
 import { authService } from '@/services/auth.service';
 import { useAuthStore } from '@/stores/authStore';
+import { safeReturnTo } from '@/lib/returnTo';
 
 const OTP_LENGTH = 6;
 const RESEND_SECONDS = 60;
 
 export default function Otp() {
   const { t } = useI18n();
-  const { phone } = useLocalSearchParams<{ phone: string }>();
+  const { phone, returnTo } = useLocalSearchParams<{ phone: string; returnTo?: string }>();
   const [code, setCode] = useState('');
   const [seconds, setSeconds] = useState(RESEND_SECONDS);
   const [loading, setLoading] = useState(false);
@@ -49,7 +50,11 @@ export default function Otp() {
     try {
       const user = await authService.verifyOtp(phone ?? '', code);
       setUser(user);
-      router.replace('/(tabs)');
+      // Back to where sign-in was asked from (the checkout), if it is one of
+      // ours; dismissTo pops login+OTP off instead of stacking a second cart.
+      const target = safeReturnTo(returnTo);
+      if (target) router.dismissTo(target);
+      else router.replace('/(tabs)');
     } catch {
       setError(true);
       setCode('');

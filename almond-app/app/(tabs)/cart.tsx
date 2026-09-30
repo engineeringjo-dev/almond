@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { View, StyleSheet, Pressable, TextInput } from 'react-native';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
 
 import { Screen } from '@/components/ui/Screen';
@@ -31,6 +31,7 @@ import { useWallet, useInvalidateLoyalty, useLoyaltyBalance } from '@/hooks/useL
 import { estimateEarnedPoints } from '@/lib/earnEstimate';
 import { computePickupEstimate } from '@/lib/pickup';
 import { checkoutBlock, resolveCartBranch, type CheckoutBlock } from '@/lib/cartBranch';
+import { CHECKOUT_RETURN, reviewOnReturn } from '@/lib/returnTo';
 import { formatJOD } from '@/lib/format';
 import { paymentService } from '@/services/payment.service';
 import { loyaltyService } from '@/services/loyalty.service';
@@ -41,6 +42,8 @@ import { aggregatorService } from '@/services/aggregator.service';
 
 export default function CartScreen() {
   const { t, lang } = useI18n();
+  // `review=1`: back from the sign-in the checkout gate sent a guest to.
+  const { review } = useLocalSearchParams<{ review?: string }>();
   const items = useCartStore((s) => s.items);
   const orderType = useCartStore((s) => s.orderType);
   const setOrderType = useCartStore((s) => s.setOrderType);
@@ -87,6 +90,14 @@ export default function CartScreen() {
     loading: branchesLoading,
     error: branchesError,
   });
+
+  // Returning from login/OTP: reopen the review the customer asked for, once.
+  const onReturn = reviewOnReturn({ review, isAuthenticated, itemCount: items.length, block });
+  useEffect(() => {
+    if (onReturn === 'none' || onReturn === 'wait') return;
+    router.setParams({ review: undefined });
+    if (onReturn === 'open') setReviewOpen(true);
+  }, [onReturn]);
   const totals = useMemo(() => computeTotals(items, promoDiscount), [items, promoDiscount]);
   const pointsToEarn = useMemo(
     () =>
@@ -123,7 +134,8 @@ export default function CartScreen() {
   const startCheckout = () => {
     if (block) return; // the button is disabled and says why
     if (!isAuthenticated) {
-      router.push('/(auth)/login');
+      // Come back HERE, review open — not to Home (audit P1).
+      router.push({ pathname: '/(auth)/login', params: { returnTo: CHECKOUT_RETURN } });
       return;
     }
     setReviewOpen(true);

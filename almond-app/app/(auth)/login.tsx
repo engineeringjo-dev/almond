@@ -7,7 +7,7 @@ import {
   Platform,
   Pressable,
 } from 'react-native';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Text } from '@/components/ui/Text';
@@ -17,9 +17,14 @@ import { colors, spacing, radius, fontFamily, fontSize } from '@/constants/theme
 import { useI18n } from '@/hooks/useI18n';
 import { authService } from '@/services/auth.service';
 import { useAuthStore } from '@/stores/authStore';
+import { safeReturnTo } from '@/lib/returnTo';
 
 export default function Login() {
   const { t } = useI18n();
+  // Where the sign-in was asked from (the cart's checkout gate) — validated,
+  // never followed as given.
+  const { returnTo } = useLocalSearchParams<{ returnTo?: string }>();
+  const target = safeReturnTo(returnTo);
   const [phone, setPhone] = useState('');
   const [loading, setLoading] = useState(false);
   const continueAsGuest = useAuthStore((s) => s.continueAsGuest);
@@ -32,7 +37,10 @@ export default function Login() {
     const full = `+962${phone.replace(/\s/g, '')}`;
     try {
       await authService.sendOtp(full);
-      router.push({ pathname: '/(auth)/otp', params: { phone: full } });
+      router.push({
+        pathname: '/(auth)/otp',
+        params: target ? { phone: full, returnTo: target } : { phone: full },
+      });
     } finally {
       setLoading(false);
     }
@@ -40,7 +48,10 @@ export default function Login() {
 
   const guest = () => {
     continueAsGuest();
-    router.replace('/(tabs)');
+    // A guest keeps their cart (without the review, which needs an account).
+    const back = safeReturnTo(returnTo, false);
+    if (back) router.dismissTo(back);
+    else router.replace('/(tabs)');
   };
 
   return (
