@@ -6,6 +6,10 @@ export const config = {
   DATA_SOURCE: 'mock' as 'mock' | 'odoo',
   ODOO_BASE_URL: 'https://api.almond.jo/v1',
   LOYALTY_BASE_URL: 'https://loyalty.almond.jo',
+  /** Where the app loads its menu from on launch (menu/remote.ts) — the same
+   *  deployment as the website, which redeploys on every push. Point it at the
+   *  production domain at handover. */
+  MENU_URL: 'https://almond-gules.vercel.app/api/menu/app',
   ISHBEK_BASE_URL: 'https://api.ishbek.com', // delivery bridge → Careem / Talabat
   DELIVERY_REDIRECT_URL: 'https://almondcoffeehouse.com/order',
 

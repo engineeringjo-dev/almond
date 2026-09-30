@@ -1,5 +1,5 @@
 import type { IconName } from '@/components/ui/Icon';
-import { menuItems } from '@/services/seed';
+import { getMenu } from '@almond/shared/menu/store';
 import { categoryGroup, type CategoryGroup } from '@/lib/categoryKind';
 
 /**
@@ -30,6 +30,6 @@ export function iconForCategory(categoryId: string): IconName {
 }
 
 export function iconForItem(itemId: string): IconName {
-  const item = menuItems.find((i) => i.id === itemId);
+  const item = getMenu().items.find((i) => i.id === itemId);
   return item ? iconForCategory(item.categoryId) : 'coffee';
 }

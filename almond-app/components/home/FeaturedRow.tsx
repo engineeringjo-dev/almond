@@ -9,22 +9,23 @@ import { colors, spacing, radius, shadow } from '@/constants/theme';
 import { useI18n } from '@/hooks/useI18n';
 import { formatJOD } from '@/lib/format';
 import { iconForCategory } from '@/lib/productIcon';
-import { menuItems } from '@/services/seed';
+import { useMenuState } from '@/hooks/useMenuState';
 import type { MenuItem } from '@/types';
 import { itemFromPrice } from '@almond/shared/menu';
 
 export function FeaturedRow() {
   const { t, lang } = useI18n();
   const [selected, setSelected] = useState<MenuItem | null>(null);
+  const menu = useMenuState();
   // A varied "most popular" set: the first item from each of several categories
   // (so it's not all drinks) — prefers items that have a photo.
   const items = useMemo<MenuItem[]>(() => {
     const byCat = new Map<string, MenuItem>();
-    for (const it of menuItems) {
+    for (const it of menu.items) {
       if (!byCat.has(it.categoryId) && it.imageUrl) byCat.set(it.categoryId, it);
     }
     return [...byCat.values()].slice(0, 12);
-  }, []);
+  }, [menu]);
 
   return (
     <View>

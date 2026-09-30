@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { AppState } from 'react-native';
 import { Stack } from 'expo-router';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -17,6 +18,7 @@ import { useAppFonts } from '@/constants/fonts';
 import { ErrorBoundary } from '@/components/ui/ErrorBoundary';
 import { CartToast } from '@/components/ui/CartToast';
 import { colors } from '@/constants/theme';
+import { hydrateMenuFromCache, refreshMenu } from '@/services/menuSync';
 
 // Initialize i18n as early as possible (AR default).
 initI18n();
@@ -35,6 +37,9 @@ const queryClient = new QueryClient({
     },
   },
 });
+
+/** How often returning to the app may re-check the menu. */
+const MENU_REFRESH_MIN_MS = 5 * 60 * 1000;
 
 export default function RootLayout() {
   const [fontsLoaded] = useAppFonts();
@@ -55,6 +60,23 @@ export default function RootLayout() {
     // refuses to fold in an observation at all — see promotionStore.observe().
     hydratePromotion();
   }, [hydrate, hydrateAuth, hydrateFavourites, hydratePromo, hydratePromotion]);
+
+  // THE MENU UPDATES LIKE CAREEM/TALABAT (GM, 2026-09-30): cached menu at
+  // launch, then the server's newer menu in the background, and again when the
+  // customer comes back to the app. Screens refetch when it changes.
+  // services/menuSync.ts and packages/shared/src/menu/remote.ts have the rules.
+  useEffect(() => {
+    let last = 0;
+    const invalidate = () => queryClient.invalidateQueries({ queryKey: ['menu'] });
+    const sync = () => {
+      if (Date.now() - last < MENU_REFRESH_MIN_MS) return;
+      last = Date.now();
+      refreshMenu().then((r) => { if (r === 'updated') invalidate(); }).catch(() => {});
+    };
+    hydrateMenuFromCache().then((fromCache) => { if (fromCache) invalidate(); }).finally(sync);
+    const sub = AppState.addEventListener('change', (state) => { if (state === 'active') sync(); });
+    return () => sub.remove();
+  }, []);
 
   useEffect(() => {
     if ((fontsLoaded || fontsLoaded === undefined) && hydrated) {

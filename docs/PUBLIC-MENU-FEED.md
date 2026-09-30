@@ -158,6 +158,26 @@ also be started by hand from Actions → "Menu sync from Odoo" → Run. Each run
 rights**, not an administrator's key: the scripts only read, and the key should
 not be able to do more.
 
+## The app's menu — updated from the server, no store release
+
+GM, 2026-09-30: the app's menu updates the way Careem and Talabat do.
+
+- **Endpoint:** `GET /api/menu/app` serves the menu in the app's own shape.
+  Its code is in `packages/shared/src/menu/remote.ts` and
+  `almond-web/src/app/api/menu/app/route.ts`. CORS is open, and the response is
+  cached at the CDN for 5 minutes.
+- **On launch** the app shows its cached copy at once, then fetches the new
+  menu in the background. It checks again when the customer comes back to the
+  app, at most every 5 minutes. The code is in `almond-app/services/menuSync.ts`.
+- **What updates without a store release:** a new item, a price, a photo or an
+  add-on. Each one reaches phones within minutes of the push.
+- **What needs a store release:** a change to the **shape** of a menu item. Bump
+  `APP_MENU_SCHEMA`; older builds then keep their current menu until they are
+  updated.
+- **All or nothing:** a payload with one incomplete item, a size priced 0 or a
+  negative add-on is refused whole, and the app keeps what it has. It also never
+  goes back to a menu older than the one bundled in its build.
+
 ## Where each value comes from
 
 | Value | Odoo source |

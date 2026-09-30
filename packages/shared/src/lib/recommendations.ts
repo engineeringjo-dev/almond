@@ -1,4 +1,4 @@
-import { menuItems } from '../menu/seed';
+import { getMenu } from '../menu/store';
 import { itemInsights } from '../menu/menu.insights.generated';
 import { categoryKind, itemKind, type CategoryKind } from './categoryKind';
 import type { MenuItem, CartItem, ItemSize } from '../types';
@@ -30,7 +30,7 @@ function pairScore(m: MenuItem): number {
 }
 
 function pickByKind(target: CategoryKind, exclude: Set<string>, max: number): MenuItem[] {
-  return menuItems
+  return getMenu().items
     .filter((m) => categoryKind(m.categoryId) === target && !exclude.has(m.id) && m.inStock !== false)
     .sort((a, b) => pairScore(a) - pairScore(b))
     .slice(0, max);
@@ -47,7 +47,7 @@ function measuredPairs(ids: string[], exclude: Set<string>): MenuItem[] {
       score.set(c.itemId, (score.get(c.itemId) ?? 0) + c.attach * Math.log(c.lift));
     }
   }
-  const byId = new Map(menuItems.map((m) => [m.id, m]));
+  const byId = new Map(getMenu().items.map((m) => [m.id, m]));
   return [...score.entries()]
     .sort((a, b) => b[1] - a[1])
     .map(([id]) => byId.get(id))
