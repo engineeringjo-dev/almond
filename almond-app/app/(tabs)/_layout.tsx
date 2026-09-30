@@ -102,6 +102,7 @@ export default function TabsLayout() {
       />
 
       {/* Hidden routes — still navigable, not shown in the five-section bar. */}
+      {/* `/menu` only redirects to Order › القائمة (old links keep working). */}
       <Tabs.Screen name="menu" options={{ href: null }} />
       <Tabs.Screen name="track" options={{ href: null }} />
     </Tabs>

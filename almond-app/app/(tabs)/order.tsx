@@ -17,7 +17,7 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { FadeIn } from '@/components/ui/FadeIn';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { Screen } from '@/components/ui/Screen';
-import { colors, spacing, radius, shadow } from '@/constants/theme';
+import { colors, layout, spacing, radius, shadow } from '@/constants/theme';
 import { useI18n } from '@/hooks/useI18n';
 import { useCategories, useMenuItems } from '@/hooks/useMenu';
 import { useOrderHistory } from '@/hooks/useOrder';
@@ -438,7 +438,16 @@ function FavouritesTab({
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: colors.cream },
+  // A phone-shaped column, centred, on a tablet or a wide window: the grid,
+  // the sub-tabs and the pickup/cart bar stop at a readable width instead of
+  // ~700 px cards and full-width segments (audit P2). No change on a phone.
+  safe: {
+    flex: 1,
+    width: '100%',
+    maxWidth: layout.contentMaxWidth,
+    alignSelf: 'center',
+    backgroundColor: colors.cream,
+  },
   header: { paddingHorizontal: spacing.lg, paddingTop: spacing.sm },
   titleRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   subTabs: {
