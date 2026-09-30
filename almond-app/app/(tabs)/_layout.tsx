@@ -11,9 +11,10 @@ import { registerForPush } from '@/lib/notifications';
 
 /**
  * Five fixed sections (Order Spec §1): Home · Order · Barcode (raised centre) ·
- * Rewards · More. Cart and Track stay as routes (reachable from the cart icon /
- * deep links) but are hidden from the bar to keep it to five clear choices
- * (Hick's Law). Menu is folded into the Order screen's first sub-tab.
+ * Rewards · More. Track stays a route (reachable from deep links) but is hidden
+ * from the bar to keep it to five clear choices (Hick's Law). Menu is folded
+ * into the Order screen's first sub-tab. The cart is NOT a tab: it is a stack
+ * screen above the tabs (app/cart.tsx), with a real back.
  */
 export default function TabsLayout() {
   const { t } = useTranslation();
@@ -102,7 +103,6 @@ export default function TabsLayout() {
 
       {/* Hidden routes — still navigable, not shown in the five-section bar. */}
       <Tabs.Screen name="menu" options={{ href: null }} />
-      <Tabs.Screen name="cart" options={{ href: null }} />
       <Tabs.Screen name="track" options={{ href: null }} />
     </Tabs>
   );

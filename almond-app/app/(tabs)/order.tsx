@@ -348,7 +348,7 @@ function PreviousTab() {
     order.items.forEach((line: CartItem) => addLine({ ...line }));
     const first = order.items[0];
     if (first) showAdded({ itemId: first.itemId, nameAr: first.nameAr, nameEn: first.nameEn });
-    router.push('/(tabs)/cart');
+    router.push('/cart');
   };
 
   return (

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { View, StyleSheet, Pressable, TextInput } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Screen } from '@/components/ui/Screen';
 import { Text } from '@/components/ui/Text';
@@ -19,6 +20,7 @@ import { CrossSellRow } from '@/components/cart/CrossSellRow';
 import { BranchCard, BranchCardPlaceholder } from '@/components/branch/BranchCard';
 import { BranchPicker } from '@/components/branch/BranchPicker';
 import { Logo } from '@/components/ui/Logo';
+import { BackButton } from '@/components/ui/BackButton';
 import { Icon } from '@/components/ui/Icon';
 import { colors, spacing, radius, shadow } from '@/constants/theme';
 import { useI18n } from '@/hooks/useI18n';
@@ -59,6 +61,9 @@ export default function CartScreen() {
   const carInfo = useCartStore((s) => s.carInfo);
   const setCarInfo = useCartStore((s) => s.setCarInfo);
   const clear = useCartStore((s) => s.clear);
+  // A stack screen now (no tab bar under it): the footer clears the home
+  // indicator / gesture bar itself.
+  const insets = useSafeAreaInsets();
 
   const {
     branches,
@@ -210,12 +215,16 @@ export default function CartScreen() {
   if (items.length === 0) {
     return (
       <Screen scroll={false}>
+        <View style={[styles.titleRow, styles.emptyHeader]}>
+          <BackButton fallback="/(tabs)/order" />
+        </View>
         <EmptyState
           icon="cart"
           title={t('cart.empty')}
           subtitle={t('cart.emptyHint')}
           ctaLabel={t('cart.emptyCta')}
-          onCta={() => router.push('/(tabs)/order')}
+          // Back down to the menu under this screen, not a second copy of it.
+          onCta={() => router.dismissTo('/(tabs)/order')}
         />
       </Screen>
     );
@@ -225,6 +234,7 @@ export default function CartScreen() {
     <>
       <Screen>
         <View style={styles.titleRow}>
+          <BackButton fallback="/(tabs)/order" />
           <Logo variant="badge" tone="dark" size={28} />
           <Text variant="h1" style={styles.title}>
             {t('cart.title')}
@@ -357,7 +367,7 @@ export default function CartScreen() {
         )}
       </Screen>
 
-      <View style={styles.footer}>
+      <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, spacing.xl) }]}>
         {orderType === 'delivery' ? (
           <Button title={t('cart.deliveryRedirect')} onPress={openDelivery} leadingIcon="delivery" />
         ) : (
@@ -410,6 +420,7 @@ const BLOCK_COPY: Record<CheckoutBlock, string> = {
 
 const styles = StyleSheet.create({
   titleRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginBottom: spacing.lg },
+  emptyHeader: { paddingHorizontal: spacing.lg, paddingTop: spacing.lg, marginBottom: 0 },
   title: {},
   section: { marginTop: spacing.lg },
   sectionTitle: { marginBottom: spacing.md },

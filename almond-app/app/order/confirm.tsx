@@ -36,7 +36,7 @@ export default function OrderConfirm() {
     await cancelOrder.mutateAsync(order.id);
     if (modify) {
       order.items.forEach((line: CartItem) => addLine({ ...line }));
-      router.replace('/(tabs)/cart');
+      router.replace('/cart');
     } else {
       router.replace('/(tabs)');
     }

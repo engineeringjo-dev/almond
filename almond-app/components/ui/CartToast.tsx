@@ -69,7 +69,7 @@ export function CartToast() {
       pointerEvents="box-none"
       style={[styles.wrap, { bottom: Math.max(insets.bottom, 16) + 88, opacity, transform: [{ translateY: y }] }]}
     >
-      <Pressable style={styles.toast} onPress={() => { hide(); router.push('/(tabs)/cart'); }}>
+      <Pressable style={styles.toast} onPress={() => { hide(); router.push('/cart'); }}>
         <View style={styles.thumb}>
           <Icon name={iconForItem(itemId)} size={22} color={colors.white} strokeWidth={1.8} />
         </View>

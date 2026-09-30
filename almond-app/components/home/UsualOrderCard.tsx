@@ -26,7 +26,7 @@ export function UsualOrderCard() {
 
   const addAll = () => {
     usual.items.forEach((i) => addLine({ ...i }));
-    router.push('/(tabs)/cart');
+    router.push('/cart');
   };
 
   return (

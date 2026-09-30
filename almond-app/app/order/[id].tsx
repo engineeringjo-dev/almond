@@ -47,7 +47,7 @@ export default function OrderTracking() {
 
   const reorder = () => {
     order.items.forEach((line: CartItem) => addLine({ ...line }));
-    router.push('/(tabs)/cart');
+    router.push('/cart');
   };
 
   return (

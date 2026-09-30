@@ -41,7 +41,7 @@ export function HomeTopBar({ branch, onBranchPress }: Props) {
         <Pressable onPress={() => router.push('/notifications')} hitSlop={8} style={styles.iconBtn}>
           <Icon name="bell" size={22} color={colors.dark} />
         </Pressable>
-        <Pressable onPress={() => router.push('/(tabs)/cart')} hitSlop={8} style={styles.iconBtn}>
+        <Pressable onPress={() => router.push('/cart')} hitSlop={8} style={styles.iconBtn}>
           <Icon name="cart" size={22} color={colors.dark} />
           {cartCount > 0 ? (
             <View style={styles.badge}>

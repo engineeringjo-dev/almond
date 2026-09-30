@@ -32,7 +32,7 @@ export function HomeNudge() {
       <Nudge
         icon="cart"
         text={t('home.nudgeCart', { count: cartCount })}
-        onPress={() => router.push('/(tabs)/cart')}
+        onPress={() => router.push('/cart')}
         isRTL={lang === 'ar'}
       />
     );

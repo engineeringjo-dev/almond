@@ -81,7 +81,7 @@ export function ComboOfferCard() {
     // silently add a large.
     addItem(STARTER.drink, STARTER.drinkSize, [], 1);
     addItem(STARTER.food, STARTER.foodSize, [], 1);
-    router.push('/(tabs)/cart');
+    router.push('/cart');
   };
 
   return (

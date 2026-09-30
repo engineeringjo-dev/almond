@@ -19,7 +19,7 @@ export default function OrdersHistory() {
 
   const reorder = (order: Order) => {
     order.items.forEach((line: CartItem) => addLine({ ...line }));
-    router.push('/(tabs)/cart');
+    router.push('/cart');
   };
 
   return (

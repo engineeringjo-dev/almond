@@ -116,6 +116,10 @@ export default function RootLayout() {
             <Stack.Screen name="onboarding" />
             <Stack.Screen name="(auth)" />
             <Stack.Screen name="(tabs)" />
+            {/* The cart is a task above the sections, not a hidden tab: it
+                pushes over the tabs, so Back / edge-swipe return to the menu
+                (audit P1). `/cart` deep links resolve here unchanged. */}
+            <Stack.Screen name="cart" />
             <Stack.Screen
               name="order/confirm"
               options={{ presentation: 'modal' }}

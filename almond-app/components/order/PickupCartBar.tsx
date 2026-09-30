@@ -50,7 +50,7 @@ export function PickupCartBar() {
           </View>
         </Pressable>
 
-        <Pressable style={styles.cart} onPress={() => router.push('/(tabs)/cart')} accessibilityRole="button">
+        <Pressable style={styles.cart} onPress={() => router.push('/cart')} accessibilityRole="button">
           <Icon name="cart" size={20} color={colors.white} />
           {count > 0 ? (
             <View style={styles.badge}>
