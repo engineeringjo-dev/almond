@@ -9,6 +9,7 @@ import * as SplashScreen from 'expo-splash-screen';
 
 import { initI18n } from '@/lib/i18n';
 import { applyWebViewportFix } from '@/lib/webViewportFix';
+import { applySpaceActivation } from '@/lib/spaceKey';
 import { useAppStore } from '@/stores/appStore';
 import { useAuthStore } from '@/stores/authStore';
 import { useFavouritesStore } from '@/stores/favouritesStore';
@@ -26,6 +27,10 @@ initI18n();
 // Web: pin the app to the dynamic viewport height so the bottom tab bar clears
 // the device's system navigation bar (no-op on native).
 applyWebViewportFix();
+
+// Web: Space checks a radio/checkbox and selects a tab, as their roles promise
+// (react-native-web only honours Space on buttons). No-op on native.
+applySpaceActivation();
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
