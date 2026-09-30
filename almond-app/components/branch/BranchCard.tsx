@@ -1,9 +1,10 @@
-import { View, StyleSheet, Pressable } from 'react-native';
+import { View, StyleSheet, Pressable, ActivityIndicator } from 'react-native';
 import { Text } from '@/components/ui/Text';
 import { Icon } from '@/components/ui/Icon';
 import { colors, spacing, radius, shadow } from '@/constants/theme';
 import { useI18n } from '@/hooks/useI18n';
 import { openDirections } from '@/lib/maps';
+import type { CheckoutBlock } from '@/lib/cartBranch';
 import type { Branch } from '@/types';
 
 interface Props {
@@ -54,6 +55,44 @@ export function BranchCard({ branch, onPress, selected, showDirections = true }:
           <Icon name="navigation" size={18} color={colors.gold} />
         </Pressable>
       ) : null}
+    </Pressable>
+  );
+}
+
+const PLACEHOLDER_COPY: Record<CheckoutBlock, string> = {
+  branchLoading: 'cart.branchLoading',
+  branchError: 'cart.branchError',
+  branchMissing: 'cart.branchChoose',
+};
+
+/**
+ * Stands in for BranchCard while there is no branch to show — the list is
+ * still loading, failed, or holds nothing the customer has chosen. Same card
+ * shape, so the cart does not jump when the branch arrives.
+ */
+export function BranchCardPlaceholder({ state, onPress }: { state: CheckoutBlock; onPress: () => void }) {
+  const { t } = useI18n();
+  const loading = state === 'branchLoading';
+  return (
+    <Pressable
+      style={({ pressed }) => [styles.card, pressed && styles.pressed]}
+      onPress={onPress}
+      disabled={loading}
+      accessibilityRole="button"
+      aria-busy={loading}
+    >
+      <View style={styles.pin}>
+        {loading ? (
+          <ActivityIndicator size="small" color={colors.brown} />
+        ) : (
+          <Icon name="map-pin" size={22} color={colors.brown} />
+        )}
+      </View>
+      <View style={styles.body}>
+        <Text variant="bodyBold" color={loading ? colors.warmGray : colors.dark}>
+          {t(PLACEHOLDER_COPY[state])}
+        </Text>
+      </View>
     </Pressable>
   );
 }

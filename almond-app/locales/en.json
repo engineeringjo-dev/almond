@@ -193,7 +193,11 @@
     "addCombo": "Add & earn",
     "curbside": "Curbside pickup 🚗",
     "curbsideHint": "We'll bring your order to your car",
-    "carInfoPh": "Car colour, model & plate number"
+    "carInfoPh": "Car colour, model & plate number",
+    "branchLoading": "Loading branches…",
+    "branchError": "Couldn't load branches — tap to try again",
+    "branchChoose": "Choose a branch",
+    "reviewNeedsBranch": "Choose a branch to review your order"
   },
   "payment": {
     "cash": "Cash",

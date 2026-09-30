@@ -2,13 +2,8 @@ import { useEffect, useState, useCallback } from 'react';
 import * as Location from 'expo-location';
 import { useQuery } from '@tanstack/react-query';
 
-import { branchService } from '@/services/branch.service';
+import { branchesQuery, type Coord } from '@/lib/branchesQuery';
 import type { Branch } from '@/types';
-
-interface Coord {
-  lat: number;
-  lng: number;
-}
 
 /**
  * Nearest-branch flow (section 7.1): request location → sort by distance →
@@ -44,10 +39,7 @@ export function useNearestBranch() {
     requestLocation();
   }, [requestLocation]);
 
-  const query = useQuery({
-    queryKey: ['branches', coord?.lat, coord?.lng],
-    queryFn: () => branchService.getNearestBranches(coord ?? undefined),
-  });
+  const query = useQuery(branchesQuery(coord));
 
   const branches: Branch[] = query.data ?? [];
   const nearestOpen = branches.find((b) => b.isOpen) ?? branches[0];

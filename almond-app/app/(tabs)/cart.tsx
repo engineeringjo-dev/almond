@@ -16,7 +16,7 @@ import { Summary } from '@/components/cart/Summary';
 import { PaymentMethods } from '@/components/cart/PaymentMethods';
 import { ReviewSheet } from '@/components/cart/ReviewSheet';
 import { CrossSellRow } from '@/components/cart/CrossSellRow';
-import { BranchCard } from '@/components/branch/BranchCard';
+import { BranchCard, BranchCardPlaceholder } from '@/components/branch/BranchCard';
 import { BranchPicker } from '@/components/branch/BranchPicker';
 import { Logo } from '@/components/ui/Logo';
 import { Icon } from '@/components/ui/Icon';
@@ -30,6 +30,7 @@ import { useCreateOrder } from '@/hooks/useOrder';
 import { useWallet, useInvalidateLoyalty, useLoyaltyBalance } from '@/hooks/useLoyalty';
 import { estimateEarnedPoints } from '@/lib/earnEstimate';
 import { computePickupEstimate } from '@/lib/pickup';
+import { checkoutBlock, resolveCartBranch, type CheckoutBlock } from '@/lib/cartBranch';
 import { formatJOD } from '@/lib/format';
 import { paymentService } from '@/services/payment.service';
 import { loyaltyService } from '@/services/loyalty.service';
@@ -56,7 +57,12 @@ export default function CartScreen() {
   const setCarInfo = useCartStore((s) => s.setCarInfo);
   const clear = useCartStore((s) => s.clear);
 
-  const { branches } = useNearestBranch();
+  const {
+    branches,
+    loading: branchesLoading,
+    error: branchesError,
+    refetch: refetchBranches,
+  } = useNearestBranch();
   const userId = useUserId();
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const { data: walletBalance } = useWallet();
@@ -68,18 +74,19 @@ export default function CartScreen() {
   const [reviewOpen, setReviewOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
-  // Auto-select nearest open branch for pickup (section 7.3 #2).
+  // The chosen branch while it is still listed, else the nearest open one
+  // (section 7.3 #2) — persisted, so the order is placed where it is shown.
+  // `undefined` only while there is no list yet: never assert it away.
+  const branch = useMemo(() => resolveCartBranch(branches, branchId), [branches, branchId]);
   useEffect(() => {
-    if (!branchId && branches.length > 0) {
-      const nearestOpen = branches.find((b) => b.isOpen) ?? branches[0];
-      setBranch(nearestOpen.id);
-    }
-  }, [branchId, branches, setBranch]);
-
-  const branch = useMemo(
-    () => branches.find((b) => b.id === branchId),
-    [branches, branchId],
-  );
+    if (branch && branch.id !== branchId) setBranch(branch.id);
+  }, [branch, branchId, setBranch]);
+  const block = checkoutBlock({
+    orderType,
+    branch,
+    loading: branchesLoading,
+    error: branchesError,
+  });
   const totals = useMemo(() => computeTotals(items, promoDiscount), [items, promoDiscount]);
   const pointsToEarn = useMemo(
     () =>
@@ -114,6 +121,7 @@ export default function CartScreen() {
 
   // Open the visual review (UX §4); gate guests to login first.
   const startCheckout = () => {
+    if (block) return; // the button is disabled and says why
     if (!isAuthenticated) {
       router.push('/(auth)/login');
       return;
@@ -233,9 +241,15 @@ export default function CartScreen() {
                   branch={branch}
                   estimate={estimate}
                   onChangeBranch={() => setPickerOpen(true)}
+                  emptyLabel={block ? t(BLOCK_COPY[block]) : undefined}
                 />
+              ) : branch ? (
+                <BranchCard branch={branch} onPress={() => setPickerOpen(true)} />
               ) : (
-                <BranchCard branch={branch!} onPress={() => setPickerOpen(true)} />
+                <BranchCardPlaceholder
+                  state={block ?? 'branchLoading'}
+                  onPress={block === 'branchError' ? () => refetchBranches() : () => setPickerOpen(true)}
+                />
               )}
             </View>
 
@@ -335,11 +349,18 @@ export default function CartScreen() {
         {orderType === 'delivery' ? (
           <Button title={t('cart.deliveryRedirect')} onPress={openDelivery} leadingIcon="delivery" />
         ) : (
-          <Button
-            title={`${t('cart.reviewCta')} · ${formatJOD(totals.total, lang)}`}
-            onPress={startCheckout}
-            disabled={!branch}
-          />
+          <>
+            {block ? (
+              <Text variant="caption" color={colors.warmGray} center style={styles.blockNote}>
+                {t(BLOCK_COPY[block])}
+              </Text>
+            ) : null}
+            <Button
+              title={`${t('cart.reviewCta')} · ${formatJOD(totals.total, lang)}`}
+              onPress={startCheckout}
+              disabled={block !== null}
+            />
+          </>
         )}
       </View>
 
@@ -367,6 +388,13 @@ export default function CartScreen() {
     </>
   );
 }
+
+/** What the cart says while «مراجعة الطلب» waits for a branch. */
+const BLOCK_COPY: Record<CheckoutBlock, string> = {
+  branchLoading: 'cart.branchLoading',
+  branchError: 'cart.branchError',
+  branchMissing: 'cart.reviewNeedsBranch',
+};
 
 const styles = StyleSheet.create({
   titleRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginBottom: spacing.lg },
@@ -415,6 +443,7 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   deliveryEmoji: { fontSize: 40 },
+  blockNote: { marginBottom: spacing.sm },
   footer: {
     padding: spacing.lg,
     paddingBottom: spacing.xl,

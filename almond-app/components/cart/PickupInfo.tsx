@@ -11,10 +11,12 @@ interface Props {
   branch?: Branch;
   estimate: PickupEstimate;
   onChangeBranch: () => void;
+  /** Said in place of the branch name while there is none (loading / not chosen). */
+  emptyLabel?: string;
 }
 
 /** Smart-pickup branch + ready-time estimate — purple gradient hero (matches design). */
-export function PickupInfo({ branch, estimate, onChangeBranch }: Props) {
+export function PickupInfo({ branch, estimate, onChangeBranch, emptyLabel }: Props) {
   const { t, lang } = useI18n();
   return (
     <View style={styles.shadow}>
@@ -27,7 +29,7 @@ export function PickupInfo({ branch, estimate, onChangeBranch }: Props) {
             <View style={styles.branchName}>
               <Icon name="map-pin" size={16} color={colors.white} />
               <Text variant="bodyBold" color={colors.white}>
-                {branch ? (lang === 'ar' ? branch.nameAr : branch.nameEn) : '—'}
+                {branch ? (lang === 'ar' ? branch.nameAr : branch.nameEn) : (emptyLabel ?? '—')}
               </Text>
             </View>
           </View>
