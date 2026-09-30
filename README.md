@@ -202,6 +202,11 @@ not follow them over the Current ones.
 
 ## Conventions
 
+- **Study how others solved it first.** Before designing anything, look at
+  how proven products (Careem, Talabat, Starbucks, Uber Eats) and standards
+  (Apple HIG, Material 3, WAI-ARIA, NN/g) already do it. Follow that pattern,
+  and name it in the commit message. This is the owner's first rule; see
+  [`CLAUDE.md`](CLAUDE.md).
 - **One rule, one implementation.** A number computed in two places is
   computed in `packages/shared` and imported.
 - **Money is integers where it is stored** (fils) and formatted in one place.
