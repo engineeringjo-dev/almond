@@ -14,10 +14,10 @@ import { formatJOD } from '@/lib/format';
 import { iconForCategory } from '@/lib/productIcon';
 import { nutritionFor } from '@/lib/nutrition';
 import { getSizeUpsell, getItemPairings } from '@/lib/recommendations';
+import { addSheetToCart, quickAddPrice, sheetTotal, togglePairing } from '@/lib/pairings';
 import { useCartStore } from '@/stores/cartStore';
 import { useFavouritesStore } from '@/stores/favouritesStore';
 import type { MenuItem, ItemSize, CartCustomization } from '@/types';
-import { itemFromPrice } from '@almond/shared/menu';
 
 interface Props {
   item: MenuItem | null;
@@ -35,13 +35,15 @@ export function ItemModal({ item, visible, onClose }: Props) {
   const [sizeId, setSizeId] = useState<ItemSize['id']>('M');
   const [selected, setSelected] = useState<Record<string, string[]>>({});
   const [qty, setQty] = useState(1);
-  const [pairAdded, setPairAdded] = useState<Record<string, boolean>>({});
+  // Pairings the customer ticked; they join the cart with «أضف للسلة», not before.
+  const [staged, setStaged] = useState<string[]>([]);
 
   // Reset state whenever a new item opens; default single-choice to first option.
   useEffect(() => {
     if (!item) return;
     setSizeId(item.sizes[0].id);
     setQty(1);
+    setStaged([]);
     const init: Record<string, string[]> = {};
     item.customizations.forEach((g) => {
       init[g.id] = g.multiple ? [] : [g.options[0].id];
@@ -67,13 +69,16 @@ export function ItemModal({ item, visible, onClose }: Props) {
   }, [item, selected]);
 
   const unit = (size?.price ?? 0) + customizations.reduce((s, c) => s + c.priceDelta, 0);
-  const total = unit * qty;
 
   if (!item || !size) return null;
 
   // Upsell + cross-sell (Starbucks-style).
   const upsell = getSizeUpsell(item, sizeId);
   const pairings = getItemPairings(item, 4);
+  const stagedItems = pairings.filter((p) => staged.includes(p.id));
+  // The button says what one tap will put in the cart: this item × qty and
+  // every ticked pairing once.
+  const total = sheetTotal(unit, qty, stagedItems);
 
   const toggle = (groupId: string, optId: string, multiple: boolean) => {
     setSelected((prev) => {
@@ -91,7 +96,7 @@ export function ItemModal({ item, visible, onClose }: Props) {
   };
 
   const onAdd = () => {
-    addItem(item, size, customizations, qty);
+    addSheetToCart(addItem, { item, size, customizations, qty }, stagedItems);
     onClose();
   };
 
@@ -241,22 +246,28 @@ export function ItemModal({ item, visible, onClose }: Props) {
         <Section title={t('menu.pairsWith')}>
           <View style={styles.pairWrap}>
             {pairings.map((p) => {
-              const isAdded = pairAdded[p.id];
+              // A tick, not an add: a second tap takes it back off, and nothing
+              // reaches the cart until «أضف للسلة» (which now counts it).
+              const isStaged = staged.includes(p.id);
+              const name = lang === 'ar' ? p.nameAr : p.nameEn;
+              const price = `+${formatJOD(quickAddPrice(p), lang)}`;
               return (
                 <Pressable
                   key={p.id}
-                  style={[styles.pairChip, isAdded && styles.pairChipAdded]}
-                  onPress={() => {
-                    addItem(p, p.sizes[0], [], 1);
-                    setPairAdded((prev) => ({ ...prev, [p.id]: true }));
-                  }}
+                  style={[styles.pairChip, isStaged && styles.pairChipAdded]}
+                  onPress={() => setStaged((prev) => togglePairing(prev, p.id))}
                 >
-                  <Icon name={iconForCategory(p.categoryId)} size={18} color={isAdded ? colors.white : colors.primary} strokeWidth={1.8} />
-                  <Text variant="caption" color={isAdded ? colors.white : colors.dark}>
-                    {lang === 'ar' ? p.nameAr : p.nameEn}
+                  <Icon
+                    name={isStaged ? 'check' : iconForCategory(p.categoryId)}
+                    size={18}
+                    color={isStaged ? colors.white : colors.primary}
+                    strokeWidth={isStaged ? 2.4 : 1.8}
+                  />
+                  <Text variant="caption" color={isStaged ? colors.white : colors.dark}>
+                    {name}
                   </Text>
-                  <Text variant="caption" color={isAdded ? colors.white : colors.gold}>
-                    {isAdded ? t('menu.added') : `+${formatJOD(itemFromPrice(p), lang)}`}
+                  <Text variant="caption" color={isStaged ? colors.white : colors.gold}>
+                    {price}
                   </Text>
                 </Pressable>
               );

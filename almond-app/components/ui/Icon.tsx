@@ -41,6 +41,7 @@ import {
   Heart,
   Bean,
   ChevronDown,
+  Check,
   Flame,
   Candy as CandyBar,
   Wheat,
@@ -103,6 +104,7 @@ export type IconName =
   | 'heart'
   | 'bean'
   | 'chevron-down'
+  | 'check'
   | 'flame'
   | 'candy'
   | 'wheat'
@@ -156,6 +158,7 @@ const REGISTRY: Record<IconName, LucideIcon> = {
   heart: Heart,
   bean: Bean,
   'chevron-down': ChevronDown,
+  check: Check,
   flame: Flame,
   candy: CandyBar,
   wheat: Wheat,
