@@ -89,3 +89,20 @@ export function startTextAlign(
 export function forwardChevron(lang: Lang): 'chevron-left' | 'chevron-right' {
   return isRTL(lang) ? 'chevron-left' : 'chevron-right';
 }
+
+/**
+ * WEB ONLY: the `dir` prop for the app's root View.
+ *
+ * <html dir> (applyDocumentDirection) mirrors what CSS lays out — flex rows,
+ * text. But react-native-web resolves the LOGICAL style props (`start`/`end`,
+ * `marginStart`, `paddingEnd`, `borderTopStartRadius`, textAlign 'start') from
+ * its own locale context, which defaults to 'ltr' and never reads <html>. So in
+ * Arabic every `start` still meant left on the web: the BR badge, the item
+ * sheet's ♥, the trailing padding of the category row — the opposite of the
+ * same code on a phone. A View with `dir` provides that context to everything
+ * under it (react-native-web createElement → LocaleProvider), so the web build
+ * resolves them the way I18nManager does natively. Native: nothing to add.
+ */
+export function rootDirectionProps(lang: Lang, platform: string = Platform.OS): { dir?: 'rtl' | 'ltr' } {
+  return platform === 'web' ? { dir: documentDirection(lang).dir } : {};
+}

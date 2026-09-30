@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { AppState, InteractionManager } from 'react-native';
+import { AppState, InteractionManager, View } from 'react-native';
 import { Stack } from 'expo-router';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -10,6 +10,7 @@ import * as SplashScreen from 'expo-splash-screen';
 import { initI18n } from '@/lib/i18n';
 import { applyWebViewportFix } from '@/lib/webViewportFix';
 import { applySpaceActivation } from '@/lib/spaceKey';
+import { rootDirectionProps } from '@/lib/direction';
 import { useAppStore } from '@/stores/appStore';
 import { useAuthStore } from '@/stores/authStore';
 import { useFavouritesStore } from '@/stores/favouritesStore';
@@ -64,6 +65,7 @@ export default function RootLayout() {
   const [fontsLoaded] = useAppFonts();
   const hydrate = useAppStore((s) => s.hydrate);
   const hydrated = useAppStore((s) => s.hydrated);
+  const lang = useAppStore((s) => s.lang);
   const hydrateAuth = useAuthStore((s) => s.hydrate);
   const hydrateFavourites = useFavouritesStore((s) => s.hydrate);
   const hydratePromo = usePromoStore((s) => s.hydrate);
@@ -119,6 +121,9 @@ export default function RootLayout() {
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
+      {/* Web: start/end resolve in the language's direction (lib/direction).
+          The tree inside keeps its indentation, to keep this diff small. */}
+      <View style={{ flex: 1 }} {...rootDirectionProps(lang)}>
       <SafeAreaProvider>
         <QueryClientProvider client={queryClient}>
           <ErrorBoundary>
@@ -161,6 +166,7 @@ export default function RootLayout() {
           </ErrorBoundary>
         </QueryClientProvider>
       </SafeAreaProvider>
+      </View>
     </GestureHandlerRootView>
   );
 }

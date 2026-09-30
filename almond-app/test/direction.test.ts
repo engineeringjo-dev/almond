@@ -7,6 +7,7 @@ import {
   documentDirection,
   forwardChevron,
   layoutFollowsLanguage,
+  rootDirectionProps,
   startTextAlign,
 } from '@/lib/direction';
 import { initI18n } from '@/lib/i18n';
@@ -131,5 +132,22 @@ describe('D6 the shared Text and the search field align by the interface', () =>
     expect(s).toMatch(/<Icon name="search"/);
     expect(s).toMatch(/<Icon name="close"/);
     expect(s).not.toMatch(/🔍|✕/);
+  });
+});
+
+describe('D7 react-native-web resolves start/end in the language\'s direction', () => {
+  it('web: the root View carries dir, which react-native-web turns into its locale context', () => {
+    expect(rootDirectionProps('ar', 'web')).toEqual({ dir: 'rtl' });
+    expect(rootDirectionProps('en', 'web')).toEqual({ dir: 'ltr' });
+  });
+
+  it('native: nothing — I18nManager already resolves start/end', () => {
+    expect(rootDirectionProps('ar', 'ios')).toEqual({});
+    expect(rootDirectionProps('ar', 'android')).toEqual({});
+  });
+
+  it('app/_layout wraps the whole tree (modals included) in it', () => {
+    const s = readFileSync(join(__dirname, '..', 'app/_layout.tsx'), 'utf8');
+    expect(s).toMatch(/<View style=\{\{ flex: 1 \}\} \{\.\.\.rootDirectionProps\(lang\)\}>/);
   });
 });
