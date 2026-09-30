@@ -72,4 +72,16 @@ describe('GET /api/menu/app', () => {
     }
     expect((await OPTIONS()).status).toBe(204);
   });
+
+  it('an unchanged menu costs a 304 with no body — nothing downloaded, nothing parsed', async () => {
+    const first = await GET(new Request('https://almond-gules.vercel.app/api/menu/app'));
+    const etag = first.headers.get('etag')!;
+    expect(etag).toMatch(/^"[0-9a-f]{16}"$/);
+    expect(etag).toBe(`"${(await first.json()).version}"`);
+    const again = await GET(new Request('https://almond-gules.vercel.app/api/menu/app', { headers: { 'if-none-match': etag } }));
+    expect(again.status).toBe(304);
+    expect(await again.text()).toBe('');
+    const stale = await GET(new Request('https://almond-gules.vercel.app/api/menu/app', { headers: { 'if-none-match': '"0000000000000000"' } }));
+    expect(stale.status).toBe(200);
+  });
 });

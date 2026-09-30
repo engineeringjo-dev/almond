@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { AppState } from 'react-native';
+import { AppState, InteractionManager } from 'react-native';
 import { Stack } from 'expo-router';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -40,6 +40,8 @@ const queryClient = new QueryClient({
 
 /** How often returning to the app may re-check the menu. */
 const MENU_REFRESH_MIN_MS = 5 * 60 * 1000;
+/** After the first screen settles, before the menu sync starts. */
+const MENU_SYNC_DELAY_MS = 1500;
 
 export default function RootLayout() {
   const [fontsLoaded] = useAppFonts();
@@ -67,15 +69,25 @@ export default function RootLayout() {
   // services/menuSync.ts and packages/shared/src/menu/remote.ts have the rules.
   useEffect(() => {
     let last = 0;
+    let started = false;   // no refresh before the deferred first sync, whatever AppState says
     const invalidate = () => queryClient.invalidateQueries({ queryKey: ['menu'] });
     const sync = () => {
-      if (Date.now() - last < MENU_REFRESH_MIN_MS) return;
+      if (!started || Date.now() - last < MENU_REFRESH_MIN_MS) return;
       last = Date.now();
       refreshMenu().then((r) => { if (r === 'updated') invalidate(); }).catch(() => {});
     };
-    hydrateMenuFromCache().then((fromCache) => { if (fromCache) invalidate(); }).finally(sync);
+    // Never at launch's expense (GM: «بس بدون ابطاء التطبيق»): the whole sync
+    // waits until the first screen has rendered and its animations are done,
+    // then a beat more. Until then the bundled menu is on screen.
+    let cancelled = false;
+    const start = () => {
+      if (cancelled) return;
+      started = true;
+      hydrateMenuFromCache().then((fromCache) => { if (fromCache) invalidate(); }).finally(sync);
+    };
+    const task = InteractionManager.runAfterInteractions(() => { setTimeout(start, MENU_SYNC_DELAY_MS); });
     const sub = AppState.addEventListener('change', (state) => { if (state === 'active') sync(); });
-    return () => sub.remove();
+    return () => { cancelled = true; task.cancel(); sub.remove(); };
   }, []);
 
   useEffect(() => {

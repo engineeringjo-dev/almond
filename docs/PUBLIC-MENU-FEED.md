@@ -174,6 +174,16 @@ GM, 2026-09-30: the app's menu updates the way Careem and Talabat do.
 - **What needs a store release:** a change to the **shape** of a menu item. Bump
   `APP_MENU_SCHEMA`; older builds then keep their current menu until they are
   updated.
+- **No cost to the app** (GM: «بس بدون ابطاء التطبيق»):
+  - The check starts only **after the first screen has rendered and settled**
+    (`InteractionManager` plus 1.5 s), so it never competes with launch.
+  - The app sends the version it holds (`If-None-Match`). An unchanged menu,
+    the usual case, is answered **304 with no body**: nothing is downloaded or
+    parsed.
+  - When the menu has changed, the download is **~29 KB** (Brotli) and parsing
+    plus validation takes **~3 ms** (measured on a server; a slow phone would be
+    about 10× that, off the launch path).
+  - The screens re-render only when the menu actually changed.
 - **All or nothing:** a payload with one incomplete item, a size priced 0 or a
   negative add-on is refused whole, and the app keeps what it has. It also never
   goes back to a menu older than the one bundled in its build.

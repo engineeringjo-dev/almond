@@ -48,7 +48,13 @@ export async function refreshMenu(fetchImpl: typeof fetch = fetch): Promise<Refr
   const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
   let raw: unknown;
   try {
-    const res = await fetchImpl(config.MENU_URL, { signal: controller.signal, headers: { accept: 'application/json' } });
+    // Holding a server menu? Ask "has it changed?" — an unchanged menu comes
+    // back 304: a few bytes, nothing downloaded, nothing parsed.
+    const held = getMenu();
+    const headers: Record<string, string> = { accept: 'application/json' };
+    if (held.source !== 'bundled') headers['if-none-match'] = `"${held.version}"`;
+    const res = await fetchImpl(config.MENU_URL, { signal: controller.signal, headers });
+    if (res.status === 304) return 'unchanged';
     if (!res.ok) return 'offline';
     raw = await res.json();
   } catch {

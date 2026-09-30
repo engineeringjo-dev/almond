@@ -73,6 +73,23 @@ describe('menu sync', () => {
     expect(getMenu().source).toBe('bundled');
   });
 
+  it('asks "changed?" with the version it holds; a 304 costs no download and no parse', async () => {
+    const seen: (string | undefined)[] = [];
+    let jsonCalls = 0;
+    const server = (status: number, body: unknown) => (async (_u: string, init?: RequestInit) => {
+      seen.push((init?.headers as Record<string, string>)['if-none-match']);
+      return { ok: status === 200, status, json: async () => { jsonCalls++; return body; } };
+    }) as unknown as typeof fetch;
+    const p = payload();
+    expect(await refreshMenu(server(200, p))).toBe('updated');        // first launch: nothing to compare
+    expect(seen[0]).toBeUndefined();
+    jsonCalls = 0;
+    expect(await refreshMenu(server(304, null))).toBe('unchanged');   // next check: unchanged
+    expect(seen[1]).toBe(`"${p.version}"`);
+    expect(jsonCalls).toBe(0);
+    expect(getMenu().version).toBe(p.version);
+  });
+
   it('a server error keeps the menu', async () => {
     expect(await refreshMenu(serve({}, false))).toBe('offline');
     expect(getMenu().source).toBe('bundled');
