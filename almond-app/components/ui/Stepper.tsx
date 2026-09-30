@@ -49,9 +49,10 @@ export function Stepper({ value, onChange, min = 1, max = 99, label }: Props) {
 
 const styles = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
+  // 44×44 on every platform: hitSlop is ignored on the web.
   btn: {
-    width: 36,
-    height: 36,
+    width: 44,
+    height: 44,
     borderRadius: radius.sm,
     backgroundColor: colors.neutralWarm,
     alignItems: 'center',
