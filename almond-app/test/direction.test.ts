@@ -1,6 +1,14 @@
 import { describe, it, expect, beforeAll, vi } from 'vitest';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 
-import { applyDocumentDirection, documentDirection, layoutFollowsLanguage } from '@/lib/direction';
+import {
+  applyDocumentDirection,
+  documentDirection,
+  forwardChevron,
+  layoutFollowsLanguage,
+  startTextAlign,
+} from '@/lib/direction';
 import { initI18n } from '@/lib/i18n';
 import { useAppStore } from '@/stores/appStore';
 
@@ -71,5 +79,57 @@ describe('D3 a manual flip happens only where the layout is not mirrored already
     expect(layoutFollowsLanguage('en', 'android', false)).toBe(true);
     expect(layoutFollowsLanguage('ar', 'ios', false)).toBe(false);
     expect(layoutFollowsLanguage('en', 'android', true)).toBe(false);
+  });
+});
+
+describe('D4 UI text starts where the interface reads from, whatever the string', () => {
+  it('web: a physical side (the string keeps dir="auto" for its own word order)', () => {
+    expect(startTextAlign('ar', 'web', false)).toBe('right');
+    expect(startTextAlign('en', 'web', false)).toBe('left');
+    // I18nManager is a no-op on web: whatever it says, the side is the language's.
+    expect(startTextAlign('ar', 'web', true)).toBe('right');
+  });
+
+  it('native: named through React Native\'s RTL left↔right swap', () => {
+    // Layout already mirrored for Arabic: 'left' is the start, drawn on the right.
+    expect(startTextAlign('ar', 'ios', true)).toBe('left');
+    expect(startTextAlign('en', 'android', false)).toBe('left');
+    // Just switched, before the reload: name the physical side directly…
+    expect(startTextAlign('ar', 'ios', false)).toBe('right');
+    // …or through the swap still in force.
+    expect(startTextAlign('en', 'android', true)).toBe('right');
+  });
+});
+
+describe('D5 a row\'s chevron points forward, drawn not typed', () => {
+  it('Arabic reads right-to-left, so forward is left', () => {
+    expect(forwardChevron('ar')).toBe('chevron-left');
+    expect(forwardChevron('en')).toBe('chevron-right');
+  });
+
+  it('ListRow draws the lucide chevron — no bidi-mirrored «‹»/«›» glyph', () => {
+    const s = readFileSync(join(__dirname, '..', 'components/ui/ListRow.tsx'), 'utf8');
+    expect(s).toMatch(/<Icon name=\{forwardChevron\(lang\)\}/);
+    // No glyph as a string literal or as bare JSX text.
+    expect(s).not.toMatch(/['"][‹›]['"]|>\s*[‹›]\s*</);
+  });
+});
+
+describe('D6 the shared Text and the search field align by the interface', () => {
+  const src = (rel: string) => readFileSync(join(__dirname, '..', rel), 'utf8');
+
+  it('Text sets textAlign from the language, before the caller\'s style', () => {
+    const s = src('components/ui/Text.tsx');
+    expect(s).toMatch(/textAlign: startTextAlign\(lang\)/);
+    // The caller's `style` and `center` still win (listed after it).
+    expect(s.indexOf('startTextAlign(lang)')).toBeLessThan(s.indexOf('center && styles.center'));
+  });
+
+  it('the search field starts beside its icon, and draws lucide icons, not emoji', () => {
+    const s = src('components/ui/SearchBar.tsx');
+    expect(s).toMatch(/textAlign: startTextAlign\(lang\)/);
+    expect(s).toMatch(/<Icon name="search"/);
+    expect(s).toMatch(/<Icon name="close"/);
+    expect(s).not.toMatch(/🔍|✕/);
   });
 });
