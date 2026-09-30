@@ -21,7 +21,7 @@ import { colors, layout, spacing, radius, shadow } from '@/constants/theme';
 import { useI18n } from '@/hooks/useI18n';
 import { useCategories, useMenuItems } from '@/hooks/useMenu';
 import { useOrderHistory } from '@/hooks/useOrder';
-import { tabA11y } from '@/lib/a11y';
+import { MIN_TOUCH_TARGET, tabA11y } from '@/lib/a11y';
 import { formatJOD, formatDate } from '@/lib/format';
 import { menuImage } from '@/lib/menuImage';
 import { iconForCategory, iconForItem } from '@/lib/productIcon';
@@ -458,7 +458,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: colors.neutralWarm,
   },
-  subTab: { alignItems: 'center', justifyContent: 'flex-end', minHeight: 44, paddingBottom: spacing.sm },
+  subTab: { alignItems: 'center', justifyContent: 'flex-end', minHeight: MIN_TOUCH_TARGET, paddingBottom: spacing.sm },
   subTabUnderline: {
     height: 3,
     width: '100%',

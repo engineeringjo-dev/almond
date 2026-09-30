@@ -14,6 +14,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, layout, radius, spacing } from '@/constants/theme';
 import { useI18n } from '@/hooks/useI18n';
 import { useReducedMotion } from '@/hooks/useReducedMotion';
+import { MIN_TOUCH_TARGET } from '@/lib/a11y';
 import { dragOffset, shouldDismissSheet } from '@/lib/sheetGesture';
 import { Icon } from './Icon';
 import { Text } from './Text';
@@ -37,7 +38,7 @@ interface Props {
  * A modal sheet for a self-contained task (HIG / Material bottom sheet).
  *
  * - Named dialog: `title`, else `label`.
- * - A visible close control (44×44) — Escape (web) and Android Back already
+ * - A visible close control (44 pt / 48 dp) — Escape (web) and Android Back already
  *   closed it, but a touch user on iOS had only the backdrop.
  * - The grabber works: drag the header down to dismiss (a quick flick is
  *   enough; a short drag springs back). Upward drag is damped, not blocked.
@@ -175,12 +176,12 @@ const styles = StyleSheet.create({
     opacity: 0.4,
     marginBottom: spacing.xs,
   },
-  titleRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, minHeight: 44 },
+  titleRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, minHeight: MIN_TOUCH_TARGET },
   title: { flex: 1 },
   close: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: MIN_TOUCH_TARGET,
+    height: MIN_TOUCH_TARGET,
+    borderRadius: MIN_TOUCH_TARGET / 2,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: colors.neutralWarm,

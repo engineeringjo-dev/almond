@@ -2,6 +2,8 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
+import { MIN_TOUCH_TARGET, minTouchTarget } from '@/lib/a11y';
+
 /**
  * G1-G2 — TOUCH TARGETS AND THE TYPE FLOOR HOLD ON THE WEB TOO (audit P2).
  *
@@ -17,7 +19,19 @@ const styleBlock = (s: string, name: string) => {
   if (start < 0) throw new Error(`no style ${name}`);
   return s.slice(start, s.indexOf('},', start));
 };
-const num = (block: string, prop: string) => Number(new RegExp(`\\b${prop}:\\s*(\\d+)`).exec(block)?.[1]);
+/** A style value: a number, or the shared MIN_TOUCH_TARGET (44 pt / 48 dp). */
+const num = (block: string, prop: string) => {
+  const v = new RegExp(`\\b${prop}:\\s*(MIN_TOUCH_TARGET|\\d+)`).exec(block)?.[1];
+  return v === 'MIN_TOUCH_TARGET' ? MIN_TOUCH_TARGET : Number(v);
+};
+
+describe('G0 the floor per platform', () => {
+  it('44 pt (HIG) on iOS and the web, 48 dp (Material) on Android', () => {
+    expect(minTouchTarget('ios')).toBe(44);
+    expect(minTouchTarget('web')).toBe(44);
+    expect(minTouchTarget('android')).toBe(48);
+  });
+});
 
 describe('G1 ≥44 without hitSlop', () => {
   it('the stepper buttons', () => {

@@ -2,6 +2,7 @@ import { View, TextInput, StyleSheet, Pressable } from 'react-native';
 import { colors, radius, spacing, fontFamily, fontSize } from '@/constants/theme';
 import { Icon } from './Icon';
 import { useI18n } from '@/hooks/useI18n';
+import { MIN_TOUCH_TARGET } from '@/lib/a11y';
 import { startTextAlign } from '@/lib/direction';
 
 interface Props {
@@ -68,6 +69,6 @@ const styles = StyleSheet.create({
     fontSize: fontSize.md,
     color: colors.dark,
   },
-  // 44×44: sized, since the web ignores hitSlop.
-  clear: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
+  // Sized (44 pt / 48 dp), since the web ignores hitSlop.
+  clear: { width: MIN_TOUCH_TARGET, height: MIN_TOUCH_TARGET, alignItems: 'center', justifyContent: 'center' },
 });

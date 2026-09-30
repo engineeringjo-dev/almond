@@ -16,7 +16,7 @@ import { secondaryName } from '@/lib/itemName';
 import { nutritionFor } from '@/lib/nutrition';
 import { getSizeUpsell, getItemPairings } from '@/lib/recommendations';
 import { addSheetToCart, quickAddPrice, sheetTotal, togglePairing } from '@/lib/pairings';
-import { choiceA11y, choiceGroupA11y } from '@/lib/a11y';
+import { choiceA11y, choiceGroupA11y, MIN_TOUCH_TARGET } from '@/lib/a11y';
 import { useCartStore } from '@/stores/cartStore';
 import { useFavouritesStore } from '@/stores/favouritesStore';
 import type { MenuItem, ItemSize, CartCustomization } from '@/types';
@@ -370,7 +370,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.xs,
-    minHeight: 44,
+    minHeight: MIN_TOUCH_TARGET,
     backgroundColor: colors.surface,
     borderWidth: 1.5,
     borderColor: colors.outline,
@@ -394,7 +394,7 @@ const styles = StyleSheet.create({
   },
   sizeChipActive: { borderColor: colors.gold, backgroundColor: colors.lightGold },
   optChip: {
-    minHeight: 44,
+    minHeight: MIN_TOUCH_TARGET,
     justifyContent: 'center',
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,

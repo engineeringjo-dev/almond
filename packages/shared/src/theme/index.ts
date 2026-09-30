@@ -189,7 +189,7 @@ export const timing = {
  */
 export const layout = {
   contentMaxWidth: 680, // journey screens: menu grid, cart, review
-  sheetMaxWidth: 560, // bottom sheets, centred
+  sheetMaxWidth: 640, // bottom sheets, centred (Material 3's bottom-sheet max width)
 } as const;
 
 export const tokens = { colors, spacing, radius, shadow, fontFamily, fontSize, timing, layout };

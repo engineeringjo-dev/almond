@@ -51,11 +51,11 @@ describe('S2 the sheet names itself and can be closed', () => {
     expect(s).toMatch(/aria-label=\{title \?\? label\}/);
   });
 
-  it('a visible close button, named in the reader\'s language, 44×44', () => {
+  it('a visible close button, named in the reader\'s language, a full touch target', () => {
     expect(s).toMatch(/accessibilityLabel=\{t\('common\.close'\)\}/);
-    const block = s.slice(s.indexOf('  close: {'));
-    expect(Number(/width:\s*(\d+)/.exec(block)?.[1])).toBeGreaterThanOrEqual(44);
-    expect(Number(/height:\s*(\d+)/.exec(block)?.[1])).toBeGreaterThanOrEqual(44);
+    const block = s.slice(s.indexOf('  close: {'), s.indexOf('},', s.indexOf('  close: {')));
+    expect(block).toMatch(/width: MIN_TOUCH_TARGET/);
+    expect(block).toMatch(/height: MIN_TOUCH_TARGET/);
   });
 
   it('the grabber area carries the pan handlers', () => {
