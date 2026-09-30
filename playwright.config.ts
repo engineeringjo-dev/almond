@@ -2,18 +2,23 @@ import { defineConfig, devices } from '@playwright/test';
 import { E2E_ENV } from './e2e/env';
 
 /**
- * E2E + accessibility + RTL smoke suite for the website (almond-web).
+ * E2E + accessibility + RTL smoke suite for the website (almond-web) and the
+ * customer app's web build (almond-app).
  *
- * Two servers, both started and torn down by Playwright:
+ * Three servers, all started and torn down by Playwright:
  *   1. the BFF (bff/) in memory mode on :8092 — the back office's companies tab
  *      reads from it through the website's own /api/admin/* routes;
  *   2. the website as a PRODUCTION build (`next build` + `next start`) on :3100,
- *      in mock data mode — the same artefact a deploy serves, not the dev server.
+ *      in mock data mode — the same artefact a deploy serves, not the dev server;
+ *   3. the app's `expo export --platform web` on :3200 (mock services, the same
+ *      bundle the web build ships), for the specs under e2e/app/.
  *
  * Mobile (375×812) is the primary audience and runs first; desktop (1280×800)
- * runs the same specs.
+ * runs the same website specs. The app specs run once, on a 390×844 phone.
  */
 const isCI = !!process.env.CI;
+/** Specs that drive the customer app, not the website. */
+const APP_SPECS = /[\\/]app[\\/].*\.spec\.ts$/;
 
 export default defineConfig({
   testDir: './e2e',
@@ -39,6 +44,7 @@ export default defineConfig({
   projects: [
     {
       name: 'mobile',
+      testIgnore: APP_SPECS,
       use: {
         ...devices['Desktop Chrome'],
         viewport: { width: 375, height: 812 },
@@ -49,9 +55,21 @@ export default defineConfig({
     },
     {
       name: 'desktop',
+      testIgnore: APP_SPECS,
       use: {
         ...devices['Desktop Chrome'],
         viewport: { width: 1280, height: 800 },
+      },
+    },
+    {
+      name: 'app',
+      testMatch: APP_SPECS,
+      use: {
+        ...devices['Desktop Chrome'],
+        viewport: { width: 390, height: 844 },
+        isMobile: true,
+        hasTouch: true,
+        deviceScaleFactor: 2,
       },
     },
   ],
@@ -93,6 +111,16 @@ export default defineConfig({
         ADMIN_LOGIN_MAX_FAILURES: '1000',
         ADMIN_LOGIN_MAX_FAILURES_TOTAL: '1000',
       },
+    },
+    {
+      // A static export: no server code, so the plain file server is the whole
+      // production path. Mock data (the app's default DATA_SOURCE).
+      command: `npm run export:web --workspace almond-app && node scripts/serve-app-web.mjs almond-app/dist ${E2E_ENV.APP_PORT}`,
+      url: `${E2E_ENV.APP_URL}/`,
+      reuseExistingServer: !isCI,
+      timeout: 600_000,
+      stdout: 'ignore',
+      stderr: 'pipe',
     },
   ],
 });

@@ -10,7 +10,8 @@
     "lint": "eslint . --max-warnings 0",
     "test": "vitest run",
     "coverage": "vitest run --coverage",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "export:web": "expo export --platform web --output-dir dist"
   },
   "dependencies": {
     "@almond/shared": "*",

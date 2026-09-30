@@ -9,6 +9,9 @@ export const E2E_ENV = {
   BFF_PORT: 8092,
   WEB_URL: 'http://localhost:3100',
   BFF_URL: 'http://localhost:8092',
+  // The customer app's web export (almond-app), served under its baseUrl.
+  APP_PORT: 3200,
+  APP_URL: 'http://localhost:3200/almond',
   ADMIN_PASSWORD: 'e2e-pass',
   ADMIN_KEY: 'e2e-admin-key-000000000000000000000',
   ADMIN_SESSION_SECRET: 'e2e-session-secret-000000000000000',
