@@ -1,4 +1,4 @@
-import type { GiftOccasion, Tier } from '@almond/shared/types';
+import type { Tier } from '@almond/shared/types';
 // The website never grants points; the earn multiplier is loyalty/earn.ts's.
 // earn-arith-exempt: tier ramp for the progress display only. §7 T7.
 import { tierFromSpend, nextTier, progressToNextTier } from '@almond/shared/loyalty';
@@ -76,15 +76,6 @@ export function tierProgress(windowSpend: number): TierProgress {
 }
 
 export const GIFT_AMOUNTS = [5, 10, 15, 25];
-
-export const GIFT_OCCASIONS: { id: GiftOccasion; ar: string; en: string }[] = [
-  { id: 'birthday', ar: 'عيد ميلاد', en: 'Birthday' },
-  { id: 'thankyou', ar: 'شكرًا', en: 'Thank you' },
-  { id: 'congrats', ar: 'مبروك', en: 'Congrats' },
-  { id: 'loveyou', ar: 'أحبك', en: 'Love you' },
-  { id: 'eid', ar: 'عيد سعيد', en: 'Eid' },
-  { id: 'anytime', ar: 'في أي وقت', en: 'Anytime' },
-];
 
 export function genGiftCode(): string {
   return `ALMOND-${Math.random().toString(36).slice(2, 7).toUpperCase()}`;

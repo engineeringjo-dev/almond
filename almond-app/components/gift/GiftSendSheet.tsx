@@ -6,11 +6,12 @@ import { Text } from '@/components/ui/Text';
 import { Button } from '@/components/ui/Button';
 import { Icon } from '@/components/ui/Icon';
 import { GiftCardTile } from './GiftCardTile';
+import { GiftEnvelope } from './GiftEnvelope';
 import { colors, spacing, radius } from '@/constants/theme';
 import { useI18n } from '@/hooks/useI18n';
 import { formatJOD } from '@/lib/format';
 import { useSendGift, useWallet } from '@/hooks/useLoyalty';
-import type { GiftDesign } from '@/lib/giftDesigns';
+import type { GiftDesign } from '@almond/shared/gifts';
 import type { GiftCard } from '@/types';
 
 const AMOUNTS = [5, 10, 15, 25];
@@ -87,7 +88,7 @@ export function GiftSendSheet({ design, visible, onClose }: Props) {
       <BottomSheet visible={visible} onClose={close} title={t('gift.sentTitle')}
         footer={<Button title={t('gift.done')} onPress={close} />}>
         <View style={styles.center}>
-          <GiftCardTile design={design} size="featured" amount={amount} />
+          <GiftCardTile design={design} size="featured" />
           <Text variant="body" color={colors.warmGray} center style={styles.sentBody}>
             {t('gift.sentCount', { count: sent.length })}
           </Text>
@@ -124,7 +125,8 @@ export function GiftSendSheet({ design, visible, onClose }: Props) {
       }
     >
       <View style={styles.preview}>
-        <GiftCardTile design={design} size="featured" amount={amount} />
+        <GiftCardTile design={design} size="featured" />
+        <GiftEnvelope amount={amount} names={recipients.map((r) => r.name)} message={message} />
       </View>
 
       <Text variant="bodyBold" style={styles.label}>{t('gift.amount')}</Text>

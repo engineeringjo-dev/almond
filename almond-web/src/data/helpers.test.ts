@@ -3,7 +3,7 @@ import type { Branch, CartItem } from '@almond/shared/types';
 import { menuItems } from '@almond/shared/menu';
 import { config } from '@/lib/config';
 import { createMockOrder, estimatePrepMinutes, DISPLAY_EARN_RULES, type PlaceOrderInput } from '@/data/order';
-import { reloadBonus, tierProgress, genGiftCode, GIFT_OCCASIONS } from '@/data/loyalty';
+import { reloadBonus, tierProgress, genGiftCode } from '@/data/loyalty';
 import { getBranches, isBranchOpen } from '@/data/branches';
 import { getFeaturedItems } from '@/data/featured';
 
@@ -154,11 +154,6 @@ describe('gift helpers', () => {
   it('genGiftCode has the ALMOND-XXXXX shape', () => {
     vi.spyOn(Math, 'random').mockReturnValue(0.123456789);
     expect(genGiftCode()).toMatch(/^ALMOND-[A-Z0-9]{5}$/);
-  });
-
-  it('occasion ids are unique and every occasion is bilingual', () => {
-    expect(new Set(GIFT_OCCASIONS.map((o) => o.id)).size).toBe(GIFT_OCCASIONS.length);
-    expect(GIFT_OCCASIONS.every((o) => o.ar.trim() && o.en.trim())).toBe(true);
   });
 });
 

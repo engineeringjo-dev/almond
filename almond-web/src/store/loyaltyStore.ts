@@ -2,7 +2,7 @@
 
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
-import type { GiftCard, GiftOccasion, PointsLogEntry, Voucher } from '@almond/shared/types';
+import type { GiftCard, PointsLogEntry, Voucher } from '@almond/shared/types';
 import { isMock } from '@/lib/config';
 import { reloadBonus, genGiftCode } from '@/data/loyalty';
 import type { RedeemOption } from '@almond/shared/loyalty/redeem';
@@ -19,7 +19,8 @@ interface SendGiftInput {
   amount: number;
   recipientName: string;
   message?: string;
-  occasion: GiftOccasion;
+  /** A design id from @almond/shared/gifts — stored on the card. */
+  designId: string;
 }
 
 interface LoyaltyState {
@@ -139,7 +140,7 @@ export const useLoyaltyStore = create<LoyaltyState>()(
         const card: GiftCard = {
           id: rid('g'),
           code: genGiftCode(),
-          designId: input.occasion,
+          designId: input.designId,
           amount: input.amount,
           recipientName: input.recipientName,
           message: input.message,

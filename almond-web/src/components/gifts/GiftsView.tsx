@@ -1,11 +1,19 @@
 'use client';
 
+import Image from 'next/image';
 import { useEffect, useId, useState } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
-import { Check, Copy, Gift } from 'lucide-react';
+import { Check, Copy } from 'lucide-react';
 import type { GiftCard, GiftOccasion } from '@almond/shared/types';
+import {
+  FEATURED_GIFT_DESIGN_ID,
+  GIFT_OCCASIONS,
+  giftDesignById,
+  giftDesignsFor,
+  type GiftDesign,
+} from '@almond/shared/gifts';
 import { useLoyaltyStore } from '@/store/loyaltyStore';
-import { GIFT_AMOUNTS, GIFT_OCCASIONS } from '@/data/loyalty';
+import { GIFT_AMOUNTS } from '@/data/loyalty';
 import { asLang, formatJOD } from '@/lib/format';
 import { Button } from '@/components/ui/Button';
 import { cn } from '@/lib/cn';
@@ -24,7 +32,8 @@ export function GiftsView() {
   useEffect(() => setMounted(true), []);
 
   const [tab, setTab] = useState<'send' | 'redeem'>('send');
-  const [occasion, setOccasion] = useState<GiftOccasion>('birthday');
+  const [occasion, setOccasion] = useState<GiftOccasion>(giftDesignById(FEATURED_GIFT_DESIGN_ID).occasion);
+  const [designId, setDesignId] = useState(FEATURED_GIFT_DESIGN_ID);
   const [amount, setAmount] = useState(GIFT_AMOUNTS[1]);
   const [recipient, setRecipient] = useState('');
   const [message, setMessage] = useState('');
@@ -38,7 +47,7 @@ export function GiftsView() {
 
   const submitGift = () => {
     if (!recipient.trim()) return;
-    const card = sendGift({ amount, recipientName: recipient.trim(), message: message.trim() || undefined, occasion });
+    const card = sendGift({ amount, recipientName: recipient.trim(), message: message.trim() || undefined, designId });
     setCreated(card);
     setRecipient('');
     setMessage('');
@@ -56,6 +65,15 @@ export function GiftsView() {
   };
 
   const submitRedeem = () => setRedeemStatus(redeemGift(code) ? 'ok' : 'bad');
+
+  const design = giftDesignById(designId);
+  const designs = giftDesignsFor(occasion, lang);
+  // Picking an occasion picks its first card too (in the reader's language),
+  // so the preview never shows a card from another occasion.
+  const pickOccasion = (id: GiftOccasion) => {
+    setOccasion(id);
+    setDesignId(giftDesignsFor(id, lang)[0].id);
+  };
 
   return (
     <div className="container-content py-xl">
@@ -92,7 +110,8 @@ export function GiftsView() {
                   <button
                     key={o.id}
                     type="button"
-                    onClick={() => setOccasion(o.id)}
+                    onClick={() => pickOccasion(o.id)}
+                    aria-pressed={occasion === o.id}
                     className={cn(
                       'rounded-pill border px-4 py-2 text-sm font-bold transition-colors',
                       occasion === o.id
@@ -100,7 +119,31 @@ export function GiftsView() {
                         : 'border-neutral-warm hover:border-primary',
                     )}
                   >
-                    {lang === 'ar' ? o.ar : o.en}
+                    {lang === 'ar' ? o.titleAr : o.titleEn}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Design — the occasion's cards, the reader's language first */}
+            <div>
+              <h2 className="mb-3 text-sm font-bold uppercase tracking-wide text-text-secondary">
+                {t('design')}
+              </h2>
+              <div className="grid grid-cols-2 gap-3" role="radiogroup" aria-label={t('design')}>
+                {designs.map((d) => (
+                  <button
+                    key={d.id}
+                    type="button"
+                    role="radio"
+                    aria-checked={designId === d.id}
+                    onClick={() => setDesignId(d.id)}
+                    className={cn(
+                      'rounded-lg p-1 outline-offset-2 transition-shadow',
+                      designId === d.id ? 'ring-2 ring-primary' : 'ring-1 ring-neutral-warm hover:ring-primary',
+                    )}
+                  >
+                    <GiftArt design={d} sizes="(min-width: 1024px) 240px, 45vw" />
                   </button>
                 ))}
               </div>
@@ -160,16 +203,13 @@ export function GiftsView() {
 
           {/* Preview / created code */}
           <div className="h-fit space-y-4">
-            <div
-              className="flex aspect-[1.6] flex-col justify-between rounded-xl bg-gradient-rainbow p-6 text-primary-dark"
-            >
-              <Gift className="h-8 w-8" />
-              <div>
-                <p className="text-sm opacity-80">
-                  {GIFT_OCCASIONS.find((o) => o.id === occasion)?.[lang === 'ar' ? 'ar' : 'en']}
-                </p>
-                <p className="text-display font-bold leading-none">{formatJOD(amount, lang)}</p>
-              </div>
+            {/* The card exactly as drawn; the personal details travel with it,
+                never on it (design brief: "inside the envelope"). */}
+            <GiftArt design={design} sizes="(min-width: 1024px) 420px, 100vw" priority />
+            <div className="rounded-lg border-2 border-dashed border-neutral-warm bg-card p-4 text-center">
+              <p className="text-xxl font-bold text-primary-dark">{formatJOD(amount, lang)}</p>
+              {recipient.trim() && <p className="mt-1 font-bold">{t('to', { name: recipient.trim() })}</p>}
+              {message.trim() && <p className="mt-1 text-sm text-text-secondary">{lang === 'ar' ? `«${message.trim()}»` : `“${message.trim()}”`}</p>}
             </div>
 
             {created && (
@@ -224,6 +264,7 @@ export function GiftsView() {
           <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {giftsSent.map((g) => (
               <div key={g.id} className="rounded-lg border border-neutral-warm bg-card p-4 shadow-card">
+                <GiftArt design={giftDesignById(g.designId)} sizes="(min-width: 1024px) 300px, 90vw" className="mb-3" />
                 <div className="flex items-center justify-between">
                   <span className="font-bold text-primary">{formatJOD(g.amount, lang)}</span>
                   {g.redeemed && (
@@ -239,6 +280,26 @@ export function GiftsView() {
           </div>
         </section>
       )}
+    </div>
+  );
+}
+
+/** One card's artwork at the card's own ratio (CR80, 243 × 153). */
+function GiftArt({ design, sizes, priority, className }: { design: GiftDesign; sizes: string; priority?: boolean; className?: string }) {
+  return (
+    <div
+      className={cn('relative aspect-[243/153] w-full overflow-hidden rounded-lg', className)}
+      style={{ backgroundColor: design.bg }}
+    >
+      <Image
+        src={`/gift-cards/${design.id}.webp`}
+        alt={design.phrase}
+        lang={design.lang}
+        fill
+        sizes={sizes}
+        priority={priority}
+        className="object-cover"
+      />
     </div>
   );
 }

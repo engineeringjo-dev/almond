@@ -104,7 +104,8 @@ describe('loyaltyStore', () => {
 
   it('a sent gift is redeemable once (case/space-insensitive), then falls to the demo path', async () => {
     const s = await load();
-    const card = s.getState().sendGift({ amount: 15, recipientName: 'Sara', occasion: 'birthday' });
+    const card = s.getState().sendGift({ amount: 15, recipientName: 'Sara', designId: 'ar03' });
+    expect(card.designId).toBe('ar03');
     const w0 = s.getState().walletBalance;
     expect(s.getState().redeemGift(`  ${card.code.toLowerCase()} `)).toBe(true);
     expect(s.getState().walletBalance).toBeCloseTo(w0 + 15, 9);

@@ -150,7 +150,7 @@ function seedGifts() {
   if (giftsSeeded) return;
   giftsSeeded = true;
   gifts.set('ALM-GIFT-2026', {
-    id: genId('gift'), code: 'ALM-GIFT-2026', designId: 'anytime-treat', amount: 5,
+    id: genId('gift'), code: 'ALM-GIFT-2026', designId: 'ar02', amount: 5,
     recipientName: '', senderId: 'demo', createdAt: new Date().toISOString(), redeemed: false,
   });
 }

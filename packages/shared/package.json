@@ -42,6 +42,7 @@
     "./lib/sha256": "./src/lib/sha256.ts",
     "./lib/recommendations": "./src/lib/recommendations.ts",
     "./cart": "./src/cart/index.ts",
+    "./gifts": "./src/gifts/designs.ts",
     "./lib/calendar": "./src/lib/calendar.ts",
     "./lib/ammanWeekday": "./src/lib/ammanWeekday.ts"
   },

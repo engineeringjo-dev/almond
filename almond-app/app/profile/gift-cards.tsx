@@ -14,11 +14,12 @@ import { useI18n } from '@/hooks/useI18n';
 import { formatJOD, formatDate } from '@/lib/format';
 import { useSentGifts } from '@/hooks/useLoyalty';
 import {
-  GIFT_DESIGNS,
+  FEATURED_GIFT_DESIGN_ID,
   GIFT_OCCASIONS,
-  giftDesignsByOccasion,
+  giftDesignById,
+  giftDesignsFor,
   type GiftDesign,
-} from '@/lib/giftDesigns';
+} from '@almond/shared/gifts';
 
 export default function GiftCardsScreen() {
   const { t, lang } = useI18n();
@@ -26,7 +27,7 @@ export default function GiftCardsScreen() {
   const [selected, setSelected] = useState<GiftDesign | null>(null);
   const [redeemOpen, setRedeemOpen] = useState(false);
 
-  const featured = GIFT_DESIGNS[2]; // a colourful birthday card as the hero
+  const featured = giftDesignById(FEATURED_GIFT_DESIGN_ID); // the core premium edition
 
   return (
     <>
@@ -53,7 +54,7 @@ export default function GiftCardsScreen() {
 
         {/* Occasions */}
         {GIFT_OCCASIONS.map((occ) => {
-          const designs = giftDesignsByOccasion(occ.id);
+          const designs = giftDesignsFor(occ.id, lang);
           if (designs.length === 0) return null;
           return (
             <View key={occ.id} style={styles.section}>
