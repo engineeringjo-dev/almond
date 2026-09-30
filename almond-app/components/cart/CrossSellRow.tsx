@@ -9,6 +9,7 @@ import { useI18n } from '@/hooks/useI18n';
 import { formatJOD } from '@/lib/format';
 import { iconForCategory } from '@/lib/productIcon';
 import { getCartCrossSell, getComboUpsell } from '@/lib/recommendations';
+import { quickAdd, quickAddPrice } from '@/lib/pairings';
 import { useCartStore } from '@/stores/cartStore';
 import type { CartItem } from '@/types';
 import { itemFromPrice } from '@almond/shared/menu';
@@ -29,6 +30,12 @@ export function CrossSellRow({ items }: { items: CartItem[] }) {
   const comboPoints = config.COMBO_BONUS_POINTS;
   if (suggestions.length === 0 && !upsell) return null;
 
+  // What the banner adds, named and priced BEFORE the tap. It used to show
+  // only the offer and «أضف واكسب», so one tap put a 4.900 JOD item nobody had
+  // seen into the basket at the payment step (audit P1).
+  const comboName = upsell ? (lang === 'ar' ? upsell.item.nameAr : upsell.item.nameEn) : '';
+  const comboPrice = upsell ? formatJOD(quickAddPrice(upsell.item), lang) : '';
+
   return (
     <View>
       <Text variant="title" style={styles.heading}>
@@ -43,17 +50,28 @@ export function CrossSellRow({ items }: { items: CartItem[] }) {
         <Pressable
           style={styles.comboBanner}
           onPress={() => {
-            addItem(upsell.item, upsell.item.sizes[0], [], 1);
+            quickAdd(addItem, upsell.item);
             setAdded((p) => ({ ...p, [upsell.item.id]: true }));
           }}
           accessibilityRole="button"
+          accessibilityLabel={t('cart.comboAddItem', {
+            name: comboName,
+            price: comboPrice,
+            points: comboPoints,
+          })}
         >
           <Text style={styles.comboEmoji}>🍽️</Text>
-          <Text variant="bodyBold" color={colors.dark} style={styles.comboText}>
-            {upsell.missing === 'food'
-              ? t('cart.comboAddFood', { points: comboPoints })
-              : t('cart.comboAddDrink', { points: comboPoints })}
-          </Text>
+          <View style={styles.comboText}>
+            <Text variant="caption" color={colors.dark}>
+              {upsell.missing === 'food'
+                ? t('cart.comboAddFood', { points: comboPoints })
+                : t('cart.comboAddDrink', { points: comboPoints })}
+            </Text>
+            <Text variant="bodyBold" color={colors.dark}>
+              {comboName}
+            </Text>
+            <Text variant="price">{comboPrice}</Text>
+          </View>
           <View style={styles.comboCta}>
             <Text variant="caption" color={colors.dark} style={styles.addLabel}>
               {added[upsell.item.id] ? t('menu.added') : t('cart.addCombo')}
@@ -110,7 +128,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
   },
   comboEmoji: { fontSize: 20 },
-  comboText: { flex: 1 },
+  comboText: { flex: 1, gap: 2 },
   comboCta: {
     backgroundColor: colors.gold,
     borderRadius: radius.sm,

@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll, beforeEach } from 'vitest';
 
-import { addSheetToCart, quickAddPrice, sheetTotal, togglePairing } from '@/lib/pairings';
-import { getItemPairings } from '@/lib/recommendations';
+import { addSheetToCart, quickAdd, quickAddPrice, sheetTotal, togglePairing } from '@/lib/pairings';
+import { getComboUpsell, getItemPairings } from '@/lib/recommendations';
 import { useCartStore, computeTotals } from '@/stores/cartStore';
 import { menuItems } from '@almond/shared/menu';
 import { itemKind } from '@almond/shared/lib/categoryKind';
@@ -86,5 +86,26 @@ describe('P3 the chip quotes the price the cart will charge', () => {
       if (item.sizes.length === 0) continue;
       expect(quickAddPrice(item), item.id).toBe(item.sizes[0].price);
     }
+  });
+});
+
+describe('P4 the cart combo banner charges exactly what it names', () => {
+  it('one tap adds the named item, once, at the price on the banner', () => {
+    if (!drink) return;
+    const { addItem } = useCartStore.getState();
+    addItem(drink, drink.sizes[0], [], 1);
+    const upsell = getComboUpsell(useCartStore.getState().items);
+    expect(upsell, 'a lone drink should be offered the food half of the combo').not.toBeNull();
+    if (!upsell) return;
+
+    const before = computeTotals(useCartStore.getState().items, 0).subtotal;
+    quickAdd(addItem, upsell.item);
+    const items = useCartStore.getState().items;
+    const added = items.filter((l) => l.itemId === upsell.item.id);
+
+    expect(added).toHaveLength(1);
+    expect(added[0].qty).toBe(1);
+    expect(added[0].nameAr).toBe(upsell.item.nameAr);
+    expect(computeTotals(items, 0).subtotal - before).toBeCloseTo(quickAddPrice(upsell.item), 6);
   });
 });

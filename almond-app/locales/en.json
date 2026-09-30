@@ -197,7 +197,8 @@
     "branchLoading": "Loading branches…",
     "branchError": "Couldn't load branches — tap to try again",
     "branchChoose": "Choose a branch",
-    "reviewNeedsBranch": "Choose a branch to review your order"
+    "reviewNeedsBranch": "Choose a branch to review your order",
+    "comboAddItem": "Add {{name}} for {{price}} and earn {{points}} points"
   },
   "payment": {
     "cash": "Cash",

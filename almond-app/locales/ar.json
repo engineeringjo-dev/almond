@@ -197,7 +197,8 @@
     "branchLoading": "جارٍ تحميل الفروع…",
     "branchError": "تعذّر تحميل الفروع — اضغط لإعادة المحاولة",
     "branchChoose": "اختر الفرع",
-    "reviewNeedsBranch": "اختر فرعاً لتتمكّن من مراجعة طلبك"
+    "reviewNeedsBranch": "اختر فرعاً لتتمكّن من مراجعة طلبك",
+    "comboAddItem": "أضف {{name}} بسعر {{price}} واكسب {{points}} نقطة"
   },
   "payment": {
     "cash": "نقداً",

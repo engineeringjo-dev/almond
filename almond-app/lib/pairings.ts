@@ -34,6 +34,12 @@ export function sheetTotal(unit: number, qty: number, staged: readonly MenuItem[
 
 type AddItem = (item: MenuItem, size: ItemSize, customizations: CartCustomization[], qty: number) => void;
 
+/** One tap, one unit, no choices — the line quickAddPrice() quoted. */
+export function quickAdd(addItem: AddItem, item: MenuItem): void {
+  const size = item.sizes[0];
+  if (size) addItem(item, size, [], 1);
+}
+
 /** «أضف للسلة»: the configured item, then each staged pairing, once. */
 export function addSheetToCart(
   addItem: AddItem,
@@ -41,8 +47,5 @@ export function addSheetToCart(
   staged: readonly MenuItem[],
 ): void {
   addItem(line.item, line.size, line.customizations, line.qty);
-  for (const p of staged) {
-    const size = p.sizes[0];
-    if (size) addItem(p, size, [], 1);
-  }
+  for (const p of staged) quickAdd(addItem, p);
 }
