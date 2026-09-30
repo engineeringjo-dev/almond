@@ -336,6 +336,14 @@ test.describe('App design system: axe', () => {
     ['cart', async (page: Page) => { await addLatte(page); await page.goto(appUrl('/cart')); await expect(page.getByRole('button', { name: /مراجعة الطلب/ })).toBeVisible({ timeout: 20_000 }); }],
   ] as const) {
     test(`no serious or critical violations: ${label}`, async ({ page }) => {
+      // Measure the settled screen, not an entrance animation. The menu cards
+      // fade in (FadeIn, staggered 30ms each over 300ms); on a slow CI runner
+      // axe sampled the text mid-fade — semi-transparent over the background —
+      // and flagged contrast the finished screen does not have. Reduced motion
+      // renders every FadeIn at opacity 1, so axe checks the colours the
+      // customer actually reads. Precedent: Deque's axe guidance is to scan a
+      // page in a stable state, after animations complete.
+      await page.emulateMedia({ reducedMotion: 'reduce' });
       await seedApp(page, { signedIn: true });
       await go(page);
       const { blocking, summary } = await blockingViolations(page);
