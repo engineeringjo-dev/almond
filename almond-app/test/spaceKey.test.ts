@@ -2,7 +2,15 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
-import { createSpaceHandlers, spaceAction, type KeyEventLike, type KeyTarget } from '@/lib/spaceKey';
+import {
+  arrowStep,
+  arrowTargetIndex,
+  createArrowHandler,
+  createSpaceHandlers,
+  spaceAction,
+  type KeyEventLike,
+  type KeyTarget,
+} from '@/lib/spaceKey';
 
 /**
  * K1-K3 — SPACE DOES WHAT THE ROLE PROMISES (WAI-ARIA), ON THE WEB BUILD.
@@ -113,5 +121,78 @@ describe('K3 installed once, at the app root', () => {
   it('app/_layout calls applySpaceActivation at module load', () => {
     const s = readFileSync(join(__dirname, '..', 'app/_layout.tsx'), 'utf8');
     expect(s).toMatch(/^applySpaceActivation\(\);$/m);
+  });
+});
+
+describe('K4 arrows move within a radiogroup or tablist (WAI-ARIA APG)', () => {
+  it('next/previous follow the reading direction; radios also take Up/Down; tabs Home/End', () => {
+    expect(arrowStep('ArrowRight', 'radio', false)).toBe(1);
+    expect(arrowStep('ArrowLeft', 'radio', false)).toBe(-1);
+    expect(arrowStep('ArrowLeft', 'tab', true)).toBe(1); // RTL: left is forward
+    expect(arrowStep('ArrowRight', 'tab', true)).toBe(-1);
+    expect(arrowStep('ArrowDown', 'radio', true)).toBe(1);
+    expect(arrowStep('ArrowUp', 'radio', false)).toBe(-1);
+    expect(arrowStep('ArrowDown', 'tab', false)).toBeNull(); // horizontal tablist
+    expect(arrowStep('Home', 'tab', false)).toBe('first');
+    expect(arrowStep('End', 'tab', true)).toBe('last');
+    expect(arrowStep('Home', 'radio', false)).toBeNull();
+    expect(arrowStep('a', 'tab', false)).toBeNull();
+  });
+
+  it('wraps at both ends', () => {
+    expect(arrowTargetIndex(4, 3, 1)).toBe(0);
+    expect(arrowTargetIndex(4, 0, -1)).toBe(3);
+    expect(arrowTargetIndex(4, 1, 'last')).toBe(3);
+    expect(arrowTargetIndex(4, 2, 'first')).toBe(0);
+  });
+
+  type Node = KeyTarget & { events: string[]; clicks: number; focused: boolean };
+  function group(role: 'radio' | 'tab', n: number, tag = 'DIV') {
+    const items: Node[] = [];
+    const container = { querySelectorAll: () => items };
+    for (let i = 0; i < n; i += 1) {
+      const base = el(tag, { role }) as Node;
+      base.focused = false;
+      base.focus = () => { items.forEach((x) => { x.focused = false; }); base.focused = true; };
+      base.closest = () => container;
+      items.push(base);
+    }
+    return items;
+  }
+  const enter = (type: 'keydown' | 'keyup') => `Enter:${type}`;
+
+  it('an arrow on a radio focuses and checks the next one (RTL: ArrowLeft)', () => {
+    const radios = group('radio', 3);
+    const onArrow = createArrowHandler(enter, () => true);
+    const e = key('ArrowLeft', radios[0]);
+    onArrow(e);
+    expect(e.prevented).toBe(true);
+    expect(radios[1].focused).toBe(true);
+    expect(radios[1].events).toEqual(['Enter:keydown', 'Enter:keyup']);
+    expect(radios[0].events).toEqual([]);
+  });
+
+  it('a tab that is a link (the tab bar) only takes focus', () => {
+    const tabs = group('tab', 3, 'A');
+    createArrowHandler(enter, () => false)(key('ArrowRight', tabs[2]));
+    expect(tabs[0].focused).toBe(true);
+    expect(tabs[0].events).toEqual([]);
+    expect(tabs[0].clicks).toBe(0);
+  });
+
+  it('other roles, modified arrows and an element outside a group are untouched', () => {
+    const onArrow = createArrowHandler(enter, () => false);
+    const box = el('DIV', { role: 'checkbox' });
+    const e1 = key('ArrowRight', box);
+    onArrow(e1);
+    expect(e1.prevented).toBe(false);
+    const radios = group('radio', 2);
+    const e2 = key('ArrowRight', radios[0], { altKey: true });
+    onArrow(e2);
+    expect(e2.prevented).toBe(false);
+    const lone = { ...el('DIV', { role: 'radio' }), closest: () => null };
+    const e3 = key('ArrowRight', lone);
+    onArrow(e3);
+    expect(e3.prevented).toBe(false);
   });
 });

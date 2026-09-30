@@ -17,6 +17,13 @@ import { Platform } from 'react-native';
  * Native controls (button, input, textarea, select) keep their own behaviour;
  * a link with a role (the tab bar's <a role="tab">) is clicked, since
  * react-native-web leaves keyboard presses on links to the browser.
+ *
+ * ARROWS, as the WAI-ARIA Authoring Practices radio-group and tabs patterns
+ * do: inside a radiogroup, an arrow moves to the previous/next radio and checks
+ * it (wrapping); inside a tablist, Left/Right (mirrored in RTL) and Home/End
+ * move to a tab and select it — automatic activation, since a sub-tab or a
+ * category switches instantly. A tab that is a link (the tab bar) only takes
+ * focus (manual activation): an arrow must not navigate between sections.
  */
 
 const SPACE_ROLES = new Set(['radio', 'checkbox', 'switch', 'tab', 'option', 'menuitemradio', 'menuitemcheckbox']);
@@ -29,6 +36,8 @@ export interface KeyTarget {
   isContentEditable?: boolean;
   dispatchEvent(event: unknown): boolean;
   click(): void;
+  focus?(): void;
+  closest?(selector: string): { querySelectorAll(selector: string): ArrayLike<unknown> } | null;
 }
 
 /** The part of a KeyboardEvent this module reads. */
@@ -89,6 +98,56 @@ export function createSpaceHandlers(makeEnter: (type: 'keydown' | 'keyup') => un
   return { onKeyDown, onKeyUp };
 }
 
+export type ArrowStep = -1 | 1 | 'first' | 'last';
+
+/** Where an arrow key moves within a radiogroup or tablist (APG), or null. */
+export function arrowStep(key: string, role: 'radio' | 'tab', rtl: boolean): ArrowStep | null {
+  if (key === (rtl ? 'ArrowLeft' : 'ArrowRight')) return 1;
+  if (key === (rtl ? 'ArrowRight' : 'ArrowLeft')) return -1;
+  if (role === 'radio' && key === 'ArrowDown') return 1;
+  if (role === 'radio' && key === 'ArrowUp') return -1;
+  if (role === 'tab' && key === 'Home') return 'first';
+  if (role === 'tab' && key === 'End') return 'last';
+  return null;
+}
+
+/** The index `step` lands on among `count` items from `current`, wrapping. */
+export function arrowTargetIndex(count: number, current: number, step: ArrowStep): number {
+  if (step === 'first') return 0;
+  if (step === 'last') return count - 1;
+  return (current + step + count) % count;
+}
+
+/**
+ * The arrow listener, apart from any document. `isRtl` reads the document's
+ * direction at the moment of the key press (the language can change).
+ */
+export function createArrowHandler(makeEnter: (type: 'keydown' | 'keyup') => unknown, isRtl: () => boolean) {
+  return (e: KeyEventLike): void => {
+    if (e.altKey || e.ctrlKey || e.metaKey || e.shiftKey) return;
+    const el = e.target;
+    if (!isKeyTarget(el) || typeof el.closest !== 'function') return;
+    const role = el.getAttribute('role');
+    if (role !== 'radio' && role !== 'tab') return;
+    const step = arrowStep(e.key, role, isRtl());
+    if (step === null) return;
+    const group = el.closest(role === 'radio' ? '[role="radiogroup"]' : '[role="tablist"]');
+    if (!group) return;
+    const items = Array.from(group.querySelectorAll(`[role="${role}"]`)).filter(
+      (n): n is KeyTarget => isKeyTarget(n) && n.getAttribute('aria-disabled') !== 'true',
+    );
+    const index = items.indexOf(el);
+    if (index < 0) return;
+    e.preventDefault(); // no horizontal scroll of the chip row
+    const next = items[arrowTargetIndex(items.length, index, step)];
+    if (next === el) return;
+    next.focus?.();
+    if (next.tagName.toUpperCase() === 'A') return; // a section link: focus only
+    next.dispatchEvent(makeEnter('keydown'));
+    next.dispatchEvent(makeEnter('keyup'));
+  };
+}
+
 interface ListenerTarget {
   addEventListener(type: string, fn: (e: KeyEventLike) => void, capture: boolean): void;
   removeEventListener(type: string, fn: (e: KeyEventLike) => void, capture: boolean): void;
@@ -98,12 +157,16 @@ interface ListenerTarget {
 export function installSpaceActivation(
   doc: ListenerTarget,
   makeEnter: (type: 'keydown' | 'keyup') => unknown,
+  isRtl: () => boolean = () => false,
 ): () => void {
   const { onKeyDown, onKeyUp } = createSpaceHandlers(makeEnter);
+  const onArrow = createArrowHandler(makeEnter, isRtl);
   doc.addEventListener('keydown', onKeyDown, true);
+  doc.addEventListener('keydown', onArrow, true);
   doc.addEventListener('keyup', onKeyUp, true);
   return () => {
     doc.removeEventListener('keydown', onKeyDown, true);
+    doc.removeEventListener('keydown', onArrow, true);
     doc.removeEventListener('keyup', onKeyUp, true);
   };
 }
@@ -117,5 +180,6 @@ export function applySpaceActivation(): void {
   installSpaceActivation(
     document as unknown as ListenerTarget,
     (type) => new KeyboardEvent(type, { key: 'Enter', code: 'Enter', bubbles: true, cancelable: true }),
+    () => document.documentElement.dir === 'rtl',
   );
 }
