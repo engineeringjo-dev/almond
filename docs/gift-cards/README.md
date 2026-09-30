@@ -1,5 +1,7 @@
 # Gift cards — approved designs
 
+Implementation plan (Odoo, accounting, app): [`CLAUDE_CODE_PLAN.md`](CLAUDE_CODE_PLAN.md).
+
 Approved by the GM on 2026-09-30 («نعتمد هذول»).
 
 ## Printed cards (`print/`)
