@@ -1,4 +1,5 @@
 import type { CartCustomization, ItemSize, MenuItem } from '@/types';
+import { LIST_SEPARATOR } from '@/lib/cartLineText';
 
 /**
  * «يُطلب عادةً مع» — THE PAIRINGS IN THE ITEM SHEET.
@@ -27,9 +28,29 @@ export function togglePairing(staged: readonly string[], id: string): string[] {
   return staged.includes(id) ? staged.filter((x) => x !== id) : [...staged, id];
 }
 
+/** What the staged pairings add to the CTA total — each once. */
+export function stagedPairingsTotal(staged: readonly MenuItem[]): number {
+  return staged.reduce((sum, p) => sum + quickAddPrice(p), 0);
+}
+
 /** The sheet's CTA total: the configured item × qty, plus each staged pairing once. */
 export function sheetTotal(unit: number, qty: number, staged: readonly MenuItem[]): number {
-  return unit * qty + staged.reduce((sum, p) => sum + quickAddPrice(p), 0);
+  return unit * qty + stagedPairingsTotal(staged);
+}
+
+/**
+ * The line above «أضف للسلة» while pairings are ticked: «يشمل المجموع: كرواسون،
+ * مافن (+4.650 د.أ)». The CTA total already counted them; without this line a
+ * customer saw the number jump and not why (owner's question, 2026-09-30).
+ * `null` when nothing is staged — the line is not drawn at all.
+ */
+export function stagedPairingsLine(
+  staged: readonly MenuItem[],
+  lang: 'ar' | 'en',
+): { names: string; total: number } | null {
+  if (staged.length === 0) return null;
+  const names = staged.map((p) => (lang === 'ar' ? p.nameAr : p.nameEn)).join(LIST_SEPARATOR[lang]);
+  return { names, total: stagedPairingsTotal(staged) };
 }
 
 type AddItem = (item: MenuItem, size: ItemSize, customizations: CartCustomization[], qty: number) => void;

@@ -14,7 +14,7 @@ import { formatJOD } from '@/lib/format';
 import { iconForCategory } from '@/lib/productIcon';
 import { nutritionFor } from '@/lib/nutrition';
 import { getSizeUpsell, getItemPairings } from '@/lib/recommendations';
-import { addSheetToCart, quickAddPrice, sheetTotal, togglePairing } from '@/lib/pairings';
+import { addSheetToCart, quickAddPrice, sheetTotal, stagedPairingsLine, togglePairing } from '@/lib/pairings';
 import { choiceA11y, choiceGroupA11y } from '@/lib/a11y';
 import { useCartStore } from '@/stores/cartStore';
 import { useFavouritesStore } from '@/stores/favouritesStore';
@@ -80,6 +80,8 @@ export function ItemModal({ item, visible, onClose }: Props) {
   // The button says what one tap will put in the cart: this item × qty and
   // every ticked pairing once.
   const total = sheetTotal(unit, qty, stagedItems);
+  // …and says what is in it beyond this item, so the jump is explained.
+  const includes = stagedPairingsLine(stagedItems, lang);
 
   const toggle = (groupId: string, optId: string, multiple: boolean) => {
     setSelected((prev) => {
@@ -109,7 +111,19 @@ export function ItemModal({ item, visible, onClose }: Props) {
       visible={visible}
       onClose={onClose}
       footer={
-        <Button title={`${t('menu.addToCart')} · ${formatJOD(total, lang)}`} onPress={onAdd} />
+        <View style={styles.footer}>
+          <View aria-live="polite">
+            {includes ? (
+              <Text variant="caption" color={colors.dark} center>
+                {t('menu.totalIncludes', {
+                  items: includes.names,
+                  price: formatJOD(includes.total, lang),
+                })}
+              </Text>
+            ) : null}
+          </View>
+          <Button title={`${t('menu.addToCart')} · ${formatJOD(total, lang)}`} onPress={onAdd} />
+        </View>
       }
     >
       <View style={styles.header}>
@@ -147,7 +161,7 @@ export function ItemModal({ item, visible, onClose }: Props) {
             <View style={styles.nutrition}>
               <View style={styles.nutriPill}>
                 <Icon name="flame" size={13} color={colors.dark} strokeWidth={2} />
-                <Text variant="caption" color={colors.dark}>{t('menu.calories', { n: n.calories })}</Text>
+                <Text variant="caption" color={colors.dark}>{t('menu.calories', { count: n.calories })}</Text>
               </View>
               <View style={styles.nutriPill}>
                 <Icon name="candy" size={13} color={colors.dark} strokeWidth={2} />
@@ -177,7 +191,7 @@ export function ItemModal({ item, visible, onClose }: Props) {
                 string. This banner promised «save 1.000 JOD» for months after
                 BRUNCH_COMBO_DISCOUNT went to 0 and the offer became points:
                 a discount the till no longer gave, printed beside the price. */}
-            {t('menu.brunchOffer', { points: comboPoints })}
+            {t('menu.brunchOffer', { count: comboPoints, points: comboPoints })}
           </Text>
         </View>
       ) : null}
@@ -313,6 +327,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 
 const styles = StyleSheet.create({
   header: { alignItems: 'center', gap: 2, marginBottom: spacing.md },
+  footer: { gap: spacing.sm },
   favBtn: {
     position: 'absolute',
     top: 0,

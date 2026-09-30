@@ -6,6 +6,7 @@ import { colors, radius, spacing } from '@/constants/theme';
 import { useI18n } from '@/hooks/useI18n';
 import { formatJOD } from '@/lib/format';
 import { iconForItem } from '@/lib/productIcon';
+import { customizationText } from '@/lib/cartLineText';
 import { lineUnitPrice, useCartStore } from '@/stores/cartStore';
 import type { CartItem } from '@/types';
 
@@ -15,10 +16,7 @@ export function CartLine({ line }: { line: CartItem }) {
   const decLine = useCartStore((s) => s.decLine);
   const removeLine = useCartStore((s) => s.removeLine);
 
-  const custLabel = line.customizations
-    .map((c) => (lang === 'ar' ? c.nameAr : c.nameEn))
-    .join('، ');
-  const sizeLabel = lang === 'ar' ? line.sizeNameAr : line.sizeNameEn;
+  const detail = customizationText(line, lang);
   const lineTotal = lineUnitPrice(line) * line.qty;
   const name = lang === 'ar' ? line.nameAr : line.nameEn;
 
@@ -28,12 +26,10 @@ export function CartLine({ line }: { line: CartItem }) {
         <Icon name={iconForItem(line.itemId)} size={28} color={colors.brown} strokeWidth={1.7} />
       </View>
       <View style={styles.body}>
-        <Text variant="bodyBold" numberOfLines={1}>
-          {name}
-        </Text>
-        <Text variant="caption" color={colors.warmGray} numberOfLines={1}>
-          {sizeLabel}
-          {custLabel ? ` · ${custLabel}` : ''}
+        <Text variant="bodyBold">{name}</Text>
+        {/* Wrapped, never cut: which milk, which add-ons (audit P2). */}
+        <Text variant="caption" color={colors.warmGray}>
+          {detail}
         </Text>
         <Text variant="price" style={styles.price}>
           {formatJOD(lineTotal, lang)}
@@ -77,7 +73,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  emoji: { fontSize: 30 },
   body: { flex: 1, gap: 2 },
   price: { marginTop: spacing.xs },
   controls: { alignItems: 'center', justifyContent: 'space-between', gap: spacing.xs },

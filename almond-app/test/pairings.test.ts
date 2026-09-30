@@ -2,6 +2,7 @@ import { describe, it, expect, beforeAll, beforeEach } from 'vitest';
 
 import { addSheetToCart, quickAdd, quickAddPrice, sheetTotal, togglePairing } from '@/lib/pairings';
 import { getComboUpsell, getItemPairings } from '@/lib/recommendations';
+import { stagedPairingsLine } from '@/lib/pairings';
 import { useCartStore, computeTotals } from '@/stores/cartStore';
 import { menuItems } from '@almond/shared/menu';
 import { itemKind } from '@almond/shared/lib/categoryKind';
@@ -107,5 +108,19 @@ describe('P4 the cart combo banner charges exactly what it names', () => {
     expect(added[0].qty).toBe(1);
     expect(added[0].nameAr).toBe(upsell.item.nameAr);
     expect(computeTotals(items, 0).subtotal - before).toBeCloseTo(quickAddPrice(upsell.item), 6);
+  });
+});
+
+describe('P6 the sheet says what its total includes', () => {
+  it('names each staged pairing once and sums them; nothing staged, no line', () => {
+    expect(stagedPairingsLine([], 'ar')).toBeNull();
+    if (!drink) return;
+    const [a, b] = getItemPairings(drink, 4);
+    const line = stagedPairingsLine([a, b], 'ar');
+    expect(line?.names).toBe(`${a.nameAr}، ${b.nameAr}`);
+    expect(line?.total).toBeCloseTo(quickAddPrice(a) + quickAddPrice(b), 6);
+    expect(stagedPairingsLine([a, b], 'en')?.names).toBe(`${a.nameEn}, ${b.nameEn}`);
+    // The line and the CTA agree: item + line total = the button's total.
+    expect(sheetTotal(2, 1, [a, b])).toBeCloseTo(2 + (line?.total ?? 0), 6);
   });
 });

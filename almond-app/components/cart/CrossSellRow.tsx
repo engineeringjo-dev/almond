@@ -55,29 +55,31 @@ export function CrossSellRow({ items }: { items: CartItem[] }) {
           }}
           accessibilityRole="button"
           accessibilityLabel={t('cart.comboAddItem', {
+            count: comboPoints,
             name: comboName,
             price: comboPrice,
             points: comboPoints,
           })}
         >
-          <Text style={styles.comboEmoji}>🍽️</Text>
+          <Icon name="brunch" size={22} color={colors.dark} strokeWidth={1.9} />
           <View style={styles.comboText}>
             <Text variant="caption" color={colors.dark}>
+              {/* `count` picks the Arabic plural («٣ نقاط» / «٢٥ نقطة»). */}
               {upsell.missing === 'food'
-                ? t('cart.comboAddFood', { points: comboPoints })
-                : t('cart.comboAddDrink', { points: comboPoints })}
+                ? t('cart.comboAddFood', { count: comboPoints, points: comboPoints })
+                : t('cart.comboAddDrink', { count: comboPoints, points: comboPoints })}
             </Text>
             <Text variant="bodyBold" color={colors.dark}>
               {comboName}
             </Text>
-            {/* dark, not the violet price tint: violet on this banner is 4.18:1 */}
-            <Text variant="price" color={colors.dark}>
-              {comboPrice}
-            </Text>
           </View>
+          {/* The button carries the price it commits to — «أضف · 2.500 د.أ»,
+              the same shape as the item sheet's «أضف للسلة · …» — instead of
+              «أضف واكسب», which named neither the thing nor its cost. The
+              name sits beside it once; repeating it in the pill truncated. */}
           <View style={styles.comboCta}>
-            <Text variant="caption" color={colors.dark} style={styles.addLabel}>
-              {added[upsell.item.id] ? t('menu.added') : t('cart.addCombo')}
+            <Text variant="caption" color={colors.white} style={styles.addLabel}>
+              {added[upsell.item.id] ? t('menu.added') : t('cart.comboAddPrice', { price: comboPrice })}
             </Text>
           </View>
         </Pressable>
@@ -130,12 +132,12 @@ const styles = StyleSheet.create({
     padding: spacing.md,
     marginBottom: spacing.md,
   },
-  comboEmoji: { fontSize: 20 },
   comboText: { flex: 1, gap: 2 },
   comboCta: {
-    backgroundColor: colors.gold,
-    borderRadius: radius.sm,
-    paddingVertical: spacing.xs,
+    backgroundColor: colors.dark,
+    borderRadius: radius.pill,
+    minHeight: 44,
+    justifyContent: 'center',
     paddingHorizontal: spacing.md,
   },
   row: { gap: spacing.md, paddingEnd: spacing.lg },

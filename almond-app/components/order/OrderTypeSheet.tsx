@@ -7,13 +7,14 @@ import { Text } from '@/components/ui/Text';
 import { colors, spacing, radius } from '@/constants/theme';
 import { useI18n } from '@/hooks/useI18n';
 import { useCartStore } from '@/stores/cartStore';
+import type { BranchRef } from '@/lib/cartBranch';
 import { aggregatorService } from '@/services/aggregator.service';
 
 interface Props {
   visible: boolean;
   onClose: () => void;
   /** Optionally pre-select a branch (e.g. from "nearest branch"). */
-  branchId?: string;
+  branch?: BranchRef;
 }
 
 /**
@@ -21,14 +22,14 @@ interface Props {
  * Pickup → continues in-app (menu); Delivery → external redirect (§7.4) — never
  * completed in-app.
  */
-export function OrderTypeSheet({ visible, onClose, branchId }: Props) {
+export function OrderTypeSheet({ visible, onClose, branch }: Props) {
   const { t } = useI18n();
   const setOrderType = useCartStore((s) => s.setOrderType);
   const setBranch = useCartStore((s) => s.setBranch);
 
   const choosePickup = () => {
     setOrderType('pickup');
-    if (branchId) setBranch(branchId);
+    if (branch) setBranch(branch);
     onClose();
     router.push('/(tabs)/order');
   };

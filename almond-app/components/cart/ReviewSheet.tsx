@@ -5,10 +5,14 @@ import { Text } from '@/components/ui/Text';
 import { Button } from '@/components/ui/Button';
 import { Icon } from '@/components/ui/Icon';
 import { Summary } from '@/components/cart/Summary';
+import { BranchNotice } from '@/components/cart/BranchNotice';
 import { colors, spacing, radius } from '@/constants/theme';
 import { useI18n } from '@/hooks/useI18n';
 import { formatJOD } from '@/lib/format';
 import { iconForItem } from '@/lib/productIcon';
+import { paymentIcon } from '@/lib/paymentIcon';
+import { customizationText } from '@/lib/cartLineText';
+import type { BranchSwitch } from '@/lib/cartBranch';
 import { lineUnitPrice, type CartTotals } from '@/stores/cartStore';
 import { paymentMethods } from '@/services/seed';
 import type { CartItem, Branch, PaymentMethodId } from '@/types';
@@ -21,6 +25,8 @@ interface Props {
   totals: CartTotals;
   pointsToEarn?: number;
   branch?: Branch;
+  /** Set when the cart moved the order off the customer's branch. */
+  branchNotice?: BranchSwitch | null;
   estimate: PickupEstimate;
   isPickup: boolean;
   paymentMethod: PaymentMethodId;
@@ -40,6 +46,7 @@ export function ReviewSheet({
   totals,
   pointsToEarn,
   branch,
+  branchNotice,
   estimate,
   isPickup,
   paymentMethod,
@@ -66,39 +73,48 @@ export function ReviewSheet({
         </View>
       }
     >
-      {/* Branch + ready estimate */}
-      {isPickup && branch ? (
-        <View style={styles.branchRow}>
-          <Icon name="map-pin" size={18} color={colors.gold} />
-          <Text variant="bodyBold" style={styles.flex}>
-            {lang === 'ar' ? branch.nameAr : branch.nameEn}
-          </Text>
-          <Text variant="caption" color={colors.green}>
-            {estimate.readyOnArrival
-              ? t('cart.readyOnArrival')
-              : t('cart.readyIn', { min: estimate.prepMinutes })}
-          </Text>
+      {/* WHERE the order goes, for pickup AND dine-in (dine-in used to show
+          no branch at all), named in full — the last look before paying. When
+          the cart moved the order to another branch, the review says so too. */}
+      {branch ? (
+        <View style={styles.branchBlock}>
+          <View style={styles.branchRow}>
+            <Icon name="map-pin" size={20} color={colors.primary} />
+            <View style={styles.flex}>
+              <Text variant="caption" color={colors.warmGray}>
+                {isPickup ? t('cart.reviewPickupAt') : t('cart.reviewDineInAt')}
+              </Text>
+              <Text variant="title">{lang === 'ar' ? branch.nameAr : branch.nameEn}</Text>
+              {isPickup ? (
+                <Text variant="caption" color={colors.dark}>
+                  {estimate.readyOnArrival
+                    ? t('cart.readyOnArrival')
+                    : t('cart.readyIn', { count: estimate.prepMinutes })}
+                </Text>
+              ) : null}
+            </View>
+          </View>
+          {branchNotice ? <BranchNotice notice={branchNotice} /> : null}
         </View>
       ) : null}
 
       {/* Items with icons */}
       <View style={styles.items}>
         {items.map((line) => {
-          const custLabel = line.customizations
-            .map((c) => (lang === 'ar' ? c.nameAr : c.nameEn))
-            .join('، ');
+          const detail = customizationText(line, lang);
           return (
             <View key={line.lineId} style={styles.item}>
               <View style={styles.thumb}>
                 <Icon name={iconForItem(line.itemId)} size={24} color={colors.brown} strokeWidth={1.7} />
               </View>
               <View style={styles.flex}>
-                <Text variant="bodyBold" numberOfLines={1}>
+                <Text variant="bodyBold">
                   {line.qty}× {lang === 'ar' ? line.nameAr : line.nameEn}
                 </Text>
-                <Text variant="caption" color={colors.warmGray} numberOfLines={1}>
-                  {lang === 'ar' ? line.sizeNameAr : line.sizeNameEn}
-                  {custLabel ? ` · ${custLabel}` : ''}
+                {/* In full, wrapped: this is where the customer checks which
+                    milk and which add-ons they chose (it was cut to one line). */}
+                <Text variant="caption" color={colors.warmGray}>
+                  {detail}
                 </Text>
               </View>
               <Text variant="price">{formatJOD(lineUnitPrice(line) * line.qty, lang)}</Text>
@@ -113,9 +129,10 @@ export function ReviewSheet({
           <Text variant="caption" color={colors.warmGray}>
             {t('cart.paymentMethod')}
           </Text>
-          <Text variant="bodyBold">
-            {pm.emoji} {lang === 'ar' ? pm.nameAr : pm.nameEn}
-          </Text>
+          <View style={styles.payName}>
+            <Icon name={paymentIcon(pm.id)} size={18} color={colors.primary} strokeWidth={1.9} />
+            <Text variant="bodyBold">{lang === 'ar' ? pm.nameAr : pm.nameEn}</Text>
+          </View>
         </View>
       ) : null}
 
@@ -128,6 +145,7 @@ export function ReviewSheet({
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
+  branchBlock: { gap: spacing.sm, marginBottom: spacing.md },
   branchRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -135,10 +153,10 @@ const styles = StyleSheet.create({
     backgroundColor: colors.neutralWarm,
     borderRadius: radius.md,
     padding: spacing.md,
-    marginBottom: spacing.md,
   },
   items: { gap: spacing.md },
-  item: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
+  item: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.md },
+  payName: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
   thumb: {
     width: 44,
     height: 44,

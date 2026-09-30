@@ -1,7 +1,16 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeAll } from 'vitest';
 import { QueryClient, QueryObserver } from '@tanstack/react-query';
 
-import { resolveCartBranch, checkoutBlock } from '@/lib/cartBranch';
+import {
+  resolveCartBranch,
+  checkoutBlock,
+  branchSwitchCopy,
+  type BranchSwitch,
+  type CartBranchChoice,
+} from '@/lib/cartBranch';
+import { useCartStore } from '@/stores/cartStore';
+import ar from '@/locales/ar.json';
+import en from '@/locales/en.json';
 import { branchesQuery } from '@/lib/branchesQuery';
 import type { Branch } from '@/types';
 
@@ -14,6 +23,16 @@ import type { Branch } from '@/types';
  * query key carries the coordinates. B1 is what the cart shows, B2 whether
  * checkout may start and why not, B3 that a new fix no longer blanks the list.
  */
+
+// The real cart store persists through AsyncStorage, whose web build wants a
+// window.localStorage — the same shim pairings.test.ts uses.
+class MemoryStorage {
+  private map = new Map<string, string>();
+  getItem(k: string): string | null { return this.map.get(k) ?? null; }
+  setItem(k: string, v: string): void { this.map.set(k, String(v)); }
+  removeItem(k: string): void { this.map.delete(k); }
+  clear(): void { this.map.clear(); }
+}
 
 const branch = (id: string, isOpen: boolean): Branch => ({
   id,
@@ -29,23 +48,179 @@ const branch = (id: string, isOpen: boolean): Branch => ({
 
 describe('B1 resolveCartBranch', () => {
   const list = [branch('closed-near', false), branch('open-far', true), branch('chosen', true)];
+  const at = (id: string | null, extra: Partial<CartBranchChoice> = {}) =>
+    resolveCartBranch(list, { id, ...extra });
 
-  it('keeps the branch the customer chose while it is listed', () => {
-    expect(resolveCartBranch(list, 'chosen')?.id).toBe('chosen');
+  it('keeps the branch the customer chose while it is listed and open, with no notice', () => {
+    expect(at('chosen')).toEqual({ branch: list[2], switched: null });
   });
 
-  it('falls back to the nearest OPEN branch when none is chosen, or the choice is gone', () => {
-    expect(resolveCartBranch(list, null)?.id).toBe('open-far');
-    expect(resolveCartBranch(list, 'deleted-branch')?.id).toBe('open-far');
+  it('with no choice yet, shows the nearest OPEN branch and says nothing (nothing was taken away)', () => {
+    expect(at(null)).toEqual({ branch: list[1], switched: null });
   });
 
   it('takes the nearest when every branch is closed', () => {
-    expect(resolveCartBranch([branch('a', false), branch('b', false)], null)?.id).toBe('a');
+    expect(resolveCartBranch([branch('a', false), branch('b', false)], { id: null }).branch?.id).toBe('a');
   });
 
   it('is undefined — not a crash — while there is no list', () => {
-    expect(resolveCartBranch([], 'chosen')).toBeUndefined();
-    expect(resolveCartBranch([], null)).toBeUndefined();
+    expect(resolveCartBranch([], { id: 'chosen' })).toEqual({ branch: undefined, switched: null });
+    expect(resolveCartBranch([], { id: null })).toEqual({ branch: undefined, switched: null });
+  });
+});
+
+/**
+ * B4 — THE CART NEVER MOVES AN ORDER SILENTLY (owner, 2026-09-30).
+ *
+ * The saved branch leaving the list used to re-point the order at the nearest
+ * open branch without a word. Every move now comes back with its reason and
+ * both names; a closed branch picked on purpose in this session stays.
+ */
+describe('B4 a switch is reported, with its reason and both names', () => {
+  const list = [branch('closed-near', false), branch('open-far', true), branch('chosen', true)];
+  const khalda = { nameAr: 'خلدا', nameEn: 'Khalda' };
+
+  it('the saved branch left the list → nearest open, reason `unavailable`, named from the saved name', () => {
+    expect(resolveCartBranch(list, { id: 'khalda', names: khalda })).toEqual({
+      branch: list[1],
+      switched: {
+        reason: 'unavailable',
+        from: khalda,
+        to: { id: 'open-far', nameAr: 'open-far', nameEn: 'open-far' },
+        toOpen: true,
+      },
+    });
+  });
+
+  it('a cart saved before names were kept still gets the notice, unnamed', () => {
+    const r = resolveCartBranch(list, { id: 'khalda' });
+    expect(r.switched).toMatchObject({ reason: 'unavailable', from: null, toOpen: true });
+  });
+
+  it('the saved branch is listed but CLOSED now → nearest open, reason `closed`', () => {
+    const r = resolveCartBranch(list, { id: 'closed-near', names: { nameAr: 'x', nameEn: 'x' } });
+    expect(r.branch?.id).toBe('open-far');
+    expect(r.switched).toEqual({
+      reason: 'closed',
+      from: { id: 'closed-near', nameAr: 'closed-near', nameEn: 'closed-near' },
+      to: { id: 'open-far', nameAr: 'open-far', nameEn: 'open-far' },
+      toOpen: true,
+    });
+  });
+
+  it('a closed branch picked in THIS session is kept — the customer chose it knowing', () => {
+    expect(resolveCartBranch(list, { id: 'closed-near', pinned: true })).toEqual({ branch: list[0], switched: null });
+  });
+
+  it('a closed choice stays when nothing is open (there is nowhere better to go)', () => {
+    const allClosed = [branch('a', false), branch('b', false)];
+    expect(resolveCartBranch(allClosed, { id: 'b' })).toEqual({ branch: allClosed[1], switched: null });
+  });
+
+  it('a vanished choice with every branch closed names the nearest, and says it is closed', () => {
+    const allClosed = [branch('a', false), branch('b', false)];
+    const r = resolveCartBranch(allClosed, { id: 'gone', names: khalda });
+    expect(r.branch?.id).toBe('a');
+    expect(r.switched).toMatchObject({ reason: 'unavailable', toOpen: false });
+  });
+
+  it('unknown open-ness is not "closed" — no switch on a list without hours', () => {
+    const unknown = [{ ...branch('u', true), isOpen: undefined }, branch('o', true)];
+    expect(resolveCartBranch(unknown, { id: 'u' }).switched).toBeNull();
+  });
+});
+
+describe('B5 the sentence the customer reads', () => {
+  const to = { id: 'rabyeh', nameAr: 'الرابية', nameEn: 'Rabyeh' };
+  const from = { nameAr: 'خلدا', nameEn: 'Khalda' };
+
+  it('names both branches, in the reader\'s language', () => {
+    expect(branchSwitchCopy({ reason: 'unavailable', from, to, toOpen: true }, 'ar')).toEqual({
+      key: 'cart.branchSwitchGone',
+      params: { from: 'خلدا', to: 'الرابية' },
+    });
+    expect(branchSwitchCopy({ reason: 'closed', from, to, toOpen: true }, 'en')).toEqual({
+      key: 'cart.branchSwitchClosed',
+      params: { from: 'Khalda', to: 'Rabyeh' },
+    });
+  });
+
+  it('never claims the new branch is open when it is not, and never invents a name', () => {
+    expect(branchSwitchCopy({ reason: 'unavailable', from, to, toOpen: false }, 'ar').key).toBe(
+      'cart.branchSwitchGoneAllClosed',
+    );
+    expect(branchSwitchCopy({ reason: 'unavailable', from: null, to, toOpen: true }, 'ar')).toEqual({
+      key: 'cart.branchSwitchGoneUnnamed',
+      params: { to: 'الرابية' },
+    });
+    expect(branchSwitchCopy({ reason: 'unavailable', from: null, to, toOpen: false }, 'ar').key).toBe(
+      'cart.branchSwitchGoneUnnamedAllClosed',
+    );
+  });
+
+  it('every sentence exists in both languages and says both names it was given', () => {
+    const cases: BranchSwitch[] = [
+      { reason: 'closed', from, to, toOpen: true },
+      { reason: 'unavailable', from, to, toOpen: true },
+      { reason: 'unavailable', from, to, toOpen: false },
+      { reason: 'unavailable', from: null, to, toOpen: true },
+      { reason: 'unavailable', from: null, to, toOpen: false },
+    ];
+    for (const lang of ['ar', 'en'] as const) {
+      const file = lang === 'ar' ? ar : en;
+      for (const c of cases) {
+        const { key, params } = branchSwitchCopy(c, lang);
+        const template = (file.cart as Record<string, string>)[key.replace('cart.', '')];
+        expect(template, `${lang} ${key}`).toBeTypeOf('string');
+        const rendered = template.replace(/\{\{(\w+)\}\}/g, (_, k: string) => String(params[k as keyof typeof params]));
+        expect(rendered).toContain(params.to);
+        if (params.from) expect(rendered).toContain(params.from);
+        expect(rendered).not.toMatch(/\{\{|undefined/);
+      }
+    }
+  });
+});
+
+describe('B6 the store keeps the notice, and a real choice clears it', () => {
+  beforeAll(() => {
+    (globalThis as unknown as { window: unknown }).window = { localStorage: new MemoryStorage() };
+  });
+
+  it('switchBranch moves the order, remembers the new name, and holds the notice unpinned', () => {
+    const notice: BranchSwitch = {
+      reason: 'unavailable',
+      from: { nameAr: 'خلدا', nameEn: 'Khalda' },
+      to: { id: 'rabyeh', nameAr: 'الرابية', nameEn: 'Rabyeh' },
+      toOpen: true,
+    };
+    useCartStore.getState().switchBranch(notice);
+    const s = useCartStore.getState();
+    expect(s.branchId).toBe('rabyeh');
+    expect(s.branchNames).toEqual({ nameAr: 'الرابية', nameEn: 'Rabyeh' });
+    expect(s.branchPinned).toBe(false);
+    expect(s.branchNotice).toEqual(notice);
+
+    // …and once moved, the next resolution is quiet: no notice loop.
+    const listed = [{ ...branch('rabyeh', true), nameAr: 'الرابية', nameEn: 'Rabyeh' }];
+    expect(resolveCartBranch(listed, { id: s.branchId, names: s.branchNames, pinned: s.branchPinned }).switched).toBeNull();
+  });
+
+  it('choosing a branch pins it, names it, and clears the notice', () => {
+    useCartStore.getState().setBranch({ id: 'khalda', nameAr: 'خلدا', nameEn: 'Khalda' });
+    const s = useCartStore.getState();
+    expect(s).toMatchObject({
+      branchId: 'khalda',
+      branchNames: { nameAr: 'خلدا', nameEn: 'Khalda' },
+      branchPinned: true,
+      branchNotice: null,
+    });
+  });
+
+  it('the name is persisted with the id; the pin and the notice are not', () => {
+    const persisted = useCartStore.persist.getOptions().partialize?.(useCartStore.getState()) as Record<string, unknown>;
+    expect(persisted).toHaveProperty('branchNames');
+    expect(persisted).not.toHaveProperty('branchPinned');
+    expect(persisted).not.toHaveProperty('branchNotice');
   });
 });
 
