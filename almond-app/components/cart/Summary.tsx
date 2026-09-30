@@ -28,7 +28,8 @@ export function Summary({ totals, pointsToEarn }: { totals: CartTotals; pointsTo
         <View style={styles.earn}>
           <Icon name="bean" size={16} color={colors.primary} strokeWidth={2} />
           <Text variant="bodyBold" color={colors.primary}>
-            {t('cart.earnEstimate', { points: formatNumber(pointsToEarn, lang) })}
+            {/* `count` picks the Arabic plural («٣ نقاط», «٢٥ نقطة»). */}
+            {t('cart.earnEstimate', { count: pointsToEarn, points: formatNumber(pointsToEarn, lang) })}
           </Text>
         </View>
       ) : null}

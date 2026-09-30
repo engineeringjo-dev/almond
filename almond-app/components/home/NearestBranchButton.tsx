@@ -29,7 +29,7 @@ export function NearestBranchButton() {
 
   const pickupHere = () => {
     if (branch) {
-      setBranch(branch.id);
+      setBranch(branch);
       setOrderType('pickup');
     }
     setOpen(false);

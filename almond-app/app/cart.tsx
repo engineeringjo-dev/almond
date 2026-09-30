@@ -17,6 +17,7 @@ import { Summary } from '@/components/cart/Summary';
 import { PaymentMethods } from '@/components/cart/PaymentMethods';
 import { ReviewSheet } from '@/components/cart/ReviewSheet';
 import { CrossSellRow } from '@/components/cart/CrossSellRow';
+import { BranchNotice } from '@/components/cart/BranchNotice';
 import { BranchCard, BranchCardPlaceholder } from '@/components/branch/BranchCard';
 import { BranchPicker } from '@/components/branch/BranchPicker';
 import { Logo } from '@/components/ui/Logo';
@@ -26,15 +27,16 @@ import { colors, spacing, radius, shadow } from '@/constants/theme';
 import { useI18n } from '@/hooks/useI18n';
 import { useCartStore, computeTotals } from '@/stores/cartStore';
 import { useToastStore } from '@/stores/toastStore';
-import { useNearestBranch } from '@/hooks/useNearestBranch';
+import { useCartBranch } from '@/hooks/useCartBranch';
 import { useAuthStore, useUserId } from '@/stores/authStore';
 import { useCreateOrder } from '@/hooks/useOrder';
 import { useWallet, useInvalidateLoyalty, useLoyaltyBalance } from '@/hooks/useLoyalty';
 import { estimateEarnedPoints } from '@/lib/earnEstimate';
 import { computePickupEstimate } from '@/lib/pickup';
-import { checkoutBlock, resolveCartBranch, type CheckoutBlock } from '@/lib/cartBranch';
+import { checkoutBlock, type CheckoutBlock } from '@/lib/cartBranch';
 import { CHECKOUT_RETURN, reviewOnReturn } from '@/lib/returnTo';
 import { formatJOD } from '@/lib/format';
+import { inputTextAlign } from '@/lib/inputAlign';
 import { paymentService } from '@/services/payment.service';
 import { loyaltyService } from '@/services/loyalty.service';
 import { integration } from '@/constants/integration';
@@ -49,8 +51,8 @@ export default function CartScreen() {
   const items = useCartStore((s) => s.items);
   const orderType = useCartStore((s) => s.orderType);
   const setOrderType = useCartStore((s) => s.setOrderType);
-  const branchId = useCartStore((s) => s.branchId);
   const setBranch = useCartStore((s) => s.setBranch);
+  const dismissBranchNotice = useCartStore((s) => s.dismissBranchNotice);
   const paymentMethod = useCartStore((s) => s.paymentMethod);
   const setPaymentMethod = useCartStore((s) => s.setPaymentMethod);
   const promoCode = useCartStore((s) => s.promoCode);
@@ -65,12 +67,18 @@ export default function CartScreen() {
   // indicator / gesture bar itself.
   const insets = useSafeAreaInsets();
 
+  // The chosen branch while it is still listed and open, else the nearest open
+  // one (section 7.3 #2) — persisted, so the order is placed where it is
+  // shown, and never moved without saying so (`branchNotice`). `undefined`
+  // only while there is no list yet: never assert it away.
   const {
     branches,
+    branch,
+    notice: branchNotice,
     loading: branchesLoading,
     error: branchesError,
     refetch: refetchBranches,
-  } = useNearestBranch();
+  } = useCartBranch();
   const userId = useUserId();
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const { data: walletBalance } = useWallet();
@@ -82,13 +90,6 @@ export default function CartScreen() {
   const [reviewOpen, setReviewOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
-  // The chosen branch while it is still listed, else the nearest open one
-  // (section 7.3 #2) — persisted, so the order is placed where it is shown.
-  // `undefined` only while there is no list yet: never assert it away.
-  const branch = useMemo(() => resolveCartBranch(branches, branchId), [branches, branchId]);
-  useEffect(() => {
-    if (branch && branch.id !== branchId) setBranch(branch.id);
-  }, [branch, branchId, setBranch]);
   const block = checkoutBlock({
     orderType,
     branch,
@@ -247,7 +248,7 @@ export default function CartScreen() {
           // Delivery is handled entirely off-app (section 7.4): no in-app cart,
           // payment, or summary — just a clear explainer + external hand-off.
           <View style={styles.deliveryBox}>
-            <Text style={styles.deliveryEmoji}>🛵</Text>
+            <Icon name="delivery" size={40} color={colors.primary} strokeWidth={1.7} />
             <Text variant="title" center>
               {t('cart.delivery')}
             </Text>
@@ -257,7 +258,14 @@ export default function CartScreen() {
           </View>
         ) : (
           <>
-            <View style={styles.section}>
+            <View style={[styles.section, styles.branchSection]}>
+              {branchNotice ? (
+                <BranchNotice
+                  notice={branchNotice}
+                  onChangeBranch={() => setPickerOpen(true)}
+                  onDismiss={dismissBranchNotice}
+                />
+              ) : null}
               {orderType === 'pickup' ? (
                 <PickupInfo
                   branch={branch}
@@ -286,13 +294,23 @@ export default function CartScreen() {
                   <Toggle value={curbside} onValueChange={setCurbside} label={t('cart.curbsideSwitch')} />
                 </View>
                 {curbside ? (
-                  <TextInput
-                    style={styles.carInput}
-                    value={carInfo}
-                    onChangeText={setCarInfo}
-                    placeholder={t('cart.carInfoPh')}
-                    placeholderTextColor={colors.warmGray}
-                  />
+                  <View style={styles.carField}>
+                    {/* A label that stays while typing: the placeholder alone
+                        vanished at the first letter (audit P2). */}
+                    <Text variant="caption" color={colors.dark} nativeID="car-info-label">
+                      {t('cart.carInfoLabel')}
+                    </Text>
+                    <TextInput
+                      style={[styles.carInput, { textAlign: inputTextAlign(lang) }]}
+                      value={carInfo}
+                      onChangeText={setCarInfo}
+                      placeholder={t('cart.carInfoPh')}
+                      placeholderTextColor={colors.warmGray}
+                      aria-labelledby="car-info-label"
+                      accessibilityLabel={t('cart.carInfoLabel')}
+                      returnKeyType="done"
+                    />
+                  </View>
                 ) : null}
               </View>
             ) : null}
@@ -390,8 +408,8 @@ export default function CartScreen() {
         visible={pickerOpen}
         onClose={() => setPickerOpen(false)}
         branches={branches}
-        selectedId={branchId}
-        onSelect={(b) => setBranch(b.id)}
+        selectedId={branch?.id}
+        onSelect={(b) => setBranch(b)}
       />
 
       <ReviewSheet
@@ -401,6 +419,7 @@ export default function CartScreen() {
         totals={totals}
         pointsToEarn={pointsToEarn}
         branch={branch}
+        branchNotice={branchNotice}
         estimate={estimate}
         isPickup={orderType === 'pickup'}
         paymentMethod={paymentMethod}
@@ -427,15 +446,16 @@ const styles = StyleSheet.create({
   earnNote: { marginBottom: spacing.md, marginTop: -spacing.sm },
   flex: { flex: 1 },
   curbRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
+  carField: { marginTop: spacing.md, gap: spacing.xs },
+  branchSection: { gap: spacing.md },
   carInput: {
-    marginTop: spacing.md,
+    minHeight: 48,
     backgroundColor: colors.cardBg,
     borderRadius: radius.md,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.md,
     fontSize: 16,
     color: colors.dark,
-    textAlign: 'auto',
     ...shadow.card,
   },
   walletUpsell: {
@@ -465,7 +485,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: spacing.sm,
   },
-  deliveryEmoji: { fontSize: 40 },
   blockNote: { marginBottom: spacing.sm },
   footer: {
     padding: spacing.lg,

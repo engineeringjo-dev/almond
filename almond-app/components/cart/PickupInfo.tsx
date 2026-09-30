@@ -33,19 +33,32 @@ export function PickupInfo({ branch, estimate, onChangeBranch, emptyLabel }: Pro
               </Text>
             </View>
           </View>
-          <Pressable onPress={onChangeBranch} hitSlop={8} style={styles.changeBtn}>
-            <Text variant="caption" color="#000000">
+          {/* 44pt tall, sized — the pill was ≈28 px and react-native-web
+              ignores hitSlop. Named for what it changes. */}
+          <Pressable
+            onPress={onChangeBranch}
+            style={({ pressed }) => [styles.changeBtn, pressed && styles.pressed]}
+            accessibilityRole="button"
+            accessibilityLabel={t('cart.changeBranch')}
+          >
+            <Text variant="bodyBold" color={colors.dark}>
               {t('cart.change')}
             </Text>
           </Pressable>
         </View>
 
         <View style={styles.estimate}>
-          <Text style={styles.sparkle}>{estimate.readyOnArrival ? '✨' : '⏱️'}</Text>
-          <Text variant="bodyBold" color="#000000" style={styles.estimateText}>
+          <Icon
+            name={estimate.readyOnArrival ? 'sparkles' : 'clock'}
+            size={20}
+            color={colors.primary}
+            strokeWidth={2}
+          />
+          <Text variant="bodyBold" color={colors.dark} style={styles.estimateText}>
             {estimate.readyOnArrival
               ? t('cart.readyOnArrival')
-              : t('cart.readyIn', { min: estimate.prepMinutes })}
+              : // `count` picks the Arabic plural: «دقيقتين», «٧ دقائق», «١١ دقيقة».
+                t('cart.readyIn', { count: estimate.prepMinutes })}
           </Text>
         </View>
       </Gradient>
@@ -61,23 +74,26 @@ const styles = StyleSheet.create({
     gap: spacing.md,
     overflow: 'hidden',
   },
-  branchRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  left: { gap: 2 },
+  branchRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: spacing.md },
+  left: { gap: 2, flex: 1 },
   branchName: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
   changeBtn: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.white,
     borderRadius: radius.pill,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.xs,
+    minHeight: 44,
+    minWidth: 64,
+    paddingHorizontal: spacing.lg,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
+  pressed: { opacity: 0.85 },
   estimate: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.white,
     borderRadius: radius.md,
     padding: spacing.md,
   },
-  sparkle: { fontSize: 20 },
   estimateText: { flex: 1 },
 });

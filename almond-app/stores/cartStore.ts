@@ -12,6 +12,7 @@ import type {
 } from '@/types';
 import { buildLineId } from '@almond/shared/cart';
 import { useToastStore } from './toastStore';
+import { branchRef, type BranchNames, type BranchRef, type BranchSwitch } from '@/lib/cartBranch';
 
 // Cart pricing is the single source of truth in @almond/shared/cart (so app +
 // website total identically). Re-exported so existing @/stores/cartStore
@@ -23,6 +24,14 @@ interface CartState {
   items: CartItem[];
   orderType: OrderType;
   branchId: string | null;
+  /** The chosen branch's name, kept so it can still be named after it leaves
+   *  the branch list (the switch notice says WHICH branch went away). */
+  branchNames: BranchNames | null;
+  /** Chosen in this session — not restored from storage (never persisted). */
+  branchPinned: boolean;
+  /** The cart moved the order off the chosen branch; shown until dismissed or
+   *  a branch is chosen. Session-only. */
+  branchNotice: BranchSwitch | null;
   paymentMethod: PaymentMethodId;
   paidFromBalance: boolean;
   promoCode: string | null;
@@ -42,7 +51,11 @@ interface CartState {
   decLine: (lineId: string) => void;
   removeLine: (lineId: string) => void;
   setOrderType: (t: OrderType) => void;
-  setBranch: (id: string) => void;
+  /** The customer chose a branch: it is theirs, even if it is closed now. */
+  setBranch: (branch: BranchRef) => void;
+  /** The cart moved the order to another branch, and says why. */
+  switchBranch: (notice: BranchSwitch) => void;
+  dismissBranchNotice: () => void;
   setPaymentMethod: (m: PaymentMethodId) => void;
   setPromo: (code: string | null, discount: number) => void;
   setCurbside: (on: boolean) => void;
@@ -56,6 +69,9 @@ export const useCartStore = create<CartState>()(
   items: [],
   orderType: 'pickup',
   branchId: null,
+  branchNames: null,
+  branchPinned: false,
+  branchNotice: null,
   paymentMethod: 'cash',
   paidFromBalance: false,
   promoCode: null,
@@ -125,7 +141,23 @@ export const useCartStore = create<CartState>()(
     set((state) => ({ items: state.items.filter((l) => l.lineId !== lineId) })),
 
   setOrderType: (orderType) => set({ orderType }),
-  setBranch: (branchId) => set({ branchId }),
+  setBranch: (branch) =>
+    set({
+      branchId: branch.id,
+      branchNames: { nameAr: branch.nameAr, nameEn: branch.nameEn },
+      branchPinned: true,
+      branchNotice: null,
+    }),
+  switchBranch: (notice) => {
+    const to = branchRef(notice.to);
+    set({
+      branchId: to.id,
+      branchNames: { nameAr: to.nameAr, nameEn: to.nameEn },
+      branchPinned: false,
+      branchNotice: notice,
+    });
+  },
+  dismissBranchNotice: () => set({ branchNotice: null }),
   setPaymentMethod: (paymentMethod) =>
     set({ paymentMethod, paidFromBalance: paymentMethod === 'wallet' }),
   setPromo: (promoCode, promoDiscount) => set({ promoCode, promoDiscount }),
@@ -145,6 +177,7 @@ export const useCartStore = create<CartState>()(
         items: s.items,
         orderType: s.orderType,
         branchId: s.branchId,
+        branchNames: s.branchNames,
         paymentMethod: s.paymentMethod,
         paidFromBalance: s.paidFromBalance,
         curbside: s.curbside,

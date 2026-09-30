@@ -170,7 +170,7 @@ export default function HomeScreen() {
                 key={b.id}
                 branch={b}
                 selected={b.id === activeBranch?.id}
-                onPress={() => setBranch(b.id)}
+                onPress={() => setBranch(b)}
               />
             ))}
           </View>
@@ -182,7 +182,7 @@ export default function HomeScreen() {
         onClose={() => setPickerOpen(false)}
         branches={branches}
         selectedId={activeBranch?.id}
-        onSelect={(b) => setBranch(b.id)}
+        onSelect={(b) => setBranch(b)}
       />
     </View>
   );

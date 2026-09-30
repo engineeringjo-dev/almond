@@ -168,3 +168,127 @@ test.describe('App checkout gate', () => {
     await expect(page).toHaveURL(/^http:\/\/localhost:3200\/almond\/?$/);
   });
 });
+
+/** Point the persisted cart at a branch, as an older session would have left it. */
+async function saveBranch(
+  page: import('@playwright/test').Page,
+  id: string,
+  names: { nameAr: string; nameEn: string } | null,
+): Promise<void> {
+  await page.evaluate(
+    ([branchId, branchNames]) => {
+      const raw = JSON.parse(localStorage.getItem('almond.cart') ?? '{}') as { state: Record<string, unknown> };
+      raw.state.branchId = branchId;
+      raw.state.branchNames = branchNames;
+      localStorage.setItem('almond.cart', JSON.stringify(raw));
+    },
+    [id, names] as const,
+  );
+}
+
+test.describe('App cart: the branch is never switched silently (owner, 2026-09-30)', () => {
+  test('a saved branch that left the list: the cart and the review say which, and where the order went', async ({ page }) => {
+    await seedApp(page, { signedIn: true });
+    await addLatte(page);
+    await saveBranch(page, 'abdali-closed-down', { nameAr: 'العبدلي', nameEn: 'Abdali' });
+    await page.goto(appUrl('/cart'));
+
+    const notice = page.getByRole('alert').filter({ hasText: 'تغيّر فرع طلبك' });
+    await expect(notice).toBeVisible();
+    await expect(notice).toContainText('الفرع الذي اخترته (العبدلي) غير متاح الآن، فاخترنا لك أقرب فرع مفتوح:');
+    // The branch it names is the branch the order is on — the card says the same.
+    const to = /أقرب فرع مفتوح: ([^.]+)\./.exec((await notice.innerText()).replace(/\s+/g, ' '))?.[1]?.trim() ?? '';
+    expect(to.length).toBeGreaterThan(0);
+    await expect(page.getByText(to, { exact: true }).first()).toBeVisible();
+
+    // The review names the branch and repeats the switch before payment.
+    await page.getByRole('button', { name: /مراجعة الطلب/ }).click();
+    const review = page.getByRole('dialog');
+    await expect(review.getByText('الاستلام من فرع')).toBeVisible();
+    await expect(review.getByText(to, { exact: true })).toBeVisible();
+    await expect(review.getByRole('alert')).toContainText('(العبدلي)');
+    await review.getByRole('button', { name: 'تعديل' }).click();
+
+    // «حسناً» answers it; it stays gone, and the order stays on the new branch.
+    await notice.getByRole('button', { name: 'حسناً' }).click();
+    await expect(notice).toBeHidden();
+    const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('almond.cart') ?? '{}').state);
+    expect(saved.branchId).not.toBe('abdali-closed-down');
+  });
+
+  test('a saved branch that is closed now is moved to the nearest open one — and says so', async ({ page }) => {
+    await seedApp(page, { signedIn: true });
+    await addLatte(page);
+    await saveBranch(page, 'city-mall', { nameAr: 'سيتي مول', nameEn: 'City Mall' });
+    // 08:30 in Amman: City Mall opens at 10:00, the street branches at 07:00.
+    // A running clock from that moment (a frozen one would also freeze the
+    // sheets' animations).
+    await page.clock.install({ time: new Date('2026-09-30T08:30:00+03:00') });
+    await page.clock.resume();
+    await page.goto(appUrl('/cart'));
+    const notice = page.getByRole('alert').filter({ hasText: 'تغيّر فرع طلبك' });
+    await expect(notice).toContainText('الفرع الذي اخترته (سيتي مول) مغلق الآن، فاخترنا لك أقرب فرع مفتوح:');
+
+    // Choosing it again on purpose keeps it: the customer knows it is closed.
+    await notice.getByRole('button', { name: 'اختر فرعاً آخر' }).click();
+    await page.getByRole('dialog').getByText('سيتي مول', { exact: true }).first().click();
+    await expect(notice).toBeHidden();
+    await expect(page.getByText('سيتي مول', { exact: true }).first()).toBeVisible();
+  });
+
+  test('a branch still open and still listed is kept, with no notice', async ({ page }) => {
+    await seedApp(page, { signedIn: true });
+    await addLatte(page);
+    await saveBranch(page, 'rabyeh', { nameAr: 'الرابية', nameEn: 'Rabyeh' });
+    await page.clock.install({ time: new Date('2026-09-30T12:00:00+03:00') });
+    await page.clock.resume();
+    await page.goto(appUrl('/cart'));
+    await expect(page.getByText('الرابية', { exact: true }).first()).toBeVisible();
+    await expect(page.getByRole('alert').filter({ hasText: 'تغيّر فرع طلبك' })).toHaveCount(0);
+  });
+});
+
+test.describe('App checkout copy and fields', () => {
+  test('Arabic counts agree with their number, and the fields keep their labels', async ({ page }) => {
+    await seedApp(page, { signedIn: true });
+    await addLatte(page);
+    await page.goto(appUrl('/cart'));
+
+    // A persistent, named field that starts at the right edge in Arabic.
+    const promo = page.getByRole('textbox', { name: 'رمز الخصم' });
+    await expect(promo).toBeVisible();
+    await expect(page.getByText('رمز الخصم', { exact: true })).toBeVisible();
+    expect(await promo.evaluate((el) => getComputedStyle(el).textAlign)).toBe('right');
+    await page.getByRole('switch', { name: 'استلام من السيارة' }).click();
+    const car = page.getByRole('textbox', { name: 'معلومات السيارة' });
+    await expect(car).toBeVisible();
+    expect(await car.evaluate((el) => getComputedStyle(el).textAlign)).toBe('right');
+
+    // «جاهز خلال 7 دقائق», never «7 دقيقة»; the same for points.
+    await page.getByRole('button', { name: /مراجعة الطلب/ }).click();
+    const review = page.getByRole('dialog');
+    const text = await review.innerText();
+    expect(text).toMatch(/جاهز خلال (دقيقة واحدة|دقيقتين|\d+ (دقائق|دقيقة))/);
+    for (const [, n, noun] of text.matchAll(/(\d+) (دقائق|دقيقة|نقاط|نقطة)/g)) {
+      const few = Number(n) % 100 >= 3 && Number(n) % 100 <= 10;
+      expect(`${n} ${noun}`, 'few (3–10) takes the plural noun').toBe(
+        `${n} ${few ? (noun.startsWith('دق') ? 'دقائق' : 'نقاط') : noun.startsWith('دق') ? 'دقيقة' : 'نقطة'}`,
+      );
+    }
+  });
+
+  test('the item sheet pairs companions, and says what its total includes', async ({ page }) => {
+    await seedApp(page, { signedIn: true });
+    await openItem(page, LATTE);
+    const sheet = page.getByRole('dialog');
+    const chips = sheet.getByRole('group', { name: 'يُطلب عادةً مع' }).getByRole('checkbox');
+    const names = await chips.evaluateAll((els) => els.map((e) => e.getAttribute('aria-label') ?? ''));
+    expect(names.length).toBeGreaterThan(0);
+    for (const n of names) expect(n, 'a whole cake is not a pairing').not.toMatch(/قالب|كيك كامل/);
+
+    await expect(sheet.getByText(/يشمل المجموع/)).toHaveCount(0);
+    await chips.first().click();
+    const name = names[0].split('،')[0];
+    await expect(sheet.getByText(/يشمل المجموع/)).toContainText(name);
+  });
+});

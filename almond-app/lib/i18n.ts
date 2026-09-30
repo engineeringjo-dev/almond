@@ -3,17 +3,11 @@ import { initReactI18next } from 'react-i18next';
 import * as Localization from 'expo-localization';
 import { I18nManager } from 'react-native';
 
-import ar from '@/locales/ar.json';
-import en from '@/locales/en.json';
+import { I18N_OPTIONS } from '@/lib/i18nOptions';
 import type { Lang } from '@/types';
 import { applyDocumentDirection, isRTL } from '@/lib/direction';
 
 export const LANG_STORAGE_KEY = 'almond.lang';
-
-const resources = {
-  ar: { translation: ar },
-  en: { translation: en },
-};
 
 /** Pick the device language if supported, else default to Arabic (section 0/10). */
 function detectInitialLang(): Lang {
@@ -25,13 +19,7 @@ export function initI18n(initialLang?: Lang) {
   const lang = initialLang ?? detectInitialLang();
   applyDocumentDirection(lang);
   if (!i18n.isInitialized) {
-    i18n.use(initReactI18next).init({
-      resources,
-      lng: lang,
-      fallbackLng: 'ar',
-      interpolation: { escapeValue: false },
-      compatibilityJSON: 'v3',
-    });
+    i18n.use(initReactI18next).init({ ...I18N_OPTIONS, lng: lang });
   }
   return i18n;
 }

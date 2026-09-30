@@ -8,7 +8,7 @@ import { BranchPicker } from '@/components/branch/BranchPicker';
 import { colors, spacing, radius, shadow } from '@/constants/theme';
 import { useI18n } from '@/hooks/useI18n';
 import { formatJOD } from '@/lib/format';
-import { useNearestBranch } from '@/hooks/useNearestBranch';
+import { useCartBranch } from '@/hooks/useCartBranch';
 import { useCartStore, useCartCount, computeTotals } from '@/stores/cartStore';
 
 /**
@@ -17,14 +17,14 @@ import { useCartStore, useCartCount, computeTotals } from '@/stores/cartStore';
  */
 export function PickupCartBar() {
   const { t, lang } = useI18n();
-  const { branches, nearest } = useNearestBranch();
-  const branchId = useCartStore((s) => s.branchId);
+  // The same branch the cart will show — resolved in one place, so the bar
+  // never names a closed or vanished branch the cart then moves off.
+  const { branches, branch } = useCartBranch();
   const setBranch = useCartStore((s) => s.setBranch);
   const items = useCartStore((s) => s.items);
   const count = useCartCount();
   const [pickerOpen, setPickerOpen] = useState(false);
 
-  const branch = branches.find((b) => b.id === branchId) ?? nearest;
   const totals = computeTotals(items, 0);
 
   return (
@@ -50,7 +50,14 @@ export function PickupCartBar() {
           </View>
         </Pressable>
 
-        <Pressable style={styles.cart} onPress={() => router.push('/cart')} accessibilityRole="button">
+        {/* The one way into the cart from the menu, so it says so: the visible
+            badge and total alone read as "1, 3.500" to a screen reader. */}
+        <Pressable
+          style={styles.cart}
+          onPress={() => router.push('/cart')}
+          accessibilityRole="button"
+          accessibilityLabel={t('order.cartButton', { count, total: formatJOD(totals.total, lang) })}
+        >
           <Icon name="cart" size={20} color={colors.white} />
           {count > 0 ? (
             <View style={styles.badge}>
@@ -68,7 +75,7 @@ export function PickupCartBar() {
         onClose={() => setPickerOpen(false)}
         branches={branches}
         selectedId={branch?.id}
-        onSelect={(b) => setBranch(b.id)}
+        onSelect={(b) => setBranch(b)}
       />
     </>
   );

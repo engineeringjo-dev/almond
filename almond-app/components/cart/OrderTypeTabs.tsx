@@ -1,5 +1,6 @@
 import { View, StyleSheet, Pressable } from 'react-native';
 import { Text } from '@/components/ui/Text';
+import { Icon, type IconName } from '@/components/ui/Icon';
 import { colors, radius, spacing } from '@/constants/theme';
 import { useI18n } from '@/hooks/useI18n';
 import { tabA11y } from '@/lib/a11y';
@@ -10,10 +11,12 @@ interface Props {
   onChange: (t: OrderType) => void;
 }
 
-const tabs: { id: OrderType; key: string; emoji: string }[] = [
-  { id: 'pickup', key: 'cart.pickup', emoji: '🏃' },
-  { id: 'dinein', key: 'cart.dinein', emoji: '☕' },
-  { id: 'delivery', key: 'cart.delivery', emoji: '🛵' },
+// Line icons from the app's one set (the emoji 🏃☕🛵 differed per OS, took
+// no tint and were read aloud as "person running").
+const tabs: { id: OrderType; key: string; icon: IconName }[] = [
+  { id: 'pickup', key: 'cart.pickup', icon: 'pickup' },
+  { id: 'dinein', key: 'cart.dinein', icon: 'coffee' },
+  { id: 'delivery', key: 'cart.delivery', icon: 'delivery' },
 ];
 
 export function OrderTypeTabs({ value, onChange }: Props) {
@@ -31,7 +34,12 @@ export function OrderTypeTabs({ value, onChange }: Props) {
             onPress={() => onChange(tab.id)}
             {...tabA11y(active, t(tab.key))}
           >
-            <Text style={styles.emoji}>{tab.emoji}</Text>
+            <Icon
+              name={tab.icon}
+              size={20}
+              color={active ? colors.dark : colors.warmGray}
+              strokeWidth={active ? 2.2 : 1.8}
+            />
             <Text variant="caption" color={active ? colors.dark : colors.warmGray}>
               {t(tab.key)}
             </Text>
@@ -53,10 +61,11 @@ const styles = StyleSheet.create({
   tab: {
     flex: 1,
     alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 56,
     paddingVertical: spacing.sm,
     borderRadius: radius.sm,
     gap: 2,
   },
   tabActive: { backgroundColor: colors.lightGold },
-  emoji: { fontSize: 20 },
 });

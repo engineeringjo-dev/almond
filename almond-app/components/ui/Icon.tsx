@@ -49,6 +49,7 @@ import {
   Wheat,
   ArrowUp,
   TriangleAlert,
+  Clock,
   Share2,
   type LucideIcon,
 } from 'lucide-react-native';
@@ -114,7 +115,8 @@ export type IconName =
   | 'wheat'
   | 'arrow-up'
   | 'alert'
-  | 'share';
+  | 'share'
+  | 'clock';
 
 const REGISTRY: Record<IconName, LucideIcon> = {
   coffee: Coffee,
@@ -171,6 +173,7 @@ const REGISTRY: Record<IconName, LucideIcon> = {
   'arrow-up': ArrowUp,
   alert: TriangleAlert,
   share: Share2,
+  clock: Clock,
 };
 
 interface Props {
