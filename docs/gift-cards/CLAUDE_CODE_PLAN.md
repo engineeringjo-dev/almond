@@ -18,6 +18,12 @@ Source of the decisions: the report "بطاقات الهدايا بين الشر
   payment, never a discount. The redeeming company books *due from Evora*.
 - **Settlement:** card-sale cash is swept to Evora daily. Redemptions are netted
   monthly against the kitchen intercompany invoices, in a **separate** entry.
+- **Expiry (owner, 2026-10-13):** gift-card value **never expires**. Points
+  earned from purchases expire **12 months** after they were earned (the
+  app's lots already do this; `WALLET_LIFE_MONTHS: null`,
+  `POINT_LOT_LIFE_MONTHS: 12`). So there is **no breakage at expiry**; the
+  liability stays until the card is spent. Any breakage estimate under IFRS 15
+  (B44–B47) is the accountant's call once redemption history exists.
 - **Values:** printed card fixed **10 JOD**; app eGifts **5 / 10 / 25**, default
   **10**; corporate **50**; seasonal Ramadan **3**.
 - **No** Odoo inter-company rules for this flow, **no** conversion to branches,
@@ -72,7 +78,7 @@ Almond-Coffee-House repo, using XML-RPC. It has three modes: dry-run (default),
 |---|---|---|
 | 1 | Create the account **"ذمم شقيقة – بطاقات هدايا"** (proposed code 11410014). Type `asset_receivable`, `reconcile=True`, `company_ids=[1,2,3,4]` | new |
 | 2 | Create the account **"مستحق لشقيقة – بطاقات هدايا"** (proposed code 21110014). Type `liability_payable`, `reconcile=True`, `company_ids=[1,2,3,4]` | new |
-| 3 | Create the account **"إيراد بطاقات غير مستعملة"** (breakage income) | Evora only |
+| 3 | Create the account **"إيراد بطاقات غير مستعملة"** (breakage income) — only if the accountant adopts an IFRS 15 breakage estimate; cards do not expire | Evora only |
 | 4 | Create products "Evora Gift Card 5" and "Evora Gift Card 10". Service, `company_id=False`, **`taxes_id` empty**, `available_in_pos=True`. Per-company `property_account_income_id`: Evora → 5969 (21350019). Companies 2, 3 and 4 → step 2's account. Read it back per company with `with_company`. | new |
 | 5 | Create the gift-card programme **"بطاقة هدايا إيفورا"** (`program_type=gift_card`, `company_id=False`, `pos_config_ids` empty). Its reward's `discount_line_product_id`: **no tax**. Income account: Evora → 5969; companies 2, 3 and 4 → step 1's account | new |
 | 6 | Fix the existing products 17201, 17317 and 17321 the same way, **or** archive them once the new products are live. Evora's income account must stop being 41000007 | existing |
@@ -99,7 +105,7 @@ Almond-Coffee-House repo, using XML-RPC. It has three modes: dry-run (default),
     through the phase-2 intercompany accounts.
   - Evora's card sales booked to 41000007 are reclassified to 5969.
 - The accountant reviews and posts. The owner decides what happens to the
-  expired Ramadan balance (4,385 JOD): breakage income or an extension.
+  expired Ramadan balance (4,385 JOD): breakage income or an extension. Those cards were sold under a 2026-03 expiry; the no-expiry rule applies to new cards unless the owner extends it to them.
 - **Gate:** accountant review. The script never posts.
 
 ## Phase 4 — Evora mirror entries and settlement report · Odoo module
@@ -137,7 +143,10 @@ safe before they go on sale.
 - `loyalty.card` gets these fields:
   - `x_serial` (printed, visible);
   - `x_pin_hash` (the scratch-off code, stored hashed);
-  - `x_state`: `inactive → active → exhausted | expired`.
+  - `x_state`: `inactive → active → exhausted` (no `expired`: cards never expire).
+  - **Odoo's POS sets `expiration_date` = sale date + 1 year on every card it
+    creates.** Override it so Evora gift cards are created with no expiry, and
+    test it.
 - **POS payment method "بطاقة هدايا إيفورا":**
   - Server RPC with `sudo`, across companies. It validates serial + PIN, state
     and balance, and **debits atomically on order validation**, idempotent per
@@ -159,7 +168,7 @@ safe before they go on sale.
   - double redemption across two companies at the same time;
   - wrong PIN;
   - inactive card;
-  - expired card;
+  - a card sold today still has no expiry date, and redeems after a year;
   - refund;
   - rerun of the same order.
 - **Gate:** the owner approves. The printed cards do not go on sale before this

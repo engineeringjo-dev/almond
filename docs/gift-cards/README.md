@@ -12,6 +12,7 @@ Approved by the GM on 2026-09-30 («نعتمد هذول»).
 | `print/Almond_Blank_Barcode_Back.pdf` | The shared back on its own |
 | `print/Almond_10JOD_Designs_Preview.pdf` | Two-page proof sheet (Arabic set, English set) for approvals and quotes |
 
+- **Expiry:** none. Gift-card value never expires (owner, 2026-10-13); only points earned from purchases expire, after 12 months.
 - **Value:** fixed **10 JOD**, printed on the front ("10 دنانير" / "10 JOD").
 - **Size:** CR80. Trim 85.7 × 54 mm (243 × 153 pt), 3 mm bleed on every side
   (page 259.7 × 170 pt), vector.

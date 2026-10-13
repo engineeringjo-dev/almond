@@ -194,6 +194,10 @@ export const config = {
    * dial moves only balances topped up afterwards. Setting it to a very large
    * number is how you turn expiry off without touching a line of code.
    */
+  // Owner's decision, 2026-10-13: value bought with a gift card never
+  // expires (it lands in the wallet: creditWallet(…, 'gift')); points EARNED
+  // from purchases expire 12 months after they were earned, not extended by
+  // later activity. bff/test/profile.test.ts and lots.test.ts pin both.
   WALLET_LIFE_MONTHS: null as number | null,
   POINT_LOT_LIFE_MONTHS: 12,
   // How long a DEAD lot's row is kept, for support and the breakage report.
