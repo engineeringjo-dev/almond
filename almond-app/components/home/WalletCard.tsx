@@ -56,7 +56,7 @@ export function WalletCard() {
         accessibilityLabel={isError || (!isLoading && balance == null) ? t('home.retryWallet') : t('home.topUpWallet')}
         accessibilityRole="button"
       >
-        <Icon name={isError || balance == null ? 'reorder' : 'plus'} size={18} color={colors.primary} />
+        <Icon name={!isLoading && (isError || balance == null) ? 'reorder' : 'plus'} size={18} color={colors.primary} />
         <Text variant="bodyBold" color={colors.primary}>
           {t(isError || (!isLoading && balance == null) ? 'common.retry' : 'home.topUpWallet')}
         </Text>

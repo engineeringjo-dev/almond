@@ -21,7 +21,7 @@ export function LoyaltyCard() {
       onPress={() => { if (isError) { void refetch(); } else { router.push('/(tabs)/rewards'); } }}
       disabled={isLoading}
       aria-busy={isLoading}
-      accessibilityLabel={isError ? t('home.retryPoints') : t('home.rewards')}
+      accessibilityLabel={isError ? `${t('home.pointsUnavailable')} ${t('home.retryPoints')}` : undefined}
       accessibilityRole="button"
     >
       {/* Points hero uses the pastel rainbow gradient → dark text for contrast. */}
