@@ -1,5 +1,7 @@
 import { useMemo, useState } from 'react';
-import { View, StyleSheet, Pressable } from 'react-native';
+import { View, StyleSheet, Pressable, ActivityIndicator } from 'react-native';
+
+import { useQueryClient } from '@tanstack/react-query';
 
 import { Screen } from '@/components/ui/Screen';
 import { Text } from '@/components/ui/Text';
@@ -19,7 +21,9 @@ import { PromotionBanner } from '@/components/home/PromotionBanner';
 import { PromoCarousel } from '@/components/home/PromoCarousel';
 import { BranchCard } from '@/components/branch/BranchCard';
 import { BranchPicker } from '@/components/branch/BranchPicker';
-import { colors, spacing } from '@/constants/theme';
+import { Button } from '@/components/ui/Button';
+import { MIN_TOUCH_TARGET } from '@/lib/a11y';
+import { colors, spacing, layout } from '@/constants/theme';
 import { useI18n } from '@/hooks/useI18n';
 import { useNearestBranch } from '@/hooks/useNearestBranch';
 import { useAuthStore } from '@/stores/authStore';
@@ -33,23 +37,28 @@ export default function HomeScreen() {
   const selectedBranchId = useCartStore((s) => s.branchId);
   const setBranch = useCartStore((s) => s.setBranch);
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const queryClient = useQueryClient();
+
+  const refresh = async () => {
+    setRefreshing(true);
+    try {
+      await Promise.all([
+        refetch(),
+        queryClient.invalidateQueries({ queryKey: ['loyalty'] }),
+        queryClient.invalidateQueries({ queryKey: ['orders'] }),
+      ]);
+    } finally {
+      setRefreshing(false);
+    }
+  };
 
   const activeBranch = useMemo<Branch | undefined>(
     () => branches.find((b) => b.id === selectedBranchId) ?? nearest,
     [branches, selectedBranchId, nearest],
   );
 
-  // Guests get a name-less greeting ("Good morning" — not "Good morning, Guest").
-  //
-  // 🔴 A BLANK NAME TAKES THE GUEST BRANCH TOO, and that is the fix for the
-  // mixed-language greeting: the mock auth used to sign a member in as NOT a
-  // guest while handing over the literal 'ضيف ألموند', so `isGuest` was false,
-  // this line took the named branch, and an English UI rendered
-  // "Good evening, ضيف ألموند". The literal is gone (auth.service.ts), and
-  // testing the NAME rather than only the flag means any producer that has no
-  // name to give — the mock today, Odoo tomorrow for a customer record with an
-  // empty field — gets a sentence that is whole in one language instead of a
-  // dangling comma.
+  // Missing names use a complete, translated greeting in either language.
   const name = user?.name?.trim() ?? '';
   const isGuest = !user || user.isGuest;
   const base = new Date().getHours() < 12 ? 'Morning' : 'Evening';
@@ -60,11 +69,9 @@ export default function HomeScreen() {
   return (
     <View style={styles.root}>
       <Screen
-        loading={loading}
-        error={error}
-        onRetry={refetch}
-        refreshing={false}
-        onRefresh={refetch}
+        contentStyle={styles.content}
+        refreshing={refreshing}
+        onRefresh={refresh}
         edges={['top']}
       >
         <HomeTopBar branch={activeBranch} onBranchPress={() => setPickerOpen(true)} />
@@ -73,55 +80,23 @@ export default function HomeScreen() {
           {greetingText}
         </Text>
 
-        {/* 🎉 The promotion celebration. Above everything else on purpose: the
-            rate changed at a till, possibly days ago, and this is the only
-            place the member is ever told. Renders nothing unless a rise in the
-            rung they are PAID at is owed and undismissed — see
-            lib/promotion.ts. Unwrapped, like HomeNudge: a section wrapper would
-            leave its own margin behind on every launch that has nothing to
-            celebrate, which is almost all of them. */}
+        {/* Keep the current order and everyday actions ahead of campaigns.
+            Gap is applied only between rendered children: absent banners and
+            a missing usual order leave no empty sections behind. */}
+        <View testID="home-primary" style={styles.primary}>
+          <ActiveOrderBanner />
+          <VisitRewardBanner />
+          <LoyaltyCard />
+          <OrderNowButton />
+          <UsualOrderCard />
+        </View>
+
         <PromotionBanner />
-
-        {/* The onboarding ladder: fill in your details, then invite a friend.
-            One at a time, decided in @almond/shared/loyalty/challenges, and
-            nothing at all once both are done. Placed ABOVE HomeNudge because a
-            challenge is a first-week thing and the nudge is a forever thing —
-            a member with an abandoned cart AND an unfinished profile is newer
-            than they are hungry.
-
-            Unwrapped, like PromotionBanner and HomeNudge: a wrapper View with a
-            margin would leave a blank gap on Home for every member who has
-            finished the ladder, which is eventually everyone. The component
-            carries its own spacing and renders nothing at all when done. */}
         <ChallengeBanner />
-
-        {/* Lifecycle nudge: abandoned cart / points expiring (renders only when relevant) */}
         <HomeNudge />
 
-        {/* Live active-order status, front-and-centre (Starbucks pattern) */}
         <View style={styles.section}>
-          <ActiveOrderBanner />
-        </View>
-
-        {/* Starbucks layout (Master Pack §2): rewards hero → order CTA → wallet
-            → usual → horizontal sections → branches, with generous spacing. */}
-        {/* 🪦 WelcomeOffer sat here — «هدية الترحيب: مشروب مجاني على أول طلب».
-            Deleted 2026-09-08 («الغي الكاس المجاني»): no code anywhere granted a
-            drink on a first order, so the card was a promise with nothing
-            behind it. The second-visit voucher («تانية علينا») that replaced it
-            was withdrawn too, on 2026-09-24 («نلغي من التطبيق المشروب الثاني
-            علينا»): its flag is off and nothing on this screen offers it. */}
-
-        <View style={styles.section}>
-          <VisitRewardBanner />
-        </View>
-
-        <View style={styles.heroSection}>
-          <LoyaltyCard />
-        </View>
-
-        <View style={styles.section}>
-          <OrderNowButton />
+          <FeaturedRow />
         </View>
 
         <View style={styles.section}>
@@ -133,25 +108,22 @@ export default function HomeScreen() {
         </View>
 
         <View style={styles.section}>
-          <NearestBranchButton />
-        </View>
-
-        <View style={styles.section}>
-          <UsualOrderCard />
-        </View>
-
-        <View style={styles.section}>
-          <FeaturedRow />
-        </View>
-
-        <View style={styles.section}>
           <PromoCarousel />
         </View>
 
         <View style={styles.section}>
           <View style={styles.branchHeader}>
-            <Text variant="title">{t('home.nearestBranches')}</Text>
-            <Pressable onPress={() => setPickerOpen(true)} hitSlop={8}>
+            <Text variant="title" style={styles.branchTitle}>
+              {t(permissionDenied ? 'home.ourBranches' : 'home.nearestBranches')}
+            </Text>
+            <Pressable
+              onPress={() => setPickerOpen(true)}
+              accessibilityRole="button"
+              accessibilityLabel={t('home.viewAllBranches')}
+              disabled={branches.length === 0}
+              aria-disabled={branches.length === 0}
+              style={({ pressed }) => [styles.viewAll, pressed && styles.pressed]}
+            >
               <Text variant="caption" color={colors.gold}>
                 {t('home.viewAll')}
               </Text>
@@ -164,6 +136,20 @@ export default function HomeScreen() {
             </Text>
           ) : null}
 
+          {error ? (
+            <View style={styles.branchState}>
+              <Text variant="body" color={colors.warmGray}>{t('home.branchesUnavailable')}</Text>
+              <Button title={t('common.retry')} onPress={() => { void refetch(); }} variant="outline" />
+            </View>
+          ) : loading && branches.length === 0 ? (
+            <View style={styles.branchState}>
+              <ActivityIndicator color={colors.primary} accessibilityLabel={t('common.loading')} />
+              <Text variant="caption" color={colors.warmGray}>{t('common.loading')}</Text>
+            </View>
+          ) : branches.length === 0 ? (
+            <Text variant="body" color={colors.warmGray}>{t('home.noBranches')}</Text>
+          ) : null}
+
           <View style={styles.branchList}>
             {branches.slice(0, 3).map((b) => (
               <BranchCard
@@ -174,6 +160,9 @@ export default function HomeScreen() {
               />
             ))}
           </View>
+          {branches.length > 0 ? (
+            <View style={styles.nearestAction}><NearestBranchButton /></View>
+          ) : null}
         </View>
       </Screen>
 
@@ -190,9 +179,15 @@ export default function HomeScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1 },
-  greeting: { marginBottom: spacing.lg },
-  section: { marginBottom: spacing.xl + spacing.xs },
-  heroSection: { marginBottom: spacing.xl + spacing.sm },
+  content: { width: '100%', maxWidth: layout.contentMaxWidth, alignSelf: 'center' },
+  greeting: { marginBottom: spacing.xl },
+  primary: { gap: spacing.lg, marginBottom: spacing.xl },
+  section: { marginBottom: spacing.xxl },
+  branchTitle: { flex: 1, minWidth: 0 },
+  viewAll: { minHeight: MIN_TOUCH_TARGET, justifyContent: 'center', paddingHorizontal: spacing.sm },
+  pressed: { opacity: 0.7 },
+  branchState: { gap: spacing.md, marginBottom: spacing.lg },
+  nearestAction: { marginTop: spacing.lg },
   branchHeader: {
     flexDirection: 'row',
     alignItems: 'center',

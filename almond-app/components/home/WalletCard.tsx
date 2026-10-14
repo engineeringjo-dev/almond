@@ -1,10 +1,10 @@
-import { View, StyleSheet, Pressable } from 'react-native';
+import { View, StyleSheet, Pressable, ActivityIndicator } from 'react-native';
 import { router } from 'expo-router';
 
 import { Text } from '@/components/ui/Text';
 import { Icon } from '@/components/ui/Icon';
-import { Gradient } from '@/components/ui/Gradient';
-import { colors, spacing, radius, shadow } from '@/constants/theme';
+import { colors, spacing, radius } from '@/constants/theme';
+import { MIN_TOUCH_TARGET } from '@/lib/a11y';
 import { config } from '@/constants/config';
 import { useI18n } from '@/hooks/useI18n';
 import { formatJOD } from '@/lib/format';
@@ -21,40 +21,47 @@ import { useWallet } from '@/hooks/useLoyalty';
  */
 export function WalletCard() {
   const { t, lang } = useI18n();
-  const { data: balance } = useWallet();
+  const { data: balance, isLoading, isError, refetch } = useWallet();
 
   return (
-    <Gradient preset="purple" style={styles.card}>
+    <View style={styles.card}>
       <View style={styles.topRow}>
         <View style={styles.iconWrap}>
-          <Icon name="wallet" size={24} color={colors.white} />
+          <Icon name="wallet" size={24} color={colors.dark} />
         </View>
         <View style={styles.balanceBox}>
-          <Text variant="caption" color={colors.white}>
+          <Text variant="caption" color={colors.dark}>
             {t('home.walletBalance')}
           </Text>
-          <Text variant="h1" color={colors.white}>
-            {formatJOD(balance ?? 0, lang)}
-          </Text>
+          {isLoading ? (
+            <ActivityIndicator color={colors.primary} accessibilityLabel={t('common.loading')} style={styles.loading} />
+          ) : isError || balance == null ? (
+            <Text variant="body" color={colors.warmGray}>{t('home.walletUnavailable')}</Text>
+          ) : (
+            <Text variant="h1" color={colors.dark}>{formatJOD(balance, lang)}</Text>
+          )}
         </View>
       </View>
 
-      <Text variant="caption" color={colors.white} style={styles.hint}>
+      <Text variant="caption" color={colors.dark} style={styles.hint}>
         {t('home.walletHint', { min: config.WALLET_RELOAD_BONUS[0].minJOD })}
       </Text>
 
-      {/* Gold button → white background, black text (per design). */}
+      {/* A failed balance request is recoverable without displaying a false zero. */}
       <Pressable
         style={({ pressed }) => [styles.cta, pressed && styles.pressed]}
-        onPress={() => router.push('/profile/wallet')}
+        onPress={() => { if (isError || balance == null) { void refetch(); } else { router.push('/profile/wallet'); } }}
+        disabled={isLoading}
+        aria-disabled={isLoading}
+        accessibilityLabel={isError || (!isLoading && balance == null) ? t('home.retryWallet') : t('home.topUpWallet')}
         accessibilityRole="button"
       >
-        <Icon name="plus" size={18} color="#000000" />
-        <Text variant="bodyBold" color="#000000">
-          {t('home.topUpWallet')}
+        <Icon name={!isLoading && (isError || balance == null) ? 'reorder' : 'plus'} size={18} color={colors.primary} />
+        <Text variant="bodyBold" color={colors.primary}>
+          {t(isError || (!isLoading && balance == null) ? 'common.retry' : 'home.topUpWallet')}
         </Text>
       </Pressable>
-    </Gradient>
+    </View>
   );
 }
 
@@ -64,20 +71,24 @@ const styles = StyleSheet.create({
     padding: spacing.lg,
     gap: spacing.md,
     overflow: 'hidden',
-    ...shadow.raised,
+    backgroundColor: colors.surface,
   },
   topRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
   iconWrap: {
     width: 48,
     height: 48,
     borderRadius: radius.md,
-    backgroundColor: 'rgba(255,255,255,0.18)',
+    backgroundColor: colors.neutralWarm,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  balanceBox: { flex: 1, gap: 2 },
+  balanceBox: { flex: 1, minWidth: 0, gap: 2 },
+  loading: { alignSelf: 'flex-start', minHeight: 34 },
   hint: {},
   cta: {
+    minHeight: MIN_TOUCH_TARGET,
+    borderWidth: 1,
+    borderColor: colors.primary,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
