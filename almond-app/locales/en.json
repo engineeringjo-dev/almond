@@ -124,7 +124,19 @@
     "greetingMorningGuest": "Good morning ☕",
     "greetingEveningGuest": "Good evening ☕",
     "nudgeCart": "In your cart: {{count}} — finish your order",
-    "nudgeExpiry": "Points expiring on {{date}}: {{points}} — use them first"
+    "nudgeExpiry": "Points expiring on {{date}}: {{points}} — use them first",
+    "featured": "From the Almond menu",
+    "priceFrom": "From ",
+    "changeBranch": "Change branch, current branch: {{branch}}",
+    "cartWithCount": "Cart, item count: {{count}}",
+    "ourBranches": "Almond branches",
+    "viewAllBranches": "View all branches",
+    "branchesUnavailable": "We couldn’t load the branches. Please try again.",
+    "noBranches": "No branches are available right now.",
+    "pointsUnavailable": "We couldn’t load your points.",
+    "retryPoints": "Reload points",
+    "walletUnavailable": "We couldn’t load your wallet balance.",
+    "retryWallet": "Reload wallet balance"
   },
   "offers": {
     "comboTitle": "Any drink + any food = {{points}} points 🍽️",

@@ -7,6 +7,7 @@ import { Logo } from '@/components/ui/Logo';
 import { colors, spacing, radius } from '@/constants/theme';
 import { useI18n } from '@/hooks/useI18n';
 import { useCartCount } from '@/stores/cartStore';
+import { MIN_TOUCH_TARGET } from '@/lib/a11y';
 import type { Branch } from '@/types';
 
 interface Props {
@@ -29,23 +30,34 @@ export function HomeTopBar({ branch, onBranchPress }: Props) {
         <Logo variant="badge" tone="dark" size={34} />
       </View>
 
-      <Pressable style={styles.chip} onPress={onBranchPress} hitSlop={6}>
+      <Pressable
+        style={({ pressed }) => [styles.chip, pressed && styles.pressed]}
+        onPress={onBranchPress}
+        accessibilityRole="button"
+        accessibilityLabel={branch ? t('home.changeBranch', { branch: branchName }) : t('home.selectBranch')}
+      >
         <Icon name="map-pin" size={15} color={colors.primary} />
         <Text variant="caption" color={colors.dark} numberOfLines={1} style={styles.chipText}>
           {branchName}
         </Text>
-        <Text style={styles.caret}>⌄</Text>
+        <Icon name="chevron-down" size={16} color={colors.textSecondary} />
       </Pressable>
 
       <View style={styles.actions}>
-        <Pressable onPress={() => router.push('/notifications')} hitSlop={8} style={styles.iconBtn}>
+        <Pressable onPress={() => router.push('/notifications')}
+          accessibilityRole="button"
+          accessibilityLabel={t('notifications.title')}
+          style={({ pressed }) => [styles.iconBtn, pressed && styles.pressed]}>
           <Icon name="bell" size={22} color={colors.dark} />
         </Pressable>
-        <Pressable onPress={() => router.push('/cart')} hitSlop={8} style={styles.iconBtn}>
+        <Pressable onPress={() => router.push('/cart')}
+          accessibilityRole="button"
+          accessibilityLabel={cartCount > 0 ? t('home.cartWithCount', { count: cartCount }) : t('tabs.cart')}
+          style={({ pressed }) => [styles.iconBtn, pressed && styles.pressed]}>
           <Icon name="cart" size={22} color={colors.dark} />
           {cartCount > 0 ? (
             <View style={styles.badge}>
-              <Text variant="caption" color={colors.dark} style={styles.badgeText}>
+              <Text variant="caption" color={colors.white} style={styles.badgeText}>
                 {cartCount}
               </Text>
             </View>
@@ -66,6 +78,8 @@ const styles = StyleSheet.create({
   logo: { width: 38, alignItems: 'center', justifyContent: 'center' },
   chip: {
     flex: 1,
+    minWidth: 0,
+    minHeight: MIN_TOUCH_TARGET,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
@@ -74,20 +88,24 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
   },
-  pin: { fontSize: 14 },
-  chipText: { flex: 1 },
-  caret: { color: colors.warmGray, fontSize: 16 },
+  chipText: { flex: 1, minWidth: 0 },
+  pressed: { backgroundColor: colors.surface },
   actions: { flexDirection: 'row', gap: spacing.xs },
-  iconBtn: { padding: spacing.xs },
-  icon: { fontSize: 22 },
+  iconBtn: {
+    width: MIN_TOUCH_TARGET,
+    height: MIN_TOUCH_TARGET,
+    borderRadius: radius.pill,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   badge: {
     position: 'absolute',
-    top: -2,
-    end: -2,
+    top: 0,
+    end: 0,
     minWidth: 18,
     height: 18,
     borderRadius: 9,
-    backgroundColor: colors.gold,
+    backgroundColor: colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 4,

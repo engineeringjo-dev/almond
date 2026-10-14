@@ -13,19 +13,27 @@ import { tierProgressCopy } from '@/lib/tierCopy';
 /** Home loyalty card: points + cup progress + tier badge (section 4.4 #4). */
 export function LoyaltyCard() {
   const { t, lang } = useI18n();
-  const { data, isLoading } = useLoyaltyBalance();
+  const { data, isLoading, isError, refetch } = useLoyaltyBalance();
 
   return (
     <Pressable
       style={styles.shadow}
-      onPress={() => router.push('/(tabs)/rewards')}
+      onPress={() => { if (isError) { void refetch(); } else { router.push('/(tabs)/rewards'); } }}
+      disabled={isLoading}
+      aria-busy={isLoading}
+      accessibilityLabel={isError ? t('home.retryPoints') : t('home.rewards')}
       accessibilityRole="button"
     >
       {/* Points hero uses the pastel rainbow gradient → dark text for contrast. */}
       <Gradient preset="rainbow" style={styles.card}>
-        {isLoading || !data ? (
+        {isError ? (
+          <View style={styles.left}>
+            <Text variant="bodyBold" color={colors.dark}>{t('home.pointsUnavailable')}</Text>
+            <Text variant="body" color={colors.dark} style={styles.retry}>{t('common.retry')}</Text>
+          </View>
+        ) : isLoading || !data ? (
           <View style={styles.loading}>
-            <ActivityIndicator color={colors.dark} />
+            <ActivityIndicator color={colors.dark} accessibilityLabel={t('common.loading')} />
           </View>
         ) : (
           <>
@@ -98,4 +106,5 @@ const styles = StyleSheet.create({
    */
   left: { flex: 1, minWidth: 0, gap: spacing.sm },
   points: { lineHeight: 42 },
+  retry: { textDecorationLine: 'underline' },
 });

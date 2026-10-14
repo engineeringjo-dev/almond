@@ -3,25 +3,28 @@ import { router } from 'expo-router';
 
 import { Text } from '@/components/ui/Text';
 import { Icon } from '@/components/ui/Icon';
-import { Gradient } from '@/components/ui/Gradient';
-import { colors, spacing, radius, shadow } from '@/constants/theme';
+import { colors, spacing, radius } from '@/constants/theme';
 import { useI18n } from '@/hooks/useI18n';
 
 /** Home entry to the gift-card catalog (gift coffee to someone). */
 export function GiftCardHome() {
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
   return (
-    <Pressable onPress={() => router.push('/profile/gift-cards')} accessibilityRole="button">
-      <Gradient preset="purple" style={styles.card}>
+    <Pressable
+      onPress={() => router.push('/profile/gift-cards')}
+      accessibilityRole="button"
+      style={({ pressed }) => [styles.card, pressed && styles.pressed]}
+    >
+      
         <View style={styles.iconWrap}>
-          <Icon name="gift" size={24} color={colors.white} />
+          <Icon name="gift" size={24} color={colors.dark} />
         </View>
         <View style={styles.body}>
-          <Text variant="bodyBold" color={colors.white}>{t('gift.title')}</Text>
-          <Text variant="caption" color={colors.white}>{t('gift.subtitle')}</Text>
+          <Text variant="bodyBold" color={colors.dark}>{t('gift.title')}</Text>
+          <Text variant="caption" color={colors.dark}>{t('gift.subtitle')}</Text>
         </View>
-        <Icon name="navigation" size={20} color={colors.white} />
-      </Gradient>
+        <Icon name={lang === 'ar' ? 'chevron-left' : 'chevron-right'} size={20} color={colors.dark} />
+      
     </Pressable>
   );
 }
@@ -34,12 +37,15 @@ const styles = StyleSheet.create({
     borderRadius: radius.lg,
     padding: spacing.lg,
     overflow: 'hidden',
-    ...shadow.card,
+    borderWidth: 1,
+    borderColor: colors.neutralWarm,
+    backgroundColor: colors.white,
   },
   iconWrap: {
     width: 44, height: 44, borderRadius: radius.md,
-    backgroundColor: 'rgba(255,255,255,0.2)',
+    backgroundColor: colors.surface,
     alignItems: 'center', justifyContent: 'center',
   },
-  body: { flex: 1, gap: 2 },
+  body: { flex: 1, minWidth: 0, gap: 2 },
+  pressed: { backgroundColor: colors.surface },
 });

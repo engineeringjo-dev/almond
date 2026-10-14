@@ -17,8 +17,7 @@ export function FeaturedRow() {
   const { t, lang } = useI18n();
   const [selected, setSelected] = useState<MenuItem | null>(null);
   const menu = useMenuState();
-  // A varied "most popular" set: the first item from each of several categories
-  // (so it's not all drinks) — prefers items that have a photo.
+  // A varied selection with real product photos; this is not a sales ranking.
   const items = useMemo<MenuItem[]>(() => {
     const byCat = new Map<string, MenuItem>();
     for (const it of menu.items) {
@@ -30,7 +29,7 @@ export function FeaturedRow() {
   return (
     <View>
       <Text variant="title" style={styles.heading}>
-        {t('home.popular')}
+        {t('home.featured')}
       </Text>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.row}>
         {items.map((item) => (
@@ -47,11 +46,11 @@ export function FeaturedRow() {
                 <Icon name={iconForCategory(item.categoryId)} size={46} color={colors.primary} strokeWidth={1.6} />
               )}
             </View>
-            <Text variant="bodyBold" numberOfLines={1}>
+            <Text variant="bodyBold" numberOfLines={2} style={styles.itemName}>
               {lang === 'ar' ? item.nameAr : item.nameEn}
             </Text>
             <Text variant="price">
-              {item.sizes.length > 1 ? (lang === 'ar' ? 'من ' : 'from ') : ''}
+              {item.sizes.length > 1 ? t('home.priceFrom') : ''}
               {formatJOD(itemFromPrice(item), lang)}
             </Text>
           </Pressable>
@@ -85,4 +84,5 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   photo: { width: '100%', height: '100%' },
+  itemName: { minHeight: 44 },
 });

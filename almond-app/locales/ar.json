@@ -124,7 +124,19 @@
     "greetingMorningGuest": "صباح الخير ☕",
     "greetingEveningGuest": "مساء الخير ☕",
     "nudgeCart": "لديك {{count}} صنف في سلتك — أكمل طلبك",
-    "nudgeExpiry": "{{points}} من نقاطك تنتهي في {{date}} — اصرفها قبل فوات الأوان"
+    "nudgeExpiry": "{{points}} من نقاطك تنتهي في {{date}} — اصرفها قبل فوات الأوان",
+    "featured": "من قائمة ألموند",
+    "priceFrom": "ابتداءً من ",
+    "changeBranch": "تغيير الفرع، الفرع الحالي: {{branch}}",
+    "cartWithCount": "السلة، عدد الأصناف: {{count}}",
+    "ourBranches": "فروع ألموند",
+    "viewAllBranches": "عرض كل الفروع",
+    "branchesUnavailable": "تعذّر تحميل الفروع. حاول مرة أخرى.",
+    "noBranches": "لا توجد فروع متاحة حالياً.",
+    "pointsUnavailable": "تعذّر تحميل نقاطك.",
+    "retryPoints": "إعادة تحميل النقاط",
+    "walletUnavailable": "تعذّر تحميل رصيد المحفظة.",
+    "retryWallet": "إعادة تحميل رصيد المحفظة"
   },
   "offers": {
     "comboTitle": "أي مشروب + أي طعام = {{points}} نقطة 🍽️",
