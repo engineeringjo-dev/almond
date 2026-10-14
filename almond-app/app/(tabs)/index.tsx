@@ -138,16 +138,16 @@ export default function HomeScreen() {
 
           {error ? (
             <View style={styles.branchState}>
-              <Text variant="body" color={colors.textSecondary}>{t('home.branchesUnavailable')}</Text>
+              <Text variant="body" color={colors.warmGray}>{t('home.branchesUnavailable')}</Text>
               <Button title={t('common.retry')} onPress={() => { void refetch(); }} variant="outline" />
             </View>
           ) : loading && branches.length === 0 ? (
             <View style={styles.branchState}>
               <ActivityIndicator color={colors.primary} accessibilityLabel={t('common.loading')} />
-              <Text variant="caption" color={colors.textSecondary}>{t('common.loading')}</Text>
+              <Text variant="caption" color={colors.warmGray}>{t('common.loading')}</Text>
             </View>
           ) : branches.length === 0 ? (
-            <Text variant="body" color={colors.textSecondary}>{t('home.noBranches')}</Text>
+            <Text variant="body" color={colors.warmGray}>{t('home.noBranches')}</Text>
           ) : null}
 
           <View style={styles.branchList}>

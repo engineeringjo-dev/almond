@@ -40,20 +40,24 @@ export function HomeTopBar({ branch, onBranchPress }: Props) {
         <Text variant="caption" color={colors.dark} numberOfLines={1} style={styles.chipText}>
           {branchName}
         </Text>
-        <Icon name="chevron-down" size={16} color={colors.textSecondary} />
+        <Icon name="chevron-down" size={16} color={colors.warmGray} />
       </Pressable>
 
       <View style={styles.actions}>
-        <Pressable onPress={() => router.push('/notifications')}
+        <Pressable
+          onPress={() => router.push('/notifications')}
           accessibilityRole="button"
           accessibilityLabel={t('notifications.title')}
-          style={({ pressed }) => [styles.iconBtn, pressed && styles.pressed]}>
+          style={({ pressed }) => [styles.iconBtn, pressed && styles.pressed]}
+        >
           <Icon name="bell" size={22} color={colors.dark} />
         </Pressable>
-        <Pressable onPress={() => router.push('/cart')}
+        <Pressable
+          onPress={() => router.push('/cart')}
           accessibilityRole="button"
           accessibilityLabel={cartCount > 0 ? t('home.cartWithCount', { count: cartCount }) : t('tabs.cart')}
-          style={({ pressed }) => [styles.iconBtn, pressed && styles.pressed]}>
+          style={({ pressed }) => [styles.iconBtn, pressed && styles.pressed]}
+        >
           <Icon name="cart" size={22} color={colors.dark} />
           {cartCount > 0 ? (
             <View style={styles.badge}>

@@ -15,16 +15,14 @@ export function GiftCardHome() {
       accessibilityRole="button"
       style={({ pressed }) => [styles.card, pressed && styles.pressed]}
     >
-      
-        <View style={styles.iconWrap}>
-          <Icon name="gift" size={24} color={colors.dark} />
-        </View>
-        <View style={styles.body}>
-          <Text variant="bodyBold" color={colors.dark}>{t('gift.title')}</Text>
-          <Text variant="caption" color={colors.dark}>{t('gift.subtitle')}</Text>
-        </View>
-        <Icon name={lang === 'ar' ? 'chevron-left' : 'chevron-right'} size={20} color={colors.dark} />
-      
+      <View style={styles.iconWrap}>
+        <Icon name="gift" size={24} color={colors.dark} />
+      </View>
+      <View style={styles.body}>
+        <Text variant="bodyBold" color={colors.dark}>{t('gift.title')}</Text>
+        <Text variant="caption" color={colors.dark}>{t('gift.subtitle')}</Text>
+      </View>
+      <Icon name={lang === 'ar' ? 'chevron-left' : 'chevron-right'} size={20} color={colors.dark} />
     </Pressable>
   );
 }

@@ -36,7 +36,7 @@ export function WalletCard() {
           {isLoading ? (
             <ActivityIndicator color={colors.primary} accessibilityLabel={t('common.loading')} style={styles.loading} />
           ) : isError || balance == null ? (
-            <Text variant="body" color={colors.textSecondary}>{t('home.walletUnavailable')}</Text>
+            <Text variant="body" color={colors.warmGray}>{t('home.walletUnavailable')}</Text>
           ) : (
             <Text variant="h1" color={colors.dark}>{formatJOD(balance, lang)}</Text>
           )}
