@@ -239,8 +239,11 @@ test.describe('App design system: targets, digits, direction, names', () => {
     const search = page.getByRole('textbox', { name: 'ابحث عن مشروب أو طبق' });
     await expect(search).toBeVisible({ timeout: 20_000 });
     expect(await search.evaluate((e) => getComputedStyle(e).textAlign)).toBe('right');
-    await search.fill(LATTE);
-    const english = page.getByText('Iced Latte', { exact: true }).first();
+    // The English line under an Arabic name is gone (owner, 2026-10-15: no
+    // English sub-name in Arabic), so the English text an Arabic reader still
+    // meets is an item Odoo has not translated yet: it must start right too.
+    await search.fill('Cortado');
+    const english = page.getByText('Cortado', { exact: true }).first();
     await expect(english).toBeVisible();
     expect(await english.evaluate((e) => getComputedStyle(e).textAlign)).toBe('right');
   });

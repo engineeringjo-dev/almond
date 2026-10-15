@@ -48,6 +48,19 @@ describe('menu sync', () => {
     expect((await menuService.getItems('all')).some((i) => i.id === 'p-999001')).toBe(true);
   });
 
+  it('a server menu in Arabic-Indic digits reaches the screen in Latin digits (owner: «الارقام اللاتينية فقط»)', async () => {
+    // An older server, one that never ran the reader's pass, sends Odoo's text as it is.
+    const raw = buildAppMenuPayload({
+      categories,
+      items: [...menuItems, { ...NEW_ITEM, nameAr: 'لاتيه القيقب ٢٥٠ مل' }],
+      updatedAt: menuPulledAt,
+      assetBase: 'https://menu.example',
+    });
+    expect(await refreshMenu(serve(raw))).toBe('updated');
+    expect((await menuService.getItem('p-999001')).nameAr).toBe('لاتيه القيقب 250 مل');
+    expect(getMenu().items.some((i) => /[٠-٩]/.test(i.nameAr))).toBe(false);
+  });
+
   it('the same menu twice is not re-applied', async () => {
     expect(await refreshMenu(serve(payload()))).toBe('updated');
     expect(await refreshMenu(serve(payload()))).toBe('unchanged');

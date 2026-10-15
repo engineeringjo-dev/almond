@@ -9,6 +9,7 @@
  */
 import type { Category, MenuItem } from '../types';
 import { categories as bundledCategories, menuItems as bundledItems } from './seed';
+import { localizeCategories, localizeMenuItems } from './localize';
 import type { AppMenuPayload } from './remote';
 
 export interface MenuState {
@@ -29,7 +30,19 @@ export function getMenu(): MenuState {
 /** Apply a payload that `parseAppMenuPayload` accepted. Returns whether it changed anything. */
 export function setMenu(p: AppMenuPayload, source: 'cache' | 'server'): boolean {
   if (p.version === current.version) return false;
-  current = { categories: p.categories, items: p.items, version: p.version, source };
+  // 🔴 THE READER'S PASS RUNS ON EVERY MENU THAT REACHES A SCREEN, not only
+  // on the bundled one (menu/localize.ts: Latin digits, Arabic names for the
+  // modifiers Odoo has in English only). The server is a separate deployment
+  // and can be older than this build: the 2026-10-15 end-to-end run fetched
+  // the live menu, the cart printed «كرواسون مع أومليت و٣ أنواع جبن» beside
+  // the chip's «و3», and an Arabic-Indic digit reached the screen again.
+  // The pass is idempotent, so a server that already ran it costs nothing.
+  current = {
+    categories: localizeCategories(p.categories),
+    items: localizeMenuItems(p.items),
+    version: p.version,
+    source,
+  };
   for (const l of listeners) l(current);
   return true;
 }

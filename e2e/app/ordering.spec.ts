@@ -188,6 +188,11 @@ async function saveBranch(
 
 test.describe('App cart: the branch is never switched silently (owner, 2026-09-30)', () => {
   test('a saved branch that left the list: the cart and the review say which, and where the order went', async ({ page }) => {
+    // Noon in Amman, so a branch is open whatever time the suite runs. Without
+    // it, a run after midnight took the «وكل الفروع مغلقة الآن» wording — the
+    // right sentence for that hour, and a failure that was only the clock.
+    await page.clock.install({ time: new Date('2026-09-30T12:00:00+03:00') });
+    await page.clock.resume();
     await seedApp(page, { signedIn: true });
     await addLatte(page);
     await saveBranch(page, 'abdali-closed-down', { nameAr: 'العبدلي', nameEn: 'Abdali' });
