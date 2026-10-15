@@ -1,5 +1,5 @@
 import { memo } from 'react';
-import { Pressable, StyleSheet, View, Image } from 'react-native';
+import { Pressable, StyleSheet, View, Image, useWindowDimensions } from 'react-native';
 import { Text } from '@/components/ui/Text';
 import { menuImage } from '@/lib/menuImage';
 import { Icon } from '@/components/ui/Icon';
@@ -22,6 +22,11 @@ function MenuItemCardBase({ item, onPress }: Props) {
   const minPrice = itemFromPrice(item);
   const soldOut = item.inStock === false;
   const other = secondaryName(item, lang);
+  // Every tile the same height, so a menu row is a known height and a section
+  // can be jumped to exactly (order.tsx): the name keeps room for its two
+  // lines, and an English tile keeps its line for the Arabic name. Scaled
+  // with the reader's text size, as the lines themselves are.
+  const { fontScale } = useWindowDimensions();
 
   return (
     <Pressable
@@ -52,14 +57,15 @@ function MenuItemCardBase({ item, onPress }: Props) {
         ) : null}
       </View>
       {/* Two lines: «بايغل مع أومليت وجبنة شيدر» was «بايغل مع أومل…» on one. */}
-      <Text variant="bodyBold" numberOfLines={2}>
+      <Text variant="bodyBold" numberOfLines={2} style={{ minHeight: NAME_LINE * 2 * fontScale }}>
         {lang === 'ar' ? item.nameAr : item.nameEn}
       </Text>
       {/* The other language's name, only when Odoo has a translation —
-          untranslated items printed the same name twice. */}
-      {other ? (
+          untranslated items printed the same name twice. The line is kept
+          empty rather than dropped, so English tiles stay one height. */}
+      {lang !== 'ar' ? (
         <Text variant="caption" color={colors.warmGray} numberOfLines={1}>
-          {other}
+          {other ?? ' '}
         </Text>
       ) : null}
       <Text variant="price" style={styles.price}>
@@ -75,6 +81,9 @@ function MenuItemCardBase({ item, onPress }: Props) {
 // tile unless its item actually changes (e.g. while typing in search). Language
 // changes still flow through the useI18n subscription inside the component.
 export const MenuItemCard = memo(MenuItemCardBase, (prev, next) => prev.item === next.item);
+
+/** The name's line height (components/ui/Text bodyBold). */
+const NAME_LINE = 24;
 
 const styles = StyleSheet.create({
   card: {

@@ -1,5 +1,5 @@
-import { useMemo, useState } from 'react';
-import { View, StyleSheet, FlatList, ScrollView, Pressable, Image } from 'react-native';
+import { useMemo, useRef, useState } from 'react';
+import { View, StyleSheet, FlatList, ScrollView, Pressable, Image, type LayoutChangeEvent, type ViewToken } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 
@@ -18,6 +18,7 @@ import { Skeleton } from '@/components/ui/Skeleton';
 import { Screen } from '@/components/ui/Screen';
 import { colors, layout, spacing, radius, shadow } from '@/constants/theme';
 import { useI18n } from '@/hooks/useI18n';
+import { useReducedMotion } from '@/hooks/useReducedMotion';
 import { useCategories, useMenuItems } from '@/hooks/useMenu';
 import { useOrderHistory } from '@/hooks/useOrder';
 import { MIN_TOUCH_TARGET, tabA11y } from '@/lib/a11y';
@@ -27,7 +28,7 @@ import { iconForCategory, iconForItem } from '@/lib/productIcon';
 import { useFavouritesStore } from '@/stores/favouritesStore';
 import { useCartStore } from '@/stores/cartStore';
 import { useToastStore } from '@/stores/toastStore';
-import type { MenuItem, Order, CartItem } from '@/types';
+import type { Category, MenuItem, Order, CartItem } from '@/types';
 import { bestSellers } from '@almond/shared/lib/recommendations';
 import { matchesMenuQuery } from '@almond/shared/menu/browse';
 
@@ -144,103 +145,234 @@ export default function OrderScreen() {
 
 /* ----------------------------- Menu sub-tab ----------------------------- */
 
+/**
+ * ONE LIST, IN SECTIONS, UNDER A PINNED SECTION BAR (Dunkin' panel,
+ * 2026-10-15). The bar was a filter in the list's header: it left with the
+ * first swipe, showed 3 of 33 chips, and «الكل» was 375 tiles with no heading
+ * — half of what sells sat 101 tiles (about 24 screens) down. Now every
+ * section has its heading, the bar stays at the top of the list, a chip
+ * jumps to its section, and the chip of the section in view is marked.
+ * Precedent: Dunkin' 07, Talabat, Careem, Deliveroo, Uber Eats; the website's
+ * CategoryRail. The search box stays above, and a query shows the matches
+ * alone.
+ */
+/** The list's top padding: the first row's offset (getItemLayout). */
+const LIST_PADDING_TOP = spacing.lg;
+
+type MenuRow =
+  | { type: 'top'; key: 'top' }
+  | { type: 'bar'; key: 'bar' }
+  | { type: 'section'; key: string; cat: Category }
+  | { type: 'pair'; key: string; catId: string; items: MenuItem[] }
+  | { type: 'empty'; key: 'empty' };
+
+/** Two tiles a row: the grid, as a list a section heading can sit in. */
+function pairsOf(items: MenuItem[]): MenuItem[][] {
+  const out: MenuItem[][] = [];
+  for (let i = 0; i < items.length; i += 2) out.push(items.slice(i, i + 2));
+  return out;
+}
+
 function MenuTab({
   items,
   categories,
   onSelect,
 }: {
   items: MenuItem[];
-  categories: { id: string; nameAr: string; nameEn: string }[];
+  categories: Category[];
   onSelect: (i: MenuItem) => void;
 }) {
   const { t, lang } = useI18n();
-  const [activeCat, setActiveCat] = useState('all');
+  const reduceMotion = useReducedMotion();
   const [query, setQuery] = useState('');
+  const searching = query.trim().length > 0;
 
   // «الأكثر طلباً» means it: the items paid Odoo orders hold most, from the
   // one shared rule (bestSellers). It was the first photographed item of
   // each category, a sample under a heading that claimed a ranking.
   const trending = useMemo(() => bestSellers(12, { items }), [items]);
 
-  const displayed = useMemo(() => {
-    if (query.trim()) return items.filter((i) => matchesMenuQuery(i, query));
-    if (activeCat === 'all') return items;
-    return items.filter((i) => i.categoryId === activeCat);
-  }, [items, query, activeCat]);
+  // The sections in the shared order (menu/browse.ts, through the menu
+  // service), each with its items; «الكل» is no section.
+  const sections = useMemo(() => {
+    const byCat = new Map<string, MenuItem[]>();
+    for (const i of items) byCat.set(i.categoryId, [...(byCat.get(i.categoryId) ?? []), i]);
+    return categories
+      .filter((c) => c.id !== 'all' && (byCat.get(c.id)?.length ?? 0) > 0)
+      .map((cat) => ({ cat, items: byCat.get(cat.id)! }));
+  }, [items, categories]);
+
+  const { rows, sectionAt } = useMemo(() => {
+    const out: MenuRow[] = [{ type: 'top', key: 'top' }];
+    const at = new Map<string, number>();
+    if (searching) {
+      const found = items.filter((i) => matchesMenuQuery(i, query));
+      if (found.length === 0) out.push({ type: 'empty', key: 'empty' });
+      pairsOf(found).forEach((pair, n) => out.push({ type: 'pair', key: `q:${n}`, catId: '', items: pair }));
+      return { rows: out, sectionAt: at };
+    }
+    out.push({ type: 'bar', key: 'bar' });
+    for (const s of sections) {
+      at.set(s.cat.id, out.length);
+      out.push({ type: 'section', key: `h:${s.cat.id}`, cat: s.cat });
+      pairsOf(s.items).forEach((pair, n) => out.push({ type: 'pair', key: `p:${s.cat.id}:${n}`, catId: s.cat.id, items: pair }));
+    }
+    return { rows: out, sectionAt: at };
+  }, [items, sections, query, searching]);
+
+  const [active, setActive] = useState<string>(() => sections[0]?.cat.id ?? '');
+  const listRef = useRef<FlatList<MenuRow>>(null);
+  // A tap on a chip owns the marker until its scroll settles; the list's own
+  // report of what is in view would otherwise flick through every section the
+  // jump passes.
+  const jumpUntil = useRef(0);
+
+  // 🔴 EVERY ROW OF A KIND IS ONE HEIGHT, MEASURED ON SCREEN, so the list
+  // knows where any section starts without drawing the rows above it. A
+  // jump used to land short: React Native's list guesses the place of rows it
+  // has not drawn, and a tap on «قطع كيك وحلويات» stopped at «ساندويشات».
+  // Tiles keep a fixed name block (MenuItemCard), headings are one line, and
+  // the first of each kind on screen reports its height here.
+  const [heights, setHeights] = useState<Record<MenuRow['type'], number>>({
+    top: 300,
+    bar: 61,
+    section: 70,
+    pair: 300,
+    empty: 200,
+  });
+  const measure = (type: MenuRow['type']) => (e: LayoutChangeEvent) => {
+    const h = e.nativeEvent.layout.height;
+    setHeights((prev) => (Math.abs(prev[type] - h) < 0.01 ? prev : { ...prev, [type]: h }));
+  };
+  const offsets = useMemo(() => {
+    const out: number[] = [];
+    let y = LIST_PADDING_TOP;
+    for (const r of rows) {
+      out.push(y);
+      y += heights[r.type];
+    }
+    return out;
+  }, [rows, heights]);
+  const getItemLayout = (_: ArrayLike<MenuRow> | null | undefined, index: number) => ({
+    index,
+    offset: offsets[index] ?? 0,
+    length: heights[rows[index]?.type ?? 'pair'],
+  });
+
+  // The first section or tile at least half on screen names the section in
+  // view. Stable for the list's lifetime, as FlatList requires.
+  const onViewableItemsChanged = useRef(({ viewableItems }: { viewableItems: ViewToken[] }) => {
+    if (Date.now() < jumpUntil.current) return;
+    const first = viewableItems
+      .filter((v) => v.isViewable && v.index != null)
+      .sort((a, b) => (a.index ?? 0) - (b.index ?? 0))
+      .map((v) => v.item as MenuRow)
+      .find((r) => r.type === 'section' || (r.type === 'pair' && r.catId !== ''));
+    if (first?.type === 'section') setActive(first.cat.id);
+    else if (first?.type === 'pair') setActive(first.catId);
+  }).current;
+  const viewabilityConfig = useRef({ itemVisiblePercentThreshold: 50 }).current;
+
+  const jumpTo = (catId: string) => {
+    const index = sectionAt.get(catId);
+    if (index === undefined) return;
+    setActive(catId);
+    jumpUntil.current = Date.now() + 900;
+    // The heading lands just under the pinned bar, not behind it.
+    listRef.current?.scrollToIndex({ index, viewOffset: heights.bar, animated: !reduceMotion });
+  };
 
   return (
     <FlatList
-      data={displayed}
-      keyExtractor={(i) => i.id}
-      numColumns={2}
-      columnWrapperStyle={styles.column}
-      contentContainerStyle={styles.list}
+      ref={listRef}
+      data={rows}
+      keyExtractor={(r) => r.key}
+      contentContainerStyle={styles.menuList}
       showsVerticalScrollIndicator={false}
-      initialNumToRender={8}
-      maxToRenderPerBatch={8}
-      windowSize={7}
-      removeClippedSubviews
-      ListHeaderComponent={
-        <View style={styles.menuHeader}>
-          <SearchBar value={query} onChangeText={setQuery} placeholder={t('menu.searchPlaceholder')} />
+      initialNumToRender={10}
+      maxToRenderPerBatch={10}
+      windowSize={9}
+      stickyHeaderIndices={searching ? undefined : [1]}
+      onViewableItemsChanged={onViewableItemsChanged}
+      viewabilityConfig={viewabilityConfig}
+      getItemLayout={getItemLayout}
+      renderItem={({ item: row, index }) => {
+        switch (row.type) {
+          case 'top':
+            return (
+              <View style={styles.menuHeader} onLayout={measure('top')}>
+                <SearchBar value={query} onChangeText={setQuery} placeholder={t('menu.searchPlaceholder')} />
 
-          {!query && trending.length > 0 ? (
-            <View style={styles.block}>
-              <Text variant="title" style={styles.blockTitle}>
-                {t('order.trending')}
-              </Text>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.trendRow}>
-                {trending.map((item) => (
-                  <Pressable
-                    key={item.id}
-                    style={styles.trendItem}
-                    onPress={() => onSelect(item)}
-                    accessibilityRole="button"
-                  >
-                    <View style={styles.trendThumb}>
-                      {item.imageUrl ? (
-                        <Image source={{ uri: menuImage(item.imageUrl, 200) }} style={styles.trendPhoto} resizeMode="cover" />
-                      ) : (
-                        <Icon name={iconForCategory(item.categoryId)} size={30} color={colors.brown} strokeWidth={1.6} />
-                      )}
-                    </View>
-                    <Text variant="caption" numberOfLines={1} style={styles.trendLabel}>
-                      {lang === 'ar' ? item.nameAr : item.nameEn}
+                {!searching && trending.length > 0 ? (
+                  <View style={styles.block}>
+                    <Text variant="title" style={styles.blockTitle}>
+                      {t('order.trending')}
                     </Text>
-                  </Pressable>
+                    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.trendRow}>
+                      {trending.map((item) => (
+                        <Pressable
+                          key={item.id}
+                          style={styles.trendItem}
+                          onPress={() => onSelect(item)}
+                          accessibilityRole="button"
+                        >
+                          <View style={styles.trendThumb}>
+                            {item.imageUrl ? (
+                              <Image source={{ uri: menuImage(item.imageUrl, 200) }} style={styles.trendPhoto} resizeMode="cover" />
+                            ) : (
+                              <Icon name={iconForCategory(item.categoryId)} size={30} color={colors.brown} strokeWidth={1.6} />
+                            )}
+                          </View>
+                          <Text variant="caption" numberOfLines={1} style={styles.trendLabel}>
+                            {lang === 'ar' ? item.nameAr : item.nameEn}
+                          </Text>
+                        </Pressable>
+                      ))}
+                    </ScrollView>
+                  </View>
+                ) : null}
+              </View>
+            );
+          case 'bar':
+            return (
+              <View style={styles.sectionBar} onLayout={measure('bar')}>
+                <CategoryChips categories={sections.map((s) => s.cat)} activeId={active} onSelect={jumpTo} />
+              </View>
+            );
+          case 'section':
+            return (
+              <View style={styles.sectionHead} onLayout={measure('section')}>
+                <Text variant="title" numberOfLines={1} accessibilityRole="header">
+                  {lang === 'ar' ? row.cat.nameAr : row.cat.nameEn}
+                </Text>
+              </View>
+            );
+          case 'empty':
+            return (
+              <View style={styles.empty} onLayout={measure('empty')}>
+                <Icon name="search" size={44} color={colors.warmGray} strokeWidth={1.5} />
+                <Text variant="body" color={colors.warmGray}>
+                  {t('menu.noResults')}
+                </Text>
+              </View>
+            );
+          case 'pair': {
+            // Only the first screenful rises in; plain rows below avoid
+            // per-cell Animated work while scrolling 375 items.
+            const cells = (
+              <View style={styles.pairRow} onLayout={measure('pair')}>
+                {row.items.map((item) => (
+                  <View key={item.id} style={styles.cardWrap}>
+                    <MenuItemCard item={item} onPress={() => onSelect(item)} />
+                  </View>
                 ))}
-              </ScrollView>
-            </View>
-          ) : null}
-
-          {!query ? (
-            <View style={styles.chips}>
-              <CategoryChips categories={categories} activeId={activeCat} onSelect={setActiveCat} />
-            </View>
-          ) : null}
-        </View>
-      }
-      renderItem={({ item, index }) =>
-        // Only animate the first screenful; plain rows below avoid per-cell
-        // Animated work while scrolling 267 items.
-        index < 8 ? (
-          <FadeIn delay={index * 30} style={styles.cardWrap}>
-            <MenuItemCard item={item} onPress={() => onSelect(item)} />
-          </FadeIn>
-        ) : (
-          <View style={styles.cardWrap}>
-            <MenuItemCard item={item} onPress={() => onSelect(item)} />
-          </View>
-        )
-      }
-      ListEmptyComponent={
-        <View style={styles.empty}>
-          <Icon name="search" size={44} color={colors.warmGray} strokeWidth={1.5} />
-          <Text variant="body" color={colors.warmGray}>
-            {t('menu.noResults')}
-          </Text>
-        </View>
-      }
+                {row.items.length === 1 ? <View style={styles.cardWrap} /> : null}
+              </View>
+            );
+            return index < 6 ? <FadeIn delay={index * 30}>{cells}</FadeIn> : cells;
+          }
+        }
+      }}
     />
   );
 }
@@ -459,11 +591,24 @@ const styles = StyleSheet.create({
   },
   subTabUnderlineActive: { backgroundColor: colors.primary },
 
-  menuHeader: { gap: spacing.md, marginBottom: spacing.sm },
+  // Rows space themselves with padding, never margin: a row's measured
+  // height must be all the room it takes (getItemLayout in MenuTab).
+  menuHeader: { gap: spacing.md, paddingBottom: spacing.sm },
+  // The section bar spans the screen while the tiles keep their margin: it
+  // pins over the list, so the page's own ground goes under it, edge to edge.
+  sectionBar: {
+    marginHorizontal: -spacing.lg,
+    backgroundColor: colors.cream,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.neutralWarm,
+  },
+  sectionHead: { paddingTop: spacing.xl, paddingBottom: spacing.md },
+  pairRow: { flexDirection: 'row', gap: spacing.md, paddingBottom: spacing.md },
+  // Extra room at the end so the last row clears the pinned pickup/cart bar.
+  menuList: { paddingHorizontal: spacing.lg, paddingTop: LIST_PADDING_TOP, paddingBottom: spacing.xxl * 4 },
   block: { marginTop: spacing.md },
   blockTitle: { marginBottom: spacing.xs },
   blockSub: { marginBottom: spacing.md },
-  chips: {},
 
   trendRow: { gap: spacing.md, paddingEnd: spacing.lg },
   trendItem: { alignItems: 'center', width: 72, gap: spacing.xs },
@@ -480,10 +625,7 @@ const styles = StyleSheet.create({
   trendPhoto: { width: '100%', height: '100%' },
   trendLabel: { textAlign: 'center' },
 
-  // extra bottom room so content clears the pinned pickup/cart bar
-  list: { padding: spacing.lg, gap: spacing.md, paddingBottom: spacing.xxl * 4 },
   scrollList: { padding: spacing.lg, paddingBottom: spacing.xxl * 4 },
-  column: { gap: spacing.md },
   cardWrap: { flex: 1 },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.md },
   gridCell: { width: '47.5%', flexGrow: 1 },

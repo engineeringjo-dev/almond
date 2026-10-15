@@ -33,6 +33,26 @@ export function tabA11y(selected: boolean, label: string): A11yProps {
 }
 
 /**
+ * One link of an in-page navigation — the menu's section bar, which JUMPS to a
+ * section and marks the one in view. WAI-ARIA: tabs switch panels; links that
+ * move within a page are navigation, and the one the reader is at is
+ * `aria-current` (the website's CategoryRail says the same). VoiceOver and
+ * TalkBack have no "current" trait, so the native build reads it as selected;
+ * react-native-web drops accessibilityState, so the web reads only ARIA.
+ */
+export function navItemA11y(
+  current: boolean,
+  label: string,
+): Pick<ViewProps, 'role' | 'aria-label' | 'accessibilityState'> & { 'aria-current'?: 'true' } {
+  return {
+    role: 'button',
+    'aria-label': label,
+    ...(current ? { 'aria-current': 'true' as const } : {}),
+    accessibilityState: { selected: current },
+  };
+}
+
+/**
  * The smallest touch target, per platform: 44 pt (Apple HIG) on iOS and the
  * web, 48 dp (Material 3) on Android. React Native units are points on iOS and
  * dp on Android, so one number cannot satisfy both. Sized, not hitSlop'd —

@@ -30,16 +30,18 @@ async function translateYChain(l: Locator): Promise<number[]> {
 }
 
 test.describe('App design system: selection state reaches the web', () => {
-  test('category chips and Order sub-tabs are tablists with one selected tab', async ({ page }) => {
+  test('the section bar marks the one section in view; the Order sub-tabs are a tablist with one selected tab', async ({ page }) => {
     await seedApp(page, { signedIn: true });
     await page.goto(appUrl('/order'));
-    const cats = page.getByRole('tablist', { name: 'التصنيفات' });
-    await expect(cats.getByRole('tab').first()).toBeVisible({ timeout: 20_000 });
-    await expect(cats.getByRole('tab', { selected: true })).toHaveCount(1);
-    const second = cats.getByRole('tab').nth(1);
+    // In-page navigation since the menu became one list (Dunkin' panel,
+    // 2026-10-15): a chip jumps, and the section in view is aria-current.
+    const cats = page.getByRole('navigation', { name: 'التصنيفات' });
+    await expect(cats.getByRole('button').first()).toBeVisible({ timeout: 20_000 });
+    await expect(cats.locator('[aria-current="true"]')).toHaveCount(1);
+    const second = cats.getByRole('button').nth(1);
     await second.click();
-    await expect(second).toHaveAttribute('aria-selected', 'true');
-    await expect(cats.getByRole('tab', { selected: true })).toHaveCount(1);
+    await expect(second).toHaveAttribute('aria-current', 'true');
+    await expect(cats.locator('[aria-current="true"]')).toHaveCount(1);
 
     const sub = page.getByRole('tablist', { name: 'اطلب' });
     await expect(sub.getByRole('tab', { name: 'القائمة' })).toHaveAttribute('aria-selected', 'true');
@@ -91,14 +93,14 @@ test.describe('App design system: Space does what the role promises', () => {
     await expect(extra).toHaveAttribute('aria-checked', 'false');
   });
 
-  test('Space selects a category tab and an Order sub-tab', async ({ page }) => {
+  test('Space jumps to a section from the bar and selects an Order sub-tab', async ({ page }) => {
     await seedApp(page, { signedIn: true });
     await page.goto(appUrl('/order'));
-    const tab = page.getByRole('tablist', { name: 'التصنيفات' }).getByRole('tab').nth(1);
-    await expect(tab).toBeVisible({ timeout: 20_000 });
-    await tab.focus();
+    const chip = page.getByRole('navigation', { name: 'التصنيفات' }).getByRole('button').nth(1);
+    await expect(chip).toBeVisible({ timeout: 20_000 });
+    await chip.focus();
     await page.keyboard.press('Space');
-    await expect(tab).toHaveAttribute('aria-selected', 'true');
+    await expect(chip).toHaveAttribute('aria-current', 'true');
     const featured = page.getByRole('tab', { name: 'المميّز' });
     await featured.focus();
     await page.keyboard.press('Space');
@@ -120,8 +122,9 @@ test.describe('App design system: Space does what the role promises', () => {
     await expect(first).toHaveAttribute('aria-checked', 'true');
     await page.getByRole('dialog').getByRole('button', { name: 'إغلاق' }).click();
 
-    await page.getByRole('textbox', { name: 'ابحث عن مشروب أو طبق' }).fill('');
-    const tabs = page.getByRole('tablist', { name: 'التصنيفات' }).getByRole('tab');
+    // The Order sub-tabs: still a tablist (they switch panels), so arrows and
+    // Home move within it. The section bar is navigation, reached with Tab.
+    const tabs = page.getByRole('tablist', { name: 'اطلب' }).getByRole('tab');
     await tabs.nth(0).focus();
     await page.keyboard.press('ArrowLeft');
     await expect(tabs.nth(1)).toHaveAttribute('aria-selected', 'true');
@@ -210,9 +213,10 @@ test.describe('App design system: targets, digits, direction, names', () => {
     expect(Math.round(Math.min(p.width, p.height))).toBeGreaterThanOrEqual(44);
     await sheet.getByRole('button', { name: 'إغلاق' }).click();
 
-    const cat = page.getByRole('tablist', { name: 'التصنيفات' });
+    // The section bar is in-page navigation now (it jumps; it does not switch panels).
+    const cat = page.getByRole('navigation', { name: 'التصنيفات' });
     await page.getByRole('textbox', { name: 'ابحث عن مشروب أو طبق' }).fill('');
-    expect(Math.round((await box(cat.getByRole('tab').first())).height)).toBeGreaterThanOrEqual(44);
+    expect(Math.round((await box(cat.getByRole('button').first())).height)).toBeGreaterThanOrEqual(44);
 
     const size = (name: string) =>
       page.getByRole('tab', { name }).getByText(name, { exact: true }).evaluate((e) => getComputedStyle(e).fontSize);
@@ -334,7 +338,7 @@ test.describe('App design system: wide windows', () => {
 
 test.describe('App design system: axe', () => {
   for (const [label, go] of [
-    ['menu', async (page: Page) => { await page.goto(appUrl('/order')); await expect(page.getByRole('tablist', { name: 'التصنيفات' })).toBeVisible({ timeout: 20_000 }); }],
+    ['menu', async (page: Page) => { await page.goto(appUrl('/order')); await expect(page.getByRole('navigation', { name: 'التصنيفات' })).toBeVisible({ timeout: 20_000 }); }],
     ['item sheet', async (page: Page) => { await openItem(page, LATTE); }],
     ['cart', async (page: Page) => { await addLatte(page); await page.goto(appUrl('/cart')); await expect(page.getByRole('button', { name: /مراجعة الطلب/ })).toBeVisible({ timeout: 20_000 }); }],
   ] as const) {
