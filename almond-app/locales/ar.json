@@ -370,7 +370,8 @@
     "starsGroup": "تقييمك",
     "starsLabel": "{{n}} من 5",
     "rateError": "تعذّر إرسال التقييم. حاول مجدداً.",
-    "rateGeneric": "كيف كانت زيارتك؟"
+    "rateGeneric": "كيف كانت زيارتك؟",
+    "balanceNow": "رصيدك الآن {{points}} نقطة، تساوي {{jod}}"
   },
   "loyalty": {
     "title": "المكافآت",

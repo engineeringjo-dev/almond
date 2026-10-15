@@ -13,8 +13,12 @@ import { useToastStore } from '@/stores/toastStore';
 import { apiErrorCode } from '@/lib/apiClient';
 import { choiceA11y, choiceGroupA11y, MIN_TOUCH_TARGET } from '@/lib/a11y';
 import { inputTextAlign } from '@/lib/inputAlign';
-import { formatNumber } from '@/lib/format';
+import { formatJOD, formatNumber } from '@/lib/format';
+import { tierProgressCopy } from '@/lib/tierCopy';
+import { useLoyaltyBalance } from '@/hooks/useLoyalty';
 import { config } from '@/constants/config';
+// earn-arith-exempt: points→JOD for DISPLAY, via the one shared conversion. §7 T7.
+import { jodFromPoints } from '@almond/shared/loyalty/earn';
 
 interface Props {
   visible: boolean;
@@ -50,6 +54,12 @@ export function VisitRatingSheet({ visible, onClose, visitRef, branchName, point
   const [comment, setComment] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState(false);
+  const { data: balance } = useLoyaltyBalance();
+  // The thank-you says where the visit left the member: the balance in
+  // points and in money, and the next rung (expert panel, 2026-10-15).
+  // Precedent: Starbucks' receipt screen shows the Stars added and the new
+  // total; Al Ameed's «شكراً لزيارتك» the points.
+  const progress = balance ? tierProgressCopy(balance, lang) : null;
 
   const submit = async () => {
     if (stars === 0) return;
@@ -104,6 +114,19 @@ export function VisitRatingSheet({ visible, onClose, visitRef, branchName, point
               {pointsAdded > 0 ? (
                 <Text variant="title" center color={colors.dark}>
                   {t('visit.pointsAdded', { points: formatNumber(pointsAdded, lang) })}
+                </Text>
+              ) : null}
+              {balance ? (
+                <Text variant="body" center color={colors.dark}>
+                  {t('visit.balanceNow', {
+                    points: formatNumber(balance.points, lang),
+                    jod: formatJOD(jodFromPoints(balance.points), lang),
+                  })}
+                </Text>
+              ) : null}
+              {progress ? (
+                <Text variant="caption" center color={colors.warmGray}>
+                  {t(progress.key, progress.params)}
                 </Text>
               ) : null}
               <Text variant="body" center color={colors.warmGray}>

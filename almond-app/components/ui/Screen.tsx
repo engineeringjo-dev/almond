@@ -3,16 +3,16 @@ import {
   View,
   ScrollView,
   StyleSheet,
-  ActivityIndicator,
   RefreshControl,
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
 import { SafeAreaView, Edge } from 'react-native-safe-area-context';
-import { colors, spacing } from '@/constants/theme';
+import { colors, radius, spacing } from '@/constants/theme';
 import { Text } from './Text';
 import { Button } from './Button';
 import { Icon } from './Icon';
+import { Skeleton } from './Skeleton';
 import { useI18n } from '@/hooks/useI18n';
 
 interface Props {
@@ -58,12 +58,23 @@ export function Screen({
 
   let body: ReactNode = children;
   if (loading) {
+    // The shape of a page, not a spinner (expert panel, 2026-10-15). A
+    // skeleton shows WHERE the content will land, so the wait reads shorter
+    // and nothing jumps when it arrives. Precedent: NN/g, skeleton screens
+    // for a wait over a second; Material 3's loading guidance. A screen
+    // reader hears the one word the spinner said, once.
     body = (
-      <View style={styles.center}>
-        <ActivityIndicator size="large" color={colors.gold} />
-        <Text variant="caption" color={colors.warmGray} style={{ marginTop: spacing.md }}>
-          {t('common.loading')}
-        </Text>
+      <View
+        style={styles.skeleton}
+        accessible
+        accessibilityLabel={t('common.loading')}
+        aria-busy
+      >
+        <Skeleton width="45%" height={28} />
+        <Skeleton height={140} style={styles.skeletonHero} />
+        <Skeleton height={72} />
+        <Skeleton height={72} />
+        <Skeleton height={72} />
       </View>
     );
   } else if (error) {
@@ -117,7 +128,7 @@ export function Screen({
           </ScrollView>
         </KeyboardAvoidingView>
       ) : (
-        <View style={[styles.flex, (loading || error) && styles.center]}>{body}</View>
+        <View style={[styles.flex, !loading && error && styles.center]}>{body}</View>
       )}
     </SafeAreaView>
   );
@@ -128,6 +139,8 @@ const styles = StyleSheet.create({
   flex: { flex: 1 },
   content: { padding: spacing.lg, paddingBottom: spacing.xxl * 2 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: spacing.xl },
+  skeleton: { flex: 1, alignSelf: 'stretch', gap: spacing.md, padding: spacing.lg },
+  skeletonHero: { borderRadius: radius.lg },
   errorIcon: { marginBottom: spacing.md },
   errorBody: { marginVertical: spacing.md },
 });

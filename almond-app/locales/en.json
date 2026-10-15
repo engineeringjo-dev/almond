@@ -370,7 +370,8 @@
     "starsGroup": "Your rating",
     "starsLabel": "{{n}} of 5",
     "rateError": "Couldn't send your rating. Try again.",
-    "rateGeneric": "How was your visit?"
+    "rateGeneric": "How was your visit?",
+    "balanceNow": "Your balance is now {{points}} points, worth {{jod}}"
   },
   "loyalty": {
     "title": "Rewards",
