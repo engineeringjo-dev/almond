@@ -43,7 +43,8 @@ test.describe('Accessibility (axe)', () => {
   test('delete account (ar): what goes, what stays, and a WhatsApp request typed for them', async ({ page }) => {
     await page.goto('/account/delete');
     await expect(page.getByRole('heading', { level: 1, name: 'حذف حسابك في ألموند' })).toBeVisible();
-    await expect(page.getByText(/وتنتهي في مواعيدها فقط/)).toBeVisible();
+    // Only points run out; the wallet has no expiry (Arabic expert, 2026-10-15).
+    await expect(page.getByText(/والنقاط تنتهي في مواعيدها المعتادة فقط/)).toBeVisible();
     const wa = page.getByRole('link', { name: 'واتساب' }).first();
     expect(await wa.getAttribute('href')).toContain(`?text=${encodeURIComponent('أريد حذف حسابي في تطبيق ألموند')}`);
     await scan(page, 'delete-account-ar');

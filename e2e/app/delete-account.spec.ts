@@ -15,8 +15,9 @@ test.describe('App: delete account', () => {
     await page.getByRole('button', { name: 'حذف الحساب' }).click();
 
     await expect(page.getByText('ما الذي يبقى', { exact: true })).toBeVisible({ timeout: 20_000 });
-    await expect(page.getByText(/وتنتهي في مواعيدها فقط/)).toBeVisible();
-    await expect(page.getByText(/يُحذف بعد 30 يوماً من طلبك/)).toBeVisible();
+    // Only points run out; the wallet has no expiry (Arabic expert, 2026-10-15).
+    await expect(page.getByText(/والنقاط تنتهي في مواعيدها المعتادة فقط/)).toBeVisible();
+    await expect(page.getByText(/يُحذف حسابك بعد 30 يوماً من طلب الحذف/)).toBeVisible();
     const { blocking } = await blockingViolations(page);
     expect(blocking, 'the deletion screen must pass axe').toEqual([]);
 
