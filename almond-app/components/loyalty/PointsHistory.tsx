@@ -6,7 +6,7 @@ import { colors, spacing } from '@/constants/theme';
 import { useI18n } from '@/hooks/useI18n';
 import { formatDate, formatDayKey, formatNumber } from '@/lib/format';
 import { branches } from '@/services/seed';
-import { pointsSummary } from '@almond/shared/loyalty/history';
+import { pointsLines, pointsSummary } from '@almond/shared/loyalty/history';
 import { ammanDayKey } from '@almond/shared/lib/ammanWeekday';
 import type { PointsLogEntry } from '@/types';
 
@@ -23,8 +23,11 @@ import type { PointsLogEntry } from '@/types';
  * ahead: once it has passed, the points are either spent or written off on
  * their own «انتهاء صلاحية نقاط» line.
  */
-export function PointsHistory({ entries }: { entries: readonly PointsLogEntry[] }) {
+export function PointsHistory({ entries: ledger }: { entries: readonly PointsLogEntry[] }) {
   const { t, lang } = useI18n();
+  // Points only: the wallet's money lines are the wallet's own statement
+  // (app/profile/wallet.tsx). Here a top-up read as a line with no figure.
+  const entries = pointsLines(ledger);
   const summary = pointsSummary(entries);
   const today = ammanDayKey(new Date());
 

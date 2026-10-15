@@ -46,6 +46,65 @@ export const POINTS_KINDS: readonly PointsKind[] = [
   'purchase', 'redeem', 'return', 'refund', 'expire', 'bonus', 'transfer', 'wallet',
 ];
 
+/**
+ * THE WALLET'S LINES, WORDED ONCE.
+ *
+ * A wallet line is a `kind: 'wallet'` line of the same ledger, holding 0 points
+ * and the money it moved in `deltaFils` (signed). The amount is a number column,
+ * not part of the sentence: the statement prints it as a figure, and a sum
+ * over the column is the balance's history. The words for each movement are
+ * here so the server's two stores and the app's mock cannot word one
+ * differently (the WELCOME_BONUS_REASON arrangement).
+ *
+ *   topup    — the member loaded the wallet
+ *   gift     — a gift card added to it
+ *   refund   — money given back to it
+ *   received — a balance sent by another member
+ *   spend    — paid from the balance: an app order, or at the till
+ *   giftBought — a gift card bought for someone, paid from the balance
+ *   sent     — a balance sent to another member
+ *   expire   — money that reached its expiry unspent
+ */
+export type WalletLineKind =
+  | 'topup' | 'gift' | 'refund' | 'received' | 'spend' | 'giftBought' | 'sent' | 'expire';
+
+export const WALLET_LINE_REASON: Record<WalletLineKind, { ar: string; en: string }> = {
+  topup: { ar: 'شحن الرصيد', en: 'Wallet top-up' },
+  gift: { ar: 'بطاقة هدية', en: 'Gift card' },
+  refund: { ar: 'استرداد إلى الرصيد', en: 'Refund to your balance' },
+  received: { ar: 'رصيد من صديق', en: 'Balance from a friend' },
+  spend: { ar: 'دفع من الرصيد', en: 'Paid from your balance' },
+  giftBought: { ar: 'شراء بطاقة هدية', en: 'Gift card bought' },
+  sent: { ar: 'تحويل رصيد إلى صديق', en: 'Balance sent to a friend' },
+  expire: { ar: 'انتهاء صلاحية رصيد', en: 'Wallet balance expired' },
+};
+
+/** Money in (+1) or money out (-1). */
+export const WALLET_LINE_SIGN: Record<WalletLineKind, 1 | -1> = {
+  topup: 1, gift: 1, refund: 1, received: 1, spend: -1, giftBought: -1, sent: -1, expire: -1,
+};
+
+interface LedgerLine {
+  kind?: PointsKind | null;
+  deltaFils?: number | null;
+}
+
+/**
+ * The wallet statement: the lines that moved money, in the ledger's order
+ * (newest first). A wallet line with no amount — an old line whose amount the
+ * migration could not read — is left out rather than shown as 0.
+ */
+export function walletStatement<T extends LedgerLine>(lines: readonly T[]): T[] {
+  return lines.filter((l) => l.kind === 'wallet' && typeof l.deltaFils === 'number' && l.deltaFils !== 0);
+}
+
+/** The points history: every line but the wallet's, which has its own
+ *  statement. A points screen showing a top-up with no points beside it read
+ *  as a line that had failed. */
+export function pointsLines<T extends LedgerLine>(lines: readonly T[]): T[] {
+  return lines.filter((l) => l.kind !== 'wallet');
+}
+
 /** The three numbers at the top of the history. */
 export interface PointsSummary {
   /** Points spent on rewards, net of any given back. */

@@ -49,7 +49,7 @@ import { applyTillRefund } from '@almond/shared/loyalty';
 import { assertIntentSpendable, nextIntentStatus } from '../payments/intent';
 import {
   attachRefused, insufficientFor, newReferralCode, referralCodeNotFound, referralRewardLine, welcomeGiftLine,
-  transferLines, transferRefused,
+  transferLines, transferRefused, walletLine,
 } from '../memberMoves';
 
 /** One business day for the whole system (§3.6) — Amman, not the host's UTC. */
@@ -244,7 +244,7 @@ export function createMemoryBackend(): Backend {
   const log = (id: string, e: HistoryEntry) => {
     const h = history.get(id) ?? [];
     historySeq += 1;
-    h.unshift({ branchId: null, expiresOn: null, sourceRef: null, ...e, id: String(historySeq) });
+    h.unshift({ branchId: null, expiresOn: null, sourceRef: null, deltaFils: null, ...e, id: String(historySeq) });
     history.set(id, h);
   };
 
@@ -296,24 +296,13 @@ export function createMemoryBackend(): Backend {
    * Deliberately separate from settleExpiry rather than folded into it: the two
    * ledgers have different lifetimes and different history wording, and a
    * member losing prepaid cash deserves its own line — «انتهاء صلاحية رصيد»,
-   * not "points expired". The history's `deltaPoints` is a points column, so
-   * the loss is recorded at 0 and named in the reason: the wallet's own
-   * arithmetic lives in its lots, and writing fils into a points ledger would
-   * corrupt `unexplainedPoints`.
+   * not "points expired". The loss is in the line's `deltaFils`, at 0 points:
+   * writing fils into the points column would corrupt `unexplainedPoints`.
    */
   const settleWalletExpiry = (m: Member, at: Date): void => {
     const today = ammanDayKey(at);
     const lostFils = expiredBetween(m.walletLots, m.walletExpirySettledThrough, today);
-    if (lostFils > 0) {
-      const lostJod = (lostFils / 1000).toFixed(3);
-      log(m.id, {
-        deltaPoints: 0,
-        reasonAr: `انتهاء صلاحية رصيد (${lostJod} د.أ)`,
-        reasonEn: `Wallet balance expired (${lostJod} JOD)`,
-        createdAt: at.toISOString(),
-        kind: 'wallet',
-      });
-    }
+    if (lostFils > 0) log(m.id, walletLine('expire', lostFils, at));
     m.walletExpirySettledThrough = today;
     m.walletLots = pruneLots(m.walletLots, at, WALLET_LOTS);
   };
@@ -564,6 +553,7 @@ export function createMemoryBackend(): Backend {
       const res = consumeFifo(m.walletLots, fils, at);
       if (!res.ok) throw conflict('insufficient_wallet', 'Wallet balance is not enough');
       m.walletLots = res.lots;
+      log(id, walletLine('spend', fils, at));
       return liveBalance(m.walletLots, at);
     },
     async creditWallet(id, fils, source) {
@@ -573,6 +563,7 @@ export function createMemoryBackend(): Backend {
       // ONE LOT, ONE CLOCK. A top-up never renews money already held — the same
       // rule as points, and it is what makes "first in, first out" meaningful.
       m.walletLots = grantLot(m.walletLots, fils, source, at, WALLET_LOTS).lots;
+      log(id, walletLine(source, fils, at));
       return liveBalance(m.walletLots, at);
     },
     async addPoints(id, delta, reasonAr, reasonEn, kind = 'bonus') {
@@ -651,7 +642,10 @@ export function createMemoryBackend(): Backend {
       rec.earn = breakdown;
       rec.pointsEarned = breakdown.points;
     },
-    async getHistory(id) { must(id); return history.get(id) ?? []; },
+    // A copy, as Postgres returns: the store's own array is mutated in place
+    // by `log`, so a caller holding the old reference saw lines written after
+    // its read (a rolled-back checkout's wallet line, in T37).
+    async getHistory(id) { must(id); return (history.get(id) ?? []).map((e) => ({ ...e })); },
     async getPendingVisit(id, at) {
       must(id);
       const rated = new Set((visitRatings.get(id) ?? new Map()).keys());
@@ -792,6 +786,12 @@ export function createMemoryBackend(): Backend {
           ...(input.earn ? { earn: input.earn } : {}),
         };
         orders.push(order);
+        // The statement's line for the money, beside the order it paid for.
+        if (input.walletDebitFils > 0) {
+          log(id, walletLine('spend', input.walletDebitFils, at, {
+            branchId: input.order.branchId, sourceRef: `order:${order.id}`,
+          }));
+        }
         if (input.payment && intentBefore) {
           // Spent: bound to THIS order. A second order finds orderId set.
           Object.assign(intentBefore, {
@@ -856,6 +856,7 @@ export function createMemoryBackend(): Backend {
       try {
         settleWalletExpiry(m, at);
         m.walletLots = grantLot(m.walletLots, fils, 'topup', at, WALLET_LOTS).lots;
+        log(id, walletLine('topup', fils, at));
         return { walletBalanceFils: liveBalance(m.walletLots, at), pointsBalance: liveBalance(m.lots, at) };
       } catch (e) {
         rollback();

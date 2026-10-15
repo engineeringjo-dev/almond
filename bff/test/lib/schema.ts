@@ -30,6 +30,7 @@ export const LOYALTY_MIGRATIONS = [
   '20261016_visit_ratings.sql',
   '20261017_account_deletions.sql',
   '20261018_welcome_bonus.sql',
+  '20261019_wallet_statement.sql',
 ] as const;
 
 export const readMigration = (file: string): string => readFileSync(join(MIGRATIONS_DIR, file), 'utf8');

@@ -69,6 +69,21 @@ export function formatJOD(amount: number, lang: Lang): string {
 }
 
 /**
+ * A MOVEMENT of money, signed: «+20.000 د.أ», «−3.250 د.أ» / "+JOD 20.000".
+ *
+ * In an Arabic line the sign and the digits must be one left-to-right run (an
+ * isolate), or the bidi algorithm puts the sign on the number's far side
+ * («3.250−»). Only the signed NUMBER is isolated: isolating the currency with
+ * it put «د.أ» before the number for an Arabic reader (the wallet statement,
+ * 2026-10-15). Zero has no sign.
+ */
+export function formatSignedJOD(amount: number, lang: Lang): string {
+  const sign = amount > 0 ? '+' : amount < 0 ? '\u2212' : '';
+  const value = Math.abs(amount).toFixed(3);
+  return lang === 'ar' ? `\u2066${sign}${value}\u2069 د.أ` : `${sign}JOD ${value}`;
+}
+
+/**
  * Integer with thousands separators (e.g. points). Uses Latin (Western) digits
  * in BOTH languages so points read consistently with prices (formatJOD), which
  * matches Jordanian commercial convention. `lang` kept for API stability.

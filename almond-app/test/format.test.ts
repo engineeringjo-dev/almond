@@ -1,6 +1,6 @@
 import { afterEach, describe, it, expect, vi } from 'vitest';
 
-import { formatDate, formatDayKey, formatJOD, formatNumber, formatTime } from '@/lib/format';
+import { formatDate, formatDayKey, formatJOD, formatNumber, formatSignedJOD, formatTime } from '@/lib/format';
 
 /**
  * F1-F3 — ONE DIGIT SYSTEM ON A SCREEN (audit P2).
@@ -60,5 +60,21 @@ describe('F3 money and points keep their convention', () => {
 
   it('points: Latin with separators', () => {
     expect(formatNumber(12500, 'ar')).toBe('12,500');
+  });
+});
+
+describe('F4 a movement of money keeps its sign beside its number', () => {
+  const LRI = '\u2066';
+  const PDI = '\u2069';
+  it('Arabic: the signed number is one left-to-right run, and the currency follows it', () => {
+    // Isolated, or the bidi algorithm puts the minus on the far side
+    // («3.250−»); only the number, or «د.أ» lands before it for a reader.
+    expect(formatSignedJOD(-3.25, 'ar')).toBe(`${LRI}\u22123.250${PDI} د.أ`);
+    expect(formatSignedJOD(20, 'ar')).toBe(`${LRI}+20.000${PDI} د.أ`);
+  });
+
+  it('English reads left to right, and zero has no sign', () => {
+    expect(formatSignedJOD(-3.25, 'en')).toBe('\u2212JOD 3.250');
+    expect(formatSignedJOD(0, 'ar')).toBe(`${LRI}0.000${PDI} د.أ`);
   });
 });

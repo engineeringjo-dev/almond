@@ -41,6 +41,7 @@ const HISTORY_DETAIL_MIGRATION = readMigration('20261015_point_history_detail.sq
 const VISIT_RATINGS_MIGRATION = readMigration('20261016_visit_ratings.sql');
 const ACCOUNT_DELETIONS_MIGRATION = readMigration('20261017_account_deletions.sql');
 const WELCOME_BONUS_MIGRATION = readMigration('20261018_welcome_bonus.sql');
+const WALLET_STATEMENT_MIGRATION = readMigration('20261019_wallet_statement.sql');
 /** The whole loyalty schema, as a deploy leaves it (minus the Supabase-only RLS file). */
 const SCHEMA = loyaltySchemaSql();
 const POSTGRES_TS = readFileSync(join(HERE, '..', 'src', 'backend', 'postgres.ts'), 'utf8');
@@ -1061,5 +1062,40 @@ describe('R3.20 migration 20261018_welcome_bonus.sql', () => {
     expect(await col()).toEqual([{ data_type: 'timestamp with time zone', is_nullable: 'YES' }]);
     await pg.exec(WELCOME_BONUS_MIGRATION);
     expect(await stamps()).toEqual(first);
+  });
+});
+
+/**
+ * R3.21 — 20261019_wallet_statement.sql: every wallet line carries the money
+ * it moved (memberMoves.ts walletLine). The three wallet lines written before
+ * the column held the amount in their sentence; it is read back out of them,
+ * to the fils, with the movement's sign. A line it cannot read stays NULL.
+ */
+describe('R3.21 migration 20261019_wallet_statement.sql', () => {
+  it('R3.21 reads the old amounts back, signs them, keeps fils off points lines, and re-applies unchanged', async () => {
+    const pg = await fresh();
+    await pg.exec(LOYALTY_MIGRATIONS.filter((f) => f < '20261019').map(readMigration).join('\n;\n'));
+    await pg.query(`insert into members (id, phone, held_tier_id) values ('m', '+962791111111', 'base')`);
+    const line = (en: string, kind: string, points = 0) => pg.query(
+      `insert into point_history (member_id, delta_points, reason_ar, reason_en, created_at, kind)
+       values ('m', $1, 'x', $2, now(), $3)`, [points, en, kind],
+    );
+    await line('Wallet balance expired (1.500 JOD)', 'wallet');
+    await line('Balance sent to a friend (-2.000 JOD)', 'wallet');
+    await line('Balance from a friend (+0.750 JOD)', 'wallet');
+    await line('Something unreadable', 'wallet');
+    await line('Order points', 'purchase', 12);
+    await pg.exec(WALLET_STATEMENT_MIGRATION);
+    const fils = () => rows<{ reason_en: string; delta_fils: number | null }>(pg,
+      `select reason_en, delta_fils from point_history order by id`);
+    const first = await fils();
+    expect(first.map((r) => r.delta_fils)).toEqual([-1500, -2000, 750, null, null]);
+
+    // Money only on a wallet line, never 0, and never beside points.
+    await expect(pg.query(`update point_history set delta_fils = 100 where reason_en = 'Order points'`)).rejects.toThrow();
+    await expect(pg.query(`update point_history set delta_fils = 0 where reason_en = 'Something unreadable'`)).rejects.toThrow();
+
+    await pg.exec(WALLET_STATEMENT_MIGRATION);
+    expect(await fils()).toEqual(first);
   });
 });

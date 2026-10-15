@@ -12,6 +12,7 @@ import { ApiError } from '@/lib/apiClient';
 import { computeEarn } from '@almond/shared/loyalty/earn';
 import { maskedDisplayName, normalizeName, profileBonusFor, type Gender } from '@almond/shared/loyalty/profile';
 import { WELCOME_BONUS_REASON, welcomeBonusFor } from '@almond/shared/loyalty/welcome';
+import { WALLET_LINE_REASON, WALLET_LINE_SIGN, type WalletLineKind } from '@almond/shared/loyalty/history';
 import {
   normalizeReferralCode, referralAttachError, referralRewardFor, referralShareLink,
   REFERRAL_CODE_ALPHABET, REFERRAL_CODE_LENGTH,
@@ -239,6 +240,11 @@ function ensureUser(userId: string): LoyaltyUser {
         // that showed one already paid would contradict the gift on offer.
         { id: genId('log'), deltaPoints: 240, reasonAr: 'رصيد سابق', reasonEn: 'Opening balance', createdAt: new Date(Date.now() - 86400000 * 10).toISOString(), kind: 'bonus' },
         { id: genId('log'), deltaPoints: 15, reasonAr: 'نقاط طلب', reasonEn: 'Order points', createdAt: new Date(Date.now() - 86400000 * 7).toISOString(), kind: 'purchase', branchId: branches[0]?.id ?? null, expiresOn: lotExpiresOn(ammanDayKey(new Date(Date.now() - 86400000 * 7))) },
+        // The wallet's statement, adding up to `walletBalance` (12.500): a
+        // top-up, then two payments from the balance.
+        walletLine('spend', 3.25, new Date(Date.now() - 86400000 * 3), { branchId: branches[0]?.id ?? null }),
+        walletLine('spend', 4.25, new Date(Date.now() - 86400000 * 9), { branchId: branches[1]?.id ?? null }),
+        walletLine('topup', 20, new Date(Date.now() - 86400000 * 12)),
       ],
       visits: 4,
       spinsAvailable: 1,
@@ -652,6 +658,7 @@ export const mockLoyaltyService: LoyaltyService = {
   topUp: (userId, amount) => {
     const u = ensureUser(userId);
     u.walletBalance += amount;
+    u.history.unshift(walletLine('topup', amount));
     // No points for loading the wallet — the twin of bff/src/routes/wallet.ts.
     // Owner, 2026-10-15: «لا يوجد بونص شحن، البونص للانفاق فقط»; the reward is
     // WALLET_EARN_MULTIPLIER on what is later paid FROM the balance.
@@ -667,13 +674,7 @@ export const mockLoyaltyService: LoyaltyService = {
     const sender = ensureUser(input.senderId);
     if (sender.walletBalance >= input.amount) {
       sender.walletBalance -= input.amount;
-      sender.history.unshift({
-        id: genId('log'), deltaPoints: 0,
-        reasonAr: `شراء بطاقة هدية (-${input.amount.toFixed(3)} د.أ)`,
-        reasonEn: `Gift card purchase (-${input.amount.toFixed(3)} JOD)`,
-        createdAt: new Date().toISOString(),
-        kind: 'wallet',
-      });
+      sender.history.unshift(walletLine('giftBought', input.amount));
     }
     const gift: GiftCard = {
       id: genId('gift'),
@@ -707,13 +708,7 @@ export const mockLoyaltyService: LoyaltyService = {
     gift.redeemed = true;
     const u = ensureUser(userId);
     u.walletBalance += gift.amount; // gift balance flows into the wallet
-    u.history.unshift({
-      id: genId('log'), deltaPoints: 0,
-      reasonAr: `بطاقة هدية (+${gift.amount.toFixed(3)} د.أ)`,
-      reasonEn: `Gift card (+${gift.amount.toFixed(3)} JOD)`,
-      createdAt: new Date().toISOString(),
-      kind: 'wallet',
-    });
+    u.history.unshift(walletLine('gift', gift.amount));
     return delay({ amount: gift.amount, walletBalance: u.walletBalance });
   },
 
@@ -721,13 +716,7 @@ export const mockLoyaltyService: LoyaltyService = {
     const u = ensureUser(userId);
     if (amount > u.walletBalance) return Promise.reject(new Error('Insufficient wallet balance'));
     u.walletBalance -= amount;
-    u.history.unshift({
-      id: genId('log'), deltaPoints: 0,
-      reasonAr: `دفع من المحفظة (-${amount.toFixed(3)} د.أ)`,
-      reasonEn: `Wallet payment (-${amount.toFixed(3)} JOD)`,
-      createdAt: new Date().toISOString(),
-      kind: 'wallet',
-    });
+    u.history.unshift(walletLine('spend', amount));
     return delay({ walletBalance: u.walletBalance });
   },
 
@@ -850,9 +839,8 @@ export const mockLoyaltyService: LoyaltyService = {
       if (toFils(s.walletBalance) < amount) return refuse(409, 'insufficient_wallet');
       s.walletBalance = toJod(toFils(s.walletBalance) - amount);
       r.walletBalance = toJod(toFils(r.walletBalance) + amount);
-      const jod = toJod(amount).toFixed(3);
-      s.history.unshift({ id: genId('log'), deltaPoints: 0, reasonAr: `تحويل رصيد إلى صديق (-${jod} د.أ)`, reasonEn: `Balance sent to a friend (-${jod} JOD)`, createdAt: at.toISOString(), kind: 'wallet' });
-      r.history.unshift({ id: genId('log'), deltaPoints: 0, reasonAr: `رصيد من صديق (+${jod} د.أ)`, reasonEn: `Balance from a friend (+${jod} JOD)`, createdAt: at.toISOString(), kind: 'wallet' });
+      s.history.unshift(walletLine('sent', toJod(amount), at));
+      r.history.unshift(walletLine('received', toJod(amount), at));
     }
     s.transfersSent.push({ kind: input.kind, day, amount });
     const remaining = transferRemainingToday(input.kind, sentToday + amount, TRANSFER_RULES);
@@ -909,6 +897,28 @@ const TRANSFER_RULES = transferRulesFromConfig();
 function sentOn(u: LoyaltyUser, kind: TransferKind, day: string): number {
   return u.transfersSent.filter((t) => t.kind === kind && t.day === day).reduce((n, t) => n + t.amount, 0);
 }
+/**
+ * A wallet line: 0 points, the money in fils with the movement's sign, worded
+ * by the shared table (loyalty/history.ts). The twin of the server's
+ * memberMoves.ts walletLine, so the statement reads the same here and there.
+ */
+function walletLine(
+  kind: WalletLineKind, jod: number, at: Date = new Date(),
+  where: { branchId?: string | null; sourceRef?: string | null } = {},
+): PointsLogEntry {
+  return {
+    id: genId('log'),
+    deltaPoints: 0,
+    deltaFils: WALLET_LINE_SIGN[kind] * toFils(jod),
+    reasonAr: WALLET_LINE_REASON[kind].ar,
+    reasonEn: WALLET_LINE_REASON[kind].en,
+    createdAt: at.toISOString(),
+    kind: 'wallet',
+    branchId: where.branchId ?? null,
+    sourceRef: where.sourceRef ?? null,
+  };
+}
+
 function remainingOf(u: LoyaltyUser): { points: number; walletJod: number } {
   const day = ammanDayKey();
   return {

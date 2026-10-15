@@ -472,7 +472,12 @@
     "details": "بياناتك",
     "detailsEarn": "+{{points}} نقطة",
     "transfer": "أرسل نقاطاً أو رصيداً لصديق",
-    "removeAddress": "حذف العنوان: {{label}}"
+    "removeAddress": "حذف العنوان: {{label}}",
+    "walletStatement": "كشف الحركات",
+    "walletEmpty": "لا حركات في محفظتك بعد",
+    "walletEmptyHint": "كل شحنٍ أو دفعٍ من رصيدك يظهر هنا بتاريخه",
+    "topUpFailed": "لم يتم الشحن. حاول مرة أخرى",
+    "topUpA11y": "اشحن {{amount}}"
   },
   "referral": {
     "title": "ادعُ أصدقاءك",

@@ -472,7 +472,12 @@
     "details": "Your details",
     "detailsEarn": "+{{points}} points",
     "transfer": "Send points or balance to a friend",
-    "removeAddress": "Remove address: {{label}}"
+    "removeAddress": "Remove address: {{label}}",
+    "walletStatement": "Statement",
+    "walletEmpty": "No movements in your wallet yet",
+    "walletEmptyHint": "Every top-up or payment from your balance shows here, with its date",
+    "topUpFailed": "The top-up didn't go through. Try again",
+    "topUpA11y": "Top up {{amount}}"
   },
   "referral": {
     "title": "Invite friends",

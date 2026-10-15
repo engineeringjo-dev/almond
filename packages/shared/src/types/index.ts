@@ -289,6 +289,10 @@ export interface PointsLogEntry {
    *  a till sale (its refund carries the same ref). Null otherwise. Names the
    *  visit a rating is for (loyalty/visitRating.ts). */
   sourceRef?: string | null;
+  /** The money a wallet line moved, in fils, signed (+ in, − out); null on
+   *  every other kind. The wallet's statement is these lines
+   *  (loyalty/history.ts walletStatement). */
+  deltaFils?: number | null;
 }
 
 export interface EarnResult {

@@ -160,6 +160,18 @@ export interface HistoryEntry {
   /** "order:<id>" | "pos:<ref>" on purchase and refund lines; the visit a
    *  rating names (loyalty/visitRating.ts). */
   sourceRef?: string | null;
+  /**
+   * The MONEY a wallet line moved, in fils, signed:
+   * - plus for a top-up, a gift card, a refund or a balance received;
+   * - minus for a payment from the balance, a balance sent, or money that
+   *   expired.
+   * It is set on every `kind: 'wallet'` line written from 2026-10-19
+   * (memberMoves.ts walletLine), and on no other kind. Points stay in
+   * `deltaPoints`, which a wallet line holds at 0: fils written there would
+   * corrupt `unexplainedPoints`. Null on an older wallet line the migration
+   * could not read an amount from.
+   */
+  deltaFils?: number | null;
   /** The store's id for the line, set when it is read back. */
   id?: string;
 }

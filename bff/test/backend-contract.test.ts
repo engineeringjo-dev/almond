@@ -2,7 +2,7 @@
 import './lib/second-visit-on';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { liveBalance, lotExpiresOn } from '@almond/shared/loyalty/lots';
-import { pointsSummary } from '@almond/shared/loyalty/history';
+import { pointsLines, pointsSummary, walletStatement } from '@almond/shared/loyalty/history';
 import { ammanDayKey } from '@almond/shared/lib/ammanWeekday';
 import { config as loyalty } from '@almond/shared/config';
 import { createMemoryBackend } from '../src/backend/memory';
@@ -344,7 +344,10 @@ describe.each(BACKENDS)('T37 backend contract — %s', (_name, make) => {
     const id = await newMember();
     expect(await backend.topUpWallet(id, 20_000)).toEqual({ walletBalanceFils: 20_000, pointsBalance: 0 });
     expect(await backend.topUpWallet(id, 35_000)).toEqual({ walletBalanceFils: 55_000, pointsBalance: 0 });
-    expect(await backend.getHistory(id)).toHaveLength(0);
+    // Two lines of money on the statement, and not one point anywhere.
+    const history = await backend.getHistory(id);
+    expect(pointsLines(history)).toHaveLength(0);
+    expect(walletStatement(history).map((l) => l.deltaFils)).toEqual([35_000, 20_000]);
     expect(await wallet(id)).toBe(55_000);
   });
 
@@ -512,7 +515,13 @@ describe.each(BACKENDS)('T37 backend contract — %s', (_name, make) => {
     await backend.cancelRedemption(id, code.id, new Date());
     await backend.reverseTillEarn(till.posOrderRef, 'refund', new Date());
 
-    const h = await backend.getHistory(id);
+    const all = await backend.getHistory(id);
+    // The money has its own statement: the top-up and the order's payment.
+    expect(walletStatement(all).map((e) => [e.reasonEn, e.deltaFils, e.branchId])).toEqual([
+      ['Paid from your balance', -5_800, 'b1'], ['Wallet top-up', 10_000, null],
+    ]);
+    // The points history is everything else, and is what this test reads.
+    const h = pointsLines(all);
     const today = ammanDayKey(new Date());
     expect(h.map((e) => e.kind)).toEqual(['refund', 'return', 'redeem', 'purchase', 'purchase']);
     expect(h[4]).toMatchObject({ reasonEn: 'Order points', branchId: 'b1', expiresOn: lotExpiresOn(today) });
@@ -1115,8 +1124,35 @@ describe.each(BACKENDS)('T37 backend contract — %s', (_name, make) => {
     expect(r.senderWalletFils).toBe(7_500);
     expect(await wallet(a)).toBe(7_500);
     expect(await wallet(b)).toBe(2_500);
-    expect((await backend.getHistory(a))[0]).toMatchObject({ deltaPoints: 0, reasonEn: 'Balance sent to a friend (-2.500 JOD)' });
-    expect((await backend.getHistory(b))[0]).toMatchObject({ deltaPoints: 0, reasonEn: 'Balance from a friend (+2.500 JOD)' });
+    // The money is in the line's own column now, not in its sentence.
+    expect((await backend.getHistory(a))[0]).toMatchObject({
+      kind: 'wallet', deltaPoints: 0, deltaFils: -2_500, reasonEn: 'Balance sent to a friend',
+    });
+    expect((await backend.getHistory(b))[0]).toMatchObject({
+      kind: 'wallet', deltaPoints: 0, deltaFils: 2_500, reasonEn: 'Balance from a friend',
+    });
+  });
+
+  it('🔴 the wallet statement: every movement is a line with its money, and they add up to the balance', async () => {
+    const id = await newMember();
+    await backend.topUpWallet(id, 20_000);
+    await backend.creditWallet(id, 5_000, 'gift');
+    await backend.debitWallet(id, 1_250);
+    const r = await backend.checkout(id, checkoutInput(id));
+    const moves = walletStatement(await backend.getHistory(id));
+    // Newest first, each with its words from the one table (loyalty/history.ts).
+    expect(moves.map((m) => [m.reasonEn, m.deltaFils])).toEqual([
+      ['Paid from your balance', -5_800],
+      ['Paid from your balance', -1_250],
+      ['Gift card', 5_000],
+      ['Wallet top-up', 20_000],
+    ]);
+    // An app order's payment names the order and its branch, like its points line.
+    expect(moves[0]).toMatchObject({ sourceRef: `order:${r.order.id}`, branchId: 'b1', deltaPoints: 0 });
+    // The column is the history of the balance: the sum is what is left.
+    expect(moves.reduce((s, m) => s + (m.deltaFils ?? 0), 0)).toBe(await wallet(id));
+    // ...and a points screen reading the same ledger never shows them.
+    expect(pointsLines(await backend.getHistory(id)).some((l) => l.kind === 'wallet')).toBe(false);
   });
 
   it('🔴 every refusal moves NOTHING: self, below the minimum, short balance, the daily cap, unknown member', async () => {

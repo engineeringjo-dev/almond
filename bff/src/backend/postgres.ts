@@ -48,7 +48,7 @@ import { assertIntentSpendable, nextIntentStatus } from '../payments/intent';
 import { toFils, toJod } from '../money';
 import {
   attachRefused, insufficientFor, newReferralCode, referralCodeNotFound, referralRewardLine, welcomeGiftLine,
-  transferLines, transferRefused,
+  transferLines, transferRefused, walletLine,
 } from '../memberMoves';
 
 /**
@@ -259,10 +259,10 @@ export function createPostgresBackend(db: Db): Backend {
   async function insertHistory(t: Db, memberId: string, e: HistoryEntry): Promise<void> {
     await t.query(
       `insert into point_history
-         (member_id, delta_points, reason_ar, reason_en, created_at, kind, branch_id, expires_on, source_ref)
-       values ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
+         (member_id, delta_points, reason_ar, reason_en, created_at, kind, branch_id, expires_on, source_ref, delta_fils)
+       values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`,
       [memberId, e.deltaPoints, e.reasonAr, e.reasonEn, e.createdAt,
-        e.kind, e.branchId ?? null, e.expiresOn ?? null, e.sourceRef ?? null],
+        e.kind, e.branchId ?? null, e.expiresOn ?? null, e.sourceRef ?? null, e.deltaFils ?? null],
     );
   }
 
@@ -385,16 +385,7 @@ export function createPostgresBackend(db: Db): Backend {
   const settleWalletExpiry = (m: Member, at: Date, log: (e: HistoryEntry) => void): void => {
     const today = ammanDayKey(at);
     const lostFils = expiredBetween(m.walletLots, m.walletExpirySettledThrough, today);
-    if (lostFils > 0) {
-      const lostJod = (lostFils / 1000).toFixed(3);
-      log({
-        deltaPoints: 0,
-        reasonAr: `انتهاء صلاحية رصيد (${lostJod} د.أ)`,
-        reasonEn: `Wallet balance expired (${lostJod} JOD)`,
-        createdAt: at.toISOString(),
-        kind: 'wallet',
-      });
-    }
+    if (lostFils > 0) log(walletLine('expire', lostFils, at));
     m.walletExpirySettledThrough = today;
     m.walletLots = pruneLots(m.walletLots, at, WALLET_LOTS);
   };
@@ -595,6 +586,7 @@ export function createPostgresBackend(db: Db): Backend {
         const res = consumeFifo(m.walletLots, fils, at);
         if (!res.ok) throw conflict('insufficient_wallet', 'Wallet balance is not enough');
         m.walletLots = res.lots;
+        log(walletLine('spend', fils, at));
         return liveBalance(m.walletLots, at);
       });
     },
@@ -604,6 +596,7 @@ export function createPostgresBackend(db: Db): Backend {
         const at = new Date();
         settleWalletExpiry(m, at, log);
         m.walletLots = grantLot(m.walletLots, fils, source, at, WALLET_LOTS).lots;
+        log(walletLine(source, fils, at));
         return liveBalance(m.walletLots, at);
       });
     },
@@ -700,7 +693,7 @@ export function createPostgresBackend(db: Db): Backend {
     async getHistory(id) {
       await api.getMember(id);           // notFound for an unknown member, as memory does
       const rows = await db.query(
-        `select id, delta_points, reason_ar, reason_en, created_at, kind, branch_id, expires_on, source_ref
+        `select id, delta_points, reason_ar, reason_en, created_at, kind, branch_id, expires_on, source_ref, delta_fils
          from point_history where member_id = $1 order by id desc`,
         [id],
       );
@@ -714,6 +707,7 @@ export function createPostgresBackend(db: Db): Backend {
         branchId: (r.branch_id ?? null) as string | null,
         expiresOn: (r.expires_on ?? null) as string | null,
         sourceRef: (r.source_ref ?? null) as string | null,
+        deltaFils: r.delta_fils === null || r.delta_fils === undefined ? null : Number(r.delta_fils),
       }));
     },
 
@@ -1110,6 +1104,12 @@ export function createPostgresBackend(db: Db): Backend {
             input.earn ? JSON.stringify(input.earn) : null, order.createdAt,
             input.payment?.intentId ?? null],
         );
+        // The statement's line for the money, beside the order it paid for.
+        if (input.walletDebitFils > 0) {
+          log(walletLine('spend', input.walletDebitFils, at, {
+            branchId: input.order.branchId, sourceRef: `order:${order.id}`,
+          }));
+        }
         if (input.payment) {
           await t.query(
             `update payment_intents set status = $2, capture_ref = $3, order_id = $4, updated_at = $5
@@ -1177,6 +1177,7 @@ export function createPostgresBackend(db: Db): Backend {
         const at = new Date();
         settleWalletExpiry(m, at, log);
         m.walletLots = grantLot(m.walletLots, fils, 'topup', at, WALLET_LOTS).lots;
+        log(walletLine('topup', fils, at));
         return { walletBalanceFils: liveBalance(m.walletLots, at), pointsBalance: liveBalance(m.lots, at) };
       });
     },

@@ -5,7 +5,7 @@ import {
 import type { TransferKind, TransferRefusal } from '@almond/shared/loyalty/transfer';
 import type { PointLot } from '@almond/shared/loyalty/lots';
 import { WELCOME_BONUS_REASON } from '@almond/shared/loyalty/welcome';
-import { toJod } from './money';
+import { WALLET_LINE_REASON, WALLET_LINE_SIGN, type WalletLineKind } from '@almond/shared/loyalty/history';
 import { HttpError, conflict } from './http-error';
 import type { HistoryEntry } from './backend/types';
 
@@ -81,16 +81,40 @@ export function transferLines(kind: TransferKind, amount: number, at: Date): {
       recipient: { deltaPoints: amount, reasonAr: 'نقاط من صديق', reasonEn: 'Points from a friend', createdAt, kind: 'transfer' },
     };
   }
-  const jod = toJod(amount).toFixed(3);
+  return { sender: walletLine('sent', amount, at), recipient: walletLine('received', amount, at) };
+}
+
+/**
+ * A WALLET LINE: 0 points, the money in `deltaFils` with the movement's sign,
+ * worded by WALLET_LINE_REASON (loyalty/history.ts). Every wallet write in
+ * both stores goes through here:
+ * - a top-up or a credit;
+ * - a debit, or an order paid from the balance;
+ * - a transfer;
+ * - an expiry.
+ * The statement is then a filter of the ledger, not a second ledger.
+ *
+ * The amount used to live in the sentence («تحويل رصيد إلى صديق (-2.500
+ * د.أ)»), which no sum could read and no statement could print as a figure.
+ * The migration 20261019_wallet_statement.sql reads it out of the old lines.
+ *
+ * `fils` is the size of the movement, as a whole number; the sign comes from
+ * the kind, so a caller cannot write a top-up that takes money away.
+ */
+export function walletLine(
+  kind: WalletLineKind, fils: number, at: Date,
+  where: { branchId?: string | null; sourceRef?: string | null } = {},
+): HistoryEntry {
+  if (!Number.isInteger(fils) || fils <= 0) throw new Error(`walletLine: not a whole positive fils amount: ${fils}`);
   return {
-    sender: {
-      deltaPoints: 0, reasonAr: `تحويل رصيد إلى صديق (-${jod} د.أ)`,
-      reasonEn: `Balance sent to a friend (-${jod} JOD)`, createdAt, kind: 'wallet',
-    },
-    recipient: {
-      deltaPoints: 0, reasonAr: `رصيد من صديق (+${jod} د.أ)`,
-      reasonEn: `Balance from a friend (+${jod} JOD)`, createdAt, kind: 'wallet',
-    },
+    deltaPoints: 0,
+    deltaFils: WALLET_LINE_SIGN[kind] * fils,
+    reasonAr: WALLET_LINE_REASON[kind].ar,
+    reasonEn: WALLET_LINE_REASON[kind].en,
+    createdAt: at.toISOString(),
+    kind: 'wallet',
+    branchId: where.branchId ?? null,
+    sourceRef: where.sourceRef ?? null,
   };
 }
 

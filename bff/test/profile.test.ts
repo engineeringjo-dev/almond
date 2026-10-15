@@ -324,7 +324,12 @@ describe('T34 the wallet ledger', () => {
     const history = await app.inject({
       method: 'GET', url: '/v1/me/history', headers: { authorization: `Bearer ${token}` },
     });
-    expect(history.json(), 'a top-up wrote a points line').toEqual([]);
+    // The top-ups are on the wallet's statement, as money, and nowhere as
+    // points (memberMoves.ts walletLine).
+    const lines = history.json() as { kind: string; deltaPoints: number; deltaFils: number }[];
+    expect(lines.map((l) => [l.kind, l.deltaPoints, l.deltaFils]), 'a top-up wrote a points line').toEqual([
+      ['wallet', 0, 50_000], ['wallet', 0, 35_000], ['wallet', 0, 20_000],
+    ]);
   });
 
   it('T34f the wallet rate a screen promises is the rate computeEarn pays', () => {
