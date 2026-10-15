@@ -381,6 +381,26 @@ describe('T34 the wallet ledger', () => {
     expect(Number(earnRangeCopy('en', capped).mult)).toBeLessThan(config.WALLET_EARN_MULTIPLIER);
   });
 
+  it('T34h «كاش باك لغاية 9%» is the most an ordinary day pays, and follows the dials', () => {
+    // Owner, 2026-10-15: «لا نستخدم نقاطك نقود. ممكن نحكي كاش باك لغاية ٩%».
+    // The ceiling is the top rung paid from the balance, under the cap. It is
+    // computed (earnRangeCopy().max), so it is checked against the engine and
+    // not against a typed «9%».
+    const rules = earnRulesFromConfig();
+    const total = 100;
+    const percent = (points: number) => (points * 100) / (total * config.POINTS_PER_JOD_REDEEM);
+    const paid = tiers.flatMap((tier) => [false, true].map((paidFromBalance) =>
+      computeEarn({ total, windowSpend: tier.threshold, paidFromBalance, at: new Date() }, rules).points));
+    const most = percent(Math.max(...paid));
+    for (const lang of ['ar', 'en'] as const) {
+      expect(earnRangeCopy(lang).max, `${lang}: the headline vs the engine`).toBe(rateName(most, lang));
+    }
+    expect(earnRangeCopy('ar').max).toBe('9%');
+    // Move a dial and the headline moves with it.
+    expect(earnRangeCopy('en', { ...rules, walletMultiplier: 1 }).max).toBe('6%');
+    expect(earnRangeCopy('en', { ...rules, maxEarnMultiplier: 3.5 }).max).toBe('7%');
+  });
+
   it('T34d money does not expire — and the mechanism still works if it ever does', async () => {
     // 🔴 THIS TEST REVERSED THE SAME DAY IT WAS WRITTEN. It first asserted that
     // wallet money older than two years was gone. Shown that expiring balance a

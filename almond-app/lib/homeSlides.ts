@@ -46,7 +46,7 @@ export interface SlideContext {
   /** The member's rate from the balance and otherwise (useWalletRate). */
   walletRate: { rate: string; base: string };
   /** The ladder in one line (earnRangeCopy). */
-  range: { low: string; high: string; mult: string };
+  range: { low: string; high: string; mult: string; max: string };
   /** The price, formatted: «3.950 د.أ». */
   formatPrice: (jod: number) => string;
 }
@@ -99,8 +99,8 @@ export function buildHomeSlides(ctx: SlideContext): HomeSlide[] {
     },
     {
       id: 'rewards',
-      title: { key: 'rewards.headline' },
-      subtitle: { key: 'home.rewardsSlide', params: { low: ctx.range.low, high: ctx.range.high } },
+      title: { key: 'rewards.headline', params: { max: ctx.range.max } },
+      subtitle: { key: 'home.rewardsSlide', params: { low: ctx.range.low, high: ctx.range.high, mult: ctx.range.mult } },
       cta: { key: 'rewards.howItWorks' },
       icon: 'coins',
       action: { kind: 'route', href: '/(tabs)/rewards' },

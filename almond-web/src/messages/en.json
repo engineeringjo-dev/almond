@@ -37,7 +37,7 @@
       "pickupText": "Order ahead and grab it fast from your nearest branch."
     },
     "loyalty": {
-      "title": "Your points are money",
+      "title": "Up to {max} cashback",
       "text": "{low} to {high} back on every order, and your points ×{mult} when you pay from your balance. One account across the website and the app.",
       "cta": "Start earning points",
       "beansLabel": "points"
@@ -164,7 +164,7 @@
     "historyBranch": "{name} branch",
     "pointsExpire": "Expires {date}",
     "earnRate": "{rate} back on every order",
-    "redeemHint": "Your points come straight off your bill — use as many as you like",
+    "redeemHint": "Choose an amount, and it comes off your bill when you pay",
     "worthNow": "Your points are worth",
     "noPointsYet": "Earn points on your next order and spend them here",
     "wholeBalance": "all your points",

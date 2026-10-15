@@ -140,7 +140,7 @@ export function walletRateName(
 export function earnRangeCopy(
   lang: 'ar' | 'en',
   rules: EarnRules = earnRulesFromConfig(),
-): { low: string; high: string; mult: string } {
+): { low: string; high: string; mult: string; max: string } {
   const ramp = rules.tierRamp;
   const name = (multiplier: number) =>
     rateName((rules.pointsPerJod * multiplier * 100) / rules.pointsPerJodRedeem, lang);
@@ -150,6 +150,12 @@ export function earnRangeCopy(
     low: name(Math.min(...ramp.map((t) => t.multiplier))),
     high: name(Math.max(...ramp.map((t) => t.multiplier))),
     mult: String(Math.round(paid * 100) / 100),
+    // THE MOST AN ORDINARY DAY PAYS: the top rung, paid from the balance,
+    // under the ceiling — 6% × 1.5 = «9%». Owner, 2026-10-15: «ممكن نحكي كاش
+    // باك لغاية ٩%». Read off the same dials, so the headline cannot promise a
+    // rate the engine no longer pays. A double-points day pays more, which an
+    // «up to» on an ordinary day does not hide.
+    max: name(Math.max(...ramp.map((t) => Math.min(t.multiplier * rules.walletMultiplier, rules.maxEarnMultiplier)))),
   };
 }
 

@@ -53,12 +53,19 @@ export default function Onboarding() {
   const isLast = index === slides.length - 1;
   const slide = slides[index]!;
 
+  // The third slide's title is the rewards headline: the most an ordinary
+  // day pays, read off the dials like the body under it.
+  const titleOf = (s: Slide) =>
+    s.titleKey === 'onboarding.slide3Title' ? t(s.titleKey, { max: earnRangeCopy(lang).max }) : t(s.titleKey);
+
   const bodyOf = (s: Slide) => {
     if (s.bodyKey !== 'onboarding.slide3Body') return t(s.bodyKey);
     const range = earnRangeCopy(lang);
+    // ×mult rides with the ladder because the title above it says «لغاية 9%»:
+    // the 9% is the top rung ×1.5, and the slide names how it is reached.
     return gift > 0
-      ? t('onboarding.slide3Body', { low: range.low, high: range.high, gift })
-      : t('onboarding.slide3BodyNoGift', { low: range.low, high: range.high });
+      ? t('onboarding.slide3Body', { low: range.low, high: range.high, mult: range.mult, gift })
+      : t('onboarding.slide3BodyNoGift', { low: range.low, high: range.high, mult: range.mult });
   };
 
   const finish = () => {
@@ -113,7 +120,7 @@ export default function Onboarding() {
           <Icon name={slide.icon} size={72} color={colors.dark} strokeWidth={1.5} />
         </View>
         <Text variant="h1" center style={styles.title} accessibilityRole="header">
-          {t(slide.titleKey)}
+          {titleOf(slide)}
         </Text>
         <Text variant="body" color={colors.warmGray} center style={styles.body}>
           {bodyOf(slide)}

@@ -139,6 +139,7 @@ export default function RewardsScreen() {
   // and the website offer one member one set of choices. There is no board to
   // be priced against a menu any more — see loyalty/redeem.ts.
   const options = redeemOptions(points);
+  const range = earnRangeCopy(lang);
 
   const onRedeem = (o: RedeemOption) => {
     if (o.points > points || redeemReward.isPending) return;
@@ -229,15 +230,17 @@ export default function RewardsScreen() {
         <WelcomeGiftNote points={balance.welcomeBonusPending} color={colors.onHero} />
       </HeroCard>
 
-      {/* «نقاطك نقود» and the whole ladder in one line, read off the dials.
-          It said «القهوة المجانية مجرد البداية» (Starbucks' headline) — a
-          free coffee nothing here pays. Owner, 2026-10-15: «ازل عبارة القهوة
-          المجانية مجرد بداية … نقاط ٢- ٦% واحيانا × ١.٥». */}
+      {/* The most an ordinary day pays, then the whole ladder in one line —
+          both read off the dials. It said «القهوة المجانية مجرد البداية»
+          (Starbucks' headline), a free coffee nothing here pays, and then
+          «نقاطك نقود». Owner, 2026-10-15: «لا نستخدم نقاطك نقود. ممكن نحكي
+          كاش باك لغاية ٩%». The line under it names the floor (2%), so the
+          ceiling is never read as everyone's rate. */}
       <Text variant="h2" center style={styles.headline}>
-        {t('rewards.headline')}
+        {t('rewards.headline', range)}
       </Text>
       <Text variant="body" color={colors.warmGray} center style={styles.headlineSub}>
-        {t('rewards.headlineSub', earnRangeCopy(lang))}
+        {t('rewards.headlineSub', range)}
       </Text>
 
       {/* §3.1 How it works — one warm card, 3 rows */}

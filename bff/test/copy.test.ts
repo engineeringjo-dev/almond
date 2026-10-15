@@ -763,16 +763,53 @@ describe('C20 no emoji in any customer string', () => {
   });
 });
 
-describe('C21 one vocabulary: points, never «كاش باك»', () => {
-  // 1 point = 1 qirsh, so "cashback" is not wrong — but a member told «نقاط» on
-  // one screen and «الكاش باك» on the next reads two programmes. The rung is
-  // named by its rate; what the member holds is points.
+describe('C21 «كاش باك» in the headline only, and only with the computed ceiling', () => {
+  // The morning of 2026-10-15 this was a ban: 1 point = 1 qirsh, so "cashback"
+  // is not wrong, but a member told «نقاط» on one screen and «الكاش باك» on the
+  // next reads two programmes. That evening the owner chose the word for the
+  // headline: «لا نستخدم نقاطك نقود. ممكن نحكي كاش باك لغاية ٩%». So it is
+  // allowed in exactly the headline keys. Everywhere else what the member holds
+  // is points and a rung is named by its rate.
   const CASHBACK = /كاش\s?باك|\bcash\s?back\b/i;
+  const HEADLINES: Record<string, readonly string[]> = {
+    [APP_LOCALES.ar]: ['rewards.headline', 'onboarding.slide3Title'],
+    [APP_LOCALES.en]: ['rewards.headline', 'onboarding.slide3Title'],
+    [WEB_LOCALES.ar]: ['Home.loyalty.title'],
+    [WEB_LOCALES.en]: ['Home.loyalty.title'],
+  };
+
+  it('nowhere but the headline keys, in all four locale files', () => {
+    const offenders: string[] = [];
+    for (const rel of ALL_LOCALES) {
+      for (const [k, v] of Object.entries(load(rel))) {
+        if (CASHBACK.test(v) && !HEADLINES[rel]!.includes(k)) offenders.push(`${rel} ${k}: ${v}`);
+      }
+    }
+    expect(offenders).toEqual([]);
+  });
+
+  it('each headline says it with {max}, read off the dials, never a typed rate', () => {
+    for (const [rel, keys] of Object.entries(HEADLINES)) {
+      const flat = load(rel);
+      for (const key of keys) {
+        expect(flat[key], `${rel} ${key}`).toMatch(CASHBACK);
+        expect(placeholders(flat[key]!), `${rel} ${key}`).toContain('max');
+        expect(flat[key], `${rel} ${key}: a typed rate goes stale when a dial moves`).not.toMatch(/\d\s*[%٪]/);
+      }
+    }
+  });
+});
+
+describe('C24 never «نقاطك نقود»', () => {
+  // Owner, 2026-10-15: «لا نستخدم نقاطك نقود». Points come off a bill; they are
+  // not cash, cannot be withdrawn, and lapse after 12 months, so the phrase is
+  // banned outright, in any form, under any key.
+  const MONEY = /نقاطك\s+(هي\s+)?(نقود|فلوس|مصاري|كاش)|points\s+(are|=)\s+(money|cash)/i;
   it('in all four locale files', () => {
     const offenders: string[] = [];
     for (const rel of ALL_LOCALES) {
       for (const [k, v] of Object.entries(load(rel))) {
-        if (CASHBACK.test(v)) offenders.push(`${rel} ${k}: ${v}`);
+        if (MONEY.test(v)) offenders.push(`${rel} ${k}: ${v}`);
       }
     }
     expect(offenders).toEqual([]);
@@ -799,13 +836,18 @@ describe('C22 no promise the programme does not pay', () => {
   });
 
   it('the rewards headline and the onboarding slide state the ladder from the dials', () => {
+    // Each of these sits under «كاش باك لغاية {{max}}». The 9% is the top rung
+    // ×1.5 from the balance, so each names the floor, the top and the ×1.5 —
+    // or the ceiling reads as everyone's rate (the Arabic expert, 2026-10-15).
     for (const rel of Object.values(APP_LOCALES)) {
       const flat = load(rel);
-      for (const key of ['rewards.headlineSub', 'onboarding.slide3Body', 'onboarding.slide3BodyNoGift']) {
-        expect(placeholders(flat[key]), `${rel} ${key}`).toEqual(expect.arrayContaining(['high', 'low']));
+      for (const key of ['rewards.headlineSub', 'onboarding.slide3Body', 'onboarding.slide3BodyNoGift', 'home.rewardsSlide']) {
+        expect(placeholders(flat[key]), `${rel} ${key}`).toEqual(expect.arrayContaining(['high', 'low', 'mult']));
       }
-      expect(placeholders(flat['rewards.headlineSub'])).toContain('mult');
       expect(placeholders(flat['onboarding.slide3Body'])).toContain('gift');
+    }
+    for (const rel of Object.values(WEB_LOCALES)) {
+      expect(placeholders(load(rel)['Home.loyalty.text']), rel).toEqual(expect.arrayContaining(['high', 'low', 'mult']));
     }
   });
 });

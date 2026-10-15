@@ -103,7 +103,7 @@ describe('H3 the carousel slides', () => {
     lang: 'ar' as const,
     items: menuItems,
     walletRate: { rate: '3%', base: '2%' },
-    range: { low: '2%', high: '6%', mult: '1.5' },
+    range: { low: '2%', high: '6%', mult: '1.5', max: '9%' },
     formatPrice: (jod: number) => `${jod.toFixed(3)} JOD`,
   };
   const slides = buildHomeSlides(ctx);
@@ -124,7 +124,8 @@ describe('H3 the carousel slides', () => {
   it('a programme slide is a locale sentence, with the rates read off the dials', () => {
     const byId = (id: string) => slides.find((s) => s.id === id) as HomeSlide;
     expect(byId('wallet').title).toEqual({ key: 'home.walletHint', params: ctx.walletRate });
-    expect(byId('rewards').subtitle).toEqual({ key: 'home.rewardsSlide', params: { low: '2%', high: '6%' } });
+    expect(byId('rewards').title).toEqual({ key: 'rewards.headline', params: { max: '9%' } });
+    expect(byId('rewards').subtitle).toEqual({ key: 'home.rewardsSlide', params: { low: '2%', high: '6%', mult: '1.5' } });
     for (const s of slides.filter((x) => !x.id.startsWith('best-'))) {
       expect('key' in s.title, `${s.id}: a literal is invisible to every copy test`).toBe(true);
     }
