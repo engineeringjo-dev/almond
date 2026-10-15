@@ -22,6 +22,8 @@ import { ErrorBoundary } from '@/components/ui/ErrorBoundary';
 import { CartToast } from '@/components/ui/CartToast';
 import { EarnQrSheet } from '@/components/pay/EarnQrSheet';
 import { PostVisitSheet } from '@/components/loyalty/PostVisitSheet';
+import { BackButton } from '@/components/ui/BackButton';
+import { backFallback } from '@/lib/backFallback';
 import { colorScheme, colors, fontFamily, layout, lockColorScheme } from '@/constants/theme';
 import { hydrateMenuFromCache, refreshMenu } from '@/services/menuSync';
 
@@ -160,6 +162,10 @@ export default function RootLayout() {
               headerTintColor: colors.dark,
               headerTitleStyle: { fontFamily: fontFamily.bold },
               headerShadowVisible: false,
+              // One way back on every header, and never a dead end: on a cold
+              // link there is nothing to go back to, so it goes to the screen's
+              // parent instead (lib/backFallback).
+              headerLeft: () => <BackButton fallback={backFallback(route.name)} inHeader />,
               // Journey screens (the cart) sit centred at a readable width on a
               // tablet / wide window, like the Order tab; a phone is narrower
               // than the cap and unchanged.

@@ -20,7 +20,6 @@ import { CrossSellRow } from '@/components/cart/CrossSellRow';
 import { BranchNotice } from '@/components/cart/BranchNotice';
 import { BranchCard, BranchCardPlaceholder } from '@/components/branch/BranchCard';
 import { BranchPicker } from '@/components/branch/BranchPicker';
-import { Logo } from '@/components/ui/Logo';
 import { BackButton } from '@/components/ui/BackButton';
 import { Icon } from '@/components/ui/Icon';
 import { colors, spacing, radius, shadow } from '@/constants/theme';
@@ -240,7 +239,6 @@ export default function CartScreen() {
       <Screen>
         <View style={styles.titleRow}>
           <BackButton fallback="/(tabs)/order" />
-          <Logo variant="badge" size={28} />
           <Text variant="h1" style={styles.title}>
             {t('cart.title')}
           </Text>

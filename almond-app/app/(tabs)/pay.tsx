@@ -5,7 +5,6 @@ import { router, useFocusEffect } from 'expo-router';
 import { Screen } from '@/components/ui/Screen';
 import { Text } from '@/components/ui/Text';
 import { Icon } from '@/components/ui/Icon';
-import { Logo } from '@/components/ui/Logo';
 import { EarnQr } from '@/components/pay/EarnQr';
 import { colors, spacing, radius, shadow } from '@/constants/theme';
 import { useI18n } from '@/hooks/useI18n';
@@ -84,7 +83,6 @@ export default function PayScreen() {
   return (
     <Screen contentStyle={styles.content}>
       <View style={styles.titleRow}>
-        <Logo variant="badge" size={26} />
         <Text variant="h1">{t('pay.title')}</Text>
       </View>
       <Text variant="body" color={colors.warmGray} center style={styles.instruction}>

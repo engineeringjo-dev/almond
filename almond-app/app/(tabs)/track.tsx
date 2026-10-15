@@ -9,7 +9,6 @@ import { colors, spacing, radius } from '@/constants/theme';
 import { useI18n } from '@/hooks/useI18n';
 import { useActiveOrders } from '@/hooks/useOrder';
 import { formatTime } from '@/lib/format';
-import { Logo } from '@/components/ui/Logo';
 import { Icon } from '@/components/ui/Icon';
 import { STATUS_ICON } from '@/components/order/statusIcon';
 import type { Order } from '@/types';
@@ -39,7 +38,6 @@ export default function TrackScreen() {
   return (
     <Screen onRefresh={refetch}>
       <View style={styles.titleRow}>
-        <Logo variant="badge" size={28} />
         <Text variant="h1" style={styles.title}>
           {t('track.title')}
         </Text>

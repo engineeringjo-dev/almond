@@ -10,7 +10,6 @@ import { CategoryChips } from '@/components/menu/CategoryChips';
 import { MenuItemCard } from '@/components/menu/MenuItemCard';
 import { ItemModal } from '@/components/menu/ItemModal';
 import { PickupCartBar } from '@/components/order/PickupCartBar';
-import { Logo } from '@/components/ui/Logo';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { EmptyState } from '@/components/ui/EmptyState';
@@ -64,7 +63,6 @@ export default function OrderScreen() {
       <SafeAreaView style={styles.safe} edges={['top']}>
         <View style={styles.header}>
           <View style={styles.titleRow}>
-            <Logo variant="badge" size={28} />
             <Text variant="h1">{t('tabs.order')}</Text>
           </View>
         </View>
@@ -91,7 +89,6 @@ export default function OrderScreen() {
     <SafeAreaView style={styles.safe} edges={['top']}>
       <View style={styles.header}>
         <View style={styles.titleRow}>
-          <Logo variant="badge" size={28} />
           <Text variant="h1">{t('tabs.order')}</Text>
         </View>
       </View>

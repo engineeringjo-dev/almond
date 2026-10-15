@@ -11,7 +11,6 @@ import { Text } from '@/components/ui/Text';
 import { Card } from '@/components/ui/Card';
 import { Icon, type IconName } from '@/components/ui/Icon';
 import { HeroCard } from '@/components/ui/HeroCard';
-import { Logo } from '@/components/ui/Logo';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { PeekCarousel } from '@/components/ui/PeekCarousel';
 import { TierBadge, TIER_FILL } from '@/components/loyalty/TierBadge';
@@ -117,7 +116,6 @@ export default function RewardsScreen() {
     return (
       <Screen>
         <View style={styles.titleRow}>
-          <Logo variant="badge" size={28} />
           <Text variant="h1">{t('rewards.title')}</Text>
         </View>
         <Skeleton height={180} style={styles.skelHero} />
@@ -193,7 +191,6 @@ export default function RewardsScreen() {
   return (
     <Screen onRefresh={balanceQ.refetch}>
       <View style={styles.titleRow}>
-        <Logo variant="badge" size={28} />
         <Text variant="h1">{t('rewards.title')}</Text>
       </View>
 
