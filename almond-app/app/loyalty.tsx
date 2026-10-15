@@ -4,7 +4,7 @@ import { Stack } from 'expo-router';
 import { Screen } from '@/components/ui/Screen';
 import { Text } from '@/components/ui/Text';
 import { Card } from '@/components/ui/Card';
-import { Gradient } from '@/components/ui/Gradient';
+import { HeroCard } from '@/components/ui/HeroCard';
 import { TierBadge } from '@/components/loyalty/TierBadge';
 import { TierProgress } from '@/components/loyalty/TierProgress';
 import { VoucherCard } from '@/components/loyalty/VoucherCard';
@@ -41,18 +41,18 @@ export default function LoyaltyScreen() {
     <>
       <Stack.Screen options={{ headerShown: true, title: t('loyalty.title') }} />
       <Screen onRefresh={balanceQ.refetch} scrollLabel={t('loyalty.title')}>
-        {/* Points balance — pastel rainbow hero, dark text for contrast */}
-        <Gradient preset="rainbow" style={styles.pointsCard}>
-          <Text variant="caption" color={colors.brown}>
+        {/* Points balance — on the black card */}
+        <HeroCard style={styles.pointsCard}>
+          <Text variant="caption" color={colors.onHeroMuted}>
             {t('loyalty.yourPoints')}
           </Text>
-          <Text variant="display" color={colors.dark}>
-            {formatNumber(balance.points, lang)} ☕
+          <Text variant="display" color={colors.onHero}>
+            {formatNumber(balance.points, lang)}
           </Text>
           <View style={styles.tierRow}>
-            <TierBadge tier={balance.tier} />
+            <TierBadge tier={balance.tier} onHero />
           </View>
-        </Gradient>
+        </HeroCard>
 
 
         {/* Tier progress */}

@@ -1,30 +1,29 @@
 import { useTranslations } from 'next-intl';
-import { Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 
-/** Signature rainbow loyalty banner + order CTA (handoff sitemap: Home hero). */
+/**
+ * The home hero + order CTA (handoff sitemap: Home hero). Black, like the
+ * shops' facades and ceilings (owner, 2026-10-15: «المحل اندستريا واجهاته
+ * وسقفه اسود») — it was the pastel rainbow gradient. White text is 18.9:1.
+ * No pill above the heading: the heading carries the page (impeccable
+ * craft-floor — an eyebrow over a heading is a template, not a design).
+ */
 export function Hero() {
   const t = useTranslations('Home.hero');
 
   return (
-    <section className="bg-gradient-rainbow">
+    <section className="bg-primary-dark">
       <div className="container-content grid items-center gap-10 py-xxl md:grid-cols-[1.3fr_0.7fr] md:py-20">
-        <div className="max-w-2xl text-primary-dark">
-          <span className="inline-flex items-center gap-2 rounded-pill bg-white/70 px-4 py-1.5 text-sm font-bold">
-            <Sparkles className="h-4 w-4" aria-hidden />
-            {t('badge')}
-          </span>
-          <h1 className="mt-5 text-[34px] font-bold leading-tight md:text-[46px]">
+        <div className="max-w-2xl text-white">
+          <h1 className="text-[34px] font-bold leading-tight md:text-[46px]">
             {t('title')}
           </h1>
-          {/* No opacity: at 80% the deep violet drops to 4:1 on the pink end
-              of the rainbow gradient, under AA for 18px text. */}
           <p className="mt-4 max-w-xl text-lg">{t('subtitle')}</p>
           <div className="mt-7 flex flex-wrap gap-3">
-            <Button href="/menu" size="lg">
+            <Button href="/menu" size="lg" variant="onDark">
               {t('cta')}
             </Button>
-            <Button href="/rewards" size="lg" variant="outline">
+            <Button href="/rewards" size="lg" variant="onDarkOutline">
               {t('ctaSecondary')}
             </Button>
           </div>

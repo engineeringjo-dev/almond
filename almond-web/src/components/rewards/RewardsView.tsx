@@ -55,17 +55,16 @@ export function RewardsView() {
 
       {/* Balance + tier */}
       <div className="mt-6">
-        <div className="rounded-xl bg-gradient-purple p-6 text-white">
+        <div className="rounded-xl bg-primary-dark p-6 text-white">
           <p className="text-sm text-white/80">{t('yourBeans')}</p>
           <p className="mt-1 text-display font-bold leading-none">{formatNumber(points, lang)}</p>
           <p className="mt-1 text-sm text-white/80">{t('beans')}</p>
 
           <div className="mt-5">
             <div className="flex items-center justify-between text-sm">
-              <span
-                className="rounded-pill px-3 py-1 font-bold text-white"
-                style={{ backgroundColor: tp.current.color }}
-              >
+              {/* Outlined on the black card: a filled top-rung pill (#111) would
+                  be black on black. */}
+              <span className="rounded-pill border border-white px-3 py-1 font-bold text-white">
                 {tierName(tp.current, lang)}
               </span>
               <span className="text-white/80">
@@ -136,7 +135,7 @@ export function RewardsView() {
                     {done ? t('redeemed') : formatJOD(o.jod, lang)}
                   </span>
                   {!done && (
-                    // Full colour: at 80% opacity the violet on lavender is 3.6:1.
+                    // Full colour, never faded: the caption must stay ≥4.5:1 on its fill.
                     <span className="text-xs">
                       {o.full ? t('wholeBalance') : t('cost', { cost: o.points })}
                     </span>

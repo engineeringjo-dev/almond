@@ -4,9 +4,10 @@ import { contactLinks } from '@almond/shared/lib/phone';
 
 import { Screen } from '@/components/ui/Screen';
 import { Text } from '@/components/ui/Text';
+import { Icon } from '@/components/ui/Icon';
 import { Card } from '@/components/ui/Card';
 import { ListRow } from '@/components/ui/ListRow';
-import { spacing } from '@/constants/theme';
+import { colors, spacing } from '@/constants/theme';
 import { config } from '@/constants/config';
 import { useI18n } from '@/hooks/useI18n';
 
@@ -28,7 +29,7 @@ export default function HelpScreen() {
       <Stack.Screen options={{ title: t('profile.help') }} />
       <Screen>
         <View style={styles.hero}>
-          <Text style={styles.emoji}>☕</Text>
+          <Icon name="help" size={48} color={colors.dark} strokeWidth={1.5} />
           <Text variant="h2" center>
             {t('help.heading')}
           </Text>
@@ -67,5 +68,4 @@ export default function HelpScreen() {
 
 const styles = StyleSheet.create({
   hero: { alignItems: 'center', gap: spacing.md, marginBottom: spacing.xl },
-  emoji: { fontSize: 56 },
 });

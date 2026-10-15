@@ -27,7 +27,7 @@ export function WalletView() {
 
       <div className="mt-6 grid gap-8 lg:grid-cols-[1fr_1.2fr]">
         {/* Balance */}
-        <div className="h-fit rounded-xl bg-gradient-dark p-6 text-white">
+        <div className="h-fit rounded-xl bg-primary-dark p-6 text-white">
           <div className="flex items-center gap-2 text-white/80">
             <Wallet className="h-5 w-5" />
             <span className="text-sm">{t('balance')}</span>

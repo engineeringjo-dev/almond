@@ -46,10 +46,15 @@
 import { config } from '../config';
 import type { Tier } from '../types';
 
+// `color` is the rung's fill in the LIGHT palette — the black-and-white ramp,
+// darker = higher (owner, 2026-10-15: «اعمل الهوية اسود وابيض كالشعار»). It
+// was brown, gold and black. The app reads the scheme's own ramp
+// (colors.tierBean/Silver/Gold, shared theme); this field is for a surface
+// that has only the light palette, the website.
 export const tiers: Tier[] = [
-  { id: 'base', nameAr: '2%', nameEn: '2%', threshold: 0, multiplier: 1.0, color: '#8C6239' },
-  { id: 'plus', nameAr: '4%', nameEn: '4%', threshold: 20, multiplier: 2.0, color: '#C9A06A' },
-  { id: 'top', nameAr: '6%', nameEn: '6%', threshold: 65, multiplier: 3.0, color: '#2B2B2B' },
+  { id: 'base', nameAr: '2%', nameEn: '2%', threshold: 0, multiplier: 1.0, color: '#6E6E69' },
+  { id: 'plus', nameAr: '4%', nameEn: '4%', threshold: 20, multiplier: 2.0, color: '#3A3A37' },
+  { id: 'top', nameAr: '6%', nameEn: '6%', threshold: 65, multiplier: 3.0, color: '#111111' },
 ];
 
 export function tierFromSpend(spend: number): Tier {

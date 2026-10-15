@@ -4,6 +4,7 @@ import { Stack, router } from 'expo-router';
 
 import { Screen } from '@/components/ui/Screen';
 import { Text } from '@/components/ui/Text';
+import { Icon } from '@/components/ui/Icon';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { colors, spacing, radius, fontFamily } from '@/constants/theme';
@@ -103,7 +104,7 @@ export default function TransferScreen() {
                   onPress={() => { setKind(k); setIdemKey(null); send.reset(); }}
                   {...choiceA11y('radio', active, k === 'points' ? t('transfer.kindPoints') : t('transfer.kindWallet'))}
                 >
-                  <Text variant="bodyBold" color={active ? colors.white : colors.warmGray}>
+                  <Text variant="bodyBold" color={active ? colors.onInk : colors.warmGray}>
                     {k === 'points' ? t('transfer.kindPoints') : t('transfer.kindWallet')}
                   </Text>
                 </Pressable>
@@ -191,7 +192,7 @@ export default function TransferScreen() {
 
         {step === 'done' && receipt ? (
           <Card style={[styles.card, styles.done]}>
-            <Text style={styles.emoji}>✅</Text>
+            <Icon name="circle-check" size={48} color={colors.green} strokeWidth={1.75} />
             <Text variant="h2" center>
               {receipt.kind === 'points'
                 ? t('transfer.sentPoints', {
@@ -247,5 +248,4 @@ const styles = StyleSheet.create({
   // A phone number and an amount read left-to-right in both languages.
   ltr: { textAlign: 'left', writingDirection: 'ltr' },
   done: { alignItems: 'center' },
-  emoji: { fontSize: 48 },
 });

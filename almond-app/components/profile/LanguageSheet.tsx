@@ -1,6 +1,7 @@
 import { View, StyleSheet, Pressable } from 'react-native';
 import { BottomSheet } from '@/components/ui/BottomSheet';
 import { Text } from '@/components/ui/Text';
+import { Icon } from '@/components/ui/Icon';
 import { colors, spacing, radius } from '@/constants/theme';
 import { useI18n } from '@/hooks/useI18n';
 import { useAppStore } from '@/stores/appStore';
@@ -44,7 +45,7 @@ export function LanguageSheet({ visible, onClose }: Props) {
               <Text variant="bodyBold" color={active ? colors.dark : colors.warmGray}>
                 {t(o.key)}
               </Text>
-              {active ? <Text style={styles.check}>✓</Text> : null}
+              {active ? <Icon name="check" size={20} color={colors.dark} strokeWidth={2.5} /> : null}
             </Pressable>
           );
         })}
@@ -66,5 +67,4 @@ const styles = StyleSheet.create({
     borderColor: 'transparent',
   },
   rowActive: { borderColor: colors.gold },
-  check: { color: colors.gold, fontSize: 18 },
 });

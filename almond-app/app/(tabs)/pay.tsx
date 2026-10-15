@@ -84,7 +84,7 @@ export default function PayScreen() {
   return (
     <Screen contentStyle={styles.content}>
       <View style={styles.titleRow}>
-        <Logo variant="badge" tone="dark" size={26} />
+        <Logo variant="badge" size={26} />
         <Text variant="h1">{t('pay.title')}</Text>
       </View>
       <Text variant="body" color={colors.warmGray} center style={styles.instruction}>
@@ -112,7 +112,7 @@ export default function PayScreen() {
           {t('pay.yourPoints')}
         </Text>
         <Text variant="display" color={colors.primary}>
-          {formatNumber(points, lang)} ☕
+          {formatNumber(points, lang)}
         </Text>
         <Text variant="caption" color={colors.brown}>
           {t('pay.seeRewards')}

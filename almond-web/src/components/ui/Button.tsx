@@ -14,7 +14,7 @@ const SIZES: Record<Size, string> = {
 };
 
 const VARIANTS: Record<Variant, string> = {
-  primary: 'bg-primary text-white hover:bg-primary-dark',
+  primary: 'bg-primary text-white hover:bg-primary/85',
   outline: 'border border-primary text-primary hover:bg-accent-light',
   onDark: 'bg-white text-primary hover:bg-white/90',
   onDarkOutline: 'border border-white/80 text-white hover:bg-white/10',

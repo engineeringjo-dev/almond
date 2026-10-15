@@ -73,7 +73,7 @@ export function MenuItemCard({ item }: { item: MenuItem }) {
           aria-label={t('quickAdd', { name })}
           className={cn(
             'absolute bottom-3 end-3 inline-flex h-9 w-9 items-center justify-center rounded-pill text-white shadow-card transition-colors',
-            added ? 'bg-success' : 'bg-primary hover:bg-primary-dark',
+            added ? 'bg-success' : 'bg-primary hover:bg-primary/85',
           )}
         >
           {added ? <Check className="h-4 w-4" aria-hidden /> : <Plus className="h-4 w-4" aria-hidden />}

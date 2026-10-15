@@ -47,8 +47,8 @@ describe('WA2 the live client carries the server\'s count to the screen', () => 
 describe('WA3 the wiring', () => {
   const src = (rel: string) => readFileSync(join(__dirname, '..', rel), 'utf8');
   it('Home\'s card and the rewards hero both state the server\'s count', () => {
-    expect(src('components/home/LoyaltyCard.tsx')).toMatch(/<WelcomeGiftNote points=\{data\.welcomeBonusPending\} \/>/);
-    expect(src('app/(tabs)/rewards.tsx')).toMatch(/<WelcomeGiftNote points=\{balance\.welcomeBonusPending\} \/>/);
+    expect(src('components/home/LoyaltyCard.tsx')).toMatch(/<WelcomeGiftNote points=\{data\.welcomeBonusPending\}[^>]*\/>/);
+    expect(src('app/(tabs)/rewards.tsx')).toMatch(/<WelcomeGiftNote points=\{balance\.welcomeBonusPending\}[^>]*\/>/);
   });
   it('the note says nothing at 0 and is never added to the balance it sits beside', () => {
     const note = src('components/loyalty/WelcomeGiftNote.tsx');

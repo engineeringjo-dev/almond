@@ -1,6 +1,7 @@
 'use client';
 
 import { useLocale, useTranslations } from 'next-intl';
+import { Utensils } from 'lucide-react';
 import { config } from '@almond/shared/config';
 import { getComboUpsell } from '@almond/shared/lib/recommendations';
 import { asLang } from '@/lib/format';
@@ -26,12 +27,10 @@ export function ComboBanner() {
 
   return (
     <div className="mb-4 flex items-center gap-3 rounded-lg border border-dashed border-primary bg-accent-light px-4 py-3">
-      <span className="text-xl" aria-hidden>
-        🍽️
-      </span>
+      <Utensils className="h-5 w-5 shrink-0 text-primary-dark" aria-hidden />
       <div className="min-w-0 flex-1">
-        {/* primary (#6C5CB4) on the light-violet fill is 4.2:1, under AA for
-            small text; primary-dark keeps the brand hue at 10:1. */}
+        {/* Ink on the light-grey fill: 15:1. A line icon, not an emoji — the
+            identity is black and white (owner, 2026-10-15). */}
         <p className="text-sm font-bold text-primary-dark">
           {missing === 'food' ? t('comboAddFood', { points }) : t('comboAddDrink', { points })}
         </p>
@@ -40,7 +39,7 @@ export function ComboBanner() {
       <button
         type="button"
         onClick={() => addItem(item, item.sizes[0], [], 1)}
-        className="shrink-0 rounded-pill bg-primary px-4 py-2 text-sm font-bold text-white transition-colors hover:bg-primary-dark"
+        className="shrink-0 rounded-pill bg-primary px-4 py-2 text-sm font-bold text-white transition-colors hover:bg-primary/85"
       >
         {t('comboAdd')}
       </button>

@@ -27,10 +27,8 @@ export function Footer() {
   const contact = contactLinks(config.CONTACT_PHONE_E164);
 
   return (
-    // The dark gradient starts at brand violet (#6C5CB4): white at 60–80%
-    // opacity measures 3.1–4.2:1 there, under AA for body text. Secondary text
-    // is white/90 (≥4.8:1 across the gradient).
-    <footer className="mt-xxl bg-gradient-dark text-white">
+    // Black, like the shops' facades: white is 18.9:1 on it, white/90 ≥14:1.
+    <footer className="mt-xxl bg-primary-dark text-white">
       <div className="container-content grid gap-8 py-xxl md:grid-cols-[1.6fr_1fr_1fr_1fr]">
         <div className="max-w-md">
           <Logo variant="light" className="h-10" />

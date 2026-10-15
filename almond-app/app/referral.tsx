@@ -4,6 +4,7 @@ import { Stack } from 'expo-router';
 
 import { Screen } from '@/components/ui/Screen';
 import { Text } from '@/components/ui/Text';
+import { Icon } from '@/components/ui/Icon';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { colors, spacing, radius, fontFamily } from '@/constants/theme';
@@ -55,7 +56,7 @@ export default function ReferralScreen() {
       <Stack.Screen options={{ headerShown: true, title: t('referral.title') }} />
       <Screen loading={isLoading} error={isError} onRetry={refetch}>
         <View style={styles.hero}>
-          <Text style={styles.emoji}>👥</Text>
+          <Icon name="users" size={48} color={colors.dark} strokeWidth={1.5} />
           <Text variant="h1" center>
             {t('referral.headline', { points })}
           </Text>
@@ -135,7 +136,6 @@ export default function ReferralScreen() {
 
 const styles = StyleSheet.create({
   hero: { alignItems: 'center', gap: spacing.md, marginBottom: spacing.xl },
-  emoji: { fontSize: 64 },
   codeCard: { alignItems: 'center', gap: spacing.sm, marginBottom: spacing.lg },
   code: { letterSpacing: 4 },
   statusPill: {

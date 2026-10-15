@@ -10,14 +10,9 @@ import { useI18n } from '@/hooks/useI18n';
 import { useActiveOrders } from '@/hooks/useOrder';
 import { formatTime } from '@/lib/format';
 import { Logo } from '@/components/ui/Logo';
+import { Icon } from '@/components/ui/Icon';
+import { STATUS_ICON } from '@/components/order/statusIcon';
 import type { Order } from '@/types';
-
-const STATUS_EMOJI: Record<string, string> = {
-  received: '🧾',
-  preparing: '☕',
-  ready: '✅',
-  completed: '🎉',
-};
 
 export default function TrackScreen() {
   const { t, lang } = useI18n();
@@ -44,7 +39,7 @@ export default function TrackScreen() {
   return (
     <Screen onRefresh={refetch}>
       <View style={styles.titleRow}>
-        <Logo variant="badge" tone="dark" size={28} />
+        <Logo variant="badge" size={28} />
         <Text variant="h1" style={styles.title}>
           {t('track.title')}
         </Text>
@@ -58,16 +53,18 @@ export default function TrackScreen() {
           >
             <Card style={styles.row}>
               <View style={styles.statusBadge}>
-                <Text style={styles.statusEmoji}>{STATUS_EMOJI[o.status]}</Text>
+                <Icon name={STATUS_ICON[o.status]} size={24} color={colors.dark} strokeWidth={1.75} />
               </View>
               <View style={styles.body}>
                 <Text variant="bodyBold">
                   {t('track.orderNumber')} {o.id.slice(-6).toUpperCase()}
                 </Text>
-                <Text variant="caption" color={colors.warmGray}>
-                  📍 {lang === 'ar' ? o.branchNameAr : o.branchNameEn} ·{' '}
-                  {t(`track.${o.status}`)}
-                </Text>
+                <View style={styles.where}>
+                  <Icon name="map-pin" size={13} color={colors.warmGray} />
+                  <Text variant="caption" color={colors.warmGray} style={styles.flex}>
+                    {lang === 'ar' ? o.branchNameAr : o.branchNameEn} · {t(`track.${o.status}`)}
+                  </Text>
+                </View>
               </View>
               <View style={styles.time}>
                 <Text variant="caption" color={colors.warmGray}>
@@ -98,9 +95,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  statusEmoji: { fontSize: 24 },
+  where: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  flex: { flex: 1 },
   body: { flex: 1, gap: 2 },
   time: { alignItems: 'flex-end' },
   empty: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: spacing.md },
-  emptyEmoji: { fontSize: 64 },
 });

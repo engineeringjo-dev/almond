@@ -15,10 +15,10 @@ import { Screen } from '@/components/ui/Screen';
 import { Text } from '@/components/ui/Text';
 import { Card } from '@/components/ui/Card';
 import { Icon, type IconName } from '@/components/ui/Icon';
-import { Gradient } from '@/components/ui/Gradient';
+import { HeroCard } from '@/components/ui/HeroCard';
 import { Logo } from '@/components/ui/Logo';
 import { Skeleton } from '@/components/ui/Skeleton';
-import { TierBadge } from '@/components/loyalty/TierBadge';
+import { TierBadge, TIER_FILL } from '@/components/loyalty/TierBadge';
 import { BonusDayBanner } from '@/components/loyalty/BonusDayBanner';
 import { WelcomeGiftNote } from '@/components/loyalty/WelcomeGiftNote';
 import { colors, spacing, radius, shadow } from '@/constants/theme';
@@ -36,11 +36,9 @@ import { tierProgressCopy } from '@/lib/tierCopy';
 import i18n from '@/lib/i18n';
 import type { Lang, Tier, TierId } from '@/types';
 
-const TIER_COLOR: Record<TierId, string> = {
-  base: colors.tierBean,
-  plus: colors.tierGold,
-  top: colors.tierBlack,
-};
+// The rung's fill — one map, the badge's (TierBadge.tsx), in the scheme's
+// black-and-white ramp.
+const TIER_COLOR: Record<TierId, string> = TIER_FILL;
 
 // Full per-tier benefit lists (each card is self-contained, Starbucks-style).
 // Tiers differ ONLY by reward generosity — never by service/treatment.
@@ -129,7 +127,7 @@ export default function RewardsScreen() {
     return (
       <Screen>
         <View style={styles.titleRow}>
-          <Logo variant="badge" tone="dark" size={28} />
+          <Logo variant="badge" size={28} />
           <Text variant="h1">{t('rewards.title')}</Text>
         </View>
         <Skeleton height={180} style={styles.skelHero} />
@@ -219,7 +217,7 @@ export default function RewardsScreen() {
   return (
     <Screen onRefresh={balanceQ.refetch}>
       <View style={styles.titleRow}>
-        <Logo variant="badge" tone="dark" size={28} />
+        <Logo variant="badge" size={28} />
         <Text variant="h1">{t('rewards.title')}</Text>
       </View>
 
@@ -228,15 +226,15 @@ export default function RewardsScreen() {
         <BonusDayBanner />
       </View>
 
-      {/* Beans balance — pastel rainbow hero, dark text for contrast */}
-      <Gradient preset="rainbow" style={styles.pointsCard}>
-        <Text variant="caption" color={colors.brown}>
+      {/* The balance, on the black card */}
+      <HeroCard style={styles.pointsCard}>
+        <Text variant="caption" color={colors.onHeroMuted}>
           {t('pay.yourPoints')}
         </Text>
-        <Text variant="display" color={colors.dark}>
-          {formatNumber(points, lang)} ☕
+        <Text variant="display" color={colors.onHero}>
+          {formatNumber(points, lang)}
         </Text>
-        <Text variant="caption" color={colors.brown}>
+        <Text variant="caption" color={colors.onHeroMuted}>
           {/* WHICH points, and WHEN — never "your points expire on X" for a
               balance made of grants months apart, and never "your points never
               expire" beside a rule that says every point does. Nothing is
@@ -249,10 +247,10 @@ export default function RewardsScreen() {
             : ''}
         </Text>
         <View style={styles.tierRow}>
-          <TierBadge tier={balance.tier} />
+          <TierBadge tier={balance.tier} onHero />
         </View>
-        <WelcomeGiftNote points={balance.welcomeBonusPending} />
-      </Gradient>
+        <WelcomeGiftNote points={balance.welcomeBonusPending} color={colors.onHero} />
+      </HeroCard>
 
       {/* «نقاطك نقود» and the whole ladder in one line, read off the dials.
           It said «القهوة المجانية مجرد البداية» (Starbucks' headline) — a
@@ -360,7 +358,7 @@ export default function RewardsScreen() {
       >
         {tiers.map((tr) => {
           const isCurrent = tr.id === currentTier.id;
-          const fg = colors.white; // tier colours are all dark enough for white text
+          const fg = colors.onInk; // the ramp carries onInk at ≥4.5:1 in both schemes
           // The qualifying door, said the way the member can act on it. The
           // second rung has a REAL visits door (config.TIER2_VISITS_ALTERNATIVE
           // = 4, and ceil(20 / 5.85) = 4 too, so the two doors agree); the top
@@ -522,7 +520,7 @@ const styles = StyleSheet.create({
   },
   currentPill: {
     alignSelf: 'center',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.onInk,
     borderRadius: radius.pill,
     paddingHorizontal: spacing.md,
     paddingVertical: 3,
@@ -534,10 +532,11 @@ const styles = StyleSheet.create({
   progressTrack: {
     height: 8,
     borderRadius: 4,
-    backgroundColor: 'rgba(255,255,255,0.35)',
+    borderWidth: 1,
+    borderColor: colors.onInk,
     overflow: 'hidden',
   },
-  progressFill: { height: '100%', borderRadius: 4, backgroundColor: '#FFFFFF' },
+  progressFill: { height: '100%', borderRadius: 4, backgroundColor: colors.onInk },
   benefits: { gap: spacing.sm, marginTop: spacing.xs },
   benefitRow: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.sm },
 

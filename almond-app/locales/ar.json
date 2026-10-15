@@ -37,7 +37,8 @@
     "slide3Body": "يرجع لك {{low}} إلى {{high}} من كل طلب، و{{gift}} نقطة هدية بعد أول شراء",
     "start": "ابدأ الآن",
     "slide3BodyNoGift": "يرجع لك {{low}} إلى {{high}} من كل طلب",
-    "skip": "تخطّي"
+    "skip": "تخطّي",
+    "page": "الصفحة {{n}} من {{total}}"
   },
   "auth": {
     "phoneTitle": "أدخل رقم هاتفك",
@@ -125,7 +126,10 @@
     "greetingMorningGuest": "صباح الخير",
     "greetingEveningGuest": "مساء الخير",
     "nudgeCart": "أصناف في سلتك: {{count}}. أكمل طلبك",
-    "nudgeExpiry": "{{points}} من نقاطك تنتهي في {{date}}، اصرفها قبل ذلك"
+    "nudgeExpiry": "{{points}} من نقاطك تنتهي في {{date}}، اصرفها قبل ذلك",
+    "pointsWorth": "تساوي {{jod}}",
+    "showCode": "اعرض رمزك",
+    "cardA11y": "نقاطك {{points}}، تساوي {{jod}}. افتح المكافآت"
   },
   "offers": {
     "comboTitle": "أي مشروب + أي طعام = {{points}} نقطة",
@@ -466,7 +470,8 @@
     "giftCards": "بطاقات الإهداء",
     "details": "بياناتك",
     "detailsEarn": "+{{points}} نقطة",
-    "transfer": "أرسل نقاطاً أو رصيداً لصديق"
+    "transfer": "أرسل نقاطاً أو رصيداً لصديق",
+    "removeAddress": "حذف العنوان: {{label}}"
   },
   "referral": {
     "title": "ادعُ أصدقاءك",

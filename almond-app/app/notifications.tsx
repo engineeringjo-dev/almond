@@ -5,6 +5,7 @@ import { useAppStore } from '@/stores/appStore';
 
 import { Screen } from '@/components/ui/Screen';
 import { Text } from '@/components/ui/Text';
+import { Icon, type IconName } from '@/components/ui/Icon';
 import { Card } from '@/components/ui/Card';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Toggle } from '@/components/ui/Toggle';
@@ -21,12 +22,13 @@ import { useUserId } from '@/stores/authStore';
 import { startGeofencing, stopGeofencing } from '@/lib/geofence';
 import type { AppNotification, NotifSettings } from '@/types';
 
-const CATEGORY_EMOJI: Record<string, string> = {
-  order: '📦',
-  promo: '🏷️',
-  points: '☕',
-  location: '📍',
-  'new-item': '✨',
+/** One line icon per kind of notification — they were five emoji. */
+const CATEGORY_ICON: Record<string, IconName> = {
+  order: 'package-check',
+  promo: 'tag',
+  points: 'coins',
+  location: 'map-pin',
+  'new-item': 'sparkles',
 };
 
 export default function NotificationsScreen() {
@@ -118,7 +120,9 @@ export default function NotificationsScreen() {
                 }}
               >
                 <Card style={[styles.notif, !n.read && styles.notifUnread]}>
-                  <Text style={styles.notifEmoji}>{CATEGORY_EMOJI[n.category] ?? '🔔'}</Text>
+                  <View style={styles.notifIcon}>
+                    <Icon name={CATEGORY_ICON[n.category] ?? 'bell'} size={22} color={colors.dark} strokeWidth={1.75} />
+                  </View>
                   <View style={styles.notifBody}>
                     <Text variant="bodyBold">{lang === 'ar' ? n.titleAr : n.titleEn}</Text>
                     <Text variant="caption" color={colors.warmGray}>
@@ -142,7 +146,7 @@ export default function NotificationsScreen() {
       {showExplainer ? (
         <View style={styles.explainerOverlay}>
           <Card style={styles.explainerCard}>
-            <Text style={styles.explainerEmoji}>📍</Text>
+            <Icon name="map-pin" size={48} color={colors.dark} strokeWidth={1.5} />
             <Text variant="h2" center>
               {t('notifications.location')}
             </Text>
@@ -151,7 +155,7 @@ export default function NotificationsScreen() {
             </Text>
             <View style={styles.explainerActions}>
               <Pressable style={styles.explainerBtn} onPress={confirmLocationOptIn}>
-                <Text variant="bodyBold" color={colors.dark}>
+                <Text variant="bodyBold" color={colors.onInk}>
                   {t('common.ok')}
                 </Text>
               </Pressable>
@@ -211,20 +215,21 @@ const styles = StyleSheet.create({
   list: { gap: spacing.md },
   notif: { flexDirection: 'row', gap: spacing.md, alignItems: 'flex-start' },
   notifUnread: { borderWidth: 1, borderColor: colors.lightGold },
-  notifEmoji: { fontSize: 24 },
+  notifIcon: {
+    width: 40, height: 40, borderRadius: 20, backgroundColor: colors.neutralWarm,
+    alignItems: 'center', justifyContent: 'center',
+  },
   notifBody: { flex: 1, gap: 2 },
   unreadDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: colors.gold },
   empty: { alignItems: 'center', gap: spacing.md, paddingVertical: spacing.xxl },
-  emptyEmoji: { fontSize: 56 },
   explainerOverlay: {
     position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
-    backgroundColor: 'rgba(46,37,82,0.6)',
+    backgroundColor: colors.scrim,
     alignItems: 'center',
     justifyContent: 'center',
     padding: spacing.xl,
   },
   explainerCard: { alignItems: 'center', gap: spacing.sm, width: '100%' },
-  explainerEmoji: { fontSize: 56 },
   explainerBody: { marginVertical: spacing.sm },
   explainerActions: { flexDirection: 'row', gap: spacing.md, marginTop: spacing.md },
   explainerBtn: {

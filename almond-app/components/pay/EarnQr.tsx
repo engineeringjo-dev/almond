@@ -89,7 +89,7 @@ export function EarnQr({ active, size }: { active: boolean; size: number }) {
           {scanned ? (
             <View style={styles.successOverlay}>
               <View style={styles.successBadge}>
-                <Icon name="navigation" size={40} color={colors.white} />
+                <Icon name="navigation" size={40} color={colors.onInk} />
               </View>
             </View>
           ) : null}
@@ -116,7 +116,7 @@ export function EarnQr({ active, size }: { active: boolean; size: number }) {
               </Text>
               {/* The one action that can fix it, where it failed. */}
               <Pressable style={styles.retryButton} onPress={() => refetch()} accessibilityRole="button">
-                <Text variant="bodyBold" color={colors.white}>
+                <Text variant="bodyBold" color={colors.onInk}>
                   {t('pay.codeRetry')}
                 </Text>
               </Pressable>
@@ -146,13 +146,17 @@ export function EarnQr({ active, size }: { active: boolean; size: number }) {
 
 const styles = StyleSheet.create({
   wrap: { alignItems: 'center' },
+  // The code itself is printed dark on WHITE in both schemes — a scanner wants
+  // a dark code on a light ground, and a dark-mode QR is a code some tills
+  // cannot read. The message that stands in for it sits on the scheme's card.
   qrCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.white,
     borderRadius: radius.lg,
     padding: spacing.xl,
     ...shadow.raised,
   },
   qrFallback: {
+    backgroundColor: colors.cardBg,
     alignItems: 'center',
     justifyContent: 'center',
     gap: spacing.sm,
@@ -172,7 +176,7 @@ const styles = StyleSheet.create({
     bottom: 0,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(46,37,82,0.92)',
+    backgroundColor: 'rgba(17,17,17,0.92)',
     borderRadius: radius.lg,
   },
   successBadge: {

@@ -3,7 +3,7 @@ import { router } from 'expo-router';
 
 import { Text } from '@/components/ui/Text';
 import { Icon } from '@/components/ui/Icon';
-import { Gradient } from '@/components/ui/Gradient';
+import { HeroCard } from '@/components/ui/HeroCard';
 import { colors, spacing, radius, shadow } from '@/constants/theme';
 import { useI18n } from '@/hooks/useI18n';
 import { formatJOD } from '@/lib/format';
@@ -26,37 +26,37 @@ export function WalletCard() {
   const walletRate = useWalletRate();
 
   return (
-    <Gradient preset="purple" style={styles.card}>
+    <HeroCard style={styles.card}>
       <View style={styles.topRow}>
         <View style={styles.iconWrap}>
-          <Icon name="wallet" size={24} color={colors.white} />
+          <Icon name="wallet" size={24} color={colors.onHero} />
         </View>
         <View style={styles.balanceBox}>
-          <Text variant="caption" color={colors.white}>
+          <Text variant="caption" color={colors.onHero}>
             {t('home.walletBalance')}
           </Text>
-          <Text variant="h1" color={colors.white}>
+          <Text variant="h1" color={colors.onHero}>
             {formatJOD(balance ?? 0, lang)}
           </Text>
         </View>
       </View>
 
-      <Text variant="caption" color={colors.white} style={styles.hint}>
+      <Text variant="caption" color={colors.onHero} style={styles.hint}>
         {t('home.walletHint', walletRate)}
       </Text>
 
-      {/* Gold button → white background, black text (per design). */}
+      {/* The card's one action: a light button on the black card. */}
       <Pressable
         style={({ pressed }) => [styles.cta, pressed && styles.pressed]}
         onPress={() => router.push('/profile/wallet')}
         accessibilityRole="button"
       >
-        <Icon name="plus" size={18} color="#000000" />
-        <Text variant="bodyBold" color="#000000">
+        <Icon name="plus" size={18} color={colors.hero} />
+        <Text variant="bodyBold" color={colors.hero}>
           {t('home.topUpWallet')}
         </Text>
       </Pressable>
-    </Gradient>
+    </HeroCard>
   );
 }
 
@@ -84,7 +84,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: spacing.sm,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.onHero,
     borderRadius: radius.md,
     paddingVertical: spacing.md,
   },

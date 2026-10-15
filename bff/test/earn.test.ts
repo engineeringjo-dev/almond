@@ -1089,13 +1089,15 @@ describe('T27 the static walk covers what it claims, and does not eat the code',
     // truncates every hex colour literal, and they are pervasive in the app.
     // T7, T8 and T24 would keep passing over the wreckage.
     for (const p of [
-      'almond-app/components/ui/Button.tsx',
-      // Was components/loyalty/Cup.tsx until the cup was deleted 2026-09-08.
-      // The canary needs a file that REALLY CONTAINS hex literals — the first
-      // replacement was constants/theme.ts, which turned out to be a re-export
-      // shim with none, and the test said so immediately. Verified by grep:
-      // this one carries them inline.
-      'almond-app/components/gift/GiftCardTile.tsx',
+      // The canary needs files that REALLY CONTAIN hex literals. It used to
+      // read components/ui/Button.tsx and components/gift/GiftCardTile.tsx;
+      // the black-and-white identity (2026-10-15) took every typed colour
+      // out of the screens — identity.test.ts ID3 forbids one — so the two
+      // places a colour may still be written are the canary now: the palette
+      // itself and the gift-card designs. Verified by grep: both carry them
+      // inline, in code, not in comments.
+      'packages/shared/src/theme/index.ts',
+      'packages/shared/src/gifts/designs.ts',
     ]) {
       const f = sources.find((s) => s.path === p);
       expect(f, `${p} must be in the walk`).toBeDefined();

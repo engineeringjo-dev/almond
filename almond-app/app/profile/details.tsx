@@ -219,7 +219,7 @@ export default function ProfileDetailsScreen() {
                   // so the chosen answer was silent on the web build.
                   {...choiceA11y('radio', active, g === 'male' ? t('details.genderMale') : t('details.genderFemale'))}
                 >
-                  <Text variant="bodyBold" color={active ? colors.white : colors.warmGray}>
+                  <Text variant="bodyBold" color={active ? colors.onInk : colors.warmGray}>
                     {g === 'male' ? t('details.genderMale') : t('details.genderFemale')}
                   </Text>
                 </Pressable>

@@ -28,7 +28,7 @@ export function HomeTopBar({ branch, onBranchPress }: Props) {
   return (
     <View style={styles.bar}>
       <View style={styles.logo}>
-        <Logo variant="badge" tone="dark" size={34} />
+        <Logo variant="badge" size={34} />
       </View>
 
       <Pressable style={styles.chip} onPress={onBranchPress} hitSlop={6}>
@@ -36,7 +36,7 @@ export function HomeTopBar({ branch, onBranchPress }: Props) {
         <Text variant="caption" color={colors.dark} numberOfLines={1} style={styles.chipText}>
           {branchName}
         </Text>
-        <Text style={styles.caret}>⌄</Text>
+        <Icon name="chevron-down" size={16} color={colors.warmGray} />
       </Pressable>
 
       <View style={styles.actions}>
@@ -58,7 +58,7 @@ export function HomeTopBar({ branch, onBranchPress }: Props) {
           <Icon name="cart" size={22} color={colors.dark} />
           {cartCount > 0 ? (
             <View style={styles.badge}>
-              <Text variant="caption" color={colors.dark} style={styles.badgeText}>
+              <Text variant="caption" color={colors.onInk} style={styles.badgeText}>
                 {cartCount}
               </Text>
             </View>
@@ -89,7 +89,6 @@ const styles = StyleSheet.create({
   },
   pin: { fontSize: 14 },
   chipText: { flex: 1 },
-  caret: { color: colors.warmGray, fontSize: 16 },
   actions: { flexDirection: 'row', gap: spacing.xs },
   iconBtn: { padding: spacing.xs },
   icon: { fontSize: 22 },

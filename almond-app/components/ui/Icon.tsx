@@ -52,6 +52,13 @@ import {
   TriangleAlert,
   Clock,
   Share2,
+  Receipt,
+  CircleCheck,
+  Users,
+  PackageCheck,
+  Tag,
+  Inbox,
+  ArrowUpRight,
   type LucideIcon,
 } from 'lucide-react-native';
 import { colors } from '@/constants/theme';
@@ -118,7 +125,15 @@ export type IconName =
   | 'arrow-up'
   | 'alert'
   | 'share'
-  | 'clock';
+  | 'clock'
+  // order states, notifications, empty states — what the emoji used to be
+  | 'receipt'
+  | 'circle-check'
+  | 'users'
+  | 'package-check'
+  | 'tag'
+  | 'inbox'
+  | 'external';
 
 const REGISTRY: Record<IconName, LucideIcon> = {
   coffee: Coffee,
@@ -177,6 +192,13 @@ const REGISTRY: Record<IconName, LucideIcon> = {
   alert: TriangleAlert,
   share: Share2,
   clock: Clock,
+  receipt: Receipt,
+  'circle-check': CircleCheck,
+  users: Users,
+  'package-check': PackageCheck,
+  tag: Tag,
+  inbox: Inbox,
+  external: ArrowUpRight,
 };
 
 interface Props {

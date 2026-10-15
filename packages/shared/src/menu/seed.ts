@@ -27,13 +27,15 @@ export const branches: Branch[] = [
 ];
 
 // Ordered by local popularity (UX §2): wallet + CliQ first, then cards, then points.
+// `emoji` is empty: every screen draws these with the line icon set (the app's
+// PaymentMethods, the website's) and the identity has no colour pictures.
 export const paymentMethods: PaymentMethod[] = [
-  { id: 'wallet', nameAr: 'رصيد المحفظة', nameEn: 'Wallet', emoji: '💰' },
-  { id: 'cliq', nameAr: 'كليك', nameEn: 'CliQ', emoji: '📱' },
-  { id: 'cash', nameAr: 'نقداً', nameEn: 'Cash', emoji: '💵' },
-  { id: 'visa', nameAr: 'فيزا', nameEn: 'Visa', emoji: '💳' },
-  { id: 'mastercard', nameAr: 'ماستركارد', nameEn: 'Mastercard', emoji: '💳' },
-  { id: 'paypal', nameAr: 'باي بال', nameEn: 'PayPal', emoji: '🅿️' },
+  { id: 'wallet', nameAr: 'رصيد المحفظة', nameEn: 'Wallet', emoji: '' },
+  { id: 'cliq', nameAr: 'كليك', nameEn: 'CliQ', emoji: '' },
+  { id: 'cash', nameAr: 'نقداً', nameEn: 'Cash', emoji: '' },
+  { id: 'visa', nameAr: 'فيزا', nameEn: 'Visa', emoji: '' },
+  { id: 'mastercard', nameAr: 'ماستركارد', nameEn: 'Mastercard', emoji: '' },
+  { id: 'paypal', nameAr: 'باي بال', nameEn: 'PayPal', emoji: '' },
 ];
 
 // Odoo's add-on products (Extra Cold Foam…) join each item they are measured

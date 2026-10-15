@@ -3,7 +3,7 @@ import { Stack } from 'expo-router';
 
 import { Screen } from '@/components/ui/Screen';
 import { Text } from '@/components/ui/Text';
-import { Gradient } from '@/components/ui/Gradient';
+import { HeroCard } from '@/components/ui/HeroCard';
 import { colors, spacing, radius, shadow } from '@/constants/theme';
 import { useI18n } from '@/hooks/useI18n';
 import { formatJOD } from '@/lib/format';
@@ -25,14 +25,14 @@ export default function WalletScreen() {
     <>
       <Stack.Screen options={{ title: t('profile.wallet') }} />
       <Screen loading={isLoading} error={isError} onRetry={refetch}>
-        <Gradient preset="purple" style={styles.balanceCard}>
-          <Text variant="caption" color={colors.white}>
+        <HeroCard style={styles.balanceCard}>
+          <Text variant="caption" color={colors.onHero}>
             {t('profile.walletBalance')}
           </Text>
-          <Text variant="display" color={colors.white}>
+          <Text variant="display" color={colors.onHero}>
             {formatJOD(balance ?? 0, lang)}
           </Text>
-        </Gradient>
+        </HeroCard>
 
         <Text variant="title" style={styles.heading}>
           {t('profile.topUp')}

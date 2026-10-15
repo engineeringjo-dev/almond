@@ -1,16 +1,18 @@
 import { useEffect, useRef } from 'react';
 import { View, StyleSheet, Animated } from 'react-native';
 import { Text } from '@/components/ui/Text';
+import { Icon } from '@/components/ui/Icon';
+import { STATUS_ICON } from '@/components/order/statusIcon';
 import { colors, spacing } from '@/constants/theme';
 import { useI18n } from '@/hooks/useI18n';
 import { useReducedMotion } from '@/hooks/useReducedMotion';
 import type { OrderStatus } from '@/types';
 
-const STEPS: { status: OrderStatus; key: string; emoji: string }[] = [
-  { status: 'received', key: 'track.received', emoji: '🧾' },
-  { status: 'preparing', key: 'track.preparing', emoji: '☕' },
-  { status: 'ready', key: 'track.ready', emoji: '✅' },
-  { status: 'completed', key: 'track.completed', emoji: '🎉' },
+const STEPS: { status: OrderStatus; key: string }[] = [
+  { status: 'received', key: 'track.received' },
+  { status: 'preparing', key: 'track.preparing' },
+  { status: 'ready', key: 'track.ready' },
+  { status: 'completed', key: 'track.completed' },
 ];
 
 const ORDER: OrderStatus[] = ['received', 'preparing', 'ready', 'completed'];
@@ -55,7 +57,7 @@ export function StatusTimeline({ status }: { status: OrderStatus }) {
                   />
                 ) : null}
                 <View style={[styles.dot, done && styles.dotDone, active && styles.dotActive]}>
-                  <Text style={styles.dotEmoji}>{done ? step.emoji : ''}</Text>
+                  {done ? <Icon name={STATUS_ICON[step.status]} size={20} color={colors.onInk} strokeWidth={1.9} /> : null}
                 </View>
               </View>
               {i < STEPS.length - 1 ? (
@@ -104,9 +106,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  dotDone: { backgroundColor: colors.lightGold, borderColor: colors.primary },
-  dotActive: { borderColor: colors.primary, borderWidth: 3 },
-  dotEmoji: { fontSize: 18 },
+  dotDone: { backgroundColor: colors.dark, borderColor: colors.dark },
+  dotActive: { borderColor: colors.dark, borderWidth: 3 },
   line: { width: 3, flex: 1, minHeight: 28, backgroundColor: colors.neutralWarm, marginVertical: 2 },
   lineDone: { backgroundColor: colors.primary },
   labelWrap: { flex: 1, justifyContent: 'center', paddingBottom: spacing.lg, gap: 2 },

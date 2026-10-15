@@ -3,7 +3,7 @@ import { router } from 'expo-router';
 
 import { Text } from '@/components/ui/Text';
 import { Icon } from '@/components/ui/Icon';
-import { Gradient } from '@/components/ui/Gradient';
+import { HeroCard } from '@/components/ui/HeroCard';
 import { colors, spacing, radius, shadow } from '@/constants/theme';
 import { useI18n } from '@/hooks/useI18n';
 import { useUsualOrder } from '@/hooks/useOrder';
@@ -35,23 +35,23 @@ export function UsualOrderCard() {
       onPress={addAll}
       accessibilityRole="button"
     >
-      <Gradient preset="purple" style={styles.card}>
+      <HeroCard style={styles.card}>
         <View style={styles.iconWrap}>
-          <Icon name={iconForItem(usual.items[0]?.itemId ?? '')} size={26} color={colors.white} strokeWidth={1.7} />
+          <Icon name={iconForItem(usual.items[0]?.itemId ?? '')} size={26} color={colors.onHero} strokeWidth={1.7} />
         </View>
         <View style={styles.body}>
-          <Text variant="caption" color={colors.white} style={styles.label}>
+          <Text variant="caption" color={colors.onHero} style={styles.label}>
             {t('home.usualOrder')}
           </Text>
-          <Text variant="bodyBold" color={colors.white} numberOfLines={1}>
+          <Text variant="bodyBold" color={colors.onHero} numberOfLines={1}>
             {summary}
           </Text>
-          <Text variant="caption" color={colors.white}>
+          <Text variant="caption" color={colors.onHero}>
             {t('home.usualOrderCta')} · {formatJOD(total, lang)}
           </Text>
         </View>
         <Text style={styles.plus}>＋</Text>
-      </Gradient>
+      </HeroCard>
     </Pressable>
   );
 }
@@ -77,5 +77,5 @@ const styles = StyleSheet.create({
   },
   label: { opacity: 0.85 },
   body: { flex: 1, gap: 2 },
-  plus: { fontSize: 28, color: colors.white, paddingHorizontal: spacing.sm },
+  plus: { fontSize: 28, color: colors.onHero, paddingHorizontal: spacing.sm },
 });

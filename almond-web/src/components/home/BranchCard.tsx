@@ -48,7 +48,7 @@ export function BranchCard({
           <span
             className={cn(
               'shrink-0 rounded-pill px-3 py-1 text-xs font-bold',
-              // primary on light violet is 4.2:1 (fails AA at 12px); primary-dark is 10:1.
+              // Ink on the light-grey fill is 15:1; the secondary grey on neutral-warm 5.8:1.
               open ? 'bg-accent-light text-primary-dark' : 'bg-neutral-warm text-text-secondary',
             )}
           >

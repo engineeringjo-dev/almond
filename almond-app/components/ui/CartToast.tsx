@@ -59,10 +59,10 @@ export function CartToast() {
       >
         <Pressable style={[styles.toast, isError && styles.toastError]} onPress={hide}>
           <View style={[styles.thumb, isError && styles.thumbError]}>
-            <Icon name={isError ? 'close' : 'check'} size={20} color={colors.white} strokeWidth={2.2} />
+            <Icon name={isError ? 'close' : 'check'} size={20} color={colors.onInk} strokeWidth={2.2} />
           </View>
           <View style={styles.body}>
-            <Text variant="bodyBold" color={colors.white} numberOfLines={2}>
+            <Text variant="bodyBold" color={colors.onInk} numberOfLines={2}>
               {message}
             </Text>
           </View>
@@ -78,17 +78,17 @@ export function CartToast() {
     >
       <Pressable style={styles.toast} onPress={() => { hide(); router.push('/cart'); }}>
         <View style={styles.thumb}>
-          <Icon name={iconForItem(itemId)} size={22} color={colors.white} strokeWidth={1.8} />
+          <Icon name={iconForItem(itemId)} size={22} color={colors.onInk} strokeWidth={1.8} />
         </View>
         <View style={styles.body}>
-          <Text variant="bodyBold" color={colors.cream} numberOfLines={1}>
+          <Text variant="bodyBold" color={colors.onInk} numberOfLines={1}>
             {lang === 'ar' ? nameAr : nameEn}
           </Text>
           <Text variant="caption" color={colors.lightGold}>
             {t('menu.added')}
           </Text>
         </View>
-        <Icon name="cart" size={20} color={colors.cream} />
+        <Icon name="cart" size={20} color={colors.onInk} />
       </Pressable>
     </Animated.View>
   );

@@ -28,13 +28,13 @@ export function BonusDayBanner() {
   return (
     <View style={styles.wrap}>
       <View style={styles.iconWrap}>
-        <Icon name="bean" size={22} color={colors.white} strokeWidth={2} />
+        <Icon name="bean" size={22} color={colors.onInk} strokeWidth={2} />
       </View>
       <View style={styles.body}>
-        <Text variant="bodyBold" color={colors.white}>
+        <Text variant="bodyBold" color={colors.onInk}>
           {t('bonusDay.title', { label })}
         </Text>
-        <Text variant="caption" color={colors.cream}>
+        <Text variant="caption" color={colors.onInk}>
           {activated
             ? t('bonusDay.activated', { mult: day.multiplier })
             : t('bonusDay.body', { mult: day.multiplier })}

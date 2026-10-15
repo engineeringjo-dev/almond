@@ -2,7 +2,8 @@ import { View, StyleSheet, Pressable } from 'react-native';
 import { router } from 'expo-router';
 
 import { Text } from '@/components/ui/Text';
-import { Gradient } from '@/components/ui/Gradient';
+import { Icon } from '@/components/ui/Icon';
+import { HeroCard } from '@/components/ui/HeroCard';
 import { colors, spacing, radius, shadow } from '@/constants/theme';
 import { config } from '@/constants/config';
 import { useI18n } from '@/hooks/useI18n';
@@ -86,29 +87,29 @@ export function ComboOfferCard() {
 
   return (
     <Pressable style={styles.shadow} onPress={onPress} accessibilityRole="button">
-      <Gradient preset="purple" style={styles.card}>
-        <Text style={styles.emoji}>🍽️</Text>
-        <Text variant="bodyBold" color={colors.white}>
+      <HeroCard style={styles.card}>
+        <Icon name="brunch" size={26} color={colors.onHero} strokeWidth={1.75} />
+        <Text variant="bodyBold" color={colors.onHero}>
           {t(copy.titleKey, copy.params)}
         </Text>
-        <Text variant="caption" color={colors.white} style={styles.body}>
+        <Text variant="caption" color={colors.onHero} style={styles.body}>
           {t(copy.bodyKey, copy.params)}
         </Text>
         <View style={styles.footer}>
           {copy.example ? (
-            <Text variant="caption" color={colors.white} style={styles.example} numberOfLines={2}>
+            <Text variant="caption" color={colors.onHero} style={styles.example} numberOfLines={2}>
               {t(copy.example.key, copy.example.params)}
             </Text>
           ) : (
             <View style={styles.example} />
           )}
           <View style={styles.cta}>
-            <Text variant="caption" color={colors.dark} style={styles.ctaLabel}>
+            <Text variant="caption" color={colors.hero} style={styles.ctaLabel}>
               {t('offers.comboCta')}
             </Text>
           </View>
         </View>
-      </Gradient>
+      </HeroCard>
     </Pressable>
   );
 }
@@ -128,7 +129,6 @@ const styles = StyleSheet.create({
     gap: spacing.xs,
     overflow: 'hidden',
   },
-  emoji: { fontSize: 28 },
   body: { opacity: 0.92 },
   footer: {
     flexDirection: 'row',
@@ -138,7 +138,7 @@ const styles = StyleSheet.create({
   },
   example: { flex: 1 },
   cta: {
-    backgroundColor: colors.white,
+    backgroundColor: colors.onHero,
     borderRadius: radius.sm,
     paddingVertical: spacing.xs,
     paddingHorizontal: spacing.md,

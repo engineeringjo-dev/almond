@@ -37,7 +37,8 @@
     "slide3Body": "{{low}} to {{high}} back on every order, and {{gift}} points as a gift after your first purchase",
     "start": "Get started",
     "slide3BodyNoGift": "{{low}} to {{high}} back on every order",
-    "skip": "Skip"
+    "skip": "Skip",
+    "page": "Page {{n}} of {{total}}"
   },
   "auth": {
     "phoneTitle": "Enter your phone number",
@@ -125,7 +126,10 @@
     "greetingMorningGuest": "Good morning",
     "greetingEveningGuest": "Good evening",
     "nudgeCart": "In your cart: {{count}}. Finish your order",
-    "nudgeExpiry": "Points expiring on {{date}}: {{points}}. Use them first"
+    "nudgeExpiry": "Points expiring on {{date}}: {{points}}. Use them first",
+    "pointsWorth": "worth {{jod}}",
+    "showCode": "Show your code",
+    "cardA11y": "Your points: {{points}}, worth {{jod}}. Open rewards"
   },
   "offers": {
     "comboTitle": "Any drink + any food = {{points}} points",
@@ -466,7 +470,8 @@
     "giftCards": "Gift cards",
     "details": "Your details",
     "detailsEarn": "+{{points}} points",
-    "transfer": "Send points or balance to a friend"
+    "transfer": "Send points or balance to a friend",
+    "removeAddress": "Remove address: {{label}}"
   },
   "referral": {
     "title": "Invite friends",

@@ -2,6 +2,7 @@ import { Component, ReactNode } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { colors, spacing } from '@/constants/theme';
 import { Text } from './Text';
+import { Icon } from './Icon';
 import { Button } from './Button';
 
 interface Props {
@@ -31,7 +32,7 @@ export class ErrorBoundary extends Component<Props, State> {
     if (!this.state.hasError) return this.props.children;
     return (
       <View style={styles.container}>
-        <Text style={styles.emoji}>☕</Text>
+        <Icon name="alert" size={48} color={colors.dark} strokeWidth={1.5} />
         <Text variant="h2" center>
           حدث خطأ غير متوقع
         </Text>
@@ -57,6 +58,5 @@ const styles = StyleSheet.create({
     padding: spacing.xl,
     gap: spacing.md,
   },
-  emoji: { fontSize: 64 },
   body: { marginBottom: spacing.lg },
 });

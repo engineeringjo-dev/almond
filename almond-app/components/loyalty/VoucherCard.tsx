@@ -1,14 +1,15 @@
 import { View, StyleSheet } from 'react-native';
 import { Text } from '@/components/ui/Text';
+import { Icon, type IconName } from '@/components/ui/Icon';
 import { colors, spacing, radius } from '@/constants/theme';
 import { useI18n } from '@/hooks/useI18n';
 import { formatDate } from '@/lib/format';
 import type { Voucher } from '@/types';
 
-const TYPE_EMOJI: Record<Voucher['type'], string> = {
-  credit: '💰',
-  'free-item': '🎁',
-  discount: '🏷️',
+const TYPE_ICON: Record<Voucher['type'], IconName> = {
+  credit: 'coins',
+  'free-item': 'gift',
+  discount: 'tag',
 };
 
 export function VoucherCard({ voucher }: { voucher: Voucher }) {
@@ -16,7 +17,7 @@ export function VoucherCard({ voucher }: { voucher: Voucher }) {
   return (
     <View style={styles.card}>
       <View style={styles.left}>
-        <Text style={styles.emoji}>{TYPE_EMOJI[voucher.type]}</Text>
+        <Icon name={TYPE_ICON[voucher.type]} size={24} color={colors.dark} strokeWidth={1.75} />
       </View>
       <View style={styles.body}>
         <Text variant="bodyBold">{lang === 'ar' ? voucher.titleAr : voucher.titleEn}</Text>
@@ -49,7 +50,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  emoji: { fontSize: 24 },
   body: { flex: 1, gap: 2 },
   notch: {
     width: 14,

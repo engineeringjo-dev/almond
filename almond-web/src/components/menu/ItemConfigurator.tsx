@@ -204,8 +204,8 @@ export function ItemConfigurator({ item: baseItem }: { item: MenuItem }) {
                         <span className="font-bold">{tr(o.nameAr, o.nameEn)}</span>
                       </span>
                       {o.priceDelta > 0 && (
-                        // text-secondary on the selected (light violet) fill is 4.2:1 —
-                        // below AA for small text — so the selected row darkens it.
+                        // The selected row carries ink (15:1 on the light-grey fill);
+                        // the rest the secondary grey (6.7:1 on white).
                         <span className={cn('text-sm', selected ? 'text-primary-dark' : 'text-text-secondary')}>
                           +{formatJOD(o.priceDelta, lang)}
                         </span>
@@ -229,7 +229,7 @@ export function ItemConfigurator({ item: baseItem }: { item: MenuItem }) {
                 type="button"
                 onClick={add}
                 disabled={soldOut}
-                className="flex h-12 flex-1 items-center justify-center gap-2 rounded-pill bg-primary px-6 font-bold text-white transition-colors hover:bg-primary-dark disabled:opacity-50"
+                className="flex h-12 flex-1 items-center justify-center gap-2 rounded-pill bg-primary px-6 font-bold text-white transition-colors hover:bg-primary/85 disabled:opacity-50"
               >
                 {soldOut ? (
                   t('soldOut')

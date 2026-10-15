@@ -29,7 +29,7 @@ export function TabBarBarcodeButton({ focused, onPress, role }: Props) {
       role={role ?? 'tab'}
     >
       <View style={[styles.fab, focused && styles.fabFocused]}>
-        <Icon name="qr" size={26} color={colors.white} strokeWidth={2.2} />
+        <Icon name="qr" size={26} color={colors.onInk} strokeWidth={2.2} />
       </View>
       <Text variant="caption" color={focused ? colors.primary : colors.warmGray} style={styles.label}>
         {t('tabs.barcode')}

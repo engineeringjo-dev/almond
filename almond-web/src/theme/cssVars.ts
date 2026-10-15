@@ -1,17 +1,18 @@
-import { colors, gradients } from '@almond/shared/theme';
+import { colors } from '@almond/shared/theme';
 import type { CSSProperties } from 'react';
 
 /**
  * The single source of truth for the brand palette is `@almond/shared/theme`.
  * We turn it into CSS custom properties and set them on <html> at render time,
- * so Tailwind tokens (`bg-primary`, `bg-gradient-rainbow`, …) resolve to the
- * exact same violet identity the mobile app uses — no duplicated hex values.
+ * so Tailwind tokens (`bg-primary`, `text-text-secondary`, …) resolve to the
+ * exact same black-and-white identity the mobile app uses (owner, 2026-10-15:
+ * «اعمل الهوية اسود وابيض كالشعار») — no duplicated hex values. The site uses
+ * the LIGHT palette; there are no gradients any more (the rainbow, the purple
+ * and the dark one went with the violet).
  */
-const gradient = (stops: readonly string[]) =>
-  `linear-gradient(135deg, ${stops.join(', ')})`;
 
 /**
- * '#6C5CB4' → '108 92 180'. Tailwind can only apply an opacity modifier
+ * '#5C5C58' → '92 92 88'. Tailwind can only apply an opacity modifier
  * (`bg-error/10`) to a colour it can split into channels; given a bare
  * `var(--color-error)` it silently emits NO CSS for `bg-error/10`. That made
  * the sticky menu bars see-through and five back-office tints invisible. Each
@@ -53,7 +54,4 @@ export const channelVars: Record<string, string> = Object.fromEntries(
 export const themeVars = {
   ...COLOR_VARS,
   ...channelVars,
-  '--gradient-rainbow': gradient(gradients.rainbow),
-  '--gradient-purple': gradient(gradients.purple),
-  '--gradient-dark': gradient(gradients.dark),
 } as unknown as CSSProperties;

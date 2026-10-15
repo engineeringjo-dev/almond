@@ -39,10 +39,10 @@ export function CategoryChips({ categories, activeId, onSelect }: Props) {
             <Icon
               name={iconForCategory(c.id)}
               size={16}
-              color={active ? colors.white : colors.warmGray}
+              color={active ? colors.onInk : colors.warmGray}
               strokeWidth={2}
             />
-            <Text variant="bodyBold" color={active ? colors.white : colors.warmGray}>
+            <Text variant="bodyBold" color={active ? colors.onInk : colors.warmGray}>
               {name}
             </Text>
           </Pressable>

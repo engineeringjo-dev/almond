@@ -5,7 +5,7 @@ import { router } from 'expo-router';
 import { Screen } from '@/components/ui/Screen';
 import { Text } from '@/components/ui/Text';
 import { Card } from '@/components/ui/Card';
-import { Gradient } from '@/components/ui/Gradient';
+import { HeroCard } from '@/components/ui/HeroCard';
 import { Logo } from '@/components/ui/Logo';
 import { Icon } from '@/components/ui/Icon';
 import { ListRow } from '@/components/ui/ListRow';
@@ -47,10 +47,10 @@ export default function ProfileScreen() {
         </Text>
 
         {/* Header card — purple identity hero */}
-        <Gradient preset="purple" style={styles.header}>
+        <HeroCard style={styles.header}>
           <View style={styles.avatar}>
             {isGuest ? (
-              <Icon name="user" size={30} color={colors.white} />
+              <Icon name="user" size={30} color={colors.onHero} />
             ) : (
               <Logo variant="badge" tone="light" size={40} />
             )}
@@ -60,11 +60,11 @@ export default function ProfileScreen() {
                 exists in both locale files, `user.name` exists in neither. A
                 bare `user?.name` rendered an empty heading the moment the
                 fabricated literal was removed. */}
-            <Text variant="h2" color={colors.white}>
+            <Text variant="h2" color={colors.onHero}>
               {isGuest || !user?.name?.trim() ? t('home.guest') : user.name}
             </Text>
             {!isGuest && user?.phone ? (
-              <Text variant="caption" color={colors.white}>
+              <Text variant="caption" color={colors.onHero}>
                 {user.phone}
               </Text>
             ) : null}
@@ -75,7 +75,7 @@ export default function ProfileScreen() {
               </View>
             ) : null}
           </View>
-        </Gradient>
+        </HeroCard>
 
         {/* Menu */}
         <Card padded={false} style={styles.menu}>

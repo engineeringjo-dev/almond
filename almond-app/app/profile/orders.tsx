@@ -3,6 +3,7 @@ import { router, Stack } from 'expo-router';
 
 import { Screen } from '@/components/ui/Screen';
 import { Text } from '@/components/ui/Text';
+import { Icon } from '@/components/ui/Icon';
 import { Card } from '@/components/ui/Card';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { colors, spacing } from '@/constants/theme';
@@ -44,9 +45,10 @@ export default function OrdersHistory() {
                   </View>
                   <Text variant="price">{formatJOD(o.total, lang)}</Text>
                 </View>
-                <Pressable onPress={() => reorder(o)} style={styles.reorder} hitSlop={6}>
-                  <Text variant="bodyBold" color={colors.gold}>
-                    🔄 {t('track.reorder')}
+                <Pressable onPress={() => reorder(o)} style={styles.reorder} hitSlop={6} accessibilityRole="button">
+                  <Icon name="reorder" size={16} color={colors.dark} />
+                  <Text variant="bodyBold" color={colors.dark}>
+                    {t('track.reorder')}
                   </Text>
                 </Pressable>
               </Card>
@@ -71,6 +73,10 @@ const styles = StyleSheet.create({
   row: { flexDirection: 'row', justifyContent: 'space-between', gap: spacing.md },
   body: { flex: 1, gap: 2 },
   reorder: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    minHeight: 44,
     alignSelf: 'flex-start',
     paddingTop: spacing.sm,
     borderTopWidth: 1,

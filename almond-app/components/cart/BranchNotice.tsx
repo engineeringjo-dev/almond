@@ -41,7 +41,7 @@ export function BranchNotice({ notice, onChangeBranch, onDismiss }: Props) {
               style={({ pressed }) => [styles.action, styles.actionPrimary, pressed && styles.pressed]}
               accessibilityRole="button"
             >
-              <Text variant="bodyBold" color={colors.white}>
+              <Text variant="bodyBold" color={colors.onInk}>
                 {t('cart.branchSwitchChoose')}
               </Text>
             </Pressable>

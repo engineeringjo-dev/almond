@@ -39,7 +39,7 @@ export function GiftRedeemSheet({ visible, onClose }: Props) {
         footer={<Button title={t('gift.done')} onPress={close} />}>
         <View style={styles.center}>
           <View style={styles.badge}>
-            <Icon name="wallet" size={36} color={colors.white} />
+            <Icon name="wallet" size={36} color={colors.onInk} />
           </View>
           <Text variant="body" color={colors.warmGray} center>
             {t('gift.redeemedBody', { jod: formatJOD(added, lang) })}

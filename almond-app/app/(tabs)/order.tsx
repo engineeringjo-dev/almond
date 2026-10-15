@@ -64,7 +64,7 @@ export default function OrderScreen() {
       <SafeAreaView style={styles.safe} edges={['top']}>
         <View style={styles.header}>
           <View style={styles.titleRow}>
-            <Logo variant="badge" tone="dark" size={28} />
+            <Logo variant="badge" size={28} />
             <Text variant="h1">{t('tabs.order')}</Text>
           </View>
         </View>
@@ -91,7 +91,7 @@ export default function OrderScreen() {
     <SafeAreaView style={styles.safe} edges={['top']}>
       <View style={styles.header}>
         <View style={styles.titleRow}>
-          <Logo variant="badge" tone="dark" size={28} />
+          <Logo variant="badge" size={28} />
           <Text variant="h1">{t('tabs.order')}</Text>
         </View>
       </View>
@@ -244,7 +244,7 @@ function MenuTab({
       }
       ListEmptyComponent={
         <View style={styles.empty}>
-          <Text style={styles.emptyEmoji}>🔍</Text>
+          <Icon name="search" size={44} color={colors.warmGray} strokeWidth={1.5} />
           <Text variant="body" color={colors.warmGray}>
             {t('menu.noResults')}
           </Text>
@@ -500,7 +500,6 @@ const styles = StyleSheet.create({
   skelChips: { flexDirection: 'row', gap: spacing.sm },
 
   empty: { alignItems: 'center', paddingVertical: spacing.xxl * 2, gap: spacing.md },
-  emptyEmoji: { fontSize: 44 },
   emptyWrap: { flex: 1 },
   flex: { flex: 1 },
 

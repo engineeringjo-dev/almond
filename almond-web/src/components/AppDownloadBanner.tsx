@@ -33,7 +33,7 @@ export function AppDownloadBanner() {
   };
 
   const store =
-    'inline-flex h-9 items-center gap-1.5 rounded-pill bg-primary px-3 text-xs font-bold text-white hover:bg-primary-dark';
+    'inline-flex h-9 items-center gap-1.5 rounded-pill bg-primary px-3 text-xs font-bold text-white hover:bg-primary/85';
 
   return (
     <aside

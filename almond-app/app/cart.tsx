@@ -240,7 +240,7 @@ export default function CartScreen() {
       <Screen>
         <View style={styles.titleRow}>
           <BackButton fallback="/(tabs)/order" />
-          <Logo variant="badge" tone="dark" size={28} />
+          <Logo variant="badge" size={28} />
           <Text variant="h1" style={styles.title}>
             {t('cart.title')}
           </Text>

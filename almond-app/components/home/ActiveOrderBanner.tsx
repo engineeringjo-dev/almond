@@ -39,15 +39,15 @@ export function ActiveOrderBanner() {
         <Icon name={STATUS_ICON[order.status]} size={22} color={colors.lightGold} strokeWidth={2} />
       </View>
       <View style={styles.body}>
-        <Text variant="caption" color={colors.cream}>
+        <Text variant="caption" color={colors.onInk}>
           {t('track.orderNumber')} {order.id.slice(-6).toUpperCase()}
         </Text>
-        <Text variant="bodyBold" color={colors.white}>
+        <Text variant="bodyBold" color={colors.onInk}>
           {t(`track.${order.status}`)}
         </Text>
       </View>
       <View style={styles.time}>
-        <Text variant="caption" color={colors.cream}>
+        <Text variant="caption" color={colors.onInk}>
           {t('confirm.readyAt')}
         </Text>
         <Text variant="bodyBold" color={colors.lightGold}>

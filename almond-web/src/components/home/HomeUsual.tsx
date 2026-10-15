@@ -42,7 +42,7 @@ export function HomeUsual() {
         <button
           type="button"
           onClick={reorder}
-          className="inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-pill bg-primary px-6 font-bold text-white transition-colors hover:bg-primary-dark"
+          className="inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-pill bg-primary px-6 font-bold text-white transition-colors hover:bg-primary/85"
         >
           <RotateCcw className="h-4 w-4" />
           {t('reorder')}

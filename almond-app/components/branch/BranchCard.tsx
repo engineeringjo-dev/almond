@@ -41,7 +41,7 @@ export function BranchCard({ branch, onPress, selected, showDirections = true }:
         </Text>
       </View>
       <View style={[styles.status, { backgroundColor: branch.isOpen ? colors.green : colors.red }]}>
-        <Text variant="caption" color="#FFFFFF">
+        <Text variant="caption" color={colors.onInk}>
           {branch.isOpen ? t('common.open') : t('common.closed')}
         </Text>
       </View>

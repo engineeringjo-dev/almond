@@ -45,7 +45,7 @@ function MenuItemCardBase({ item, onPress }: Props) {
         ) : null}
         {soldOut ? (
           <View style={styles.soldOut}>
-            <Text variant="caption" color={colors.cream}>
+            <Text variant="caption" color={colors.white}>
               {t('menu.outOfStock')}
             </Text>
           </View>
@@ -107,7 +107,7 @@ const styles = StyleSheet.create({
   brText: { fontWeight: '700' },
   soldOut: {
     position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
-    backgroundColor: 'rgba(46,37,82,0.55)',
+    backgroundColor: colors.scrim,
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: radius.md,

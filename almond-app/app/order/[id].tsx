@@ -6,7 +6,7 @@ import { Screen } from '@/components/ui/Screen';
 import { Text } from '@/components/ui/Text';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
-import { Gradient } from '@/components/ui/Gradient';
+import { HeroCard } from '@/components/ui/HeroCard';
 import { Icon } from '@/components/ui/Icon';
 import { StatusTimeline } from '@/components/order/StatusTimeline';
 import { VisitRatingSheet } from '@/components/loyalty/VisitRatingSheet';
@@ -56,32 +56,33 @@ export default function OrderTracking() {
       <Stack.Screen options={{ headerShown: true, title: t('track.title'), headerBackTitle: t('common.back') }} />
       <Screen>
         <View style={styles.headerShadow}>
-          <Gradient preset="purple" style={styles.headerCard}>
+          <HeroCard style={styles.headerCard}>
             <View style={styles.headerRow}>
               <View>
-                <Text variant="caption" color={colors.white}>
+                <Text variant="caption" color={colors.onHero}>
                   {t('track.orderNumber')}
                 </Text>
-                <Text variant="h2" color={colors.white}>{order.id.slice(-6).toUpperCase()}</Text>
+                <Text variant="h2" color={colors.onHero}>{order.id.slice(-6).toUpperCase()}</Text>
               </View>
               <View style={styles.branch}>
-                <Text variant="caption" color={colors.white}>
-                  📍 {branchName}
+                <Icon name="map-pin" size={14} color={colors.onHero} />
+                <Text variant="caption" color={colors.onHero}>
+                  {branchName}
                 </Text>
               </View>
             </View>
 
             {showCountdown ? (
               <View style={styles.countdown}>
-                <Text variant="caption" color={colors.white}>
+                <Text variant="caption" color={colors.onHero}>
                   {t('track.readyIn')}
                 </Text>
-                <Text variant="display" color={colors.white}>
+                <Text variant="display" color={colors.onHero}>
                   {label}
                 </Text>
               </View>
             ) : null}
-          </Gradient>
+          </HeroCard>
         </View>
 
         {order.status === 'cancelled' ? (
@@ -123,7 +124,7 @@ const styles = StyleSheet.create({
   headerShadow: { borderRadius: radius.lg, ...shadow.card },
   headerCard: { gap: spacing.lg, borderRadius: radius.lg, padding: spacing.lg, overflow: 'hidden' },
   headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
-  branch: { alignItems: 'flex-end' },
+  branch: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   countdown: { alignItems: 'center', gap: spacing.xs },
   timelineCard: { marginTop: spacing.lg },
   cancelledCard: { marginTop: spacing.lg, paddingVertical: spacing.xl },

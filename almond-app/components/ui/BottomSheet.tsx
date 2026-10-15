@@ -154,7 +154,7 @@ export function BottomSheet({ visible, onClose, title, label, children, footer }
 }
 
 const styles = StyleSheet.create({
-  backdrop: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(46,37,82,0.5)' },
+  backdrop: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: colors.scrim },
   // Full-width dock at the bottom; the sheet inside is centred and capped.
   dock: { position: 'absolute', start: 0, end: 0, bottom: 0, alignItems: 'center' },
   sheet: {

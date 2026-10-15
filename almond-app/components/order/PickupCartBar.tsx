@@ -58,13 +58,13 @@ export function PickupCartBar() {
           accessibilityRole="button"
           accessibilityLabel={t('order.cartButton', { count, total: formatJOD(totals.total, lang) })}
         >
-          <Icon name="cart" size={20} color={colors.white} />
+          <Icon name="cart" size={20} color={colors.onInk} />
           {count > 0 ? (
             <View style={styles.badge}>
               <Text variant="caption" color={colors.dark} style={styles.badgeText}>{count}</Text>
             </View>
           ) : null}
-          <Text variant="bodyBold" color={colors.white}>
+          <Text variant="bodyBold" color={colors.onInk}>
             {count > 0 ? formatJOD(totals.total, lang) : t('order.viewCart')}
           </Text>
         </Pressable>

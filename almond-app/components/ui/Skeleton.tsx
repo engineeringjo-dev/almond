@@ -8,10 +8,13 @@ interface Props {
   height?: number;
   pill?: boolean;
   style?: ViewStyle;
+  /** On the black card (HeroCard), a translucent light block instead of the
+   *  page's grey, which would glare there. */
+  onHero?: boolean;
 }
 
 /** A shimmering placeholder block (pure Animated — no native deps); still under Reduce Motion. */
-export function Skeleton({ width = '100%', height = 16, pill, style }: Props) {
+export function Skeleton({ width = '100%', height = 16, pill, style, onHero }: Props) {
   const reduced = useReducedMotion();
   const o = useRef(new Animated.Value(reduced ? 0.75 : 0.5)).current;
   useEffect(() => {
@@ -32,7 +35,7 @@ export function Skeleton({ width = '100%', height = 16, pill, style }: Props) {
   return (
     <Animated.View
       style={[
-        styles.base,
+        onHero ? styles.onHero : styles.base,
         { width, height, borderRadius: pill ? radius.pill : radius.md, opacity: o },
         style,
       ]}
@@ -42,4 +45,5 @@ export function Skeleton({ width = '100%', height = 16, pill, style }: Props) {
 
 const styles = StyleSheet.create({
   base: { backgroundColor: colors.neutralWarm },
+  onHero: { backgroundColor: 'rgba(255,255,255,0.16)' },
 });

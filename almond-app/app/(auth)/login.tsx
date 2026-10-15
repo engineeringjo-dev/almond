@@ -61,7 +61,7 @@ export default function Login() {
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
         <View style={styles.content}>
-          <Logo variant="wordmark" tone="dark" size={240} style={styles.logo} />
+          <Logo variant="wordmark" size={240} style={styles.logo} />
           <Text variant="h1" center style={styles.title}>
             {t('auth.phoneTitle')}
           </Text>

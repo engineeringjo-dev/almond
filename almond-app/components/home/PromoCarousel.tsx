@@ -2,21 +2,26 @@ import { ScrollView, StyleSheet, Pressable, View } from 'react-native';
 import { router } from 'expo-router';
 
 import { Text } from '@/components/ui/Text';
-import { Gradient } from '@/components/ui/Gradient';
+import { Icon, type IconName } from '@/components/ui/Icon';
+import { HeroCard } from '@/components/ui/HeroCard';
 import { ComboOfferCard } from '@/components/home/ComboOfferCard';
 import { colors, spacing, radius, shadow } from '@/constants/theme';
 import { useI18n } from '@/hooks/useI18n';
 import { useWalletRate } from '@/hooks/useWalletRate';
+import { earnRangeCopy } from '@almond/shared/loyalty';
 
 interface Promo {
   id: string;
-  emoji: string;
+  icon: IconName;
   /** A locale KEY, in both languages. The tiles used to carry `titleAr` /
    *  `titleEn` string literals, which is how three false claims lived on the
    *  offers page through a copy repair that scanned only the locale files. */
   titleKey: string;
   /** Read at render, because a tile may name the member's own rate. */
-  params?: (ctx: { walletRate: { rate: string; base: string } }) => Record<string, string | number>;
+  params?: (ctx: {
+    walletRate: { rate: string; base: string };
+    range: { low: string; high: string; mult: string };
+  }) => Record<string, string | number>;
   onPress: () => void;
 }
 
@@ -51,22 +56,26 @@ interface Promo {
 const promos: Promo[] = [
   {
     id: 'wallet',
-    emoji: '👛',
+    icon: 'wallet',
     titleKey: 'home.walletHint',
     params: ({ walletRate }) => walletRate,
     onPress: () => router.push('/profile/wallet'),
   },
   {
     id: 'rewards',
-    emoji: '🎁',
+    icon: 'coins',
     titleKey: 'rewards.headlineSub',
+    // The ladder in one line, off the dials (earnRangeCopy) — the same
+    // sentence the rewards headline says.
+    params: ({ range }) => range,
     onPress: () => router.push('/(tabs)/rewards'),
   },
 ];
 
 export function PromoCarousel() {
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
   const walletRate = useWalletRate();
+  const range = earnRangeCopy(lang);
   return (
     <View>
       <Text variant="title" style={styles.heading}>
@@ -85,12 +94,12 @@ export function PromoCarousel() {
       >
         {promos.map((p) => (
           <Pressable key={p.id} style={styles.shadow} onPress={p.onPress} accessibilityRole="button">
-            <Gradient preset="purple" style={styles.card}>
-              <Text style={styles.emoji}>{p.emoji}</Text>
-              <Text variant="bodyBold" color={colors.white}>
-                {t(p.titleKey, p.params?.({ walletRate }))}
+            <HeroCard style={styles.card}>
+              <Icon name={p.icon} size={28} color={colors.onHero} strokeWidth={1.75} />
+              <Text variant="bodyBold" color={colors.onHero}>
+                {t(p.titleKey, p.params?.({ walletRate, range }))}
               </Text>
-            </Gradient>
+            </HeroCard>
           </Pressable>
         ))}
       </ScrollView>
@@ -110,5 +119,4 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     overflow: 'hidden',
   },
-  emoji: { fontSize: 32 },
 });

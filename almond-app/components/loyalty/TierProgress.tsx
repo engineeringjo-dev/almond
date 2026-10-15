@@ -1,5 +1,7 @@
 import { View, StyleSheet } from 'react-native';
 import { Text } from '@/components/ui/Text';
+import { Icon } from '@/components/ui/Icon';
+import { TIER_FILL } from '@/components/loyalty/TierBadge';
 import { colors, spacing, radius } from '@/constants/theme';
 import { useI18n } from '@/hooks/useI18n';
 import { tiers } from '@/services/seed';
@@ -64,11 +66,11 @@ export function TierProgress({ tier, windowSpend, nextTier }: Props) {
                 <View
                   style={[
                     styles.stop,
-                    reached && { backgroundColor: tr.color, borderColor: tr.color },
+                    reached && { backgroundColor: TIER_FILL[tr.id], borderColor: TIER_FILL[tr.id] },
                     isCurrent && styles.stopCurrent,
                   ]}
                 >
-                  <Text style={styles.stopMark}>{reached ? '☕' : ''}</Text>
+                  {reached ? <Icon name="check" size={13} color={colors.onInk} strokeWidth={3} /> : null}
                 </View>
               </View>
             );
@@ -138,7 +140,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   stopCurrent: { borderColor: colors.gold, borderWidth: 3 },
-  stopMark: { fontSize: 11 },
   labels: { flexDirection: 'row', justifyContent: 'space-between', marginTop: spacing.xs },
   labelCol: { width: 64, alignItems: 'center', marginHorizontal: -19 },
   activeLabel: { fontWeight: '700' },

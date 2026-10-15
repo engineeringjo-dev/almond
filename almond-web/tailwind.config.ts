@@ -2,9 +2,9 @@ import type { Config } from 'tailwindcss';
 
 /**
  * Brand tokens are owned by `@almond/shared/theme` (the single source of truth).
- * Colors + gradients here reference CSS variables that the root layout injects
- * from the shared theme at render time (see src/theme/cssVars.ts), so the
- * violet palette can never drift between the app and the website.
+ * Colors here reference CSS variables that the root layout injects from the
+ * shared theme at render time (see src/theme/cssVars.ts), so the black-and-
+ * white palette can never drift between the app and the website.
  * The numeric scales (spacing/radius/type) mirror the shared `spacing`,
  * `radius` and `fontSize` tokens.
  */
@@ -32,11 +32,6 @@ const config: Config = {
         'tier-silver': 'rgb(var(--color-tier-silver-rgb) / <alpha-value>)',
         'tier-gold': 'rgb(var(--color-tier-gold-rgb) / <alpha-value>)',
         'tier-black': 'rgb(var(--color-tier-black-rgb) / <alpha-value>)',
-      },
-      backgroundImage: {
-        'gradient-rainbow': 'var(--gradient-rainbow)',
-        'gradient-purple': 'var(--gradient-purple)',
-        'gradient-dark': 'var(--gradient-dark)',
       },
       fontFamily: {
         sans: ['var(--font-hn-arabic)', 'system-ui', 'sans-serif'],

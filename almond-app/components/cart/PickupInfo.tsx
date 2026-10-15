@@ -1,6 +1,6 @@
 import { View, StyleSheet, Pressable } from 'react-native';
 import { Text } from '@/components/ui/Text';
-import { Gradient } from '@/components/ui/Gradient';
+import { HeroCard } from '@/components/ui/HeroCard';
 import { Icon } from '@/components/ui/Icon';
 import { colors, radius, spacing, shadow } from '@/constants/theme';
 import { useI18n } from '@/hooks/useI18n';
@@ -15,20 +15,20 @@ interface Props {
   emptyLabel?: string;
 }
 
-/** Smart-pickup branch + ready-time estimate — purple gradient hero (matches design). */
+/** Smart-pickup branch + ready-time estimate, on the black card. */
 export function PickupInfo({ branch, estimate, onChangeBranch, emptyLabel }: Props) {
   const { t, lang } = useI18n();
   return (
     <View style={styles.shadow}>
-      <Gradient preset="purple" style={styles.card}>
+      <HeroCard style={styles.card}>
         <View style={styles.branchRow}>
           <View style={styles.left}>
-            <Text variant="caption" color={colors.white}>
+            <Text variant="caption" color={colors.onHero}>
               {t('cart.branch')}
             </Text>
             <View style={styles.branchName}>
-              <Icon name="map-pin" size={16} color={colors.white} />
-              <Text variant="bodyBold" color={colors.white}>
+              <Icon name="map-pin" size={16} color={colors.onHero} />
+              <Text variant="bodyBold" color={colors.onHero}>
                 {branch ? (lang === 'ar' ? branch.nameAr : branch.nameEn) : (emptyLabel ?? '—')}
               </Text>
             </View>
@@ -41,7 +41,7 @@ export function PickupInfo({ branch, estimate, onChangeBranch, emptyLabel }: Pro
             accessibilityRole="button"
             accessibilityLabel={t('cart.changeBranch')}
           >
-            <Text variant="bodyBold" color={colors.dark}>
+            <Text variant="bodyBold" color={colors.hero}>
               {t('cart.change')}
             </Text>
           </Pressable>
@@ -51,17 +51,17 @@ export function PickupInfo({ branch, estimate, onChangeBranch, emptyLabel }: Pro
           <Icon
             name={estimate.readyOnArrival ? 'sparkles' : 'clock'}
             size={20}
-            color={colors.primary}
+            color={colors.hero}
             strokeWidth={2}
           />
-          <Text variant="bodyBold" color={colors.dark} style={styles.estimateText}>
+          <Text variant="bodyBold" color={colors.hero} style={styles.estimateText}>
             {estimate.readyOnArrival
               ? t('cart.readyOnArrival')
               : // `count` picks the Arabic plural: «دقيقتين», «٧ دقائق», «١١ دقيقة».
                 t('cart.readyIn', { count: estimate.prepMinutes })}
           </Text>
         </View>
-      </Gradient>
+      </HeroCard>
     </View>
   );
 }
@@ -78,7 +78,7 @@ const styles = StyleSheet.create({
   left: { gap: 2, flex: 1 },
   branchName: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
   changeBtn: {
-    backgroundColor: colors.white,
+    backgroundColor: colors.onHero,
     borderRadius: radius.pill,
     minHeight: 44,
     minWidth: 64,
@@ -91,7 +91,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
-    backgroundColor: colors.white,
+    backgroundColor: colors.onHero,
     borderRadius: radius.md,
     padding: spacing.md,
   },

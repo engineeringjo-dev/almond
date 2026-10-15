@@ -4,6 +4,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Text } from '@/components/ui/Text';
+import { Icon } from '@/components/ui/Icon';
 import { Button } from '@/components/ui/Button';
 import { colors, spacing, radius } from '@/constants/theme';
 import { useI18n } from '@/hooks/useI18n';
@@ -62,7 +63,7 @@ export default function OrderConfirm() {
     <SafeAreaView style={styles.safe}>
       <View style={styles.content}>
         <Animated.View style={[styles.checkCircle, { transform: [{ scale }] }]}>
-          <Text style={styles.check}>✓</Text>
+          <Icon name="check" size={64} color={colors.onInk} strokeWidth={2.5} />
         </Animated.View>
 
         <Text variant="h1" center style={styles.title}>
@@ -84,9 +85,12 @@ export default function OrderConfirm() {
       <View style={styles.footer}>
         {canCancel ? (
           <View style={styles.cancelBox}>
-            <Text variant="caption" color={colors.brown} center>
-              ⏱️ {t('confirm.cancelWindow', { seconds: secondsLeft })}
-            </Text>
+            <View style={styles.cancelNote}>
+              <Icon name="clock" size={14} color={colors.warmGray} />
+              <Text variant="caption" color={colors.warmGray}>
+                {t('confirm.cancelWindow', { seconds: secondsLeft })}
+              </Text>
+            </View>
             <View style={styles.cancelRow}>
               <Button
                 title={t('confirm.modifyOrder')}
@@ -143,7 +147,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginBottom: spacing.xl,
   },
-  check: { fontSize: 64, color: colors.cream, lineHeight: 72 },
   title: { marginBottom: spacing.xl },
   details: {
     alignSelf: 'stretch',
@@ -154,6 +157,7 @@ const styles = StyleSheet.create({
   },
   row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   footer: { padding: spacing.xl, gap: spacing.sm },
+  cancelNote: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4 },
   cancelBox: {
     backgroundColor: colors.neutralWarm,
     borderRadius: radius.md,

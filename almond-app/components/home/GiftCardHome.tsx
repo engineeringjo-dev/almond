@@ -3,7 +3,7 @@ import { router } from 'expo-router';
 
 import { Text } from '@/components/ui/Text';
 import { Icon } from '@/components/ui/Icon';
-import { Gradient } from '@/components/ui/Gradient';
+import { HeroCard } from '@/components/ui/HeroCard';
 import { colors, spacing, radius, shadow } from '@/constants/theme';
 import { useI18n } from '@/hooks/useI18n';
 
@@ -12,16 +12,16 @@ export function GiftCardHome() {
   const { t } = useI18n();
   return (
     <Pressable onPress={() => router.push('/profile/gift-cards')} accessibilityRole="button">
-      <Gradient preset="purple" style={styles.card}>
+      <HeroCard style={styles.card}>
         <View style={styles.iconWrap}>
-          <Icon name="gift" size={24} color={colors.white} />
+          <Icon name="gift" size={24} color={colors.onHero} />
         </View>
         <View style={styles.body}>
-          <Text variant="bodyBold" color={colors.white}>{t('gift.title')}</Text>
-          <Text variant="caption" color={colors.white}>{t('gift.subtitle')}</Text>
+          <Text variant="bodyBold" color={colors.onHero}>{t('gift.title')}</Text>
+          <Text variant="caption" color={colors.onHero}>{t('gift.subtitle')}</Text>
         </View>
-        <Icon name="navigation" size={20} color={colors.white} />
-      </Gradient>
+        <Icon name="navigation" size={20} color={colors.onHero} />
+      </HeroCard>
     </Pressable>
   );
 }

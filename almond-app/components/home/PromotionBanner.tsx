@@ -4,7 +4,7 @@ import { router } from 'expo-router';
 
 import { Text } from '@/components/ui/Text';
 import { Icon } from '@/components/ui/Icon';
-import { Gradient } from '@/components/ui/Gradient';
+import { HeroCard } from '@/components/ui/HeroCard';
 import { colors, spacing, radius, shadow } from '@/constants/theme';
 import { useI18n } from '@/hooks/useI18n';
 import { useLoyaltyBalance } from '@/hooks/useLoyalty';
@@ -68,13 +68,13 @@ export function PromotionBanner() {
         router.push('/(tabs)/rewards');
       }}
     >
-      <Gradient preset="purple" style={styles.card}>
+      <HeroCard style={styles.card}>
         <View style={styles.body}>
-          <Text variant="bodyBold" color={colors.white}>
+          <Text variant="bodyBold" color={colors.onHero}>
             {t(copy.key, copy.params)}
           </Text>
           {copy.next ? (
-            <Text variant="caption" color={colors.white}>
+            <Text variant="caption" color={colors.onHero}>
               {t(copy.next.key, copy.next.params)}
             </Text>
           ) : null}
@@ -85,9 +85,9 @@ export function PromotionBanner() {
           accessibilityRole="button"
           accessibilityLabel={t('common.close')}
         >
-          <Icon name="close" size={18} color={colors.white} strokeWidth={2} />
+          <Icon name="close" size={18} color={colors.onHero} strokeWidth={2} />
         </Pressable>
-      </Gradient>
+      </HeroCard>
     </Pressable>
   );
 }

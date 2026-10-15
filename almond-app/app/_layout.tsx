@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { AppState, InteractionManager, View } from 'react-native';
-import { Stack } from 'expo-router';
+import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from 'expo-router';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -22,7 +22,7 @@ import { ErrorBoundary } from '@/components/ui/ErrorBoundary';
 import { CartToast } from '@/components/ui/CartToast';
 import { EarnQrSheet } from '@/components/pay/EarnQrSheet';
 import { PostVisitSheet } from '@/components/loyalty/PostVisitSheet';
-import { colors, layout } from '@/constants/theme';
+import { colorScheme, colors, fontFamily, layout, lockColorScheme } from '@/constants/theme';
 import { hydrateMenuFromCache, refreshMenu } from '@/services/menuSync';
 
 // Initialize i18n as early as possible (AR default).
@@ -37,6 +37,26 @@ applyWebViewportFix();
 applySpaceActivation();
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
+
+// The palette was chosen from the phone's setting when constants/theme loaded;
+// hold the native views (keyboard, alerts, status bar) to it until relaunch.
+lockColorScheme();
+
+/** React Navigation's own surfaces — the card behind a screen, a header —
+ *  in the app's palette, so nothing flashes white in dark mode. */
+const base = colorScheme === 'dark' ? DarkTheme : DefaultTheme;
+const navigationTheme = {
+  ...base,
+  colors: {
+    ...base.colors,
+    primary: colors.dark,
+    background: colors.cream,
+    card: colors.cream,
+    text: colors.dark,
+    border: colors.outline,
+    notification: colors.red,
+  },
+};
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -129,10 +149,17 @@ export default function RootLayout() {
       <SafeAreaProvider>
         <QueryClientProvider client={queryClient}>
           <ErrorBoundary>
-          <StatusBar style="dark" />
+          <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
+          <ThemeProvider value={navigationTheme}>
           <Stack
             screenOptions={({ route }) => ({
               headerShown: false,
+              // For the screens that turn the header on (loyalty, referral):
+              // the page's colours, not the navigator's white.
+              headerStyle: { backgroundColor: colors.cream },
+              headerTintColor: colors.dark,
+              headerTitleStyle: { fontFamily: fontFamily.bold },
+              headerShadowVisible: false,
               // Journey screens (the cart) sit centred at a readable width on a
               // tablet / wide window, like the Order tab; a phone is narrower
               // than the cap and unchanged.
@@ -164,6 +191,7 @@ export default function RootLayout() {
             <Stack.Screen name="referral" />
             <Stack.Screen name="transfer" />
           </Stack>
+          </ThemeProvider>
           <CartToast />
           {/* «اجمع نقاطك» — one sheet over every screen, opened on launch and
               from Home's header (components/pay/EarnQrSheet.tsx). */}

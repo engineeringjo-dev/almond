@@ -4,6 +4,7 @@ import { Stack } from 'expo-router';
 
 import { Screen } from '@/components/ui/Screen';
 import { Text } from '@/components/ui/Text';
+import { Icon } from '@/components/ui/Icon';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { BottomSheet } from '@/components/ui/BottomSheet';
@@ -38,22 +39,27 @@ export default function AddressesScreen() {
           <View style={styles.list}>
             {addresses.map((a) => (
               <Card key={a.id} style={styles.row}>
-                <Text style={styles.pin}>📍</Text>
+                <Icon name="map-pin" size={22} color={colors.dark} strokeWidth={1.75} />
                 <View style={styles.body}>
                   <Text variant="bodyBold">{a.label}</Text>
                   <Text variant="caption" color={colors.warmGray}>
                     {a.details}
                   </Text>
                 </View>
-                <Pressable onPress={() => remove(a.id)} hitSlop={8}>
-                  <Text color={colors.red}>🗑️</Text>
+                <Pressable
+                  onPress={() => remove(a.id)}
+                  style={styles.removeBtn}
+                  accessibilityRole="button"
+                  accessibilityLabel={t('profile.removeAddress', { label: a.label })}
+                >
+                  <Icon name="trash" size={20} color={colors.red} />
                 </Pressable>
               </Card>
             ))}
           </View>
         ) : (
           <View style={styles.empty}>
-            <Text style={styles.emptyEmoji}>📍</Text>
+            <Icon name="map-pin" size={48} color={colors.warmGray} strokeWidth={1.5} />
             <Text variant="body" color={colors.warmGray}>
               {t('profile.noAddresses')}
             </Text>
@@ -100,10 +106,9 @@ export default function AddressesScreen() {
 const styles = StyleSheet.create({
   list: { gap: spacing.md },
   row: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
-  pin: { fontSize: 22 },
+  removeBtn: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   body: { flex: 1, gap: 2 },
   empty: { alignItems: 'center', gap: spacing.md, paddingVertical: spacing.xxl },
-  emptyEmoji: { fontSize: 56 },
   form: { gap: spacing.md },
   input: {
     backgroundColor: colors.cardBg,

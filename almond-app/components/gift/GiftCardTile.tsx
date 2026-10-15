@@ -1,7 +1,7 @@
 import { useRef } from 'react';
 import { StyleSheet, Pressable, Animated, Image } from 'react-native';
 
-import { radius, shadow } from '@/constants/theme';
+import { colors, radius, shadow } from '@/constants/theme';
 import { useReducedMotion } from '@/hooks/useReducedMotion';
 import { GIFT_ART } from '@/lib/giftArt';
 import type { GiftDesign } from '@almond/shared/gifts';
@@ -72,6 +72,6 @@ const styles = StyleSheet.create({
   // A hairline so the dark and the pale cards both keep an edge on any
   // background. Inline hex on purpose: bff/test/earn.test.ts uses this file
   // as its "hex literals survive the comment stripper" canary.
-  shadow: { ...shadow.card, borderWidth: StyleSheet.hairlineWidth, borderColor: '#2A20401F' },
+  shadow: { ...shadow.card, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.outline },
   art: { width: '100%', height: '100%' },
 });

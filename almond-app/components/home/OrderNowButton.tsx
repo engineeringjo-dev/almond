@@ -3,7 +3,7 @@ import { StyleSheet, Pressable, View } from 'react-native';
 
 import { Text } from '@/components/ui/Text';
 import { Icon } from '@/components/ui/Icon';
-import { Gradient } from '@/components/ui/Gradient';
+import { HeroCard } from '@/components/ui/HeroCard';
 import { OrderTypeSheet } from '@/components/order/OrderTypeSheet';
 import { colors, spacing, radius, shadow } from '@/constants/theme';
 import { useI18n } from '@/hooks/useI18n';
@@ -23,15 +23,15 @@ export function OrderNowButton() {
         onPress={() => setOpen(true)}
         accessibilityRole="button"
       >
-        <Gradient preset="purple" style={styles.btn}>
+        <HeroCard style={styles.btn}>
           <View style={styles.iconWrap}>
-            <Icon name="cart" size={22} color={colors.white} />
+            <Icon name="cart" size={22} color={colors.onHero} />
           </View>
-          <Text variant="h2" color={colors.white} style={styles.label}>
+          <Text variant="h2" color={colors.onHero} style={styles.label}>
             {t('home.quickOrder')}
           </Text>
-          <Icon name="navigation" size={20} color={colors.white} />
-        </Gradient>
+          <Icon name="navigation" size={20} color={colors.onHero} />
+        </HeroCard>
       </Pressable>
       <OrderTypeSheet visible={open} onClose={() => setOpen(false)} />
     </>

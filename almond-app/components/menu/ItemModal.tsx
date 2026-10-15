@@ -299,13 +299,13 @@ export function ItemModal({ item, visible, onClose }: Props) {
                   <Icon
                     name={isStaged ? 'check' : iconForCategory(p.categoryId)}
                     size={18}
-                    color={isStaged ? colors.white : colors.primary}
+                    color={isStaged ? colors.onInk : colors.primary}
                     strokeWidth={isStaged ? 2.4 : 1.8}
                   />
-                  <Text variant="caption" color={isStaged ? colors.white : colors.dark}>
+                  <Text variant="caption" color={isStaged ? colors.onInk : colors.dark}>
                     {name}
                   </Text>
-                  <Text variant="caption" color={isStaged ? colors.white : colors.gold}>
+                  <Text variant="caption" color={isStaged ? colors.onInk : colors.gold}>
                     {price}
                   </Text>
                 </Pressable>
@@ -360,7 +360,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.xs,
   },
-  nutriPillGood: { backgroundColor: 'rgba(108,92,180,0.12)' },
+  nutriPillGood: { backgroundColor: colors.lightGold },
   brunchBanner: {
     flexDirection: 'row',
     alignItems: 'center',

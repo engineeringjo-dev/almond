@@ -78,7 +78,7 @@ export function CrossSellRow({ items }: { items: CartItem[] }) {
               «أضف واكسب», which named neither the thing nor its cost. The
               name sits beside it once; repeating it in the pill truncated. */}
           <View style={styles.comboCta}>
-            <Text variant="caption" color={colors.white} style={styles.addLabel}>
+            <Text variant="caption" color={colors.onInk} style={styles.addLabel}>
               {added[upsell.item.id] ? t('menu.added') : t('cart.comboAddPrice', { price: comboPrice })}
             </Text>
           </View>
@@ -108,7 +108,7 @@ export function CrossSellRow({ items }: { items: CartItem[] }) {
                   setAdded((p) => ({ ...p, [item.id]: true }));
                 }}
               >
-                <Text variant="caption" color={isAdded ? colors.white : colors.dark} style={styles.addLabel}>
+                <Text variant="caption" color={colors.onInk} style={styles.addLabel}>
                   {isAdded ? t('menu.added') : `+ ${t('common.add')}`}
                 </Text>
               </Pressable>
