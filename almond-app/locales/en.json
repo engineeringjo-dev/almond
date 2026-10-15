@@ -121,6 +121,8 @@
     "walletBalance": "Your wallet balance",
     "topUpWallet": "Top up your wallet",
     "walletHint": "Pay from your balance and get {{rate}} back instead of {{base}} ☕",
+    "nudgeDoubleToday": "Double points today — {{name}} 🎉",
+    "nudgeDoubleTomorrow": "Double points tomorrow — {{name}}",
     "greetingMorningGuest": "Good morning ☕",
     "greetingEveningGuest": "Good evening ☕",
     "nudgeCart": "In your cart: {{count}} — finish your order",
@@ -401,7 +403,8 @@
   },
   "tierBenefits": {
     "cashback": "{{rate}} back on every order",
-    "walletCashback": "{{rate}} when you pay from your balance"
+    "walletCashback": "{{rate}} when you pay from your balance",
+    "doubleDays": "Double points in Ramadan, on Eid and on public holidays"
   },
   "spin": {
     "title": "Lucky Wheel",

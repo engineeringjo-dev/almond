@@ -90,15 +90,18 @@ const WALLET_CASHBACK: Benefit = {
 
 // `Record<TierId, …>` on purpose: TypeScript makes it exhaustive, so a fourth
 // rung cannot be added to the ramp and silently render an empty card.
+// Owner, 2026-10-15 — paid by the server on the day of the sale, every rung.
+const DOUBLE_DAYS: Benefit = { icon: 'sparkles', key: 'tierBenefits.doubleDays' };
+
 const TIER_BENEFITS: Record<TierId, Benefit[]> = {
-  base: [CASHBACK, WALLET_CASHBACK],
-  plus: [CASHBACK, WALLET_CASHBACK],
+  base: [CASHBACK, WALLET_CASHBACK, DOUBLE_DAYS],
+  plus: [CASHBACK, WALLET_CASHBACK, DOUBLE_DAYS],
   // 🔴 `tierBenefits.noExpire` ("Your points never expire") used to sit here on
   // the top rung, because the old inactivity rule really did exempt it. Under
   // «لا إعفاء — القاعدة للجميع» every point on every rung lives 12 months from
   // the day it was granted, so the row is gone and so is the string. A benefit
   // the code does not honour is the W4 defect this project has already paid for.
-  top: [CASHBACK, WALLET_CASHBACK],
+  top: [CASHBACK, WALLET_CASHBACK, DOUBLE_DAYS],
 };
 
 const STEPS: { icon: IconName; titleKey: string; bodyKey: string }[] = [

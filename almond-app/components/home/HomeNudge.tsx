@@ -9,6 +9,7 @@ import { formatDayKey } from '@/lib/format';
 import { daysUntilDayKey } from '@almond/shared/loyalty/lots';
 import { useCartCount } from '@/stores/cartStore';
 import { useLoyaltyBalance } from '@/hooks/useLoyalty';
+import { activeDoubleDay, upcomingDoubleDay } from '@almond/shared/loyalty/earn';
 
 /** How close a slice of points must be to dying before the nudge fires.
  *  Under per-lot expiry this fires on a SLICE, several times a year and with
@@ -25,6 +26,21 @@ export function HomeNudge() {
   const { t, lang } = useI18n();
   const cartCount = useCartCount();
   const { data: balance } = useLoyaltyBalance();
+  const today = activeDoubleDay();
+  const tomorrow = upcomingDoubleDay();
+
+  // 0) An occasion that doubles points TODAY (config.DOUBLE_POINTS_DAYS — the
+  // server pays it by the day of the sale, so this only says what is true).
+  if (today) {
+    return (
+      <Nudge
+        icon="sparkles"
+        text={t('home.nudgeDoubleToday', { name: lang === 'ar' ? today.nameAr : today.nameEn })}
+        onPress={() => router.push('/(tabs)/order')}
+        isRTL={lang === 'ar'}
+      />
+    );
+  }
 
   // 1) Abandoned cart — the persisted cart still has items.
   if (cartCount > 0) {
@@ -60,6 +76,18 @@ export function HomeNudge() {
         />
       );
     }
+  }
+
+  // 3) The day before an occasion — the «غداً» notice.
+  if (tomorrow) {
+    return (
+      <Nudge
+        icon="sparkles"
+        text={t('home.nudgeDoubleTomorrow', { name: lang === 'ar' ? tomorrow.nameAr : tomorrow.nameEn })}
+        onPress={() => router.push('/(tabs)/rewards')}
+        isRTL={lang === 'ar'}
+      />
+    );
   }
 
   return null;

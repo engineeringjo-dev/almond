@@ -32,6 +32,9 @@ export default defineConfig({
     ],
   },
   test: {
+    // Empties the double-points calendar so a run on a holiday computes what
+    // any other day does — see the file.
+    setupFiles: [path.join(repo, 'packages/shared/test-setup/no-double-days.ts')],
     environment: 'node',
     include: ['src/**/*.test.ts', 'test/**/*.test.ts'],
     env: { TZ: 'UTC' },

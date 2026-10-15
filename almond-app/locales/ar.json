@@ -121,6 +121,8 @@
     "walletBalance": "رصيد محفظتك",
     "topUpWallet": "اشحن محفظتك",
     "walletHint": "ادفع من رصيدك ويرجع لك {{rate}} بدل {{base}} ☕",
+    "nudgeDoubleToday": "نقاطك مضاعفة اليوم — {{name}} 🎉",
+    "nudgeDoubleTomorrow": "غداً نقاطك مضاعفة — {{name}}",
     "greetingMorningGuest": "صباح الخير ☕",
     "greetingEveningGuest": "مساء الخير ☕",
     "nudgeCart": "لديك {{count}} صنف في سلتك — أكمل طلبك",
@@ -401,7 +403,8 @@
   },
   "tierBenefits": {
     "cashback": "{{rate}} ترجع لك من كل طلب",
-    "walletCashback": "{{rate}} عند الدفع من رصيدك"
+    "walletCashback": "{{rate}} عند الدفع من رصيدك",
+    "doubleDays": "نقاط مضاعفة في رمضان والأعياد والعطل الرسمية"
   },
   "spin": {
     "title": "عجلة الحظ",

@@ -22,6 +22,8 @@ import {
   REPO, ROOTS, EXT, collectSources, stripComments, type SourceFile,
 } from './lib/sources';
 import { signIn } from './lib/signIn';
+import { SHIPPED_DOUBLE_POINTS_DAYS } from '@almond/shared/config';
+import { withShippedDoubleDays } from '../../packages/shared/test-setup/no-double-days';
 
 /**
  * §7 of docs/LOYALTY-EARN-PATCH.md: T1-T10, T12 and T14. T11, T13 and T15 need
@@ -76,6 +78,10 @@ const RULES: EarnRules = {
   maxEarningInvoiceJod: 1e9,
   weekdayBonus: [{ weekday: 5, rate: 0.5 }],
   bonusDay: { enabled: true, multiplier: 2, weekdays: [2] },
+  // No occasions: these tests prove the arithmetic on ordinary days.
+  // bff/test/doubleDays.test.ts proves the occasions.
+  doubleDays: [],
+  doubleDayMultiplier: 2,
 };
 
 /** The dials as actually shipped. This is a WHOLLY different offer from
@@ -112,6 +118,9 @@ const SHIPPED: EarnRules = {
   maxEarningInvoiceJod: 100,
   weekdayBonus: [],
   bonusDay: { enabled: false, multiplier: 2, weekdays: [2] },
+  // The occasions calendar (owner, 2026-10-15), doubling the rate.
+  doubleDays: SHIPPED_DOUBLE_POINTS_DAYS,
+  doubleDayMultiplier: 2,
 };
 
 /**
@@ -148,7 +157,9 @@ describe('earn: the dials the tests are written against', () => {
   it('earn: earnRulesFromConfig() still matches the pinned rule set', () => {
     // If this fails, a config value moved. Decide whether that was an offer
     // change (§8) before touching any other expectation in this file.
-    expect(earnRulesFromConfig()).toEqual(SHIPPED);
+    // The calendar is emptied for every test file (no-double-days.ts); this
+    // one comparison puts the shipped list back to see the real dial.
+    expect(withShippedDoubleDays(() => earnRulesFromConfig())).toEqual(SHIPPED);
   });
 
   it('earn: the shipped ladder is exactly 2 / 4 / 6 points per JOD', () => {

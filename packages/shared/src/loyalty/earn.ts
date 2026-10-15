@@ -1,7 +1,7 @@
-import { config } from '../config';
+import { config, type DoublePointsDay } from '../config';
 import { corporateEarnsPoints } from './corporate';
 import { rateName, tiers } from './constants';
-import { ammanWeekday } from '../lib/ammanWeekday';
+import { ammanDayKey, ammanWeekday } from '../lib/ammanWeekday';
 
 /** One rung of the ladder, as the earn calculation needs it. */
 export interface TierRung {
@@ -52,6 +52,30 @@ export interface EarnRules {
   /** Additive fraction of the scaled base, by weekday (0=Sun..6=Sat). */
   weekdayBonus: readonly { weekday: number; rate: number }[];
   bonusDay: { enabled: boolean; multiplier: number; weekdays: readonly number[] };
+  /** Occasions that multiply the RATE by `doubleDayMultiplier`, decided by
+   *  the Amman day of `ctx.at` — see config.DOUBLE_POINTS_DAYS. */
+  doubleDays: readonly DoublePointsDay[];
+  doubleDayMultiplier: number;
+}
+
+/** The occasion `at` falls on (its Amman day), or null. The first listed wins
+ *  where two share a day (Christmas and Isra' and Mi'raj, 2027-12-25). */
+export function activeDoubleDay(
+  at: Date = new Date(),
+  days: readonly DoublePointsDay[] = config.DOUBLE_POINTS_DAYS,
+): DoublePointsDay | null {
+  const key = ammanDayKey(at);
+  return days.find((d) => key >= d.from && key <= d.to) ?? null;
+}
+
+/** The occasion that starts TOMORROW in Amman — for a «غداً» notice the day
+ *  before — or null, including when today is already part of it. */
+export function upcomingDoubleDay(
+  at: Date = new Date(),
+  days: readonly DoublePointsDay[] = config.DOUBLE_POINTS_DAYS,
+): DoublePointsDay | null {
+  if (activeDoubleDay(at, days)) return null;
+  return activeDoubleDay(new Date(at.getTime() + 24 * 60 * 60 * 1000), days);
 }
 
 /** The rung a qualifying spend earns at. Pure function of the ramp handed in. */
@@ -119,6 +143,8 @@ export function earnRulesFromConfig(): EarnRules {
       multiplier: config.BONUS_BEAN_DAY.multiplier,
       weekdays: config.BONUS_BEAN_DAY.weekdays as readonly number[],
     },
+    doubleDays: config.DOUBLE_POINTS_DAYS,
+    doubleDayMultiplier: config.DOUBLE_POINTS_MULTIPLIER,
   };
 }
 
@@ -374,6 +400,10 @@ export interface EarnBreakdown {
   base: number;            // total × pointsPerJod
   walletBonus: number;
   bonusDayBonus: number;
+  /** What the occasion added to the scaled base (0 on an ordinary day). */
+  doubleDayBonus: number;
+  /** The occasion's id when the sale fell on one — 'ramadan', 'coffee-day' … */
+  doubleDay: string | null;
   tierBonus: number;
   weekdayBonus: number;
   comboBonus: number;
@@ -516,6 +546,10 @@ export function computeEarn(
   // NOT Date#getDay(): that is host-local, and the BFF, the phone and the till
   // are not on the same clock. One business day, defined once — see §3.6.
   const weekday = ammanWeekday(ctx.at ?? new Date());
+  // 🔴 THE OCCASION, BY THE DAY OF THE SALE — decided from the clock the caller
+  // passes (the till's paidAt, checkout's now), never from a device flag.
+  const occasion = activeDoubleDay(ctx.at ?? new Date(), rules.doubleDays);
+  const dayMult = occasion && rules.doubleDayMultiplier > 1 ? rules.doubleDayMultiplier : 1;
 
   // The rate is applied to the cash portion only, because `earningTotal` is
   // already `min(cashTotal, ceiling)`. A bill paid for entirely with points has
@@ -534,9 +568,10 @@ export function computeEarn(
     rules.bonusDay.multiplier > 1;
   const bonusMult = bonusDayOn ? rules.bonusDay.multiplier : 1;
 
-  const scaled = base * walletMult * bonusMult;
+  const scaled = base * walletMult * bonusMult * dayMult;
   const walletBonus = base * (walletMult - 1);
-  const bonusDayBonus = scaled - base - walletBonus;
+  const bonusDayBonus = base * walletMult * (bonusMult - 1);
+  const doubleDayBonus = scaled - base - walletBonus - bonusDayBonus;
 
   // Additive bonuses, as fractions of the scaled base. The tier ramp IS the
   // earn rate: a base of 2 with a 3.0 rung is 6 pts/JOD, i.e. 6% back.
@@ -581,7 +616,10 @@ export function computeEarn(
   //     const capped = Math.min(scaled + tierBonus + weekdayBonus + comboBonus, cap);
   //     const points = Math.round(capped);
   const cappable = scaled + tierBonus + weekdayBonus;
-  const cap = base * rules.maxEarnMultiplier;
+  // The ceiling rises by the occasion's factor: a day that promises double
+  // pays double on every rung, the top rung from the wallet included (9% → 18%).
+  // It still bounds any OTHER dial stacked on top, exactly as before.
+  const cap = base * rules.maxEarnMultiplier * dayMult;
   const capApplied = cappable > cap;
   // 🔴 THE CORPORATE ZERO, APPLIED LAST AND OVER EVERYTHING — including the
   // combo bonus, which deliberately escapes the ceiling above (§8.7) and would
@@ -595,7 +633,8 @@ export function computeEarn(
     total,
     pointsRedeemed, redeemedJod, cashTotal,
     earningTotal, invoiceCapApplied, comboPairsPaid, comboExcludedJod, comboSuppressedByRedemption,
-    base, walletBonus, bonusDayBonus, tierBonus, weekdayBonus, comboBonus,
+    base, walletBonus, bonusDayBonus, doubleDayBonus, doubleDay: occasion?.id ?? null,
+    tierBonus, weekdayBonus, comboBonus,
     subtotal: cappable + comboBonus, cap, capApplied, points,
     effectiveMultiplier: base > 0 ? points / base : 0,
     tierId: tier.id,

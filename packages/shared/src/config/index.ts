@@ -1,3 +1,64 @@
+/** One run of consecutive Amman calendar days that earn double points. */
+export interface DoublePointsDay {
+  /** Stable id of the occasion — 'ramadan', 'eid-al-fitr', 'coffee-day', … */
+  id: string;
+  /** First and last Amman day, inclusive, as YYYY-MM-DD (ammanDayKey). */
+  from: string;
+  to: string;
+  nameAr: string;
+  nameEn: string;
+}
+
+/**
+ * 🔴 THE DOUBLE-POINTS CALENDAR, AS SHIPPED. Owner, 2026-10-15: «اضف نقاط
+ * مضاعفة في رمضان، الاعياد عيدي الفطر والاضحى ويوم القهوة وكل العطل الرسمية».
+ *
+ * Ramadan, both Eids (al-Adha from the Day of Arafah), International Coffee
+ * Day (1 October) and Jordan's official holidays: New Year, Isra' and Mi'raj,
+ * Labour Day, Independence Day, Islamic New Year, the Prophet's Birthday and
+ * Christmas.
+ *
+ * THE SERVER DECIDES, BY THE DAY OF THE SALE. loyalty/earn.ts reads the Amman
+ * day of `at` — the till's paidAt, checkout's now — against this list. No
+ * client asserts it: the device-activated bonus day that came before
+ * (BONUS_BEAN_DAY) was self-crediting, which is why it was retired.
+ *
+ * 🔴 THE ISLAMIC DATES ARE ESTIMATES. They are the Umm al-Qura calendar read
+ * in Amman (bff/test/doubleDays.test.ts holds them to it within a day); Jordan
+ * fixes the real dates by moon sighting and announces them shortly before.
+ * Correct an entry here when the government announces, in the same commit as
+ * nothing else. Fixed dates (1/1, 1/5, 25/5, 1/10, 25/12) are exact.
+ *
+ * Runs to the end of 2028; the same test fails 60 days before the list runs
+ * out, so it cannot lapse silently.
+ */
+export const SHIPPED_DOUBLE_POINTS_DAYS: readonly DoublePointsDay[] = [
+  { id: 'christmas', from: '2026-12-25', to: '2026-12-25', nameAr: 'عيد الميلاد المجيد', nameEn: 'Christmas' },
+  { id: 'new-year', from: '2027-01-01', to: '2027-01-01', nameAr: 'رأس السنة الميلادية', nameEn: "New Year's Day" },
+  { id: 'isra-miraj', from: '2027-01-05', to: '2027-01-05', nameAr: 'الإسراء والمعراج', nameEn: "Isra' and Mi'raj" },
+  { id: 'ramadan', from: '2027-02-08', to: '2027-03-08', nameAr: 'رمضان', nameEn: 'Ramadan' },
+  { id: 'eid-al-fitr', from: '2027-03-09', to: '2027-03-11', nameAr: 'عيد الفطر', nameEn: 'Eid al-Fitr' },
+  { id: 'labour-day', from: '2027-05-01', to: '2027-05-01', nameAr: 'عيد العمال', nameEn: 'Labour Day' },
+  { id: 'eid-al-adha', from: '2027-05-15', to: '2027-05-19', nameAr: 'عيد الأضحى', nameEn: 'Eid al-Adha' },
+  { id: 'independence-day', from: '2027-05-25', to: '2027-05-25', nameAr: 'عيد الاستقلال', nameEn: 'Independence Day' },
+  { id: 'hijri-new-year', from: '2027-06-06', to: '2027-06-06', nameAr: 'رأس السنة الهجرية', nameEn: 'Islamic New Year' },
+  { id: 'mawlid', from: '2027-08-14', to: '2027-08-14', nameAr: 'المولد النبوي', nameEn: "Prophet's Birthday" },
+  { id: 'coffee-day', from: '2027-10-01', to: '2027-10-01', nameAr: 'يوم القهوة العالمي', nameEn: 'International Coffee Day' },
+  { id: 'isra-miraj', from: '2027-12-25', to: '2027-12-25', nameAr: 'الإسراء والمعراج', nameEn: "Isra' and Mi'raj" },
+  { id: 'christmas', from: '2027-12-25', to: '2027-12-25', nameAr: 'عيد الميلاد المجيد', nameEn: 'Christmas' },
+  { id: 'new-year', from: '2028-01-01', to: '2028-01-01', nameAr: 'رأس السنة الميلادية', nameEn: "New Year's Day" },
+  { id: 'ramadan', from: '2028-01-28', to: '2028-02-25', nameAr: 'رمضان', nameEn: 'Ramadan' },
+  { id: 'eid-al-fitr', from: '2028-02-26', to: '2028-02-28', nameAr: 'عيد الفطر', nameEn: 'Eid al-Fitr' },
+  { id: 'labour-day', from: '2028-05-01', to: '2028-05-01', nameAr: 'عيد العمال', nameEn: 'Labour Day' },
+  { id: 'eid-al-adha', from: '2028-05-04', to: '2028-05-08', nameAr: 'عيد الأضحى', nameEn: 'Eid al-Adha' },
+  { id: 'independence-day', from: '2028-05-25', to: '2028-05-25', nameAr: 'عيد الاستقلال', nameEn: 'Independence Day' },
+  { id: 'hijri-new-year', from: '2028-05-25', to: '2028-05-25', nameAr: 'رأس السنة الهجرية', nameEn: 'Islamic New Year' },
+  { id: 'mawlid', from: '2028-08-03', to: '2028-08-03', nameAr: 'المولد النبوي', nameEn: "Prophet's Birthday" },
+  { id: 'coffee-day', from: '2028-10-01', to: '2028-10-01', nameAr: 'يوم القهوة العالمي', nameEn: 'International Coffee Day' },
+  { id: 'isra-miraj', from: '2028-12-14', to: '2028-12-14', nameAr: 'الإسراء والمعراج', nameEn: "Isra' and Mi'raj" },
+  { id: 'christmas', from: '2028-12-25', to: '2028-12-25', nameAr: 'عيد الميلاد المجيد', nameEn: 'Christmas' },
+];
+
 /**
  * Single config switch (section 6.1).
  * Flip DATA_SOURCE to 'odoo' when the real API is ready — NOTHING else changes.
@@ -121,6 +182,15 @@ export const config = {
   // Precedent: Starbucks Rewards (US, 2019-2025) paid 2 Stars per $1 spent from
   // a stored-value card against 1 for cash or a bank card; loading the card
   // earned nothing of its own.
+  // DOUBLE POINTS ON OCCASIONS — the calendar and its rule are documented on
+  // SHIPPED_DOUBLE_POINTS_DAYS above. The multiplier doubles the RATE (every
+  // rung, cash or wallet, under a ceiling raised by the same factor so the
+  // promise is paid in full); flat grants — the combo, the referral, the
+  // profile bonus — are not doubled. Tests clear this list in their setup so a
+  // CI run on a holiday computes the same numbers as any other day;
+  // bff/test/doubleDays.test.ts exercises the shipped list explicitly.
+  DOUBLE_POINTS_DAYS: SHIPPED_DOUBLE_POINTS_DAYS as readonly DoublePointsDay[],
+  DOUBLE_POINTS_MULTIPLIER: 2,
   // RETIRED 2026-09-06. Was enabled with a Tuesday ×2.
   //
   // Zero rows in 171,291 live transactions. And it was never safe to run as

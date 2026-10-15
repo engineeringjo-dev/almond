@@ -16,6 +16,9 @@ const shared = path.resolve(root, '../packages/shared/src');
 
 export default defineConfig({
   test: {
+    // Empties the double-points calendar so a run on a holiday computes what
+    // any other day does — see the file.
+    setupFiles: [path.resolve(root, '../packages/shared/test-setup/no-double-days.ts')],
     coverage: {
       provider: 'v8',
       reporter: ['text-summary', 'json-summary', 'html'],

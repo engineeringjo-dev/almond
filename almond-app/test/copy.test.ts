@@ -502,7 +502,7 @@ describe('C18 no tier card promises a perk the server does not pay', () => {
    * granted any of them. The list is CLOSED: a new row needs a server grant
    * first, and then this allow-list changes in the same commit as the grant.
    */
-  const PAID = ['cashback', 'walletCashback'];
+  const PAID = ['cashback', 'walletCashback', 'doubleDays'];
   for (const lang of ['ar', 'en'] as const) {
     it(`locales/${lang}.json carries the paid rows and nothing else`, () => {
       const raw = JSON.parse(readFileSync(join(__dirname, '..', 'locales', `${lang}.json`), 'utf8')) as {
