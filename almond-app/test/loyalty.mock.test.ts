@@ -565,15 +565,21 @@ describe('L — per-lot expiry, through the mock the app really runs on', () => 
     expect(settleExpiry(u)).toBe(0);
   });
 
-  it('L1b a top-up grants its own lot and renews nothing', async () => {
+  it('L1b a top-up grants nothing and renews nothing', async () => {
     // `u.lastEarnAt = Date.now(); // a reload counts as activity (extends
     // beans)` used to sit in topUp. That ONE LINE was the inactivity rule: a
     // 20 JOD reload resurrected a year of dormant points. It is gone.
+    //
+    // The top-up also used to grant a reload-bonus lot of its own (50 points
+    // at 20 JOD). That bonus is deleted — owner, 2026-10-15: «لا يوجد بونص شحن،
+    // البونص للانفاق فقط» — so a top-up adds no points lot at all, as
+    // bff/test/profile.test.ts T34e pins for the server.
     const { id, u } = memberWithLots([{ points: 500, ageDays: 400 }]);
+    const lotsBefore = u.lots.length;
     await mockLoyaltyService.topUp(id, 20);
-    const bonus = u.lots.filter((l) => l.source === 'bonus');
-    expect(bonus).toHaveLength(1);
-    expect(liveBalance(u.lots)).toBe(bonus[0].amount); // the 500 stayed dead
+    expect(u.lots.filter((l) => l.source === 'bonus')).toHaveLength(0);
+    expect(u.lots).toHaveLength(lotsBefore);
+    expect(liveBalance(u.lots)).toBe(0); // the 500 stayed dead
   });
 
   it('L5 the seeded demo member is a ledger, not a scalar', async () => {
