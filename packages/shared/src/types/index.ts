@@ -2,6 +2,7 @@
 
 import type { ReferralWire } from '../loyalty/referral';
 import type { Gender } from '../loyalty/profile';
+import type { PointsKind } from '../loyalty/history';
 
 export type Lang = 'ar' | 'en';
 
@@ -270,6 +271,16 @@ export interface PointsLogEntry {
   reasonAr: string;
   reasonEn: string;
   createdAt: string;
+  /** What the line records (loyalty/history.ts). Absent on a line written
+   *  before kinds existed that the migration could not recognise. */
+  kind?: PointsKind | null;
+  /** The branch of a purchase — the app order's pickup branch or the till's
+   *  branch. Null for anything that did not happen at a branch. */
+  branchId?: string | null;
+  /** 'YYYY-MM-DD' in Asia/Amman, INCLUSIVE: the last day the points this line
+   *  granted can be spent — the lot's own stored date. Null when the line
+   *  granted nothing, or granted points that never expire. */
+  expiresOn?: string | null;
 }
 
 export interface EarnResult {

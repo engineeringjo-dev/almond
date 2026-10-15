@@ -39,6 +39,8 @@ export interface EarnInput {
   combo?: ComboBasket;
   /** True only when the member activated today's bonus day. */
   bonusDayActivated?: boolean;
+  /** The order's branch, for the history line (loyalty/history.ts). */
+  branchId?: string;
   /** Decision clock (tests / deterministic estimates). */
   at?: Date;
 }

@@ -37,6 +37,7 @@ const SALE_REFUNDS_MIGRATION = readMigration('20260930_pos_sale_refunds.sql');
 const REFERRALS_MIGRATION = readMigration('20261001_referrals.sql');
 const TRANSFERS_MIGRATION = readMigration('20261002_member_transfers.sql');
 const PROFILE_FIELDS_MIGRATION = readMigration('20261003_member_profile_fields.sql');
+const HISTORY_DETAIL_MIGRATION = readMigration('20261015_point_history_detail.sql');
 /** The whole loyalty schema, as a deploy leaves it (minus the Supabase-only RLS file). */
 const SCHEMA = loyaltySchemaSql();
 const POSTGRES_TS = readFileSync(join(HERE, '..', 'src', 'backend', 'postgres.ts'), 'utf8');
@@ -887,5 +888,61 @@ describe('R3.16 migration 20261003_member_profile_fields.sql', () => {
       try { await pg.query(`update members set gender = $1 where id = 'm1'`, [g]); } catch (e) { got = (e as { code?: string }).code ?? 'err'; }
       expect(got, String(g)).toBe(want);
     }
+  });
+});
+
+/**
+ * R3.17 — 20261015_point_history_detail.sql: what each history line is, where
+ * it happened and when its points run out (owner, 2026-10-15, after Al Ameed).
+ */
+describe('R3.17 migration 20261015_point_history_detail.sql', () => {
+  it('R3.17 labels the rows written before it, leaves what it cannot recognise NULL, and re-applies unchanged', async () => {
+    const pg = await fresh();
+    // The schema as it stood BEFORE this file, with history already in it.
+    await pg.exec(LOYALTY_MIGRATIONS.filter((f) => f < '20261015').map(readMigration).join('\n;\n'));
+    await pg.query(`insert into members (id, phone, held_tier_id) values ('m1', '+962791111111', 'base')`);
+    const old: [string, string | null][] = [
+      ['Order points', 'purchase'], ['In-store purchase points', 'purchase'],
+      ['Points redeemed', 'redeem'], ['Paid with points in store', 'redeem'],
+      ['Redemption cancelled', 'return'], ['Redemption expired', 'return'],
+      ['Points returned: in-store payment voided', 'return'],
+      ['Refunded purchase points', 'refund'], ['Partially refunded purchase points', 'refund'],
+      ['Points expired', 'expire'], ['Profile completed', 'bonus'], ['Referral reward', 'bonus'],
+      ['Wallet reload bonus', 'bonus'],
+      ['Points sent to a friend', 'transfer'], ['Points from a friend', 'transfer'],
+      ['Wallet balance expired (1.500 JOD)', 'wallet'], ['Balance sent to a friend (-2.000 JOD)', 'wallet'],
+      ['Balance from a friend (+2.000 JOD)', 'wallet'],
+      ['Something an admin typed', null],
+    ];
+    for (const [reason] of old) {
+      await pg.query(`insert into point_history (member_id, delta_points, reason_ar, reason_en)
+        values ('m1', 1, 'x', $1)`, [reason]);
+    }
+    await pg.exec(HISTORY_DETAIL_MIGRATION);
+    const labelled = await rows<{ reason_en: string; kind: string | null; branch_id: string | null; expires_on: string | null }>(pg,
+      `select reason_en, kind, branch_id, expires_on from point_history order by id`);
+    expect(labelled.map((r) => [r.reason_en, r.kind])).toEqual(old);
+    // Old rows get no branch and no RE-DERIVED expiry (lots.ts: a date is the promise made at grant).
+    expect(labelled.every((r) => r.branch_id === null && r.expires_on === null)).toBe(true);
+
+    const shape = () => rows(pg, `select column_name, data_type from information_schema.columns
+      where table_name = 'point_history' order by 1`);
+    const cons = () => rows(pg, `select conname, pg_get_constraintdef(oid) as def from pg_constraint
+      where conrelid = 'point_history'::regclass order by 1`);
+    const before = { shape: await shape(), cons: await cons() };
+    await pg.exec(HISTORY_DETAIL_MIGRATION);
+    expect({ shape: await shape(), cons: await cons() }).toEqual(before);
+
+    const insert = async (kind: string | null, expiresOn: string | null) => {
+      try {
+        await pg.query(`insert into point_history (member_id, delta_points, reason_ar, reason_en, kind, expires_on)
+          values ('m1', 1, 'x', 'y', $1, $2)`, [kind, expiresOn]);
+        return 'ok';
+      } catch (e) { return (e as { code?: string }).code ?? 'err'; }
+    };
+    expect(await insert('purchase', '2027-10-15')).toBe('ok');
+    expect(await insert(null, null)).toBe('ok');
+    expect(await insert('cashback', null)).toBe('23514');        // not a shared kind
+    expect(await insert('purchase', '15/10/2027')).toBe('23514'); // not a day key
   });
 });

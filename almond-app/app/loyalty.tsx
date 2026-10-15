@@ -8,15 +8,16 @@ import { Gradient } from '@/components/ui/Gradient';
 import { TierBadge } from '@/components/loyalty/TierBadge';
 import { TierProgress } from '@/components/loyalty/TierProgress';
 import { VoucherCard } from '@/components/loyalty/VoucherCard';
+import { PointsHistory } from '@/components/loyalty/PointsHistory';
 import { colors, spacing, radius, shadow } from '@/constants/theme';
 import { useI18n } from '@/hooks/useI18n';
-import { formatNumber, formatDate } from '@/lib/format';
+import { formatNumber } from '@/lib/format';
 import {
   useLoyaltyBalance,
   useVouchers,
   usePointsHistory,
 } from '@/hooks/useLoyalty';
-import type { Voucher, PointsLogEntry } from '@/types';
+import type { Voucher } from '@/types';
 
 export default function LoyaltyScreen() {
   const { t, lang } = useI18n();
@@ -39,7 +40,7 @@ export default function LoyaltyScreen() {
   return (
     <>
       <Stack.Screen options={{ headerShown: true, title: t('loyalty.title') }} />
-      <Screen onRefresh={balanceQ.refetch}>
+      <Screen onRefresh={balanceQ.refetch} scrollLabel={t('loyalty.title')}>
         {/* Points balance — pastel rainbow hero, dark text for contrast */}
         <Gradient preset="rainbow" style={styles.pointsCard}>
           <Text variant="caption" color={colors.brown}>
@@ -89,34 +90,7 @@ export default function LoyaltyScreen() {
           <Text variant="title" style={styles.sectionTitle}>
             {t('loyalty.history')}
           </Text>
-          <Card padded={false} style={styles.historyCard}>
-            {(historyQ.data ?? []).map((h: PointsLogEntry, i: number) => (
-              <View
-                key={h.id}
-                style={[styles.historyRow, i > 0 && styles.historyBorder]}
-              >
-                <View style={styles.historyBody}>
-                  <Text variant="body">{lang === 'ar' ? h.reasonAr : h.reasonEn}</Text>
-                  <Text variant="caption" color={colors.warmGray}>
-                    {formatDate(h.createdAt, lang)}
-                  </Text>
-                </View>
-                {h.deltaPoints !== 0 ? (
-                  <Text
-                    variant="bodyBold"
-                    color={h.deltaPoints > 0 ? colors.green : colors.red}
-                  >
-                    {h.deltaPoints > 0 ? '+' : ''}
-                    {h.deltaPoints}
-                  </Text>
-                ) : (
-                  <Text variant="caption" color={colors.warmGray}>
-                    🎡
-                  </Text>
-                )}
-              </View>
-            ))}
-          </Card>
+          <PointsHistory entries={historyQ.data ?? []} />
         </View>
       </Screen>
     </>
@@ -136,13 +110,4 @@ const styles = StyleSheet.create({
   section: { marginTop: spacing.lg },
   sectionTitle: { marginBottom: spacing.md },
   list: { gap: spacing.md },
-  historyCard: { overflow: 'hidden' },
-  historyRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: spacing.md,
-  },
-  historyBody: { gap: 2 },
-  historyBorder: { borderTopWidth: 1, borderTopColor: colors.neutralWarm },
 });

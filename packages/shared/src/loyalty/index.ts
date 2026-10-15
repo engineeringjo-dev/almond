@@ -13,3 +13,4 @@ export * from './redemption';
 export * from './tillRefund';
 export * from './referral';
 export * from './transfer';
+export * from './history';

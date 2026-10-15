@@ -6,6 +6,9 @@ import type { GiftCard, PointsLogEntry, Voucher } from '@almond/shared/types';
 import { isMock } from '@/lib/config';
 import { genGiftCode } from '@/data/loyalty';
 import type { RedeemOption } from '@almond/shared/loyalty/redeem';
+import { lotExpiresOn } from '@almond/shared/loyalty/lots';
+import { ammanDayKey } from '@almond/shared/lib/ammanWeekday';
+import { branches } from '@almond/shared/menu';
 
 export interface WalletTxn {
   id: string;
@@ -70,7 +73,11 @@ export const useLoyaltyStore = create<LoyaltyState>()(
       // (2026-09-24). Vouchers come only from redeeming points.
       vouchers: [],
       pointsHistory: [
-        { id: rid('p'), deltaPoints: 45, reasonAr: 'طلب قهوة', reasonEn: 'Coffee order', createdAt: daysAgo(2) },
+        {
+          id: rid('p'), deltaPoints: 45, reasonAr: 'نقاط طلب', reasonEn: 'Order points', createdAt: daysAgo(2),
+          kind: 'purchase', branchId: branches[0]?.id ?? null,
+          expiresOn: lotExpiresOn(ammanDayKey(new Date(daysAgo(2)))),
+        },
       ],
       walletHistory: [
         { id: rid('w'), amount: 20, labelAr: 'شحن المحفظة', labelEn: 'Wallet top-up', createdAt: daysAgo(5) },
@@ -109,6 +116,7 @@ export const useLoyaltyStore = create<LoyaltyState>()(
               reasonAr: `استبدال نقاط: ${jod.toFixed(3)} د.أ`,
               reasonEn: `Points redeemed: ${jod.toFixed(3)} JOD`,
               createdAt: new Date().toISOString(),
+              kind: 'redeem',
             },
             ...s.pointsHistory,
           ],

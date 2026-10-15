@@ -26,6 +26,15 @@ interface Props {
   onRefresh?: () => void;
   contentStyle?: object;
   background?: string;
+  /**
+   * For a screen with NOTHING focusable in it (a read-only list such as the
+   * points history): the scroll area becomes a named, focusable region, so a
+   * keyboard user can reach it and scroll it with the arrow keys. WAI-ARIA's
+   * practice for scrollable regions; axe `scrollable-region-focusable`.
+   * Leave unset on a screen with buttons or links — they already give the
+   * keyboard a way in, and an extra tab stop would only be in the way.
+   */
+  scrollLabel?: string;
 }
 
 /**
@@ -43,6 +52,7 @@ export function Screen({
   onRefresh,
   contentStyle,
   background = colors.cream,
+  scrollLabel,
 }: Props) {
   const { t } = useI18n();
 
@@ -93,6 +103,9 @@ export function Screen({
             // A tap on «تطبيق» with the keyboard up applies the code on the
             // first tap, instead of only closing the keyboard.
             keyboardShouldPersistTaps="handled"
+            {...(scrollLabel
+              ? { focusable: true, role: 'region' as const, 'aria-label': scrollLabel }
+              : {})}
             keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
             refreshControl={
               onRefresh ? (

@@ -225,13 +225,7 @@ export function createPostgresBackend(db: Db): Backend {
       const lines: HistoryEntry[] = [];
       const out = await fn(m, (e) => lines.push(e), t, lines);
       await saveMember(t, m);
-      for (const e of lines) {
-        await t.query(
-          `insert into point_history (member_id, delta_points, reason_ar, reason_en, created_at)
-           values ($1,$2,$3,$4,$5)`,
-          [id, e.deltaPoints, e.reasonAr, e.reasonEn, e.createdAt],
-        );
-      }
+      for (const e of lines) await insertHistory(t, id, e);
       return out;
     });
   }
@@ -248,11 +242,17 @@ export function createPostgresBackend(db: Db): Backend {
     return toMember(rows[0]);
   }
 
+  /** THE ONE INSERT into point_history — withMember's lines and the
+   *  two-member moves (referral, transfer) both come through here, so a
+   *  column added to the ledger cannot be written by one path and not the
+   *  other. */
   async function insertHistory(t: Db, memberId: string, e: HistoryEntry): Promise<void> {
     await t.query(
-      `insert into point_history (member_id, delta_points, reason_ar, reason_en, created_at)
-       values ($1,$2,$3,$4,$5)`,
-      [memberId, e.deltaPoints, e.reasonAr, e.reasonEn, e.createdAt],
+      `insert into point_history
+         (member_id, delta_points, reason_ar, reason_en, created_at, kind, branch_id, expires_on)
+       values ($1,$2,$3,$4,$5,$6,$7,$8)`,
+      [memberId, e.deltaPoints, e.reasonAr, e.reasonEn, e.createdAt,
+        e.kind, e.branchId ?? null, e.expiresOn ?? null],
     );
   }
 
@@ -301,8 +301,9 @@ export function createPostgresBackend(db: Db): Backend {
     const points = referralRewardFor(await isCorporateIn(t, referrer.phone));
     const lines: HistoryEntry[] = [];
     settleExpiry(referrer, at, (e) => lines.push(e));
-    referrer.lots = grantLot(referrer.lots, points, 'bonus', at, LOTS).lots;
-    if (points > 0) lines.push(referralRewardLine(points, at));
+    const reward = grantLot(referrer.lots, points, 'bonus', at, LOTS);
+    referrer.lots = reward.lots;
+    if (points > 0) lines.push(referralRewardLine(points, at, reward.lot));
     await saveMember(t, referrer);
     for (const e of lines) await insertHistory(t, referrer.id, e);
     await t.query(
@@ -343,7 +344,7 @@ export function createPostgresBackend(db: Db): Backend {
     if (lost > 0) {
       log({
         deltaPoints: -lost, reasonAr: 'انتهاء صلاحية نقاط',
-        reasonEn: 'Points expired', createdAt: at.toISOString(),
+        reasonEn: 'Points expired', createdAt: at.toISOString(), kind: 'expire',
       });
     }
     m.expirySettledThrough = today;
@@ -360,6 +361,7 @@ export function createPostgresBackend(db: Db): Backend {
         reasonAr: `انتهاء صلاحية رصيد (${lostJod} د.أ)`,
         reasonEn: `Wallet balance expired (${lostJod} JOD)`,
         createdAt: at.toISOString(),
+        kind: 'wallet',
       });
     }
     m.walletExpirySettledThrough = today;
@@ -478,10 +480,12 @@ export function createPostgresBackend(db: Db): Backend {
       const row = toRedemption(raw);
       if (!shouldRefund(row, at)) continue;
       await t.query('update redemptions set cancelled_at = $2 where id = $1', [row.id, at.toISOString()]);
-      m.lots = grantLot(m.lots, row.points, 'earn', at, LOTS).lots;
+      const back = grantLot(m.lots, row.points, 'earn', at, LOTS);
+      m.lots = back.lots;
       log({
         deltaPoints: row.points, reasonAr: 'انتهت صلاحية الاستبدال',
         reasonEn: 'Redemption expired', createdAt: at.toISOString(),
+        kind: 'return', expiresOn: back.lot?.expiresOn ?? null,
       });
       n += 1;
     }
@@ -570,25 +574,29 @@ export function createPostgresBackend(db: Db): Backend {
       });
     },
 
-    async addPoints(id, delta, reasonAr, reasonEn) {
+    async addPoints(id, delta, reasonAr, reasonEn, kind = 'bonus') {
       if (delta < 0) throw conflict('negative_grant', 'A grant cannot be negative');
       return withMember(id, (m, log) => {
         const at = new Date();
         settleExpiry(m, at, log);
-        m.lots = grantLot(m.lots, delta, 'earn', at, LOTS).lots;
-        log({ deltaPoints: delta, reasonAr, reasonEn, createdAt: at.toISOString() });
+        const grant = grantLot(m.lots, delta, 'earn', at, LOTS);
+        m.lots = grant.lots;
+        log({
+          deltaPoints: delta, reasonAr, reasonEn, createdAt: at.toISOString(),
+          kind, expiresOn: grant.lot?.expiresOn ?? null,
+        });
         return liveBalance(m.lots, at);
       });
     },
 
-    async spendPoints(id, points, reasonAr, reasonEn) {
+    async spendPoints(id, points, reasonAr, reasonEn, kind = 'redeem') {
       return withMember(id, (m, log) => {
         const at = new Date();
         settleExpiry(m, at, log);
         const res = consumeFifo(m.lots, points, at);
         if (!res.ok) throw conflict('insufficient_points', 'Not enough points');
         m.lots = res.lots;
-        log({ deltaPoints: -points, reasonAr, reasonEn, createdAt: at.toISOString() });
+        log({ deltaPoints: -points, reasonAr, reasonEn, createdAt: at.toISOString(), kind });
         return liveBalance(m.lots, at);
       });
     },
@@ -611,10 +619,12 @@ export function createPostgresBackend(db: Db): Backend {
           // and visible; an unstamped one can be paid twice on retry.
           m.profileBonusAt = at.toISOString();
           settleExpiry(m, at, log);
-          m.lots = grantLot(m.lots, bonus, 'earn', at, LOTS).lots;
+          const grant = grantLot(m.lots, bonus, 'earn', at, LOTS);
+          m.lots = grant.lots;
           log({
             deltaPoints: bonus, reasonAr: 'إكمال الملف الشخصي',
             reasonEn: 'Profile completed', createdAt: at.toISOString(),
+            kind: 'bonus', expiresOn: grant.lot?.expiresOn ?? null,
           });
           pointsBalance = liveBalance(m.lots, at);
         }
@@ -656,16 +666,20 @@ export function createPostgresBackend(db: Db): Backend {
     async getHistory(id) {
       await api.getMember(id);           // notFound for an unknown member, as memory does
       const rows = await db.query(
-        `select delta_points, reason_ar, reason_en, created_at
+        `select id, delta_points, reason_ar, reason_en, created_at, kind, branch_id, expires_on
          from point_history where member_id = $1 order by id desc`,
         [id],
       );
-      return rows.map((r) => ({
+      return rows.map((r): HistoryEntry => ({
+        id: String(r.id),
         deltaPoints: Number(r.delta_points),
         reasonAr: r.reason_ar as string,
         reasonEn: r.reason_en as string,
         createdAt: iso(r.created_at)!,
-      })) as HistoryEntry[];
+        kind: (r.kind ?? null) as HistoryEntry['kind'],
+        branchId: (r.branch_id ?? null) as string | null,
+        expiresOn: (r.expires_on ?? null) as string | null,
+      }));
     },
 
     // ---- second-visit voucher ----
@@ -723,7 +737,7 @@ export function createPostgresBackend(db: Db): Backend {
         m.lots = res.lots;
         log({
           deltaPoints: -points, reasonAr: 'استبدال نقاط',
-          reasonEn: 'Points redeemed', createdAt: at.toISOString(),
+          reasonEn: 'Points redeemed', createdAt: at.toISOString(), kind: 'redeem',
         });
         const row: RedemptionRow = {
           id: `rdm_${randomUUID()}`, memberId: id, code: await newCode(t), points,
@@ -786,10 +800,12 @@ export function createPostgresBackend(db: Db): Backend {
         if (row.cancelledAt) return row;                       // idempotent
         await t.query('update redemptions set cancelled_at = $2 where id = $1', [rid, at.toISOString()]);
         settleExpiry(m, at, log);
-        m.lots = grantLot(m.lots, row.points, 'earn', at, LOTS).lots;
+        const back = grantLot(m.lots, row.points, 'earn', at, LOTS);
+        m.lots = back.lots;
         log({
           deltaPoints: row.points, reasonAr: 'إلغاء استبدال',
           reasonEn: 'Redemption cancelled', createdAt: at.toISOString(),
+          kind: 'return', expiresOn: back.lot?.expiresOn ?? null,
         });
         return { ...row, cancelledAt: at.toISOString() };
       });
@@ -971,10 +987,13 @@ export function createPostgresBackend(db: Db): Backend {
           );
         }
         if (input.pointsEarned < 0) throw conflict('negative_grant', 'A grant cannot be negative');
-        m.lots = grantLot(m.lots, input.pointsEarned, 'earn', at, LOTS).lots;
+        const grant = grantLot(m.lots, input.pointsEarned, 'earn', at, LOTS);
+        m.lots = grant.lots;
         log({
           deltaPoints: input.pointsEarned, reasonAr: input.pointsReasonAr,
           reasonEn: input.pointsReasonEn, createdAt: at.toISOString(),
+          kind: 'purchase', branchId: input.order.branchId,
+          expiresOn: grant.lot?.expiresOn ?? null,
         });
         if (input.spendJod !== null) applySpend(m, input.spendJod, at, log);
         // A PAID order is the referral rail's trigger — in this transaction.
@@ -1018,10 +1037,13 @@ export function createPostgresBackend(db: Db): Backend {
         if (input.ticketRefusal) throw ticketRefusalError(input.ticketRefusal);
         if (input.pointsEarned < 0) throw conflict('negative_grant', 'A grant cannot be negative');
         settleExpiry(m, at, log);
-        m.lots = grantLot(m.lots, input.pointsEarned, 'earn', at, LOTS).lots;
+        const grant = grantLot(m.lots, input.pointsEarned, 'earn', at, LOTS);
+        m.lots = grant.lots;
         log({
           deltaPoints: input.pointsEarned, reasonAr: input.reasonAr,
           reasonEn: input.reasonEn, createdAt: at.toISOString(),
+          kind: 'purchase', branchId: input.branchId,
+          expiresOn: grant.lot?.expiresOn ?? null,
         });
         // The day the spend is dated on is STORED, so a reversal can find it.
         const spendDay = input.spendJod !== null && input.spendJod > 0 ? (input.spendDay ?? ammanDayKey(at)) : null;
@@ -1086,7 +1108,10 @@ export function createPostgresBackend(db: Db): Backend {
         m.lots = back.lots;
         m.spend = back.spend;
         const { reasonAr, reasonEn } = refundReasons(!!refund);
-        log({ deltaPoints: -back.reversedPoints, reasonAr, reasonEn, createdAt: at.toISOString() });
+        log({
+          deltaPoints: -back.reversedPoints, reasonAr, reasonEn, createdAt: at.toISOString(),
+          kind: 'refund', branchId: sale.branchId,
+        });
         const balanceAfter = liveBalance(m.lots, at);
         const row: TillRefund = {
           refundRef: refund ? refund.refundRef : null, posOrderRef, memberId: m.id,
@@ -1157,7 +1182,10 @@ export function createPostgresBackend(db: Db): Backend {
         if (!res.ok) throw conflict('insufficient_points', 'Not enough points');
         const slices = spentSlices(m.lots, res.consumed);
         m.lots = res.lots;
-        log({ deltaPoints: -input.points, reasonAr: input.reasonAr, reasonEn: input.reasonEn, createdAt: at.toISOString() });
+        log({
+          deltaPoints: -input.points, reasonAr: input.reasonAr, reasonEn: input.reasonEn,
+          createdAt: at.toISOString(), kind: 'redeem',
+        });
         const spend: TillSpend = {
           posOrderRef: input.posOrderRef, memberId: m.id, points: input.points, valueJod: input.valueJod,
           slices, pointsBalanceAfter: liveBalance(m.lots, at), status: 'spent',
@@ -1198,6 +1226,7 @@ export function createPostgresBackend(db: Db): Backend {
         log({
           deltaPoints: back.restored, reasonAr: 'إرجاع نقاط دفعة ملغاة في الفرع',
           reasonEn: 'Points returned: in-store payment voided', createdAt: at.toISOString(),
+          kind: 'return',
         });
         const reversed: TillSpend = {
           ...spend, status: 'reversed', returnedPoints: back.restored, expiredPoints: back.expired,

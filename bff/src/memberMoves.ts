@@ -3,6 +3,7 @@ import {
   REFERRAL_CODE_ALPHABET, REFERRAL_CODE_LENGTH, type ReferralAttachError,
 } from '@almond/shared/loyalty/referral';
 import type { TransferKind, TransferRefusal } from '@almond/shared/loyalty/transfer';
+import type { PointLot } from '@almond/shared/loyalty/lots';
 import { toJod } from './money';
 import { HttpError, conflict } from './http-error';
 import type { HistoryEntry } from './backend/types';
@@ -39,8 +40,9 @@ export const attachRefused = (code: ReferralAttachError) => conflict(code, ATTAC
 
 /** The referrer's ledger line. The friend's name is NOT in it: a history row
  *  outlives the friendship and is shown on a screen. */
-export const referralRewardLine = (points: number, at: Date): HistoryEntry => ({
+export const referralRewardLine = (points: number, at: Date, lot: PointLot | null): HistoryEntry => ({
   deltaPoints: points, reasonAr: 'مكافأة دعوة صديق', reasonEn: 'Referral reward', createdAt: at.toISOString(),
+  kind: 'bonus', expiresOn: lot?.expiresOn ?? null,
 });
 
 const TRANSFER_MESSAGES: Record<TransferRefusal, string> = {
@@ -63,19 +65,19 @@ export function transferLines(kind: TransferKind, amount: number, at: Date): {
   const createdAt = at.toISOString();
   if (kind === 'points') {
     return {
-      sender: { deltaPoints: -amount, reasonAr: 'تحويل نقاط إلى صديق', reasonEn: 'Points sent to a friend', createdAt },
-      recipient: { deltaPoints: amount, reasonAr: 'نقاط من صديق', reasonEn: 'Points from a friend', createdAt },
+      sender: { deltaPoints: -amount, reasonAr: 'تحويل نقاط إلى صديق', reasonEn: 'Points sent to a friend', createdAt, kind: 'transfer' },
+      recipient: { deltaPoints: amount, reasonAr: 'نقاط من صديق', reasonEn: 'Points from a friend', createdAt, kind: 'transfer' },
     };
   }
   const jod = toJod(amount).toFixed(3);
   return {
     sender: {
       deltaPoints: 0, reasonAr: `تحويل رصيد إلى صديق (-${jod} د.أ)`,
-      reasonEn: `Balance sent to a friend (-${jod} JOD)`, createdAt,
+      reasonEn: `Balance sent to a friend (-${jod} JOD)`, createdAt, kind: 'wallet',
     },
     recipient: {
       deltaPoints: 0, reasonAr: `رصيد من صديق (+${jod} د.أ)`,
-      reasonEn: `Balance from a friend (+${jod} JOD)`, createdAt,
+      reasonEn: `Balance from a friend (+${jod} JOD)`, createdAt, kind: 'wallet',
     },
   };
 }

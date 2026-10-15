@@ -8,6 +8,7 @@ import type { HoldoutStamp } from '@almond/shared/loyalty/holdout';
 import type { SecondVisitVoucher } from '@almond/shared/loyalty/secondVisit';
 import type { Gender, MemberProfile } from '@almond/shared/loyalty/profile';
 import type { TransferKind } from '@almond/shared/loyalty/transfer';
+import type { PointsKind } from '@almond/shared/loyalty/history';
 import type { PointLot, SpentSlice, WalletLot } from '@almond/shared/loyalty/lots';
 import type { SpendEntry, TierStanding, Evaluation } from '@almond/shared/loyalty/window';
 
@@ -128,6 +129,20 @@ export interface HistoryEntry {
   reasonAr: string;
   reasonEn: string;
   createdAt: string;
+  /**
+   * What the line records (loyalty/history.ts), set by the operation that
+   * writes it. REQUIRED on every write, so a new writer that forgets it fails
+   * typecheck instead of quietly dropping out of the counters. Null only when
+   * read back: a line from before the column that the migration could not
+   * recognise.
+   */
+  kind: PointsKind | null;
+  /** The branch of a purchase; null for anything that was not at a branch. */
+  branchId?: string | null;
+  /** The granted lot's own stored `expiresOn` (lots.ts) — never re-derived. */
+  expiresOn?: string | null;
+  /** The store's id for the line, set when it is read back. */
+  id?: string;
 }
 
 /** A checkout line references the menu — the server re-prices; it never trusts
@@ -563,10 +578,14 @@ export interface Backend {
    * the history stays a complete ledger. A NEGATIVE delta throws: this method
    * had no sign guard, and one negative lot would poison every sum silently.
    */
-  addPoints(id: string, delta: number, reasonAr: string, reasonEn: string): Promise<number>;
+  addPoints(
+    id: string, delta: number, reasonAr: string, reasonEn: string, kind?: PointsKind,
+  ): Promise<number>;
   /** Atomic points spend, OLDEST LOT FIRST, measured against the LIVE balance;
    *  throws conflict('insufficient_points') without touching a single lot. */
-  spendPoints(id: string, points: number, reasonAr: string, reasonEn: string): Promise<number>;
+  spendPoints(
+    id: string, points: number, reasonAr: string, reasonEn: string, kind?: PointsKind,
+  ): Promise<number>;
   /**
    * Write the member's own details, and pay the completion bonus AT MOST ONCE.
    *

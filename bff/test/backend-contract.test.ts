@@ -2,6 +2,7 @@
 import './lib/second-visit-on';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { liveBalance, lotExpiresOn } from '@almond/shared/loyalty/lots';
+import { pointsSummary } from '@almond/shared/loyalty/history';
 import { ammanDayKey } from '@almond/shared/lib/ammanWeekday';
 import { config as loyalty } from '@almond/shared/config';
 import { createMemoryBackend } from '../src/backend/memory';
@@ -495,6 +496,34 @@ describe.each(BACKENDS)('T37 backend contract — %s', (_name, make) => {
     expect(await points(id)).toBe(100);
     // The ledger still reconciles with the lots.
     expect((await backend.getHistory(id)).reduce((n, h) => n + h.deltaPoints, 0)).toBe(100);
+  });
+
+  it('🔴 every history line says what it is; purchases carry their branch and their lot\'s own expiry', async () => {
+    // «نعمل سجل نقاط مثلهم» (owner, 2026-10-15, after Al Ameed). Both backends
+    // must write the SAME kinds, or the counters on the history screen depend
+    // on which store a member happens to live in.
+    const id = await newMember();
+    await backend.creditWallet(id, 10_000, 'topup');
+    await backend.checkout(id, checkoutInput(id));
+    const till = sale(id, { branchId: 'b7' });
+    await backend.tillEarn(till);
+    const code = await backend.createRedemption(id, 30);
+    await backend.cancelRedemption(id, code.id, new Date());
+    await backend.reverseTillEarn(till.posOrderRef, 'refund', new Date());
+
+    const h = await backend.getHistory(id);
+    const today = ammanDayKey(new Date());
+    expect(h.map((e) => e.kind)).toEqual(['refund', 'return', 'redeem', 'purchase', 'purchase']);
+    expect(h[4]).toMatchObject({ reasonEn: 'Order points', branchId: 'b1', expiresOn: lotExpiresOn(today) });
+    expect(h[3]).toMatchObject({ reasonEn: 'In-store purchase points', branchId: 'b7', expiresOn: lotExpiresOn(today) });
+    expect(h[2]).toMatchObject({ deltaPoints: -30, expiresOn: null });
+    expect(h[0]).toMatchObject({ branchId: 'b7' });   // the refund names the sale's branch
+    // Every line has its own id, so a screen can key its rows.
+    expect(new Set(h.map((e) => e.id)).size).toBe(h.length);
+    expect(h.every((e) => typeof e.id === 'string' && e.id.length > 0)).toBe(true);
+    // The counters the screen shows: a cancelled code was not a redemption,
+    // and a refunded purchase was still a visit.
+    expect(pointsSummary(h)).toEqual({ redeemed: 0, visits: 2, expired: 0 });
   });
 
   it('🔴 a reversal never drives the balance negative: what was already spent is the shortfall', async () => {

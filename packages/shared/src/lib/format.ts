@@ -116,7 +116,11 @@ export function formatDate(date: string | Date, lang: Lang): string {
  * die a day earlier than they do. A day key is a calendar fact, not a moment;
  * it is formatted from its own parts, in UTC, and never converted.
  */
-export function formatDayKey(day: string, lang: Lang): string {
+export function formatDayKey(day: string, lang: Lang, opts: { year?: boolean } = {}): string {
   const [y, m, d] = day.split('-').map(Number);
-  return formatDateTime(new Date(Date.UTC(y, m - 1, d)), lang, { timeZone: 'UTC', day: 'numeric', month: 'short' });
+  return formatDateTime(new Date(Date.UTC(y, m - 1, d)), lang, {
+    timeZone: 'UTC', day: 'numeric', month: 'short',
+    // An expiry a year out needs its year: «15 أكتوبر» alone reads as this one.
+    ...(opts.year ? { year: 'numeric' as const } : {}),
+  });
 }

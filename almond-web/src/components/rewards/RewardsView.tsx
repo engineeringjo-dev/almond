@@ -9,7 +9,10 @@ import { tierProgress } from '@/data/loyalty';
 import { redeemOptions } from '@almond/shared/loyalty/redeem';
 // earn-arith-exempt: points→JOD for DISPLAY, via the one shared conversion. §7 T7.
 import { jodFromPoints } from '@almond/shared/loyalty/earn';
-import { asLang, formatDate, formatJOD, formatNumber } from '@/lib/format';
+import { asLang, formatDate, formatDayKey, formatJOD, formatNumber } from '@/lib/format';
+import { pointsSummary } from '@almond/shared/loyalty/history';
+import { ammanDayKey } from '@almond/shared/lib/ammanWeekday';
+import { branches } from '@almond/shared/menu';
 import { cn } from '@/lib/cn';
 
 export function RewardsView() {
@@ -29,6 +32,8 @@ export function RewardsView() {
   if (!mounted) return <div className="container-content min-h-[50vh] py-xl" />;
 
   const tp = tierProgress(windowSpend);
+  const summary = pointsSummary(history);
+  const today = ammanDayKey(new Date());
   const tr = (ar: string, en: string) => (lang === 'ar' ? ar : en);
 
   // Built from the BALANCE, by the same function almond-app calls, so one
@@ -171,24 +176,56 @@ export function RewardsView() {
           </div>
         </section>
 
-        {/* Activity */}
+        {/* Activity — «سجل النقاط» (owner, 2026-10-15, after Al Ameed): three
+            counters, then each line with its branch and the day its points
+            run out. Counted by the same shared function as the app. */}
         <section>
           <h2 className="text-xl">{t('activityTitle')}</h2>
-          <div className="mt-4 divide-y divide-neutral-warm rounded-lg border border-neutral-warm bg-card px-4">
-            {history.map((h) => (
-              <div key={h.id} className="flex items-center justify-between py-3">
-                <div>
-                  <p className="font-bold">{tr(h.reasonAr, h.reasonEn)}</p>
-                  <p className="text-xs text-text-secondary">{formatDate(h.createdAt, lang)}</p>
-                </div>
-                <span
-                  className={cn('font-bold tabular-nums', h.deltaPoints >= 0 ? 'text-success' : 'text-error')}
-                >
-                  {h.deltaPoints >= 0 ? '+' : ''}
-                  {formatNumber(h.deltaPoints, lang)}
-                </span>
+          <dl className="mt-4 grid grid-cols-3 divide-x divide-neutral-warm rounded-lg border border-neutral-warm bg-card text-center rtl:divide-x-reverse">
+            {(
+              [
+                ['summaryRedeemed', summary.redeemed],
+                ['summaryVisits', summary.visits],
+                ['summaryExpired', summary.expired],
+              ] as const
+            ).map(([key, value]) => (
+              <div key={key} className="flex flex-col-reverse gap-1 px-2 py-3">
+                <dt className="text-xs text-text-secondary">{t(key)}</dt>
+                <dd className="text-xl font-bold tabular-nums">{formatNumber(value, lang)}</dd>
               </div>
             ))}
+          </dl>
+          <div className="mt-4 divide-y divide-neutral-warm rounded-lg border border-neutral-warm bg-card px-4">
+            {history.map((h) => {
+              const branch = h.branchId ? branches.find((b) => b.id === h.branchId) : undefined;
+              const meta = [
+                formatDate(h.createdAt, lang),
+                branch ? t('historyBranch', { name: tr(branch.nameAr, branch.nameEn) }) : null,
+              ].filter(Boolean).join(' · ');
+              const live = h.deltaPoints > 0 && h.expiresOn && h.expiresOn >= today;
+              return (
+                <div key={h.id} className="flex items-center justify-between gap-4 py-3">
+                  <div>
+                    <p className="font-bold">{tr(h.reasonAr, h.reasonEn)}</p>
+                    <p className="text-xs text-text-secondary">{meta}</p>
+                    {live && h.expiresOn ? (
+                      <p className="text-xs text-text-secondary">
+                        {t('pointsExpire', { date: formatDayKey(h.expiresOn, lang, { year: true }) })}
+                      </p>
+                    ) : null}
+                  </div>
+                  {h.deltaPoints !== 0 ? (
+                    <span
+                      dir="ltr"
+                      className={cn('font-bold tabular-nums', h.deltaPoints > 0 ? 'text-success' : 'text-error')}
+                    >
+                      {h.deltaPoints > 0 ? '+' : '−'}
+                      {formatNumber(Math.abs(h.deltaPoints), lang)}
+                    </span>
+                  ) : null}
+                </div>
+              );
+            })}
           </div>
         </section>
       </div>

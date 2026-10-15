@@ -21,7 +21,7 @@ import {
 import { normalizeJordanPhone } from '@almond/shared/lib/phone';
 import { toFils, toJod } from '@almond/shared/lib/format';
 import {
-  consumeFifo, expiredBetween, grantLot, liveBalance, lotRulesFromConfig, migrateBalance,
+  consumeFifo, expiredBetween, grantLot, liveBalance, lotExpiresOn, lotRulesFromConfig, migrateBalance,
   nextExpiry, pruneLots, restoreSlices, spentSlices, type PointLot,
 } from '@almond/shared/loyalty/lots';
 import {
@@ -31,7 +31,7 @@ import {
 import { ammanDayKey, ammanWeekday } from '@almond/shared/lib/ammanWeekday';
 // The earn multiplier is computeEarn's business only; this is the tier itself.
 // earn-arith-exempt: tier lookup for the balance payload. §7 T7.
-import { tiers } from './seed';
+import { branches, tiers } from './seed';
 import { delay, genId } from './util';
 import { defaultSpinConfig, pickWeightedPrize } from './spinDefaults';
 
@@ -220,8 +220,8 @@ function ensureUser(userId: string): LoyaltyUser {
       // points, as they do for real.
       vouchers: [],
       history: [
-        { id: genId('log'), deltaPoints: 240, reasonAr: 'مكافأة ترحيبية', reasonEn: 'Welcome bonus', createdAt: new Date(Date.now() - 86400000 * 10).toISOString() },
-        { id: genId('log'), deltaPoints: 15, reasonAr: 'طلب لاتيه', reasonEn: 'Latte order', createdAt: new Date(Date.now() - 86400000 * 7).toISOString() },
+        { id: genId('log'), deltaPoints: 240, reasonAr: 'مكافأة ترحيبية', reasonEn: 'Welcome bonus', createdAt: new Date(Date.now() - 86400000 * 10).toISOString(), kind: 'bonus' },
+        { id: genId('log'), deltaPoints: 15, reasonAr: 'نقاط طلب', reasonEn: 'Order points', createdAt: new Date(Date.now() - 86400000 * 7).toISOString(), kind: 'purchase', branchId: branches[0]?.id ?? null, expiresOn: lotExpiresOn(ammanDayKey(new Date(Date.now() - 86400000 * 7))) },
       ],
       visits: 4,
       spinsAvailable: 1,
@@ -276,11 +276,13 @@ function settlePaidOrder(u: LoyaltyUser, at: Date): void {
   const points = referralRewardFor(false);
   if (points <= 0) return;
   settleExpiry(referrer, at);
-  referrer.lots = grantLot(referrer.lots, points, 'bonus', at, LOTS).lots;
+  const reward = grantLot(referrer.lots, points, 'bonus', at, LOTS);
+  referrer.lots = reward.lots;
   referrer.referralPointsEarned += points;
   referrer.history.unshift({
     id: genId('log'), deltaPoints: points,
     reasonAr: 'مكافأة دعوة صديق', reasonEn: 'Referral reward', createdAt: at.toISOString(),
+    kind: 'bonus', expiresOn: reward.lot?.expiresOn ?? null,
   });
 }
 
@@ -311,7 +313,7 @@ export function settleExpiry(u: LoyaltyUser, at: Date = new Date()): number {
     u.history.unshift({
       id: genId('log'), deltaPoints: -lost,
       reasonAr: 'انتهاء صلاحية نقاط', reasonEn: 'Points expired',
-      createdAt: at.toISOString(),
+      createdAt: at.toISOString(), kind: 'expire',
     });
   }
   u.expirySettledThrough = today;
@@ -439,6 +441,7 @@ export const mockLoyaltyService: LoyaltyService = {
       reasonAr: `استبدال نقاط: ${input.titleAr}`,
       reasonEn: `Points redeemed: ${input.titleEn}`,
       createdAt: new Date().toISOString(),
+      kind: 'redeem',
     });
     return delay({ points: liveBalance(u.lots), voucher });
   },
@@ -463,12 +466,14 @@ export const mockLoyaltyService: LoyaltyService = {
     u.gender = profile.gender;
     if (bonus > 0) {
       u.profileBonusAt = new Date().toISOString();
-      u.lots = grantLot(u.lots, bonus, 'bonus', new Date(), LOTS).lots;
+      const grant = grantLot(u.lots, bonus, 'bonus', new Date(), LOTS);
+      u.lots = grant.lots;
       u.history.unshift({
         id: genId('log'), deltaPoints: bonus,
         reasonAr: 'إكمال الملف الشخصي',
         reasonEn: 'Profile completed',
         createdAt: new Date().toISOString(),
+        kind: 'bonus', expiresOn: grant.lot?.expiresOn ?? null,
       });
     }
     return delay({
@@ -480,7 +485,7 @@ export const mockLoyaltyService: LoyaltyService = {
 
   // Mirror of section 8.2 earn calculation.
   earn: ({
-    userId, invoiceAmount, paidFromBalance, at, bonusDayActivated, combo, pointsRedeemed,
+    userId, invoiceAmount, paidFromBalance, at, bonusDayActivated, combo, pointsRedeemed, branchId,
   }: EarnInput) => {
     const u = ensureUser(userId);
     // Book any expiry that has come due into the history BEFORE the grant, so
@@ -512,7 +517,8 @@ export const mockLoyaltyService: LoyaltyService = {
 
     // ONE GRANT, ONE LOT, ONE CLOCK. It is appended; no existing lot is touched,
     // re-dated or extended. A zero grant (a small invoice) appends nothing.
-    u.lots = grantLot(u.lots, pointsEarned, 'earn', at ?? new Date(), LOTS).lots;
+    const grant = grantLot(u.lots, pointsEarned, 'earn', at ?? new Date(), LOTS);
+    u.lots = grant.lots;
     // Dated by the AMMAN day, by the same helper the BFF uses. Not pruned here:
     // the seeded 400-day entry is the mock's roll-off demonstration.
     u.spendLog.push(spendEntry(invoiceAmount, at ?? new Date()));
@@ -540,6 +546,9 @@ export const mockLoyaltyService: LoyaltyService = {
       reasonAr: 'نقاط طلب',
       reasonEn: 'Order points',
       createdAt: new Date().toISOString(),
+      kind: 'purchase',
+      branchId: branchId ?? null,
+      expiresOn: grant.lot?.expiresOn ?? null,
     });
 
     // This IS a paid order in the mock (cart.tsx calls earn after the order is
@@ -621,6 +630,7 @@ export const mockLoyaltyService: LoyaltyService = {
         reasonAr: `شراء بطاقة هدية (-${input.amount.toFixed(3)} د.أ)`,
         reasonEn: `Gift card purchase (-${input.amount.toFixed(3)} JOD)`,
         createdAt: new Date().toISOString(),
+        kind: 'wallet',
       });
     }
     const gift: GiftCard = {
@@ -660,6 +670,7 @@ export const mockLoyaltyService: LoyaltyService = {
       reasonAr: `بطاقة هدية (+${gift.amount.toFixed(3)} د.أ)`,
       reasonEn: `Gift card (+${gift.amount.toFixed(3)} JOD)`,
       createdAt: new Date().toISOString(),
+      kind: 'wallet',
     });
     return delay({ amount: gift.amount, walletBalance: u.walletBalance });
   },
@@ -673,6 +684,7 @@ export const mockLoyaltyService: LoyaltyService = {
       reasonAr: `دفع من المحفظة (-${amount.toFixed(3)} د.أ)`,
       reasonEn: `Wallet payment (-${amount.toFixed(3)} JOD)`,
       createdAt: new Date().toISOString(),
+      kind: 'wallet',
     });
     return delay({ walletBalance: u.walletBalance });
   },
@@ -788,8 +800,8 @@ export const mockLoyaltyService: LoyaltyService = {
       settleExpiry(r, at);
       // With the dates they left with — never a fresh twelve months.
       r.lots = restoreSlices(r.lots, slices, at).lots;
-      s.history.unshift({ id: genId('log'), deltaPoints: -amount, reasonAr: 'تحويل نقاط إلى صديق', reasonEn: 'Points sent to a friend', createdAt: at.toISOString() });
-      r.history.unshift({ id: genId('log'), deltaPoints: amount, reasonAr: 'نقاط من صديق', reasonEn: 'Points from a friend', createdAt: at.toISOString() });
+      s.history.unshift({ id: genId('log'), deltaPoints: -amount, reasonAr: 'تحويل نقاط إلى صديق', reasonEn: 'Points sent to a friend', createdAt: at.toISOString(), kind: 'transfer' });
+      r.history.unshift({ id: genId('log'), deltaPoints: amount, reasonAr: 'نقاط من صديق', reasonEn: 'Points from a friend', createdAt: at.toISOString(), kind: 'transfer' });
     } else {
       // The mock's wallet is a scalar (see LoyaltyUser.walletBalance), so the
       // money moves as one number — in fils, so a fraction never drifts.
@@ -797,8 +809,8 @@ export const mockLoyaltyService: LoyaltyService = {
       s.walletBalance = toJod(toFils(s.walletBalance) - amount);
       r.walletBalance = toJod(toFils(r.walletBalance) + amount);
       const jod = toJod(amount).toFixed(3);
-      s.history.unshift({ id: genId('log'), deltaPoints: 0, reasonAr: `تحويل رصيد إلى صديق (-${jod} د.أ)`, reasonEn: `Balance sent to a friend (-${jod} JOD)`, createdAt: at.toISOString() });
-      r.history.unshift({ id: genId('log'), deltaPoints: 0, reasonAr: `رصيد من صديق (+${jod} د.أ)`, reasonEn: `Balance from a friend (+${jod} JOD)`, createdAt: at.toISOString() });
+      s.history.unshift({ id: genId('log'), deltaPoints: 0, reasonAr: `تحويل رصيد إلى صديق (-${jod} د.أ)`, reasonEn: `Balance sent to a friend (-${jod} JOD)`, createdAt: at.toISOString(), kind: 'wallet' });
+      r.history.unshift({ id: genId('log'), deltaPoints: 0, reasonAr: `رصيد من صديق (+${jod} د.أ)`, reasonEn: `Balance from a friend (+${jod} JOD)`, createdAt: at.toISOString(), kind: 'wallet' });
     }
     s.transfersSent.push({ kind: input.kind, day, amount });
     const remaining = transferRemainingToday(input.kind, sentToday + amount, TRANSFER_RULES);
