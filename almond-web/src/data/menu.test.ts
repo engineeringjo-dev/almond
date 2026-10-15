@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { MenuItem } from '@almond/shared/types';
 import { categories, menuItems } from '@almond/shared/menu';
+import { orderMenuSections } from '@almond/shared/menu/browse';
 import {
   applyItemPatch,
   applyOverlay,
@@ -177,11 +178,11 @@ describe('menu lookups and grouping (real shared menu)', () => {
     expect(menuItems.filter((i) => !known.has(i.categoryId)).map((i) => i.id)).toEqual([]);
   });
 
-  it('getMenuSections: category order, no empty sections, every item exactly once', () => {
+  it('getMenuSections: the app\'s order, no empty sections, every item exactly once', () => {
     const sections = getMenuSections();
-    const order = categories.map((c) => c.id);
-    const idx = sections.map((s) => order.indexOf(s.category.id));
-    expect(idx).toEqual([...idx].sort((x, y) => x - y));
+    // The one shared order (menu/browse.ts), so the site and the app open on
+    // the same section; it was Odoo's, which opened on «ألواح» (0.3% of orders).
+    expect(sections.map((s) => s.category.id)).toEqual(orderMenuSections(categories, menuItems).map((c) => c.id));
     expect(sections.every((s) => s.items.length > 0)).toBe(true);
     const all = sections.flatMap((s) => s.items.map((i) => i.id));
     expect(all).toHaveLength(menuItems.length);
@@ -205,6 +206,11 @@ describe('searchItems', () => {
 
   it('matches Arabic names', () => {
     expect(searchItems(sample.nameAr).map((i) => i.id)).toContain(sample.id);
+  });
+
+  it('reads Arabic the way people type it: «كيكه» finds «كيكة»', () => {
+    expect(searchItems('كيكه').length).toBeGreaterThan(0);
+    expect(searchItems('كيكه').map((i) => i.id)).toEqual(searchItems('كيكة').map((i) => i.id));
   });
 
   it('returns nothing for a string that is on no item', () => {

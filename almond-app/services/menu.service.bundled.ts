@@ -1,6 +1,6 @@
 import type { MenuService } from './menu.service';
 import { getMenu, type MenuState } from '@almond/shared/menu/store';
-import { categoryRank } from '@/lib/menuOrder';
+import { matchesMenuQuery, orderMenuItems, orderMenuSections } from '@almond/shared/menu/browse';
 import { delay } from './util';
 
 /**
@@ -24,14 +24,11 @@ let memo: { version: string; categories: MenuState['categories']; items: MenuSta
 function ordered() {
   const { categories, items, version } = getMenu();
   if (memo?.version === version) return memo;
-  // Categories sorted "first things first" (drinks → food → desserts → merch).
-  const cats = [...categories].sort((a, b) => categoryRank(a.nameEn) - categoryRank(b.nameEn));
-  const rankById = new Map(categories.map((c) => [c.id, categoryRank(c.nameEn)]));
-  // Full item list grouped by the same category priority (so "All" leads with coffee).
-  const sorted = [...items].sort(
-    (a, b) => (rankById.get(a.categoryId) ?? 100) - (rankById.get(b.categoryId) ?? 100),
-  );
-  memo = { version, categories: cats, items: sorted };
+  // The website's order, from the one shared rule (menu/browse.ts): the
+  // seasonal section, then drinks, food, sweets and the retail shelf, each
+  // band led by what sells.
+  const cats = orderMenuSections(categories, items);
+  memo = { version, categories: cats, items: orderMenuItems(items, cats) };
   return memo;
 }
 
@@ -50,17 +47,6 @@ export const bundledMenuService: MenuService = {
     return delay(item);
   },
 
-  searchItems: (query) => {
-    const q = query.trim().toLowerCase();
-    const menuItems = getMenu().items;
-    if (!q) return delay(menuItems);
-    return delay(
-      menuItems.filter(
-        (i) =>
-          i.nameAr.toLowerCase().includes(q) ||
-          i.nameEn.toLowerCase().includes(q) ||
-          (i.descEn ?? '').toLowerCase().includes(q),
-      ),
-    );
-  },
+  // The website's search (menu/browse.ts): both names, both descriptions.
+  searchItems: (query) => delay(ordered().items.filter((i) => matchesMenuQuery(i, query))),
 };

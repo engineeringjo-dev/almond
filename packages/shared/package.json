@@ -39,6 +39,7 @@
     "./menu/localize": "./src/menu/localize.ts",
     "./menu/remote": "./src/menu/remote.ts",
     "./menu/store": "./src/menu/store.ts",
+    "./menu/browse": "./src/menu/browse.ts",
     "./menu/menu.insights.generated": "./src/menu/menu.insights.generated.ts",
     "./lib/categoryKind": "./src/lib/categoryKind.ts",
     "./lib/combo": "./src/lib/combo.ts",

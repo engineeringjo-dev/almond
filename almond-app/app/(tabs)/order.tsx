@@ -29,6 +29,7 @@ import { useCartStore } from '@/stores/cartStore';
 import { useToastStore } from '@/stores/toastStore';
 import type { MenuItem, Order, CartItem } from '@/types';
 import { bestSellers } from '@almond/shared/lib/recommendations';
+import { matchesMenuQuery } from '@almond/shared/menu/browse';
 
 type SubTab = 'menu' | 'featured' | 'previous' | 'favourites';
 
@@ -162,15 +163,7 @@ function MenuTab({
   const trending = useMemo(() => bestSellers(12, { items }), [items]);
 
   const displayed = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    if (q) {
-      return items.filter(
-        (i) =>
-          i.nameAr.toLowerCase().includes(q) ||
-          i.nameEn.toLowerCase().includes(q) ||
-          (i.descEn ?? '').toLowerCase().includes(q),
-      );
-    }
+    if (query.trim()) return items.filter((i) => matchesMenuQuery(i, query));
     if (activeCat === 'all') return items;
     return items.filter((i) => i.categoryId === activeCat);
   }, [items, query, activeCat]);

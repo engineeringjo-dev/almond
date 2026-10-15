@@ -1,4 +1,5 @@
 import { categories, menuItems } from '@almond/shared/menu';
+import { matchesMenuQuery, orderMenuSections } from '@almond/shared/menu/browse';
 import type { Category, MenuItem } from '@almond/shared/types';
 
 /**
@@ -38,7 +39,9 @@ export interface CategorySection {
   items: MenuItem[];
 }
 
-/** Menu grouped by category (only categories that have items), in menu order. */
+/** Menu grouped by category (only categories that have items), in the app's
+ *  order (menu/browse.ts): seasonal, drinks, food, sweets, retail, each led by
+ *  what sells. It was Odoo's order, which opened on «ألواح» (0.3% of orders). */
 export function getMenuSections(): CategorySection[] {
   const byCategory = new Map<string, MenuItem[]>();
   for (const item of menuItems) {
@@ -46,7 +49,7 @@ export function getMenuSections(): CategorySection[] {
     list.push(item);
     byCategory.set(item.categoryId, list);
   }
-  return categories
+  return orderMenuSections(categories, menuItems)
     .map((category) => ({ category, items: byCategory.get(category.id) ?? [] }))
     .filter((section) => section.items.length > 0);
 }
@@ -95,11 +98,6 @@ export function applyOverlay(items: MenuItem[], edits: Record<string, ItemPatch>
 
 /** Free-text search across AR/EN names + descriptions. */
 export function searchItems(query: string): MenuItem[] {
-  const q = query.trim().toLowerCase();
-  if (!q) return [];
-  return menuItems.filter((item) =>
-    [item.nameAr, item.nameEn, item.descAr, item.descEn].some((field) =>
-      field?.toLowerCase().includes(q),
-    ),
-  );
+  if (!query.trim()) return [];
+  return menuItems.filter((item) => matchesMenuQuery(item, query));
 }

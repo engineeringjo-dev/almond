@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
 import { Search, X } from 'lucide-react';
 import type { Category, MenuItem } from '@almond/shared/types';
+import { matchesMenuQuery } from '@almond/shared/menu/browse';
 import { applyOverlay } from '@/data/menu';
 import { useMenuOverlay } from '@/store/menuOverlayStore';
 import { asLang } from '@/lib/format';
@@ -32,9 +33,7 @@ export function MenuBrowser({ sections }: { sections: Section[] }) {
     if (!q) return null;
     return merged
       .flatMap((s) => s.items)
-      .filter((i) =>
-        [i.nameAr, i.nameEn, i.descAr, i.descEn].some((f) => f?.toLowerCase().includes(q)),
-      );
+      .filter((i) => matchesMenuQuery(i, q));
   }, [q, merged]);
 
   const railItems = merged.map((s) => ({
