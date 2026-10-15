@@ -3,7 +3,7 @@
  * so a basket totals identically in both (sections 4.6, 5). Extracted verbatim
  * from the app's stores/cartStore.ts.
  */
-import type { CartItem, CartCustomization } from '../types';
+import type { CartItem, CartCustomization, ItemSize, MenuItem } from '../types';
 import { config } from '../config';
 
 /** Build a stable line id from item + size + sorted customization option ids. */
@@ -17,6 +17,33 @@ export function buildLineId(
     .sort()
     .join('|');
   return `${itemId}__${sizeId}__${sig}`;
+}
+
+/** The line a cart holds for `qty` of `item` at `size`. One builder, for the
+ *  cart itself and for anything that prices a line before it is added (the
+ *  cart's combo banner states what the order earns WITH the item). */
+export function cartLineFor(
+  item: MenuItem,
+  size: ItemSize,
+  customizations: CartCustomization[],
+  qty: number,
+): CartItem {
+  return {
+    lineId: buildLineId(item.id, size.id, customizations),
+    itemId: item.id,
+    nameAr: item.nameAr,
+    nameEn: item.nameEn,
+    emoji: item.emoji,
+    sizeId: size.id,
+    sizeNameAr: size.nameAr,
+    sizeNameEn: size.nameEn,
+    unitBasePrice: size.price,
+    customizations,
+    qty,
+    isBrunch: item.isBrunch,
+    isDrink: item.isDrink,
+    prepMinutes: item.prepMinutes,
+  };
 }
 
 /** Unit price for a line including customization deltas. */

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { View, StyleSheet, Pressable, TextInput } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
@@ -31,7 +31,7 @@ import { useAuthStore, useUserId } from '@/stores/authStore';
 import { useCreateOrder } from '@/hooks/useOrder';
 import { useWallet, useInvalidateLoyalty, useLoyaltyBalance } from '@/hooks/useLoyalty';
 import { useWalletRate } from '@/hooks/useWalletRate';
-import { estimateEarnedPoints } from '@/lib/earnEstimate';
+import { estimateEarnedPoints, type PointsFor } from '@/lib/earnEstimate';
 import { computePickupEstimate } from '@/lib/pickup';
 import { checkoutBlock, type CheckoutBlock } from '@/lib/cartBranch';
 import { CHECKOUT_RETURN, reviewOnReturn } from '@/lib/returnTo';
@@ -106,11 +106,14 @@ export default function CartScreen() {
     if (onReturn === 'open') setReviewOpen(true);
   }, [onReturn]);
   const totals = useMemo(() => computeTotals(items, promoDiscount), [items, promoDiscount]);
-  const pointsToEarn = useMemo(
-    () =>
+  // The order's points for any set of lines, on this member's terms: the
+  // summary quotes it for the cart, the combo banner for the cart plus the
+  // item it offers (lib/earnEstimate.ts comboGain).
+  const pointsFor = useCallback<PointsFor>(
+    (lines) =>
       estimateEarnedPoints({
-        total: totals.total,
-        items,
+        total: computeTotals(lines, promoDiscount).total,
+        items: lines,
         windowSpend: loyalty?.windowSpend ?? 0,
         // The rung the member is PAID at. Without it a ratcheted member — one
         // whose 90-day window rolled below a threshold they already crossed —
@@ -118,8 +121,9 @@ export default function CartScreen() {
         heldRungId: loyalty?.tier,
         paidFromBalance: paymentMethod === 'wallet',
       }),
-    [totals.total, items, loyalty, paymentMethod],
+    [promoDiscount, loyalty, paymentMethod],
   );
+  const pointsToEarn = useMemo(() => pointsFor(items), [pointsFor, items]);
 
   // If wallet is selected but no longer covers the total, fall back to cash
   // (the wallet option is also disabled in the picker).
@@ -326,7 +330,7 @@ export default function CartScreen() {
             </View>
 
             <View style={styles.section}>
-              <CrossSellRow items={items} />
+              <CrossSellRow items={items} pointsFor={pointsFor} />
             </View>
 
             <View style={styles.section}>

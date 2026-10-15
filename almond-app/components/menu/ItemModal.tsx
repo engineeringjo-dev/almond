@@ -13,7 +13,8 @@ import { useI18n } from '@/hooks/useI18n';
 import { formatJOD } from '@/lib/format';
 import { iconForCategory } from '@/lib/productIcon';
 import { secondaryName } from '@/lib/itemName';
-import { nutritionFor } from '@/lib/nutrition';
+import { tagsFor } from '@almond/shared/menu/publicFeed';
+import { getMenu } from '@almond/shared/menu/store';
 import { getSizeUpsell, getItemPairings } from '@/lib/recommendations';
 import { addSheetToCart, quickAddPrice, sheetTotal, stagedPairingsLine, togglePairing } from '@/lib/pairings';
 import { choiceA11y, choiceGroupA11y, MIN_TOUCH_TARGET } from '@/lib/a11y';
@@ -106,6 +107,9 @@ export function ItemModal({ item, visible, onClose }: Props) {
 
   // earn-arith-exempt: an offer LABEL — no invoice, no grant. §3.5 / §7 T7.
   const comboPoints = config.COMBO_BONUS_POINTS;
+  const desc = (lang === 'ar' ? item.descAr : item.descEn)?.trim();
+  // The section's English name, for the gluten-free claim Odoo files by section.
+  const categoryEn = getMenu().categories.find((c) => c.id === item.categoryId)?.nameEn ?? '';
 
   return (
     <BottomSheet
@@ -162,34 +166,36 @@ export function ItemModal({ item, visible, onClose }: Props) {
             {secondaryName(item, lang)}
           </Text>
         ) : null}
-        {item.descAr ? (
+        {/* The description in the reader's language, gated on THAT field: the
+            gate read `descAr` in English too, so an English description with
+            no Arabic one never showed, and an Arabic one with no English one
+            printed an empty line. */}
+        {desc ? (
           <Text variant="body" color={colors.warmGray} center style={styles.desc}>
-            {lang === 'ar' ? item.descAr : item.descEn}
+            {desc}
           </Text>
         ) : null}
 
-        {/* Nutrition (approx.) — calories, sugar, gluten (Almond health focus) */}
-        {(() => {
-          const n = nutritionFor(item);
-          return (
-            <View style={styles.nutrition}>
-              <View style={styles.nutriPill}>
-                <Icon name="flame" size={13} color={colors.dark} strokeWidth={2} />
-                <Text variant="caption" color={colors.dark}>{t('menu.calories', { count: n.calories })}</Text>
-              </View>
-              <View style={styles.nutriPill}>
-                <Icon name="candy" size={13} color={colors.dark} strokeWidth={2} />
-                <Text variant="caption" color={colors.dark}>{t('menu.sugar', { n: n.sugarG })}</Text>
-              </View>
-              <View style={[styles.nutriPill, n.glutenFree && styles.nutriPillGood]}>
-                <Icon name="wheat" size={13} color={n.glutenFree ? colors.green : colors.warmGray} strokeWidth={2} />
-                <Text variant="caption" color={n.glutenFree ? colors.green : colors.warmGray}>
-                  {n.glutenFree ? t('menu.glutenFree') : t('menu.containsGluten')}
-                </Text>
-              </View>
+        {/* 🔴 ONLY WHAT THE SHOP ITSELF SAYS. This row printed calories, sugar
+            and «يحتوي على الجلوتين» from one estimate per category group: the
+            same «120 سعرة · 9 غ سكر» on 47 items, «150 سعرة» on the birthday
+            candles, and «يحتوي على الجلوتين» on the 23 cakes and desserts Odoo
+            sells under «خالٍ من الجلوتين» (Dunkin' panel, 2026-10-15). No item
+            has real nutrition data, so none is shown. The one claim left is
+            Odoo's own: an item filed under a gluten-free category, or named
+            gluten-free, says so, by the rule the public feed already uses
+            (menu/publicFeed.ts tagsFor). Precedent: Starbucks shows nutrition
+            per size from lab data, or nothing. */}
+        {tagsFor(item, categoryEn).includes('gluten_free') ? (
+          <View style={styles.diet}>
+            <View style={styles.dietPill}>
+              <Icon name="wheat" size={13} color={colors.green} strokeWidth={2} />
+              <Text variant="caption" color={colors.green}>
+                {t('menu.glutenFree')}
+              </Text>
             </View>
-          );
-        })()}
+          </View>
+        ) : null}
       </View>
 
       {/* The banner promised «save 1.000 JOD» for months after
@@ -372,8 +378,10 @@ const styles = StyleSheet.create({
   // white margin so the product, not the paper, fills the frame.
   photo: { width: '100%', height: '100%', transform: [{ scale: 1.3 }] },
   desc: { marginTop: spacing.sm },
-  nutrition: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: spacing.sm, marginTop: spacing.md },
-  nutriPill: {
+  diet: { flexDirection: 'row', justifyContent: 'center', marginTop: spacing.md },
+  // On the quiet fill, not the selection fill: green on `neutralWarm` is
+  // 4.57:1 (7.6:1 dark); on `lightGold` it was 4.21:1 and read as selected.
+  dietPill: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
@@ -382,7 +390,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.xs,
   },
-  nutriPillGood: { backgroundColor: colors.lightGold },
   brunchBanner: {
     flexDirection: 'row',
     alignItems: 'center',

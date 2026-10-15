@@ -32,7 +32,13 @@ export type CategoryGroup =
 // "Hot Chocolate" → chocolate; "Coffee Beans" → beans, not coffee).
 const RULES: { group: CategoryGroup; en: RegExp; ar: RegExp }[] = [
   { group: 'gift', en: /gift|box/i, ar: /هدية|هدايا|صندوق/ },
-  { group: 'beans', en: /bean|mug|tool|tumbler|grinder|equipment|merch/i, ar: /حبوب|بنّ|أكواب|كوب|أدوات|طاحون|معدّات|معدات/ },
+  // `bags?` and «أكياس» since the Odoo menu: its «أكياس قهوة / Coffee Bags»
+  // section (nine 250 g bags) matched no retail word, fell through to `coffee`
+  // and was classed a DRINK — so a bag of beans beside a croissant paid the
+  // drink+food combo on the server, sat among the drinks on the menu and was
+  // offered as a drink pairing (Dunkin' panel, 2026-10-15). `\bbags?\b`, not
+  // `bag`: «Bagel» must stay bread.
+  { group: 'beans', en: /bean|\bbags?\b|mug|tool|tumbler|grinder|equipment|merch/i, ar: /حبوب|بنّ|أكياس|أكواب|كوب|أدوات|طاحون|معدّات|معدات/ },
   { group: 'matcha', en: /matcha/i, ar: /ماتشا/ },
   { group: 'cake', en: /cake|cheesecake/i, ar: /كيك|تشيز/ },
   // `bite` and `bar` were added with the Odoo menu (2026-09-08): its "Mini
@@ -55,7 +61,13 @@ const RULES: { group: CategoryGroup; en: RegExp; ar: RegExp }[] = [
 const FOOD_GROUPS = new Set<CategoryGroup>(['pastry', 'cake', 'dessert', 'savory', 'salad']);
 const DRINK_GROUPS = new Set<CategoryGroup>(['coffee', 'cold', 'matcha', 'chocolate', 'tea', 'juice']);
 
-function classify(c: Category): CategoryGroup {
+/** A category's group from its own names — for a section that arrived with a
+ *  server menu after launch, which the id map below has never seen. */
+export function groupOfCategory(c: Pick<Category, 'nameEn' | 'nameAr'>): CategoryGroup {
+  return classify(c);
+}
+
+function classify(c: Pick<Category, 'nameEn' | 'nameAr'>): CategoryGroup {
   const en = c.nameEn || '';
   const ar = c.nameAr || '';
   for (const r of RULES) {

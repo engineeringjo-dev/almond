@@ -4,12 +4,12 @@ import { View, StyleSheet, ScrollView, Pressable } from 'react-native';
 import { Text } from '@/components/ui/Text';
 import { Icon } from '@/components/ui/Icon';
 import { colors, spacing, radius, shadow } from '@/constants/theme';
-import { config } from '@/constants/config';
 import { useI18n } from '@/hooks/useI18n';
 import { formatJOD } from '@/lib/format';
 import { iconForCategory } from '@/lib/productIcon';
 import { getCartCrossSell, getComboUpsell } from '@/lib/recommendations';
 import { quickAdd, quickAddPrice } from '@/lib/pairings';
+import { comboGain, type PointsFor } from '@/lib/earnEstimate';
 import { useCartStore } from '@/stores/cartStore';
 import type { CartItem } from '@/types';
 import { itemFromPrice } from '@almond/shared/menu';
@@ -18,16 +18,20 @@ import { itemFromPrice } from '@almond/shared/menu';
  * Cart cross-sell carousel (UX / Starbucks "complete your order"). Suggests
  * complementary items based on the cart contents; one tap adds them.
  */
-export function CrossSellRow({ items }: { items: CartItem[] }) {
+export function CrossSellRow({ items, pointsFor }: { items: CartItem[]; pointsFor: PointsFor }) {
   const { t, lang } = useI18n();
   const addItem = useCartStore((s) => s.addItem);
   const [added, setAdded] = useState<Record<string, boolean>>({});
 
   // Golden rule §2.2 #2: show only 1–3 suggestions — more reduces conversion.
   const suggestions = getCartCrossSell(items, 3);
-  const upsell = getComboUpsell(items);
-  // earn-arith-exempt: upsell label only — no invoice, no grant. §3.5 / §7 T7.
-  const comboPoints = config.COMBO_BONUS_POINTS;
+  const offer = getComboUpsell(items);
+  // The order's points with the offered item and without, by the estimate the
+  // summary shows — and no banner when the first is not the larger. The 50
+  // replaces the pair's own points, so adding the item can LOWER the order's
+  // points (lib/earnEstimate.ts comboGain has the measured case).
+  const gain = offer ? comboGain(pointsFor, items, offer.item) : null;
+  const upsell = offer && gain ? { ...offer, ...gain } : null;
   if (suggestions.length === 0 && !upsell) return null;
 
   // What the banner adds, named and priced BEFORE the tap. It used to show
@@ -43,9 +47,9 @@ export function CrossSellRow({ items }: { items: CartItem[] }) {
       </Text>
 
       {/* Combo upsell: add the missing half (drink↔food) for the combo bonus.
-          The label said "50 points" while COMBO_BONUS_POINTS has been 25 since
-          2026-09-06 — the owner halved it, "because the combo is already a
-          discount", and the copy kept the old number. It is interpolated now. */}
+          The label said "50 points" while the dial said 25, and then
+          «واكسب 50 نقطة» where adding the item lowered the order's points. It
+          states the order's points with the item and without, now. */}
       {upsell ? (
         <Pressable
           style={styles.comboBanner}
@@ -55,19 +59,20 @@ export function CrossSellRow({ items }: { items: CartItem[] }) {
           }}
           accessibilityRole="button"
           accessibilityLabel={t('cart.comboAddItem', {
-            count: comboPoints,
+            count: upsell.after,
             name: comboName,
             price: comboPrice,
-            points: comboPoints,
+            points: upsell.after,
+            before: upsell.before,
           })}
         >
           <Icon name="brunch" size={22} color={colors.dark} strokeWidth={1.9} />
           <View style={styles.comboText}>
             <Text variant="caption" color={colors.dark}>
-              {/* `count` picks the Arabic plural («٣ نقاط» / «٢٥ نقطة»). */}
+              {/* `count` picks the Arabic plural («8 نقاط» / «50 نقطة»). */}
               {upsell.missing === 'food'
-                ? t('cart.comboAddFood', { count: comboPoints, points: comboPoints })
-                : t('cart.comboAddDrink', { count: comboPoints, points: comboPoints })}
+                ? t('cart.comboAddFood', { count: upsell.after, points: upsell.after, before: upsell.before })
+                : t('cart.comboAddDrink', { count: upsell.after, points: upsell.after, before: upsell.before })}
             </Text>
             <Text variant="bodyBold" color={colors.dark}>
               {comboName}

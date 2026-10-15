@@ -9,8 +9,8 @@ import {
 } from '@almond/shared/loyalty/earn';
 import { ammanWeekday } from '@almond/shared/lib/ammanWeekday';
 import { computeTotals } from '@almond/shared/cart';
-import { comboBasket, comboPairs } from '@almond/shared/lib/combo';
-import { menuItems } from '@almond/shared/menu';
+import { basketHasDrink, comboBasket, comboPairs } from '@almond/shared/lib/combo';
+import { categories, menuItems } from '@almond/shared/menu';
 import { itemKind } from '@almond/shared/lib/categoryKind';
 import type { CartItem } from '@almond/shared/types';
 import * as bffEarn from '../src/earn';
@@ -132,6 +132,8 @@ const SHIPPED: EarnRules = {
  * because the arithmetic below is the point; only the identity is derived.
  */
 const COMBO_DRINK = menuItems.find((m) => itemKind(m.id) === 'drink')!;
+/** A section's English name, by its id. */
+const sectionEn = (id: string): string => categories.find((c) => c.id === id)?.nameEn ?? '';
 const COMBO_FOOD = menuItems.find((m) => itemKind(m.id) === 'food')!;
 
 /**
@@ -719,6 +721,25 @@ describe('earn: the combo REPLACES the pair\'s regular points (owner, 2026-09-24
     expect(retired.comboPairsPaid).toBe(0);
     expect(retired.comboExcludedJod).toBe(0);
     expect(retired.points).toBe(computeEarn({ total: 4.4, at: MON }, SHIPPED).points);
+  });
+
+  it('TC3b a bag of coffee beans is not a drink: bag + croissant is no pair (Dunkin\' panel, 2026-10-15)', () => {
+    // «أكياس قهوة / Coffee Bags» matched no retail word and fell through to
+    // `coffee`, so a 250 g bag beside a croissant paid the combo — the 50 that
+    // REPLACES the pair's regular points — and met «needs a drink» on the
+    // second-visit voucher. The section is retail now, like the beans it holds.
+    const bag = menuItems.find((m) => /^coffee bags$/i.test(sectionEn(m.categoryId)))!;
+    const croissant = menuItems.find((m) => /^croissants$/i.test(sectionEn(m.categoryId)))!;
+    expect(bag, 'a coffee bag on the menu').toBeDefined();
+    expect(itemKind(bag.id)).toBe('other');
+    expect(itemKind(croissant.id)).toBe('food');
+    const cart = [cartLine(bag.id, 12, 1, false), cartLine(croissant.id, 1.5, 1, false)];
+    expect(comboPairs(cart)).toBe(0);
+    expect(comboBasket(cart).drinks).toEqual([]);
+    expect(basketHasDrink(cart)).toBe(false);
+    // «Bagel» keeps its bread: the retail word is `bags?` on a word boundary.
+    const bagel = menuItems.find((m) => /^bagel$/i.test(sectionEn(m.categoryId)))!;
+    expect(itemKind(bagel.id)).toBe('food');
   });
 
   it('TC4 a discounted invoice takes the pair out at its DISCOUNTED share (comboBasket scales by total/subtotal)', () => {

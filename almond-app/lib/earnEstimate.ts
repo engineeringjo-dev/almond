@@ -1,6 +1,7 @@
 import { computeEarn, earnRulesFromConfig, type EarnRules } from '@almond/shared/loyalty/earn';
+import { cartLineFor } from '@almond/shared/cart';
 import { comboBasket } from '@/lib/combo';
-import type { CartItem } from '@/types';
+import type { CartItem, MenuItem } from '@/types';
 
 /**
  * Estimated points the customer will earn for this order — shown at checkout so
@@ -52,4 +53,38 @@ export function estimateEarnedPoints(opts: {
     },
     ESTIMATE_RULES,
   ).points;
+}
+
+/** The order's points as the cart quotes them — the member's rung, the payment
+ *  chosen, any promo — for whatever lines it is handed. */
+export type PointsFor = (lines: CartItem[]) => number;
+
+/**
+ * What one tap on the cart's combo banner does to the order's points, or null
+ * when it does not raise them.
+ *
+ * 🔴 THE BANNER SAID «واكسب 50 نقطة» WHATEVER ADDING THE ITEM DID. The 50
+ * REPLACES the pair's regular points (owner, 2026-09-24), so adding the item
+ * LOWERS the order's points whenever the drink alone already earns more than
+ * 50. Measured on «لاتيه الموند ساخن» (3.50) and «قطعة بريوش التفاح» (1.90):
+ * a 6% member paying from the balance earns 63 for the latte on a double-
+ * points day and 50 once the brioche is added; on an ordinary day the same
+ * happens to any drink above 5.56 JOD. The banner told those members to pay
+ * 1.90 JOD more and lose 13 points (Dunkin' panel, 2026-10-15).
+ *
+ * Now it states the order's points with the item and without, computed by the
+ * same estimate the summary shows, and it is not shown at all when the first
+ * is not larger. Precedent: Starbucks and Dunkin' bonuses are added on top of
+ * what the purchase earns, so a nudge to add one never lowers the total.
+ */
+export function comboGain(
+  pointsFor: PointsFor,
+  items: CartItem[],
+  item: MenuItem,
+): { before: number; after: number } | null {
+  const size = item.sizes[0];
+  if (!size) return null;
+  const before = pointsFor(items);
+  const after = pointsFor([...items, cartLineFor(item, size, [], 1)]);
+  return after > before ? { before, after } : null;
 }

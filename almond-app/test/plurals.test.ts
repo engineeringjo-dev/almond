@@ -55,24 +55,15 @@ describe('N2 points to earn', () => {
 
 describe('N3 the combo and brunch offers', () => {
   it('3–10 points take «نقاط», 11+ take «نقطة»', () => {
-    expect(ar.t('cart.comboAddFood', { count: 5, points: 5 })).toBe('أضف طعاماً إلى مشروبك واكسب 5 نقاط');
-    expect(ar.t('cart.comboAddFood', { count: 25, points: 25 })).toBe('أضف طعاماً إلى مشروبك واكسب 25 نقطة');
-    expect(ar.t('cart.comboAddDrink', { count: 8, points: 8 })).toBe('أضف مشروباً إلى طعامك واكسب 8 نقاط');
+    // The banner states the order's points with the item and without (CB1).
+    expect(ar.t('cart.comboAddFood', { count: 5, points: 5, before: 2 })).toBe('أضف طعاماً إلى مشروبك فتكسب 5 نقاط بدل 2');
+    expect(ar.t('cart.comboAddFood', { count: 50, points: 50, before: 7 })).toBe('أضف طعاماً إلى مشروبك فتكسب 50 نقطة بدل 7');
+    expect(ar.t('cart.comboAddDrink', { count: 8, points: 8, before: 3 })).toBe('أضف مشروباً إلى طعامك فتكسب 8 نقاط بدل 3');
     expect(ar.t('menu.brunchOffer', { count: 5, points: 5 })).toBe('البرانش: أضف مشروباً إلى طعامك واكسب 5 نقاط');
     expect(ar.t('menu.brunchOffer', { count: 50, points: 50 })).toBe('البرانش: أضف مشروباً إلى طعامك واكسب 50 نقطة');
     expect(
-      ar.t('cart.comboAddItem', { count: 3, points: 3, name: 'كرواسون', price: '2.500 د.أ' }),
-    ).toBe('أضف كرواسون بسعر 2.500 د.أ واكسب 3 نقاط');
-  });
-});
-
-describe('N4 calories', () => {
-  it('agrees with the number in Arabic', () => {
-    expect(ar.t('menu.calories', { count: 1 })).toBe('سعرة واحدة');
-    expect(ar.t('menu.calories', { count: 2 })).toBe('سعرتان');
-    expect(ar.t('menu.calories', { count: 5 })).toBe('5 سعرات');
-    expect(ar.t('menu.calories', { count: 180 })).toBe('180 سعرة');
-    expect(en.t('menu.calories', { count: 180 })).toBe('180 cal');
+      ar.t('cart.comboAddItem', { count: 50, points: 50, before: 7, name: 'كرواسون', price: '2.500 د.أ' }),
+    ).toBe('أضف كرواسون بسعر 2.500 د.أ فتكسب 50 نقطة بدل 7');
   });
 });
 
@@ -92,7 +83,7 @@ describe('N6 every caller of a counted string passes `count`', () => {
   // «… 7 دقيقة» again — the exact defect, with every string above still right.
   const COUNTED = [
     'cart.readyIn', 'cart.earnEstimate', 'cart.comboAddFood', 'cart.comboAddDrink',
-    'cart.comboAddItem', 'menu.calories', 'menu.brunchOffer', 'order.cartButton',
+    'cart.comboAddItem', 'menu.brunchOffer', 'order.cartButton',
   ];
   it('holds for every call site in the app', () => {
     const calls: string[] = [];

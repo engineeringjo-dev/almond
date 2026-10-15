@@ -58,7 +58,9 @@ test.describe('App cart', () => {
     await seedApp(page, { signedIn: true });
     await addLatte(page);
     await page.goto(appUrl('/cart'));
-    const banner = page.getByRole('button', { name: /^أضف .+ بسعر \d+\.\d{3} د\.أ واكسب \d+ نقطة$/ });
+    // It states the order's points with the item and without (CrossSellRow,
+    // lib/earnEstimate.ts comboGain): a 2% member's latte alone earns 7.
+    const banner = page.getByRole('button', { name: /^أضف .+ بسعر \d+\.\d{3} د\.أ فتكسب \d+ نقطة بدل \d+$/ });
     await expect(banner).toBeVisible();
     const label = (await banner.getAttribute('aria-label')) ?? '';
     const [, name, price] = /^أضف (.+) بسعر (\d+\.\d{3}) د\.أ/.exec(label) ?? [];

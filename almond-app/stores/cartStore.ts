@@ -10,7 +10,7 @@ import type {
   OrderType,
   PaymentMethodId,
 } from '@/types';
-import { buildLineId } from '@almond/shared/cart';
+import { cartLineFor } from '@almond/shared/cart';
 import { useToastStore } from './toastStore';
 import { branchRef, type BranchNames, type BranchRef, type BranchSwitch } from '@/lib/cartBranch';
 
@@ -83,31 +83,15 @@ export const useCartStore = create<CartState>()(
     // Visual "added to cart" confirmation (Spec §4.2).
     useToastStore.getState().showAdded({ itemId: item.id, nameAr: item.nameAr, nameEn: item.nameEn });
     return set((state) => {
-      const lineId = buildLineId(item.id, size.id, customizations);
-      const existing = state.items.find((l) => l.lineId === lineId);
+      const line = cartLineFor(item, size, customizations, qty);
+      const existing = state.items.find((l) => l.lineId === line.lineId);
       if (existing) {
         return {
           items: state.items.map((l) =>
-            l.lineId === lineId ? { ...l, qty: l.qty + qty } : l,
+            l.lineId === line.lineId ? { ...l, qty: l.qty + qty } : l,
           ),
         };
       }
-      const line: CartItem = {
-        lineId,
-        itemId: item.id,
-        nameAr: item.nameAr,
-        nameEn: item.nameEn,
-        emoji: item.emoji,
-        sizeId: size.id,
-        sizeNameAr: size.nameAr,
-        sizeNameEn: size.nameEn,
-        unitBasePrice: size.price,
-        customizations,
-        qty,
-        isBrunch: item.isBrunch,
-        isDrink: item.isDrink,
-        prepMinutes: item.prepMinutes,
-      };
       return { items: [...state.items, line] };
     });
   },
