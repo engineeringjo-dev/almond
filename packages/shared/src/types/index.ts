@@ -163,7 +163,7 @@ export type TierId = 'base' | 'plus' | 'top';
 
 export interface Tier {
   id: TierId;
-  /** Display name = the rate itself ("٢٪" / "٤٪" / "٦٪"). */
+  /** Display name = the rate itself ("2%" / "4%" / "6%", Latin in both languages). */
   nameAr: string;
   nameEn: string;
   /** Qualifying spend in JOD over config.TIER_WINDOW_DAYS (90). */
@@ -369,16 +369,6 @@ export interface NotifSettings {
   promos: boolean;
   order: boolean;
   location: boolean; // requires explicit opt-in
-}
-
-export type VisitRewardType = 'discount' | 'spin';
-
-export interface VisitReward {
-  id: string;
-  type: VisitRewardType;
-  value: number; // % for discount
-  expiresAt: string;
-  redeemed?: boolean;
 }
 
 // ---------- Gift cards (eGifts) ----------

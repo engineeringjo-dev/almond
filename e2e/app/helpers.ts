@@ -29,7 +29,7 @@ export async function seedApp(
         if (signedIn) {
           localStorage.setItem(
             'almond.user',
-            JSON.stringify({ id: 'e2e-user', phone: '+962790000000', name: 'E2E', isGuest: false }),
+            JSON.stringify({ id: 'e2e-user', phone: '+962790000000', name: 'سارة', isGuest: false }),
           );
         }
       } catch {

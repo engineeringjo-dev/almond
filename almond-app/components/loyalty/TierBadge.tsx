@@ -12,7 +12,7 @@ import type { TierId } from '@/types';
  * dark to feel special; the two upper rungs get a coffee-bean icon (the loyalty
  * currency — no stars per the Wallet/Loyalty spec §0).
  *
- * The label is the RATE — "٢٪" / "٤٪" / "٦٪" — not a metal, and it is read off
+ * The label is the RATE — "2%" / "4%" / "6%" — not a metal, and it is read off
  * the tier itself. It used to be `t(`tiers.${tier}`)`, and that namespace still
  * held bean/silver/gold/black, so this badge rendered the literal string
  * "tiers.base" on screen. See packages/shared/src/loyalty/constants.ts.

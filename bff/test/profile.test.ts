@@ -11,7 +11,7 @@ import {
   consumeFifo, grantLot, liveBalance, walletLotRulesFromConfig,
 } from '@almond/shared/loyalty/lots';
 import { computeEarn, earnRulesFromConfig } from '@almond/shared/loyalty/earn';
-import { rateName, tierName, tiers, walletRateName } from '@almond/shared/loyalty';
+import { earnRangeCopy, rateName, tierName, tiers, walletRateName } from '@almond/shared/loyalty';
 import { menuItems, itemFromPrice } from '@almond/shared/menu';
 import { build } from '../src/server';
 import { createMemoryBackend } from '../src/backend/memory';
@@ -351,6 +351,29 @@ describe('T34 the wallet ledger', () => {
       expect(rateName(own, 'ar')).toBe(tierName(tier, 'ar'));
       expect(rateName(own, 'en')).toBe(tierName(tier, 'en'));
     }
+  });
+
+  it('T34g the one-line programme («2% إلى 6%، ونقاطك ×1.5 من رصيدك») is what computeEarn pays', () => {
+    // Owner, 2026-10-15: «نقاط ٢- ٦% واحيانا × ١.٥ اذا كان مستخدم للبطاقات».
+    // The rewards headline and the onboarding slide state the whole ladder in
+    // one sentence; every number in it must be one the engine pays.
+    const rules = earnRulesFromConfig();
+    for (const lang of ['ar', 'en'] as const) {
+      const { low, high, mult } = earnRangeCopy(lang);
+      expect(low).toBe(tierName(tiers[0], lang));
+      expect(high).toBe(tierName(tiers[tiers.length - 1], lang));
+      const total = 100;
+      for (const tier of tiers) {
+        const fromWallet = computeEarn({ total, windowSpend: tier.threshold, paidFromBalance: true, at: new Date() }, rules).points;
+        const other = computeEarn({ total, windowSpend: tier.threshold, at: new Date() }, rules).points;
+        // "×mult" is a floor every rung reaches, never a promise one misses.
+        expect(fromWallet, `${tier.id}: ×${mult} from the balance`).toBeGreaterThanOrEqual(Math.floor(other * Number(mult)));
+      }
+    }
+    // A ceiling lowered under the stack cuts what the top rung is paid; the
+    // copy follows it down instead of promising the dial.
+    const capped = { ...rules, maxEarnMultiplier: 3.5 };
+    expect(Number(earnRangeCopy('en', capped).mult)).toBeLessThan(config.WALLET_EARN_MULTIPLIER);
   });
 
   it('T34d money does not expire — and the mechanism still works if it ever does', async () => {

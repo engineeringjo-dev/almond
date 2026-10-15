@@ -54,7 +54,7 @@ test.describe('Back office (/admin)', () => {
     // Write through the BFF and read it back.
     const id = `e2e-${test.info().project.name}-${Date.now()}`;
     await page.getByLabel('المعرّف (إنجليزي، بلا مسافات)').fill(id);
-    await page.getByLabel('نسبة الخصم ٪').fill('15');
+    await page.getByLabel('نسبة الخصم %').fill('15');
     await page.getByLabel('الاسم بالعربية').fill(`شركة ${id}`);
     await page.getByLabel('الاسم بالإنجليزية').fill(`Company ${id}`);
     const saved = page.waitForResponse((r) => r.url().endsWith('/api/admin/companies') && r.request().method() === 'PUT');

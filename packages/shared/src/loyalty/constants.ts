@@ -47,9 +47,9 @@ import { config } from '../config';
 import type { Tier } from '../types';
 
 export const tiers: Tier[] = [
-  { id: 'base', nameAr: '٢٪', nameEn: '2%', threshold: 0, multiplier: 1.0, color: '#8C6239' },
-  { id: 'plus', nameAr: '٤٪', nameEn: '4%', threshold: 20, multiplier: 2.0, color: '#C9A06A' },
-  { id: 'top', nameAr: '٦٪', nameEn: '6%', threshold: 65, multiplier: 3.0, color: '#2B2B2B' },
+  { id: 'base', nameAr: '2%', nameEn: '2%', threshold: 0, multiplier: 1.0, color: '#8C6239' },
+  { id: 'plus', nameAr: '4%', nameEn: '4%', threshold: 20, multiplier: 2.0, color: '#C9A06A' },
+  { id: 'top', nameAr: '6%', nameEn: '6%', threshold: 65, multiplier: 3.0, color: '#2B2B2B' },
 ];
 
 export function tierFromSpend(spend: number): Tier {
@@ -65,8 +65,13 @@ export function nextTier(spend: number): Tier | null {
 }
 
 /**
- * The rung's DISPLAYED name — "٢٪" / "٤٪" / "٦٪" in Arabic, "2%" / "4%" / "6%"
- * in English. It is read off the tier itself, never out of a locale file.
+ * The rung's DISPLAYED name — "2%" / "4%" / "6%", in BOTH languages. It is
+ * read off the tier itself, never out of a locale file.
+ *
+ * LATIN DIGITS IN ARABIC TOO. Owner, 2026-10-15: «استخدم الارقام اللاتينية
+ * فقط». The names were «٢٪» / «٤٪» / «٦٪», which put a second numeral system
+ * on screen beside every price, date and count (formatNumber has been Latin in
+ * both languages since audit P2). bff/test/copy.test.ts C10b keeps it so.
  *
  * 🔴 WHY THERE IS NO `tiers.*` LOCALE NAMESPACE ANY MORE. There was one, and it
  * still held `bean / silver / gold / black` two commits after the ids became
@@ -87,19 +92,18 @@ export function tierName(tier: Tier, lang: 'ar' | 'en'): string {
   return lang === 'ar' ? tier.nameAr : tier.nameEn;
 }
 
-const ARABIC_DIGITS = '٠١٢٣٤٥٦٧٨٩';
-
 /**
- * A cashback percentage written the way the rung names are: "3%" in English,
- * «٣٪» in Arabic (Arabic-Indic digits, «٫» for a decimal point). The tier names
- * are typed by hand in `tiers` above; bff/test/profile.test.ts T34f asserts this
- * function reproduces every one of them, so a rate computed here can never be
- * written in a second style beside them.
+ * A cashback percentage written the way the rung names are: "3%", "4.5%" — the
+ * same in both languages, Latin digits and a Latin point (owner, 2026-10-15:
+ * «استخدم الارقام اللاتينية فقط»). The tier names are typed by hand in `tiers`
+ * above; bff/test/profile.test.ts T34f asserts this function reproduces every
+ * one of them, so a rate computed here can never be written in a second style
+ * beside them. `lang` stays in the signature so a call site that names the
+ * reader's language keeps compiling, and so a language that ever needs its own
+ * form has one place to get it.
  */
-export function rateName(percent: number, lang: 'ar' | 'en'): string {
-  const n = String(Math.round(percent * 100) / 100);
-  if (lang === 'en') return `${n}%`;
-  return `${n.replace(/\d/g, (d) => ARABIC_DIGITS[Number(d)]).replace('.', '٫')}٪`;
+export function rateName(percent: number, _lang: 'ar' | 'en'): string {
+  return `${Math.round(percent * 100) / 100}%`;
 }
 
 

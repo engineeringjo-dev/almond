@@ -754,6 +754,35 @@ export const config = {
    */
   REFERRAL_REWARD_POINTS: 50,
   /**
+   * 🔴 THE WELCOME GIFT. Owner, 2026-10-15: «امنح ٢٠٠ نقطة تفعل بعد اول عملية
+   * شراء وتنزيل نقاط عالتطبيق» — 200 points that become the member's on their
+   * first purchase that earns in the app: an app order that is paid, or a till
+   * sale that collected money and was scanned with the member's code — the
+   * same two moments that pay a referrer (settlePaidOrder, both backends).
+   *
+   * UNTIL THEN IT IS SHOWN, NOT HELD. The balance wire carries it as
+   * `welcomeBonusPending` and no lot exists, so an account that never buys
+   * costs nothing and the gift cannot be transferred or spent before it is
+   * earned. On the first paid purchase it is granted as one ordinary 12-month
+   * lot with its own history line, in the purchase's own transaction.
+   *
+   * ONCE PER MEMBER, EVER: the `welcomeBonusAt` stamp, like profileBonusAt.
+   * Account deletion keeps the stamp, so leaving and coming back with the same
+   * number does not pay twice. A refund of that first purchase does not take it
+   * back — the referral reward's rule, «once whatever happens later».
+   * Corporate members earn no points, so their gift is 0 (welcomeBonusFor).
+   *
+   * 💰 WHAT IT COSTS. 200 points = 2.000 JOD per member who makes a purchase.
+   * 🔴 THE MIGRATION OWES A DECISION, as it does for the profile bonus: every
+   * Wafii member arrives with no stamp, so each one's first purchase through
+   * the app would pay 2 JOD — up to ~95,000 JOD across the 47,720 in the live
+   * table if all of them came. Stamping them at migration makes it a gift for
+   * NEW members only; leaving them unstamped makes it an app-adoption offer.
+   *
+   * 0 switches it off: nothing is granted and no screen mentions it.
+   */
+  WELCOME_BONUS_POINTS: 200,
+  /**
    * Where a shared referral link points. The code rides as `?ref=<CODE>`.
    *
    * ⚠ NOTHING SERVES THIS PATH YET: neither almond-web nor the app reads `ref`

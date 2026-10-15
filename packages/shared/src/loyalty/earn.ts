@@ -106,9 +106,9 @@ export function higherRung(a: TierRung, b: TierRung): TierRung {
  * The cashback a member is paid on a bill settled FROM THE WALLET (top-up or
  * gift-card balance; they are one kind of money): the rung's multiplier ×
  * walletMultiplier, under the maxEarnMultiplier ceiling — the stack
- * computeEarn below pays — named as the rungs are: "3%" / «٣٪» on the entry
- * rung. It lives here because T7 keeps every piece of earn arithmetic in this
- * one module.
+ * computeEarn below pays — named as the rungs are: "3%" on the entry rung.
+ * It lives here because T7 keeps every piece of earn arithmetic in this one
+ * module.
  *
  * Owner, 2026-10-15: «لا يوجد بونص شحن، البونص للانفاق فقط» — the wallet's
  * reward is for SPENDING it, never for loading it. This is therefore the one
@@ -122,6 +122,35 @@ export function walletRateName(
 ): string {
   const stack = Math.min(tier.multiplier * rules.walletMultiplier, rules.maxEarnMultiplier);
   return rateName((rules.pointsPerJod * stack * 100) / rules.pointsPerJodRedeem, lang);
+}
+
+/**
+ * THE WHOLE PROGRAMME IN ONE SENTENCE'S NUMBERS: the lowest and highest rung
+ * ("2%" … "6%") and what paying from the wallet multiplies them by ("1.5").
+ * Owner, 2026-10-15: «نقاط ٢- ٦% واحيانا × ١.٥ اذا كان مستخدم للبطاقات» —
+ * it is what the rewards headline and the onboarding slide say, in place of
+ * «القهوة المجانية مجرد البداية», which promised a free coffee nothing pays.
+ *
+ * READ OFF THE TIERS AND THE DIALS, NEVER TYPED, so the sentence moves with
+ * them. `mult` is the multiplier every rung is actually paid — the wallet dial
+ * under the ceiling, taken at the rung where the ceiling bites hardest — so a
+ * lowered ceiling can never leave the copy promising a ×1.5 the top rung no
+ * longer gets (the defect MAX_EARN_MULTIPLIER's comment records).
+ */
+export function earnRangeCopy(
+  lang: 'ar' | 'en',
+  rules: EarnRules = earnRulesFromConfig(),
+): { low: string; high: string; mult: string } {
+  const ramp = rules.tierRamp;
+  const name = (multiplier: number) =>
+    rateName((rules.pointsPerJod * multiplier * 100) / rules.pointsPerJodRedeem, lang);
+  const paid = Math.min(...ramp.map((t) =>
+    Math.min(t.multiplier * rules.walletMultiplier, rules.maxEarnMultiplier) / t.multiplier));
+  return {
+    low: name(Math.min(...ramp.map((t) => t.multiplier))),
+    high: name(Math.max(...ramp.map((t) => t.multiplier))),
+    mult: String(Math.round(paid * 100) / 100),
+  };
 }
 
 export function earnRulesFromConfig(): EarnRules {

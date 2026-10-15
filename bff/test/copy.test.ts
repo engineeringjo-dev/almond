@@ -725,3 +725,102 @@ describe('C17 no string carries a currency unit next to a {jod} placeholder', ()
     expect(offenders, 'a string repeats the unit formatJOD already renders').toEqual([]);
   });
 });
+
+// ---------------------------------------------------------------------------
+// C20-C23 — the copy pass of 2026-10-15. Owner: «ازل عبارة القهوة المجانية مجرد
+// بداية … ازل الخطأ بالجملة الترحيبية … اصلح النص … استخدم الارقام اللاتينية
+// فقط … الغي البنفسجي والايموجي». Each is a CLASS of defect, held in all four
+// locale files so it cannot come back under a new key.
+// ---------------------------------------------------------------------------
+describe('C10b the rung names and every computed rate are Latin', () => {
+  it('no tier name and no rate a screen computes carries an Arabic-Indic digit or sign', async () => {
+    const { tiers, tierName, rateName, walletRateName, earnRangeCopy } = await import('@almond/shared/loyalty');
+    const shown: string[] = [];
+    for (const lang of ['ar', 'en'] as const) {
+      for (const t of tiers) shown.push(tierName(t, lang), walletRateName(t, lang));
+      shown.push(rateName(4.5, lang), ...Object.values(earnRangeCopy(lang)));
+    }
+    const offenders = shown.filter((s) => /[٠-٩۰-۹٪٫]/.test(s));
+    expect(offenders, 'formatNumber is Latin in both languages; a rung named «٢٪»'
+      + ' beside «3.500 د.أ» mixes two numeral systems on one card').toEqual([]);
+  });
+});
+
+describe('C20 no emoji in any customer string', () => {
+  // The identity is black and white, like the logo (owner, 2026-10-15), and
+  // the icon set is one line family (components/ui/Icon.tsx). An emoji is a
+  // coloured picture the type cannot match — 🎉 beside a points line, ☕ after
+  // a sentence, 👑 in front of a tier.
+  const EMOJI = /[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}\u{2B00}-\u{2BFF}]|\u{FE0F}/u;
+  it('in all four locale files', () => {
+    const offenders: string[] = [];
+    for (const rel of ALL_LOCALES) {
+      for (const [k, v] of Object.entries(load(rel))) {
+        if (EMOJI.test(v)) offenders.push(`${rel} ${k}: ${v}`);
+      }
+    }
+    expect(offenders, 'use an <Icon> beside the text, never a glyph inside it').toEqual([]);
+  });
+});
+
+describe('C21 one vocabulary: points, never «كاش باك»', () => {
+  // 1 point = 1 qirsh, so "cashback" is not wrong — but a member told «نقاط» on
+  // one screen and «الكاش باك» on the next reads two programmes. The rung is
+  // named by its rate; what the member holds is points.
+  const CASHBACK = /كاش\s?باك|\bcash\s?back\b/i;
+  it('in all four locale files', () => {
+    const offenders: string[] = [];
+    for (const rel of ALL_LOCALES) {
+      for (const [k, v] of Object.entries(load(rel))) {
+        if (CASHBACK.test(v)) offenders.push(`${rel} ${k}: ${v}`);
+      }
+    }
+    expect(offenders).toEqual([]);
+  });
+});
+
+describe('C22 no promise the programme does not pay', () => {
+  // Each pattern is a promise that was on a screen with nothing behind it:
+  // the lucky wheel (removed long ago), free cups, a free drink every 10
+  // orders, and the Starbucks headline «القهوة المجانية مجرد البداية».
+  const UNPAID: { name: string; re: RegExp }[] = [
+    { name: 'lucky wheel', re: /عجلة الحظ|lucky wheel|\bspins?\b/i },
+    { name: 'free cup/drink/coffee', re: /(أكواب|كوب|مشروب\S*|قهوة|القهوة)\s+مجاني|free\s+(cups?|drinks?|coffee)/i },
+    { name: 'stamp card', re: /كل\s*\d+\s*طلبات|every\s*\d+\s*orders/i },
+  ];
+  it('in all four locale files', () => {
+    const offenders: string[] = [];
+    for (const rel of ALL_LOCALES) {
+      for (const [k, v] of Object.entries(load(rel))) {
+        for (const p of UNPAID) if (p.re.test(v)) offenders.push(`${rel} ${k} [${p.name}]: ${v}`);
+      }
+    }
+    expect(offenders, 'a screen may promise only what the server grants').toEqual([]);
+  });
+
+  it('the rewards headline and the onboarding slide state the ladder from the dials', () => {
+    for (const rel of Object.values(APP_LOCALES)) {
+      const flat = load(rel);
+      for (const key of ['rewards.headlineSub', 'onboarding.slide3Body', 'onboarding.slide3BodyNoGift']) {
+        expect(placeholders(flat[key]), `${rel} ${key}`).toEqual(expect.arrayContaining(['high', 'low']));
+      }
+      expect(placeholders(flat['rewards.headlineSub'])).toContain('mult');
+      expect(placeholders(flat['onboarding.slide3Body'])).toContain('gift');
+    }
+  });
+});
+
+describe('C23 Arabic copy is punctuated as Arabic', () => {
+  // «—» is English punctuation. In the Arabic files it read as a pause the
+  // sentence never had («تخطَّ الطابور — جاهز عند وصولك»); a comma, a colon or
+  // a full stop says the same thing in Arabic.
+  it('no em dash in either Arabic file', () => {
+    const offenders: string[] = [];
+    for (const rel of [APP_LOCALES.ar, WEB_LOCALES.ar]) {
+      for (const [k, v] of Object.entries(load(rel))) {
+        if (v.includes('—')) offenders.push(`${rel} ${k}: ${v}`);
+      }
+    }
+    expect(offenders).toEqual([]);
+  });
+});

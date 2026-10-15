@@ -27,7 +27,7 @@ import { formatNumber, formatDayKey, formatJOD } from '@/lib/format';
 import { useLoyaltyBalance, useRedeemReward } from '@/hooks/useLoyalty';
 // earn-arith-exempt: the tier ramp, for DISPLAY only — no invoice, no grant. §7 T7.
 import { tiers } from '@/services/seed';
-import { tierName, walletRateName } from '@almond/shared/loyalty';
+import { earnRangeCopy, tierName, walletRateName } from '@almond/shared/loyalty';
 // earn-arith-exempt: points→JOD for DISPLAY, via the one shared conversion. §7 T7.
 import { jodFromPoints } from '@almond/shared/loyalty/earn';
 import { redeemOptions, type RedeemOption } from '@almond/shared/loyalty/redeem';
@@ -252,12 +252,15 @@ export default function RewardsScreen() {
         </View>
       </Gradient>
 
-      {/* Headline (Starbucks "Free coffee is just the beginning") */}
+      {/* «نقاطك نقود» and the whole ladder in one line, read off the dials.
+          It said «القهوة المجانية مجرد البداية» (Starbucks' headline) — a
+          free coffee nothing here pays. Owner, 2026-10-15: «ازل عبارة القهوة
+          المجانية مجرد بداية … نقاط ٢- ٦% واحيانا × ١.٥». */}
       <Text variant="h2" center style={styles.headline}>
         {t('rewards.headline')}
       </Text>
       <Text variant="body" color={colors.warmGray} center style={styles.headlineSub}>
-        {t('rewards.headlineSub')}
+        {t('rewards.headlineSub', earnRangeCopy(lang))}
       </Text>
 
       {/* §3.1 How it works — one warm card, 3 rows */}

@@ -30,7 +30,7 @@ import { tiers } from './constants';
  *     number rendered confidently.
  *
  * The wire deliberately keeps `tier` as the object. The rung's NAME is the rate
- * ("٤٪" / "4%") and it is the server that decides what it pays, so the server
+ * ("4%") and it is the server that decides what it pays, so the server
  * says it; a client that resolves the name from its own table can disagree with
  * the server about the rate and did. `toLoyaltyBalance` flattens it to the view
  * type the screens use.

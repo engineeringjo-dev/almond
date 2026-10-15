@@ -40,10 +40,3 @@ export function useMarkRead() {
   });
 }
 
-export function useActiveVisitReward() {
-  const userId = useUserId();
-  return useQuery({
-    queryKey: ['rewards', 'visit', userId],
-    queryFn: () => notificationService.getActiveVisitReward(userId),
-  });
-}

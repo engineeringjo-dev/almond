@@ -11,24 +11,43 @@ import { router } from 'expo-router';
 
 import { Text } from '@/components/ui/Text';
 import { Button } from '@/components/ui/Button';
+import { Icon, type IconName } from '@/components/ui/Icon';
 import { colors, spacing } from '@/constants/theme';
 import { useI18n } from '@/hooks/useI18n';
 import { useAppStore } from '@/stores/appStore';
+import { earnRangeCopy, welcomeBonusOffered } from '@almond/shared/loyalty';
 
 interface Slide {
-  emoji: string;
+  icon: IconName;
   titleKey: string;
   bodyKey: string;
 }
 
+/**
+ * Three slides, each a promise the app keeps. Owner, 2026-10-15: «ازل الخطأ
+ * بالجملة الترحيبية». The third slide used to say «مكافآت وأكواب مجانية وعجلة
+ * الحظ» — free cups and a lucky wheel, neither of which exists — and the second
+ * «طلبك جاهز عند وصولك تماماً», which no café can promise. The third now states
+ * the programme from the dials (earnRangeCopy) and the welcome gift from its
+ * own (welcomeBonusOffered); a programme with no gift says nothing about one.
+ * Line icons, not emoji: the identity is black and white (owner, same day).
+ */
 const slides: Slide[] = [
-  { emoji: '☕', titleKey: 'onboarding.slide1Title', bodyKey: 'onboarding.slide1Body' },
-  { emoji: '⚡', titleKey: 'onboarding.slide2Title', bodyKey: 'onboarding.slide2Body' },
-  { emoji: '🎁', titleKey: 'onboarding.slide3Title', bodyKey: 'onboarding.slide3Body' },
+  { icon: 'coffee', titleKey: 'onboarding.slide1Title', bodyKey: 'onboarding.slide1Body' },
+  { icon: 'clock', titleKey: 'onboarding.slide2Title', bodyKey: 'onboarding.slide2Body' },
+  { icon: 'coins', titleKey: 'onboarding.slide3Title', bodyKey: 'onboarding.slide3Body' },
 ];
 
 export default function Onboarding() {
-  const { t, isRTL } = useI18n();
+  const { t, lang } = useI18n();
+  const gift = welcomeBonusOffered();
+  const bodyOf = (s: Slide) => {
+    if (s.bodyKey !== 'onboarding.slide3Body') return t(s.bodyKey);
+    const range = earnRangeCopy(lang);
+    return gift > 0
+      ? t('onboarding.slide3Body', { low: range.low, high: range.high, gift })
+      : t('onboarding.slide3BodyNoGift', { low: range.low, high: range.high });
+  };
   const { width } = useWindowDimensions();
   const complete = useAppStore((s) => s.completeOnboarding);
   const [index, setIndex] = useState(0);
@@ -54,7 +73,7 @@ export default function Onboarding() {
     <View style={styles.container}>
       <Pressable style={styles.skip} onPress={finish} hitSlop={12}>
         <Text variant="caption" color={colors.warmGray}>
-          {isRTL ? 'تخطّي' : 'Skip'}
+          {t('onboarding.skip')}
         </Text>
       </Pressable>
 
@@ -69,14 +88,14 @@ export default function Onboarding() {
         viewabilityConfig={{ itemVisiblePercentThreshold: 60 }}
         renderItem={({ item }) => (
           <View style={[styles.slide, { width }]}>
-            <View style={styles.emojiCircle}>
-              <Text style={styles.emoji}>{item.emoji}</Text>
+            <View style={styles.iconCircle}>
+              <Icon name={item.icon} size={72} color={colors.dark} strokeWidth={1.5} />
             </View>
             <Text variant="h1" center style={styles.title}>
               {t(item.titleKey)}
             </Text>
             <Text variant="body" color={colors.warmGray} center>
-              {t(item.bodyKey)}
+              {bodyOf(item)}
             </Text>
           </View>
         )}
@@ -98,11 +117,10 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.cream },
   skip: { position: 'absolute', top: 60, end: spacing.lg, zIndex: 10, padding: spacing.sm },
   slide: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: spacing.xl },
-  emojiCircle: {
-    width: 160, height: 160, borderRadius: 80, backgroundColor: colors.cardBg,
+  iconCircle: {
+    width: 160, height: 160, borderRadius: 80, borderWidth: 1.5, borderColor: colors.dark,
     alignItems: 'center', justifyContent: 'center', marginBottom: spacing.xl,
   },
-  emoji: { fontSize: 80 },
   title: { marginBottom: spacing.md },
   footer: { padding: spacing.xl, gap: spacing.lg },
   dots: { flexDirection: 'row', justifyContent: 'center', gap: spacing.sm },

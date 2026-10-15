@@ -25,7 +25,7 @@
     "hero": {
       "badge": "Earn points with every order",
       "title": "Your favourite coffee, with rewards that grow with every cup",
-      "subtitle": "Order from the real menu, pick up in-store or get it delivered, and collect points that turn into free drinks — on the same account as the app.",
+      "subtitle": "Order from the menu, pick up in-store or get it delivered, and collect points that come off your bill, on the same account as the app.",
       "cta": "Order now",
       "ctaSecondary": "Explore rewards"
     },
@@ -33,13 +33,13 @@
       "menuTitle": "The full menu",
       "menuText": "Over 260 real items with prices, customisations and photos.",
       "beansTitle": "Points on every dinar",
-      "beansText": "Cashback on every dinar, redeemable for the drinks you love.",
+      "beansText": "Points back on every order, taken off your bill.",
       "pickupTitle": "Pickup or delivery",
       "pickupText": "Order ahead and grab it fast from your nearest branch."
     },
     "loyalty": {
-      "title": "Your rewards cup fills with every order",
-      "text": "Every 10 orders earns a free drink. Track your progress and redeem points for exclusive rewards — one account across web and app.",
+      "title": "Your points are money",
+      "text": "{low} to {high} back on every order, and your points ×{mult} when you pay from your balance. One account across the website and the app.",
       "cta": "Start earning points",
       "beansLabel": "points"
     },
@@ -99,8 +99,8 @@
     "promoApplied": "Code “{code}” applied",
     "promoInvalid": "Invalid code",
     "removePromo": "Remove code",
-    "comboAddFood": "Add a food item — the pair earns {points} points in place of its cashback 🍽️",
-    "comboAddDrink": "Add a drink — the pair earns {points} points in place of its cashback ☕",
+    "comboAddFood": "Add a food item and the pair earns {points} points in place of their usual points",
+    "comboAddDrink": "Add a drink and the pair earns {points} points in place of their usual points",
     "comboAdd": "Add",
     "comboEarned": "Combo: {points} points",
     "removeItem": "Remove {name}"
@@ -150,7 +150,7 @@
     "yourBeans": "Your points",
     "tier": "Your tier",
     "toNextTier": "Spend {jod} more to reach {tier}",
-    "topTier": "👑 You made it — {tier} back",
+    "topTier": "You're at our top tier: {tier} back",
     "redeemTitle": "Redeem your points",
     "redeem": "Redeem",
     "redeemed": "Redeemed",
@@ -219,7 +219,7 @@
     "reset": "Reset",
     "resetAll": "Reset all",
     "edited": "{n} edited",
-    "syncNote": "⚠️ These edits are saved in THIS browser only — no other visitor sees them, nor the app, nor the till. The real menu is pulled from Odoo with “npm run menu:pull”.",
+    "syncNote": "These edits are saved in THIS browser only — no other visitor sees them, nor the app, nor the till. The real menu is pulled from Odoo with “npm run menu:pull”.",
     "showingFirst": "Showing the first {n} items — search to reach any item.",
     "notConfigured": "The back office is not configured on the server: ADMIN_PASSWORD, ADMIN_KEY and BFF_BASE_URL must be set.",
     "tabOverview": "Overview",

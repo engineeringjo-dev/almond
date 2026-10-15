@@ -7,7 +7,6 @@ import { HomeTopBar } from '@/components/home/HomeTopBar';
 import { useLaunchSheets } from '@/hooks/useLaunchSheets';
 import { LoyaltyCard } from '@/components/home/LoyaltyCard';
 import { UsualOrderCard } from '@/components/home/UsualOrderCard';
-import { VisitRewardBanner } from '@/components/home/VisitRewardBanner';
 import { NearestBranchButton } from '@/components/home/NearestBranchButton';
 import { OrderNowButton } from '@/components/home/OrderNowButton';
 import { WalletCard } from '@/components/home/WalletCard';
@@ -114,10 +113,6 @@ export default function HomeScreen() {
             behind it. The second-visit voucher («تانية علينا») that replaced it
             was withdrawn too, on 2026-09-24 («نلغي من التطبيق المشروب الثاني
             علينا»): its flag is off and nothing on this screen offers it. */}
-
-        <View style={styles.section}>
-          <VisitRewardBanner />
-        </View>
 
         <View style={styles.heroSection}>
           <LoyaltyCard />

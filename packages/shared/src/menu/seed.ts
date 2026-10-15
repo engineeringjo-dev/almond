@@ -10,6 +10,7 @@ import type { Branch, PaymentMethod, Category, MenuItem } from '../types';
 import { generatedCategories, generatedMenuItems } from './menu.generated';
 import { itemInsights, modifierProducts } from './menu.insights.generated';
 import { attachAddOns } from './addOns';
+import { localizeCategories, localizeMenuItems } from './localize';
 
 // Branches (Revision Pack §G). Default hours 07:00–24:00 (mall branches follow
 // mall hours). Coordinates are APPROXIMATE per Amman area — TODO: replace with
@@ -37,11 +38,17 @@ export const paymentMethods: PaymentMethod[] = [
 
 // Odoo's add-on products (Extra Cold Foam…) join each item they are measured
 // on as an «إضافات» group — one menu for the app, the website, the feed and
-// the server's re-price (menu/addOns.ts).
-export const menuItems: MenuItem[] = attachAddOns(generatedMenuItems, modifierProducts, itemInsights);
+// the server's re-price (menu/addOns.ts). Then the Arabic reader's pass: Latin
+// digits, and an Arabic name for the modifiers Odoo has only in English
+// (menu/localize.ts) — after the add-ons, so theirs are covered too.
+export const menuItems: MenuItem[] = localizeMenuItems(
+  attachAddOns(generatedMenuItems, modifierProducts, itemInsights),
+);
 
 // Only sections that hold something. Odoo's POS tree also has its root nodes
 // (Food, Drink), the add-on categories (Extra Drink, Extra Pizza…) and retired
 // ones (Ramdan Sweets, Drink / Iced) — empty here, and shown as filter chips
 // they led to blank pages (GM, 2026-09-25).
-export const categories: Category[] = generatedCategories.filter((c) => menuItems.some((i) => i.categoryId === c.id));
+export const categories: Category[] = localizeCategories(
+  generatedCategories.filter((c) => menuItems.some((i) => i.categoryId === c.id)),
+);
