@@ -10,6 +10,7 @@ import type { Gender, MemberProfile } from '@almond/shared/loyalty/profile';
 import type { TransferKind } from '@almond/shared/loyalty/transfer';
 import type { PointsKind } from '@almond/shared/loyalty/history';
 import type { PendingVisit, VisitRating } from '@almond/shared/loyalty/visitRating';
+import type { AccountDeletion } from '@almond/shared/loyalty/accountDeletion';
 import type { PointLot, SpentSlice, WalletLot } from '@almond/shared/loyalty/lots';
 import type { SpendEntry, TierStanding, Evaluation } from '@almond/shared/loyalty/window';
 
@@ -642,6 +643,27 @@ export interface Backend {
   rateVisit(
     id: string, input: { ref: string; stars: number; comment: string | null }, at: Date,
   ): Promise<VisitRating>;
+  /** Ratings since `since`, newest first, optionally for one branch — for the
+   *  back office. No member identity: the stars and words, the branch and the
+   *  time. */
+  listVisitRatings(opts: { since: Date; branchId?: string }): Promise<VisitRating[]>;
+
+  // ---- account deletion (loyalty/accountDeletion.ts) ----
+  /** The member's PENDING deletion request, or null (none, or already erased). */
+  getDeletion(id: string): Promise<AccountDeletion | null>;
+  /** Ask for the account to be deleted. A request already pending is
+   *  returned unchanged — asking twice never moves the date. */
+  requestDeletion(id: string, at: Date): Promise<AccountDeletion>;
+  /** Withdraw a pending request (the member signed in again, or chose to).
+   *  True when there was one to withdraw. An erasure already done is not undone. */
+  cancelDeletion(id: string): Promise<boolean>;
+  /**
+   * Carry out every request whose grace period has run: erase the profile
+   * (name, birth date, gender) and clear rating comments. KEEPS the phone,
+   * the lots, the history, orders and the profile-bonus stamp. Returns how
+   * many accounts were erased. Idempotent.
+   */
+  eraseDueDeletions(at: Date): Promise<number>;
   // ---- The second-visit voucher (BRIEF §3 W2) ----
   /**
    * Evaluate the second-visit voucher for one transaction and persist whatever

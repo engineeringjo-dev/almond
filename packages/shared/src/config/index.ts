@@ -206,6 +206,12 @@ export const config = {
   // The longest comment kept with a rating. Bounded on the wire and in the
   // table (visit_ratings.comment).
   VISIT_RATING_COMMENT_MAX: 500,
+  // ACCOUNT DELETION (owner, 2026-10-15: «اضف حذف الحساب» / «مهلة تراجع قبل
+  // الحذف نعم»). A request waits this many days; signing in again before then
+  // cancels it. Precedent: Instagram and X keep a deactivated account 30 days
+  // and a sign-in within them restores it. What is erased and what is kept is
+  // loyalty/accountDeletion.ts.
+  ACCOUNT_DELETION_GRACE_DAYS: 30,
   // RETIRED 2026-09-06. Was enabled with a Tuesday ×2.
   //
   // Zero rows in 171,291 live transactions. And it was never safe to run as

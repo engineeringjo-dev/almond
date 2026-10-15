@@ -6,6 +6,7 @@ import type { MeBalanceWire } from '@almond/shared/loyalty/balanceWire';
 import { z } from 'zod';
 import { parse } from '../validate';
 import { requireMember, memberId } from '../plugins/auth';
+import { requireAdmin } from '../plugins/adminAuth';
 import { toJod } from '../money';
 import { GENDERS } from '@almond/shared/loyalty/profile';
 import type { Backend } from '../backend';
@@ -157,5 +158,24 @@ export function registerMeRoutes(app: FastifyInstance, backend: Backend): void {
     return {
       rating: await backend.rateVisit(memberId(req), { ...body, comment: body.comment ?? null }, new Date()),
     };
+  });
+
+  /**
+   * The back office reads the ratings: stars, words, branch and time, newest
+   * first — no member identity. `days` back from now (default 30, at most 90),
+   * optionally one branch. Without this, the ratings would be kept and never
+   * seen.
+   */
+  app.get('/v1/admin/visit-ratings', async (req) => {
+    await requireAdmin(req);
+    const q = parse(
+      z.object({
+        days: z.coerce.number().int().min(1).max(90).default(30),
+        branchId: z.string().min(1).max(64).optional(),
+      }),
+      req.query,
+    );
+    const since = new Date(Date.now() - (q.days ?? 30) * 86_400_000);
+    return { ratings: await backend.listVisitRatings({ since, branchId: q.branchId }) };
   });
 }

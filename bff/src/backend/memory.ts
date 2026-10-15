@@ -31,6 +31,7 @@ import { transferRefusal } from '@almond/shared/loyalty/transfer';
 import {
   isRateableVisit, normalizeComment, pendingVisit, type VisitRating,
 } from '@almond/shared/loyalty/visitRating';
+import { isDeletionDue, newDeletion, type AccountDeletion } from '@almond/shared/loyalty/accountDeletion';
 import { conflict, notFound } from '../http-error';
 import { toFils } from '../money';
 import type { HoldoutStamp } from '@almond/shared/loyalty/holdout';
@@ -133,6 +134,8 @@ export function createMemoryBackend(): Backend {
   const history = new Map<string, HistoryEntry[]>();
   /** memberId → visit ref → rating (visit_ratings). */
   const visitRatings = new Map<string, Map<string, VisitRating>>();
+  /** memberId → deletion request (account_deletions); `erasedAt` null = pending. */
+  const deletions = new Map<string, AccountDeletion & { erasedAt: string | null }>();
   const orders: OrderRecord[] = [];
   /** ONE ROW PER MEMBER, EVER — the key IS the "once per member" constraint,
    *  which is why the storage model and config.SECOND_VISIT_VOUCHER
@@ -640,6 +643,55 @@ export function createMemoryBackend(): Backend {
       mine.set(input.ref, row);
       visitRatings.set(id, mine);
       return { ...row };
+    },
+
+    async listVisitRatings({ since, branchId }) {
+      const all: VisitRating[] = [];
+      for (const mine of visitRatings.values()) {
+        for (const r of mine.values()) {
+          if (Date.parse(r.createdAt) < since.getTime()) continue;
+          if (branchId && r.branchId !== branchId) continue;
+          all.push({ ...r });
+        }
+      }
+      return all.sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt));
+    },
+
+    async getDeletion(id) {
+      must(id);
+      const d = deletions.get(id);
+      return d && d.erasedAt === null ? { requestedAt: d.requestedAt, eraseAfter: d.eraseAfter } : null;
+    },
+    async requestDeletion(id, at) {
+      must(id);
+      const d = deletions.get(id);
+      // Asking twice never moves the date.
+      if (d && d.erasedAt === null) return { requestedAt: d.requestedAt, eraseAfter: d.eraseAfter };
+      const fresh = newDeletion(at);
+      deletions.set(id, { ...fresh, erasedAt: null });
+      return fresh;
+    },
+    async cancelDeletion(id) {
+      const d = deletions.get(id);
+      if (!d || d.erasedAt !== null) return false;
+      deletions.delete(id);
+      return true;
+    },
+    async eraseDueDeletions(at) {
+      let n = 0;
+      for (const [id, d] of deletions) {
+        if (d.erasedAt !== null || !isDeletionDue(d, at)) continue;
+        const m = must(id);
+        // The profile goes. The phone, the lots, the history, the orders and
+        // the profile-bonus stamp stay (loyalty/accountDeletion.ts).
+        m.name = '';
+        m.birthday = null;
+        m.gender = null;
+        for (const r of (visitRatings.get(id) ?? new Map<string, VisitRating>()).values()) r.comment = null;
+        d.erasedAt = at.toISOString();
+        n += 1;
+      }
+      return n;
     },
 
     async evaluateSecondVisitVoucher(input) {

@@ -342,6 +342,23 @@
     "rateThanks": "Thanks for your feedback!",
     "nowLive": "Now • live"
   },
+  "deleteAccount": {
+    "title": "Delete account",
+    "goesTitle": "What is deleted",
+    "goesBody": "Your name, date of birth and gender, and the comments you wrote on your ratings.",
+    "staysTitle": "What stays",
+    "staysBody": "Your phone number, your points and your wallet balance: they stay linked to your number and expire only on their own dates, so they are yours again if you sign in with the same number. Your past orders and invoices stay on record as they are.",
+    "whenTitle": "When",
+    "whenBody": "It is deleted {{days}} days after you ask. Signing in before then cancels the request.",
+    "request": "Delete my account",
+    "confirm": "Yes, delete my account after the grace period",
+    "back": "Go back",
+    "pendingTitle": "Your account will be deleted on {{date}}",
+    "pendingBody": "If you change your mind, cancel the request now, or sign in before that date and it is cancelled.",
+    "cancel": "Cancel the deletion request",
+    "cancelledBySignIn": "Your account deletion request was cancelled because you signed in",
+    "error": "Couldn't complete the request. Try again."
+  },
   "visit": {
     "thanksTitle": "Thank you for your visit!",
     "pointsAdded": "Points added from this visit: {{points}}",

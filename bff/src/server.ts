@@ -14,6 +14,7 @@ import { registerCorporateRoutes } from './routes/corporate';
 import { registerPaymentRoutes } from './routes/payments';
 import { registerReferralRoutes } from './routes/referral';
 import { registerTransferRoutes } from './routes/transfers';
+import { registerAccountDeletionRoutes } from './routes/accountDeletion';
 import { providerConfigErrors } from './providers';
 
 /**
@@ -111,6 +112,7 @@ export async function build(backend: Backend = createBackend()): Promise<Fastify
   registerMeRoutes(app, backend);
   registerReferralRoutes(app, backend);
   registerTransferRoutes(app, backend);
+  registerAccountDeletionRoutes(app, backend);
   registerForecastRoutes(app);
   return app;
 }

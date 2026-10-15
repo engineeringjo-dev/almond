@@ -565,6 +565,51 @@ describe.each(BACKENDS)('T37 backend contract — %s', (_name, make) => {
     expect((await backend.getPendingVisit(id, new Date()))?.ref).toBe(`pos:${third.posOrderRef}`);
   });
 
+  it('🔴 account deletion: asked once, withdrawn freely, carried out after the grace period — profile and words gone, balance kept', async () => {
+    const id = await newMember();
+    await backend.setProfile(id, { name: 'حمزة', birthday: '1990-04-20', gender: 'male' });
+    const till = sale(id, { branchId: 'b7' });
+    await backend.tillEarn(till);
+    await backend.rateVisit(id, { ref: `pos:${till.posOrderRef}`, stars: 3, comment: 'رأيي' }, new Date());
+    const before = await backend.getMember(id);
+    const historyBefore = await backend.getHistory(id);
+    const DAY = 86_400_000;
+    const at = new Date();
+
+    expect(await backend.getDeletion(id)).toBeNull();
+    expect(await backend.cancelDeletion(id)).toBe(false);
+    const d = await backend.requestDeletion(id, at);
+    expect(Date.parse(d.eraseAfter) - Date.parse(d.requestedAt)).toBe(loyalty.ACCOUNT_DELETION_GRACE_DAYS * DAY);
+    expect(await backend.requestDeletion(id, new Date(at.getTime() + DAY))).toEqual(d);   // never moves
+    expect(await backend.getDeletion(id)).toEqual(d);
+    expect(await backend.cancelDeletion(id)).toBe(true);
+    expect(await backend.getDeletion(id)).toBeNull();
+
+    const again = await backend.requestDeletion(id, at);
+    expect(await backend.eraseDueDeletions(new Date(Date.parse(again.eraseAfter) - 1))).toBe(0);   // never early
+    expect((await backend.getMember(id)).name).toBe('حمزة');
+    const due = new Date(Date.parse(again.eraseAfter) + 1);
+    expect(await backend.eraseDueDeletions(due)).toBe(1);
+    expect(await backend.eraseDueDeletions(due)).toBe(0);
+
+    const after = await backend.getMember(id);
+    expect(after).toMatchObject({ name: '', birthday: null, gender: null, phone: before.phone });
+    expect(after.profileBonusAt).toBe(before.profileBonusAt);
+    expect(after.lots).toEqual(before.lots);
+    expect(after.walletLots).toEqual(before.walletLots);
+    expect(await backend.getHistory(id)).toEqual(historyBefore);
+    expect(await backend.getDeletion(id)).toBeNull();
+    expect(await backend.cancelDeletion(id)).toBe(false);            // an erasure is not undone
+    const ratings = await backend.listVisitRatings({ since: new Date(at.getTime() - DAY) });
+    expect(ratings.filter((r) => r.ref === `pos:${till.posOrderRef}`)).toEqual([
+      expect.objectContaining({ branchId: 'b7', stars: 3, comment: null }),
+    ]);
+    // Returning, then asking again, starts a NEW grace period.
+    const later = new Date(due.getTime() + DAY);
+    const third = await backend.requestDeletion(id, later);
+    expect(third.requestedAt).toBe(later.toISOString());
+  });
+
   it('🔴 a reversal never drives the balance negative: what was already spent is the shortfall', async () => {
     const id = await newMember();
     const input = sale(id);

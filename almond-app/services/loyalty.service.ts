@@ -1,4 +1,5 @@
 import type { PendingVisit, VisitRating } from '@almond/shared/loyalty/visitRating';
+import type { AccountDeletion } from '@almond/shared/loyalty/accountDeletion';
 import type { MemberProfile } from '@almond/shared/loyalty/profile';
 import type {
   LoyaltyBalance,
@@ -230,6 +231,13 @@ export interface LoyaltyService {
   /** Rate one of the member's visits — "order:<id>" or "pos:<ref>". Once per
    *  visit (a repeat is 409 visit_already_rated). Pays nothing. */
   rateVisit(input: { userId: string; ref: string; stars: number; comment?: string | null }): Promise<VisitRating>;
+  /** The member's pending deletion request, or null (@almond/shared/loyalty/accountDeletion). */
+  getDeletion(userId: string): Promise<AccountDeletion | null>;
+  /** Ask for the account to be deleted after the grace period; asking again
+   *  returns the same request. */
+  requestDeletion(userId: string): Promise<AccountDeletion>;
+  /** Withdraw a pending request; true when there was one. */
+  cancelDeletion(userId: string): Promise<boolean>;
 }
 
 // The app talks to a separate loyalty server (section 8). When DATA_SOURCE is

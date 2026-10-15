@@ -39,6 +39,7 @@ const TRANSFERS_MIGRATION = readMigration('20261002_member_transfers.sql');
 const PROFILE_FIELDS_MIGRATION = readMigration('20261003_member_profile_fields.sql');
 const HISTORY_DETAIL_MIGRATION = readMigration('20261015_point_history_detail.sql');
 const VISIT_RATINGS_MIGRATION = readMigration('20261016_visit_ratings.sql');
+const ACCOUNT_DELETIONS_MIGRATION = readMigration('20261017_account_deletions.sql');
 /** The whole loyalty schema, as a deploy leaves it (minus the Supabase-only RLS file). */
 const SCHEMA = loyaltySchemaSql();
 const POSTGRES_TS = readFileSync(join(HERE, '..', 'src', 'backend', 'postgres.ts'), 'utf8');
@@ -55,8 +56,8 @@ const ALL_TABLES = [
   ...TABLES, 'idempotency_keys', 'pos_sales', 'payment_intents', 'pos_point_spends', 'pos_sale_refunds',
   // 20261001 the referral rail, 20261002 transfers to a friend.
   'referral_codes', 'referrals', 'member_transfers',
-  // 20261016 the member's rating of a visit.
-  'visit_ratings',
+  // 20261016 the member's rating of a visit; 20261017 account deletion.
+  'visit_ratings', 'account_deletions',
 ];
 
 async function fresh(): Promise<PGlite> {
@@ -290,6 +291,8 @@ describe('R3 migration 20260909_loyalty_backend.sql', () => {
     // a rating carries a member's own words about a branch.
     await pg.exec(HISTORY_DETAIL_MIGRATION);
     await pg.exec(VISIT_RATINGS_MIGRATION);
+    // 20261017 closes its own table: it says whose account is going.
+    await pg.exec(ACCOUNT_DELETIONS_MIGRATION);
     const tables = await rows<{ t: string }>(pg,
       `select table_name as t from information_schema.tables where table_schema = 'public' order by 1`);
     expect(tables.map((x) => x.t)).toEqual([...ALL_TABLES].sort());
@@ -991,5 +994,42 @@ describe('R3.18 migration 20261016_visit_ratings.sql', () => {
     let del = 'ok';
     try { await pg.query(`delete from members where id = 'm1'`); } catch (e) { del = (e as { code?: string }).code ?? 'err'; }
     expect(del).toBe('23001');                                    // RESTRICT, as every member-owned table
+  });
+});
+
+/**
+ * R3.19 — 20261017_account_deletions.sql: one request per member, never
+ * carried out before its date.
+ */
+describe('R3.19 migration 20261017_account_deletions.sql', () => {
+  it('R3.19 one row per member, the grace period and the erasure date are enforced, the member is held, and it re-applies', async () => {
+    const pg = await fresh();
+    await pg.exec(SCHEMA);
+    const shape = async () => ({
+      cols: await rows(pg, `select column_name, data_type, is_nullable from information_schema.columns
+        where table_name = 'account_deletions' order by 1`),
+      cons: await rows(pg, `select conname, pg_get_constraintdef(oid) as def from pg_constraint
+        where conrelid = 'account_deletions'::regclass order by 1`),
+    });
+    const before = await shape();
+    await pg.exec(ACCOUNT_DELETIONS_MIGRATION);
+    expect(await shape()).toEqual(before);
+
+    await pg.query(`insert into members (id, phone, held_tier_id) values ('m1', '+962791111111', 'base')`);
+    const put = async (sql: string) => {
+      try { await pg.query(sql); return 'ok'; } catch (e) { return (e as { code?: string }).code ?? 'err'; }
+    };
+    expect(await put(`insert into account_deletions (member_id, requested_at, erase_after)
+      values ('m1', '2026-10-15T09:00:00Z', '2026-11-14T09:00:00Z')`)).toBe('ok');
+    expect(await put(`insert into account_deletions (member_id, requested_at, erase_after)
+      values ('m1', '2026-10-16T09:00:00Z', '2026-11-15T09:00:00Z')`)).toBe('23505');   // one per member
+    expect(await put(`update account_deletions set erased_at = '2026-11-14T08:59:59Z' where member_id = 'm1'`)).toBe('23514');  // never early
+    expect(await put(`update account_deletions set erased_at = '2026-11-14T09:00:00Z' where member_id = 'm1'`)).toBe('ok');
+    expect(await put(`insert into account_deletions (member_id, requested_at, erase_after)
+      values ('nobody', '2026-10-15T09:00:00Z', '2026-11-14T09:00:00Z')`)).toBe('23503');
+    expect(await put(`delete from members where id = 'm1'`)).toBe('23001');
+    await pg.query(`insert into members (id, phone, held_tier_id) values ('m2', '+962792222222', 'base')`);
+    expect(await put(`insert into account_deletions (member_id, requested_at, erase_after)
+      values ('m2', '2026-10-15T09:00:00Z', '2026-10-15T09:00:00Z')`)).toBe('23514');  // a grace period, not none
   });
 });

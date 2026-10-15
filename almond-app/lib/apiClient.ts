@@ -35,7 +35,7 @@ export function newIdempotencyKey(): string {
 }
 
 async function request<T>(
-  method: 'GET' | 'POST',
+  method: 'GET' | 'POST' | 'DELETE',
   base: string,
   path: string,
   opts: { body?: unknown; headers?: Record<string, string>; timeoutMs?: number } = {},
@@ -78,4 +78,10 @@ export function apiPost<T>(
   headers?: Record<string, string>,
 ): Promise<T> {
   return request<T>('POST', base, path, { body, headers });
+}
+
+/** DELETE with an empty JSON object for a body: a JSON content type with no
+ *  body at all is a 400 at the BFF (Fastify refuses an empty JSON body). */
+export function apiDelete<T>(base: string, path: string, headers?: Record<string, string>): Promise<T> {
+  return request<T>('DELETE', base, path, { body: {}, headers });
 }

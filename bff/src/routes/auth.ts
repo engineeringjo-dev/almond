@@ -75,8 +75,14 @@ export function registerAuthRoutes(app: FastifyInstance, backend: Backend): void
       throw e;
     }
     const member = await backend.findOrCreateByPhone(p, name);
+    // Signing in again during the grace period withdraws a deletion request
+    // (loyalty/accountDeletion.ts; Instagram and X do the same). The app says
+    // so, so a member who only wanted to look is not surprised later.
+    const deletionCancelled = await backend.cancelDeletion(member.id);
     // Identity is the token subject — clients never send a userId again.
     const token = app.jwt.sign({ sub: member.id }, { expiresIn: config.JWT_TTL });
-    return reply.send({ token, member: { id: member.id, name: member.name, phone: member.phone } });
+    return reply.send({
+      token, member: { id: member.id, name: member.name, phone: member.phone }, deletionCancelled,
+    });
   });
 }

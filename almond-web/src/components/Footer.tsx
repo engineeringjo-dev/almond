@@ -14,6 +14,8 @@ const EXPLORE = [
 const COMPANY = [
   { href: '/careers', key: 'careers' },
   { href: '/franchise', key: 'franchise' },
+  // Google Play requires a web page for account deletion.
+  { href: '/account/delete', key: 'deleteAccount' },
 ] as const;
 
 export function Footer() {

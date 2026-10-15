@@ -1,0 +1,51 @@
+name: Account deletion sweep
+
+# Daily: carries out every account deletion whose grace period has run
+# (POST /v1/admin/deletions/sweep). Owner, 2026-10-15: «اضف حذف الحساب» /
+# «مهلة تراجع قبل الحذف نعم». The rule — what is erased (the profile, rating
+# comments) and what is kept (the phone, points, wallet, orders, invoices) —
+# is packages/shared/src/loyalty/accountDeletion.ts.
+#
+# The sweep is idempotent: a second run the same day erases nothing more.
+# The credentials live in repository secrets (Settings → Secrets and variables
+# → Actions): BFF_URL (e.g. https://api.example.com) and BFF_ADMIN_KEY (the
+# BFF's ADMIN_KEY). A missing secret FAILS the run on purpose: a member was
+# promised their profile would be erased, and a skipped sweep would break that
+# promise silently.
+
+on:
+  schedule:
+    # 03:00 UTC = 06:00 Amman, after the business day closes.
+    - cron: '0 3 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: account-deletion-sweep
+  cancel-in-progress: false
+
+jobs:
+  sweep:
+    runs-on: ubuntu-latest
+    env:
+      BFF_URL: ${{ secrets.BFF_URL }}
+      BFF_ADMIN_KEY: ${{ secrets.BFF_ADMIN_KEY }}
+    steps:
+      - name: Secrets present?
+        run: |
+          for k in BFF_URL BFF_ADMIN_KEY; do
+            if [ -z "${!k}" ]; then echo "::error::repository secret $k is not set — deletions are not being carried out"; exit 1; fi
+          done
+
+      - name: Erase accounts past their grace period
+        run: |
+          set -euo pipefail
+          out=$(curl --fail-with-body --silent --show-error --max-time 60 \
+            -X POST "${BFF_URL%/}/v1/admin/deletions/sweep" \
+            -H "x-admin-key: ${BFF_ADMIN_KEY}" \
+            -H 'content-type: application/json' --data '{}')
+          echo "$out"
+          echo "### Account deletion sweep" >> "$GITHUB_STEP_SUMMARY"
+          echo "$out" >> "$GITHUB_STEP_SUMMARY"

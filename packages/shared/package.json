@@ -28,6 +28,7 @@
     "./loyalty/transfer": "./src/loyalty/transfer.ts",
     "./loyalty/history": "./src/loyalty/history.ts",
     "./loyalty/visitRating": "./src/loyalty/visitRating.ts",
+    "./loyalty/accountDeletion": "./src/loyalty/accountDeletion.ts",
     "./pos/tokenWire": "./src/pos/tokenWire.ts",
     "./menu": "./src/menu/index.ts",
     "./menu/menu.generated": "./src/menu/menu.generated.ts",

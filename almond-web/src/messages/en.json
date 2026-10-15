@@ -339,6 +339,21 @@
     "add": "Add",
     "soldOut": "Sold out"
   },
+  "DeleteAccount": {
+    "title": "Delete your Almond account",
+    "goesTitle": "What is deleted",
+    "goesBody": "Your name, date of birth and gender, and the comments you wrote on your ratings.",
+    "staysTitle": "What stays",
+    "staysBody": "Your phone number, your points and your wallet balance: they stay linked to your number and expire only on their own dates, so they are yours again if you sign in with the same number. Your past orders and invoices stay on record as they are.",
+    "whenTitle": "When",
+    "whenBody": "It is deleted {days} days after you ask. Signing in before then cancels the request.",
+    "howTitle": "How to ask",
+    "howApp": "In the app: Profile → Delete account.",
+    "howContact": "Or message us from your registered number:",
+    "whatsapp": "WhatsApp",
+    "call": "Call us",
+    "whatsappText": "I want to delete my Almond app account"
+  },
   "Footer": {
     "tagline": "Specialty coffee and rewards that grow with you.",
     "madeIn": "Made with love in Amman, Jordan.",
@@ -347,6 +362,7 @@
     "companyTitle": "Company",
     "careers": "Careers",
     "franchise": "Franchise",
+    "deleteAccount": "Delete account",
     "company": "Almond",
     "contactTitle": "Contact us",
     "whatsapp": "WhatsApp",

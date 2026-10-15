@@ -35,6 +35,7 @@ import { branches, tiers } from './seed';
 import {
   isRateableVisit, isValidStars, normalizeComment, pendingVisit, type VisitRating,
 } from '@almond/shared/loyalty/visitRating';
+import { newDeletion, type AccountDeletion } from '@almond/shared/loyalty/accountDeletion';
 import { delay, genId } from './util';
 import { defaultSpinConfig, pickWeightedPrize } from './spinDefaults';
 
@@ -96,6 +97,9 @@ export interface LoyaltyUser {
   /** This member's visit ratings by visit ref — the twin of the BFF's
    *  `visit_ratings` (one per visit, paying nothing). */
   visitRatings: Record<string, VisitRating>;
+  /** A pending deletion request — the twin of a BFF `account_deletions` row
+   *  not yet erased. The mock never erases: it has no back-office sweep. */
+  deletion: AccountDeletion | null;
   /** This member's own code — the shared alphabet and length, like the BFF's. */
   referralCode: string;
   /** The referral this member attached as someone's FRIEND, and whether the
@@ -232,6 +236,7 @@ function ensureUser(userId: string): LoyaltyUser {
       spinsAvailable: 1,
       grantDay: '', grantDayCount: 0,
       visitRatings: {},
+      deletion: null,
       referralCode: newReferralCode(),
       referredBy: null,
       firstPaidAt: null,
@@ -850,6 +855,21 @@ export const mockLoyaltyService: LoyaltyService = {
     };
     u.visitRatings[ref] = row;
     return delay({ ...row });
+  },
+
+  // Account deletion — the BFF's rule (bff/src/backend/memory.ts), by the same
+  // shared function, minus the sweep.
+  getDeletion: (userId) => delay(ensureUser(userId).deletion),
+  requestDeletion: (userId) => {
+    const u = ensureUser(userId);
+    if (!u.deletion) u.deletion = newDeletion(new Date());
+    return delay({ ...u.deletion });
+  },
+  cancelDeletion: (userId) => {
+    const u = ensureUser(userId);
+    const had = u.deletion !== null;
+    u.deletion = null;
+    return delay(had);
   },
 };
 

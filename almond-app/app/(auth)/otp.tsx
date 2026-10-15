@@ -15,6 +15,8 @@ import { Button } from '@/components/ui/Button';
 import { colors, spacing, radius } from '@/constants/theme';
 import { useI18n } from '@/hooks/useI18n';
 import { authService } from '@/services/auth.service';
+import { loyaltyService } from '@/services/loyalty.service';
+import { useToastStore } from '@/stores/toastStore';
 import { useAuthStore } from '@/stores/authStore';
 import { safeReturnTo } from '@/lib/returnTo';
 
@@ -50,6 +52,17 @@ export default function Otp() {
     try {
       const user = await authService.verifyOtp(phone ?? '', code);
       setUser(user);
+      // Signing in again during the grace period withdraws a deletion request
+      // (@almond/shared/loyalty/accountDeletion). The BFF's own verify does
+      // this too, but this app's sign-in does not reach the BFF yet
+      // (services/auth.service.ts), so it asks directly. A courtesy that must
+      // never fail the sign-in.
+      loyaltyService
+        .cancelDeletion(user.id)
+        .then((cancelled) => {
+          if (cancelled) useToastStore.getState().showInfo(t('deleteAccount.cancelledBySignIn'));
+        })
+        .catch(() => {});
       // Back to where sign-in was asked from (the checkout), if it is one of
       // ours; dismissTo pops login+OTP off instead of stacking a second cart.
       const target = safeReturnTo(returnTo);

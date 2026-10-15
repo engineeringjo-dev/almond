@@ -27,6 +27,7 @@ import type { Gender } from '@almond/shared/loyalty/profile';
 import { referralAttachError, referralRewardFor } from '@almond/shared/loyalty/referral';
 import { transferRefusal, type TransferKind } from '@almond/shared/loyalty/transfer';
 import { normalizeComment, pendingVisit } from '@almond/shared/loyalty/visitRating';
+import { newDeletion, type AccountDeletion } from '@almond/shared/loyalty/accountDeletion';
 import { conflict, notFound } from '../http-error';
 import type { Db } from './db';
 import type { HoldoutStamp } from '@almond/shared/loyalty/holdout';
@@ -187,6 +188,11 @@ function toPaymentIntent(row: Record<string, unknown>): PaymentIntent {
     createdAt: iso(row.created_at)!,
     updatedAt: iso(row.updated_at)!,
   };
+}
+
+/** An account_deletions row → AccountDeletion. */
+function toDeletion(row: Record<string, unknown>): AccountDeletion {
+  return { requestedAt: iso(row.requested_at)!, eraseAfter: iso(row.erase_after)! };
 }
 
 /** A referrals row → ReferralRow. */
@@ -728,6 +734,87 @@ export function createPostgresBackend(db: Db): Backend {
         ref: r.visit_ref as string, branchId: r.branch_id as string, stars: Number(r.stars),
         comment: (r.comment ?? null) as string | null, createdAt: iso(r.created_at)!,
       };
+    },
+
+    async listVisitRatings({ since, branchId }) {
+      const rows = await db.query(
+        `select visit_ref, branch_id, stars, comment, created_at from visit_ratings
+         where created_at >= $1 and ($2::text is null or branch_id = $2)
+         order by created_at desc, id desc limit 5000`,
+        [since.toISOString(), branchId ?? null],
+      );
+      return rows.map((r) => ({
+        ref: r.visit_ref as string, branchId: r.branch_id as string, stars: Number(r.stars),
+        comment: (r.comment ?? null) as string | null, createdAt: iso(r.created_at)!,
+      }));
+    },
+
+    // ---- account deletion ----
+    async getDeletion(id) {
+      await api.getMember(id);
+      const r = await db.query(
+        'select requested_at, erase_after from account_deletions where member_id = $1 and erased_at is null',
+        [id],
+      );
+      return r[0] ? toDeletion(r[0]) : null;
+    },
+
+    async requestDeletion(id, at) {
+      await api.getMember(id);
+      const d = newDeletion(at);
+      // A PENDING request is left exactly as it is — asking twice never moves
+      // the date. A row left by an earlier, completed erasure (the member came
+      // back, then asked again) is reused for the new request.
+      const written = await db.query(
+        `insert into account_deletions (member_id, requested_at, erase_after) values ($1, $2, $3)
+         on conflict (member_id) do update
+           set requested_at = excluded.requested_at, erase_after = excluded.erase_after, erased_at = null
+           where account_deletions.erased_at is not null
+         returning requested_at, erase_after`,
+        [id, d.requestedAt, d.eraseAfter],
+      );
+      if (written[0]) return toDeletion(written[0]);
+      const pending = await db.query(
+        'select requested_at, erase_after from account_deletions where member_id = $1', [id],
+      );
+      return toDeletion(pending[0]);
+    },
+
+    async cancelDeletion(id) {
+      const gone = await db.query(
+        'delete from account_deletions where member_id = $1 and erased_at is null returning member_id', [id],
+      );
+      return gone.length > 0;
+    },
+
+    async eraseDueDeletions(at) {
+      const due = await db.query(
+        'select member_id from account_deletions where erased_at is null and erase_after <= $1',
+        [at.toISOString()],
+      );
+      let n = 0;
+      for (const row of due) {
+        const erased = await withMember(row.member_id as string, async (m, _log, t) => {
+          // Re-read UNDER the member's lock: a sign-in may have cancelled the
+          // request between the list above and here.
+          const still = await t.query(
+            `select member_id from account_deletions
+             where member_id = $1 and erased_at is null and erase_after <= $2 for update`,
+            [m.id, at.toISOString()],
+          );
+          if (!still[0]) return false;
+          // The profile goes. The phone, the lots, the history, the orders and
+          // the profile-bonus stamp stay (loyalty/accountDeletion.ts).
+          m.name = '';
+          m.birthday = null;
+          m.gender = null;
+          await t.query('update visit_ratings set comment = null where member_id = $1', [m.id]);
+          await t.query('update account_deletions set erased_at = $2 where member_id = $1', [m.id, at.toISOString()]);
+          return true;
+        });
+        if (erased) n += 1;
+      }
+      return n;
     },
 
     // ---- second-visit voucher ----

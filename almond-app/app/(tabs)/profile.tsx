@@ -125,6 +125,11 @@ export default function ProfileScreen() {
 
         <Card padded={false} style={styles.menu}>
           <ListRow icon="logout" label={t('profile.logout')} danger onPress={onLogout} />
+          {/* Apple 5.1.1(v) / Google Play: deletion is offered in the app, by
+              the member, for their own account — so not to a guest. */}
+          {!isGuest ? (
+            <ListRow icon="trash" label={t('deleteAccount.title')} danger onPress={() => router.push('/profile/delete-account')} />
+          ) : null}
         </Card>
       </Screen>
 

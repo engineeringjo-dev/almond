@@ -38,6 +38,17 @@ test.describe('Accessibility (axe)', () => {
     await scan(page, 'home-en');
   });
 
+  // Google Play links the store listing here: deletion must be askable
+  // without the app (owner, 2026-10-15: «اضف حذف الحساب»).
+  test('delete account (ar): what goes, what stays, and a WhatsApp request typed for them', async ({ page }) => {
+    await page.goto('/account/delete');
+    await expect(page.getByRole('heading', { level: 1, name: 'حذف حسابك في ألموند' })).toBeVisible();
+    await expect(page.getByText(/وتنتهي في مواعيدها فقط/)).toBeVisible();
+    const wa = page.getByRole('link', { name: 'واتساب' }).first();
+    expect(await wa.getAttribute('href')).toContain(`?text=${encodeURIComponent('أريد حذف حسابي في تطبيق ألموند')}`);
+    await scan(page, 'delete-account-ar');
+  });
+
   test('menu', async ({ page }) => {
     await page.goto('/menu');
     await scan(page, 'menu');

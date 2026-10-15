@@ -1,4 +1,5 @@
 import type { PendingVisit, VisitRating } from '@almond/shared/loyalty/visitRating';
+import type { AccountDeletion } from '@almond/shared/loyalty/accountDeletion';
 import type {
   LoyaltyBalance,
   Voucher,
@@ -17,7 +18,7 @@ import type {
 import { integration, loyaltyAuthHeaders } from '@/constants/integration';
 import { parseMeBalance, toLoyaltyBalance } from '@almond/shared/loyalty/balanceWire';
 import { parsePosToken, type PosTokenWire } from '@almond/shared/pos/tokenWire';
-import { apiGet, apiPost } from '@/lib/apiClient';
+import { apiDelete, apiGet, apiPost } from '@/lib/apiClient';
 
 /**
  * Live loyalty / e-wallet / gift / POS client. Talks to the standalone loyalty
@@ -39,10 +40,11 @@ import { apiGet, apiPost } from '@/lib/apiClient';
  *   3. contracts — e.g. redeemReward posts {beans,titleAr,titleEn,type} where
  *      `POST /v1/loyalty/redeem` takes {points}. Repointing paths alone would
  *      turn 404s into 400s;
- *   4. features — spin, gift cards, branch ratings and scan-status have no
- *      BFF route at all. They are unbuilt features, not broken wiring.
- *      (Referrals and transfers to a friend DO, since 2026-09-24, and are
- *      called below on their real `/v1/*` paths.)
+ *   4. features — spin, gift cards and scan-status have no BFF route at
+ *      all. They are unbuilt features, not broken wiring. (Referrals and
+ *      transfers to a friend DO, since 2026-09-24, and visit ratings and
+ *      account deletion since 2026-10-15; all are called below on their real
+ *      `/v1/*` paths.)
  *
  * Cutover is therefore an integration project, not a config flip, and it is
  * recorded as such. What HAS been repaired is the one seam that could have gone
@@ -144,4 +146,10 @@ export const liveLoyaltyService: LoyaltyService = {
   getPendingVisit: async () => (await get<{ visit: PendingVisit | null }>('/v1/me/visit-rating')).visit,
   rateVisit: async ({ ref, stars, comment }) =>
     (await post<{ rating: VisitRating }>('/v1/me/visit-rating', { ref, stars, comment: comment ?? null })).rating,
+  // Account deletion (bff/src/routes/accountDeletion.ts). The POST carries an
+  // empty object: the member is the token, and Fastify refuses an empty body.
+  getDeletion: async () => (await get<{ deletion: AccountDeletion | null }>('/v1/me/deletion')).deletion,
+  requestDeletion: async () => (await post<{ deletion: AccountDeletion }>('/v1/me/deletion', {})).deletion,
+  cancelDeletion: async () =>
+    (await apiDelete<{ cancelled: boolean }>(BASE, '/v1/me/deletion', loyaltyAuthHeaders())).cancelled,
 };
