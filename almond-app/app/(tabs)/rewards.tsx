@@ -2,7 +2,6 @@ import {
   View,
   StyleSheet,
   Pressable,
-  Alert,
 } from 'react-native';
 import { router } from 'expo-router';
 
@@ -21,6 +20,7 @@ import { colors, spacing, radius, shadow } from '@/constants/theme';
 import { config } from '@/constants/config';
 import { useI18n } from '@/hooks/useI18n';
 import { formatNumber, formatDayKey, formatJOD } from '@/lib/format';
+import { confirmAction, notify } from '@/lib/dialog';
 import { useLoyaltyBalance, useRedeemReward } from '@/hooks/useLoyalty';
 // earn-arith-exempt: the tier ramp, for DISPLAY only — no invoice, no grant. §7 T7.
 import { tiers } from '@/services/seed';
@@ -151,23 +151,25 @@ export default function RewardsScreen() {
       lng,
       jod: formatJOD(o.jod, lng),
     });
-    Alert.alert(t('rewards.confirmTitle'), t('rewards.confirmBody', { jod, points: o.points }), [
-      { text: t('common.cancel'), style: 'cancel' },
-      {
-        text: t('rewards.redeemCta'),
-        onPress: () =>
-          redeemReward.mutate(
-            {
-              beans: o.points,
-              titleAr: titleFor('ar'),
-              titleEn: titleFor('en'),
-              type: 'credit',
-              value: o.jod,
-            },
-            { onSuccess: () => Alert.alert(t('rewards.redeemedTitle'), t('rewards.redeemedBody', { jod })) },
-          ),
-      },
-    ]);
+    // Through lib/dialog: Alert alone does nothing on the web build, where
+    // this button never redeemed anything.
+    confirmAction({
+      title: t('rewards.confirmTitle'),
+      body: t('rewards.confirmBody', { jod, points: o.points }),
+      confirm: t('rewards.redeemCta'),
+      cancel: t('common.cancel'),
+      onConfirm: () =>
+        redeemReward.mutate(
+          {
+            beans: o.points,
+            titleAr: titleFor('ar'),
+            titleEn: titleFor('en'),
+            type: 'credit',
+            value: o.jod,
+          },
+          { onSuccess: () => notify(t('rewards.redeemedTitle'), t('rewards.redeemedBody', { jod })) },
+        ),
+    });
   };
 
   // The rung the balance ALREADY CARRIES — not tierFromSpend(windowSpend).

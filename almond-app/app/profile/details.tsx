@@ -1,5 +1,5 @@
 import { createElement, useState } from 'react';
-import { StyleSheet, TextInput, Alert, Platform, Pressable, View } from 'react-native';
+import { StyleSheet, TextInput, Platform, Pressable, View } from 'react-native';
 import { Stack, router } from 'expo-router';
 
 import { Screen } from '@/components/ui/Screen';
@@ -11,6 +11,7 @@ import { config } from '@/constants/config';
 import { useI18n } from '@/hooks/useI18n';
 import { choiceA11y, choiceGroupA11y } from '@/lib/a11y';
 import { formatNumber } from '@/lib/format';
+import { notify } from '@/lib/dialog';
 import { useUpdateProfile } from '@/hooks/useLoyalty';
 import { useAuthStore, useUser } from '@/stores/authStore';
 import {
@@ -131,11 +132,11 @@ export default function ProfileDetailsScreen() {
   const onSave = () => {
     const clean = normalizeName(name);
     if (clean === '') {
-      Alert.alert(t('details.nameRequiredTitle'), t('details.nameRequiredBody'));
+      notify(t('details.nameRequiredTitle'), t('details.nameRequiredBody'));
       return;
     }
     if (typedBirthday !== null && !isValidBirthday(typedBirthday)) {
-      Alert.alert(t('details.birthdayInvalidTitle'), t('details.birthdayInvalidBody'));
+      notify(t('details.birthdayInvalidTitle'), t('details.birthdayInvalidBody'));
       return;
     }
     updateProfile.mutate(
@@ -149,7 +150,7 @@ export default function ProfileDetailsScreen() {
               ...user, name: res.profile.name, birthday: res.profile.birthday, gender: res.profile.gender,
             });
           }
-          Alert.alert(
+          notify(
             t('details.savedTitle'),
             // The reply's figure. 0 on every save after the first, and the
             // sentence changes rather than showing "+0 points".
@@ -159,7 +160,7 @@ export default function ProfileDetailsScreen() {
           );
           router.back();
         },
-        onError: () => Alert.alert(t('common.error'), t('details.saveFailed')),
+        onError: () => notify(t('common.error'), t('details.saveFailed')),
       },
     );
   };
