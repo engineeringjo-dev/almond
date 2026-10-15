@@ -400,12 +400,8 @@
     "creditVoucher": "{{jod}} off your bill"
   },
   "tierBenefits": {
-    "birthday": "A free drink on your birthday",
-    "freeMod": "One free drink customisation a month",
-    "offers": "Offers picked for you",
-    "experiences": "Access to exclusive coffee experiences",
-    "memberCard": "A member card with your name on it",
-    "cashback": "{{rate}} back on every order"
+    "cashback": "{{rate}} back on every order",
+    "walletCashback": "{{rate}} when you pay from your balance"
   },
   "spin": {
     "title": "Lucky Wheel",
@@ -417,6 +413,14 @@
     "won": "Congrats! You won",
     "disabled": "The lucky wheel is currently unavailable",
     "collect": "Collect prize"
+  },
+  "help": {
+    "heading": "How can we help?",
+    "hours": "Call centre and WhatsApp, 24 hours",
+    "whatsapp": "Message us on WhatsApp",
+    "call": "Call our call centre",
+    "email": "Email us",
+    "website": "Our website"
   },
   "profile": {
     "title": "Profile",
@@ -542,7 +546,7 @@
     "nameRequiredTitle": "We need a name",
     "nameRequiredBody": "Type the name you would like us to greet you by.",
     "birthdayLabel": "Your birthday",
-    "birthdayHint": "So we can send you something on your day.",
+    "birthdayHint": "It stays private to you.",
     "phoneFixed": "Signed in as {{phone}}",
     "bonusPitch": "Add your name, birthday and gender and earn {{points}} points — once.",
     "saveAndEarn": "Save and collect {{points}} points",

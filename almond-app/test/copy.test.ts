@@ -10,6 +10,7 @@ import { jodFromPoints, pointsFromJod } from '@almond/shared/loyalty/earn';
 import { tierProgressCopy } from '@/lib/tierCopy';
 import { tierName } from '@almond/shared/loyalty';
 import { formatJOD } from '@almond/shared/lib/format';
+import { contactLinks } from '@almond/shared/lib/phone';
 import { spendEntry } from '@almond/shared/loyalty/window';
 import { mockLoyaltyService, __getMockUser } from '@/services/loyalty.service.mock';
 import type { TierId } from '@/types';
@@ -487,5 +488,49 @@ describe('C16 nextChallenge', () => {
     expect(nextChallenge(done)).toEqual({
       id: 'referral', points: config.REFERRAL_REWARD_POINTS,
     });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// C18 — a tier card promises only what the server pays.
+// ---------------------------------------------------------------------------
+describe('C18 no tier card promises a perk the server does not pay', () => {
+  /**
+   * Owner, 2026-10-15: «لا تعد بشيء اشطب الوعد بالعيد ميلاد». Five perks sat on
+   * the tier cards — a birthday drink, a free customisation a month, personal
+   * offers, coffee experiences, a named member card — and nothing in the BFF
+   * granted any of them. The list is CLOSED: a new row needs a server grant
+   * first, and then this allow-list changes in the same commit as the grant.
+   */
+  const PAID = ['cashback', 'walletCashback'];
+  for (const lang of ['ar', 'en'] as const) {
+    it(`locales/${lang}.json carries the paid rows and nothing else`, () => {
+      const raw = JSON.parse(readFileSync(join(__dirname, '..', 'locales', `${lang}.json`), 'utf8')) as {
+        tierBenefits: Record<string, string>;
+      };
+      expect(Object.keys(raw.tierBenefits).sort()).toEqual([...PAID].sort());
+    });
+  }
+});
+
+// ---------------------------------------------------------------------------
+// C19 — the contact line is the real one, from one dial.
+// ---------------------------------------------------------------------------
+describe('C19 the help screen dials the unified call centre', () => {
+  it('derives tel:, wa.me and the printed number from config.CONTACT_PHONE_E164', () => {
+    // Owner, 2026-10-15: one number for the call centre and WhatsApp.
+    const c = contactLinks(config.CONTACT_PHONE_E164);
+    expect(c.tel).toBe('tel:+962794343400');
+    expect(c.whatsapp).toBe('https://wa.me/962794343400');
+    expect(c.display).toBe('+962 7 9434 3400');
+  });
+
+  it('help.tsx carries no number of its own', () => {
+    // It shipped `tel:+96260000000` and "+962 6 000 0000" — a placeholder that
+    // rang nowhere. Any literal number here is a second source of truth.
+    const src = readFileSync(join(__dirname, '..', 'app', 'profile', 'help.tsx'), 'utf8')
+      .replace(/\/\*[\s\S]*?\*\//g, ' ')
+      .replace(/(^|[^:])\/\/[^\n]*/g, '$1');
+    expect(src).not.toMatch(/tel:\+?\d|wa\.me\/\d|\+962\s?\d/);
   });
 });

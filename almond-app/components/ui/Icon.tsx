@@ -13,6 +13,7 @@ import {
   ShoppingCart,
   ClipboardList,
   Bell,
+  MessageCircle,
   Gift,
   Wallet,
   User,
@@ -88,6 +89,7 @@ export type IconName =
   | 'help'
   | 'logout'
   | 'phone'
+  | 'whatsapp'
   | 'mail'
   | 'instagram'
   | 'reorder'
@@ -145,6 +147,7 @@ const REGISTRY: Record<IconName, LucideIcon> = {
   help: CircleHelp,
   logout: LogOut,
   phone: Phone,
+  whatsapp: MessageCircle,
   mail: Mail,
   instagram: Camera,
   reorder: RotateCw,

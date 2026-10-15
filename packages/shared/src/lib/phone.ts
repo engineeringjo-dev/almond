@@ -46,3 +46,22 @@ export function normalizeJordanPhone(raw: string | null | undefined): string | n
   d = d.replace(/^0/, '');
   return /^7\d{8}$/.test(d) ? `+962${d}` : null;
 }
+
+/**
+ * The links and the printed form of ONE number — the unified call centre and
+ * WhatsApp line in config.CONTACT_PHONE_E164 — so the app's help screen and the
+ * website's footer derive the same three things from the same dial.
+ *
+ * `display` is "+962 7 9434 3400". A screen that sets it inside right-to-left
+ * text must isolate it as left-to-right (the "+" otherwise lands at the end).
+ */
+export function contactLinks(e164: string): { tel: string; whatsapp: string; display: string } {
+  const canonical = normalizeJordanPhone(e164);
+  if (canonical === null) throw new Error(`contactLinks: not a Jordanian mobile: ${e164}`);
+  const local = canonical.slice(4); // the 9 digits after +962
+  return {
+    tel: `tel:${canonical}`,
+    whatsapp: `https://wa.me/${canonical.slice(1)}`,
+    display: `+962 ${local[0]} ${local.slice(1, 5)} ${local.slice(5)}`,
+  };
+}

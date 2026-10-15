@@ -27,7 +27,7 @@ import { formatNumber, formatDayKey, formatJOD } from '@/lib/format';
 import { useLoyaltyBalance, useRedeemReward } from '@/hooks/useLoyalty';
 // earn-arith-exempt: the tier ramp, for DISPLAY only — no invoice, no grant. §7 T7.
 import { tiers } from '@/services/seed';
-import { tierName } from '@almond/shared/loyalty';
+import { tierName, walletRateName } from '@almond/shared/loyalty';
 // earn-arith-exempt: points→JOD for DISPLAY, via the one shared conversion. §7 T7.
 import { jodFromPoints } from '@almond/shared/loyalty/earn';
 import { redeemOptions, type RedeemOption } from '@almond/shared/loyalty/redeem';
@@ -64,36 +64,41 @@ const TIER_COLOR: Record<TierId, string> = {
 // the rate and the cashback percentage are the same number — "Earn 2 points per
 // 1 JOD" said one fact twice in two units, and a string with no numeral in it
 // cannot go stale.
+//
+// 🔴 AND THEN FIVE MORE, 2026-10-15. Owner: «لا تعد بشيء اشطب الوعد بالعيد
+// ميلاد» — promise nothing. A birthday drink, a free customisation a month,
+// personal offers, coffee experiences and a named member card were on these
+// cards; NOTHING in the BFF grants any of them (a birthday is stored, never
+// paid). They are deleted, keys and all, and C18 in almond-app/test/copy.test.ts
+// fails if any of the five keys comes back. What is left is what the server
+// pays: the rung's rate, and the rate when the bill is paid from the balance.
 type BenefitParams = (tier: Tier, lang: Lang) => Record<string, string | number>;
 type Benefit = { icon: IconName; key: string; params?: BenefitParams };
-const B = {
-  birthday: { icon: 'gift', key: 'tierBenefits.birthday' } as Benefit,
-  freeMod: { icon: 'sparkles', key: 'tierBenefits.freeMod' } as Benefit,
-  offers: { icon: 'ticket', key: 'tierBenefits.offers' } as Benefit,
-};
-const SHARED: Benefit[] = [B.birthday, B.freeMod, B.offers];
 // The rate row, and the only place a rung's rate is stated on this screen.
 const CASHBACK: Benefit = {
   icon: 'bean',
   key: 'tierBenefits.cashback',
   params: (tier, lang) => ({ rate: tierName(tier, lang) }),
 };
+// The same rung paid from the wallet or gift-card balance (×1.5, read off the
+// dials by walletRateName) — real at every rung, and different at every rung.
+const WALLET_CASHBACK: Benefit = {
+  icon: 'wallet',
+  key: 'tierBenefits.walletCashback',
+  params: (tier, lang) => ({ rate: walletRateName(tier, lang) }),
+};
 
 // `Record<TierId, …>` on purpose: TypeScript makes it exhaustive, so a fourth
 // rung cannot be added to the ramp and silently render an empty card.
 const TIER_BENEFITS: Record<TierId, Benefit[]> = {
-  base: [CASHBACK, ...SHARED],
-  plus: [CASHBACK, ...SHARED],
+  base: [CASHBACK, WALLET_CASHBACK],
+  plus: [CASHBACK, WALLET_CASHBACK],
   // 🔴 `tierBenefits.noExpire` ("Your points never expire") used to sit here on
   // the top rung, because the old inactivity rule really did exempt it. Under
   // «لا إعفاء — القاعدة للجميع» every point on every rung lives 12 months from
   // the day it was granted, so the row is gone and so is the string. A benefit
   // the code does not honour is the W4 defect this project has already paid for.
-  top: [
-    CASHBACK, ...SHARED,
-    { icon: 'globe', key: 'tierBenefits.experiences' },
-    { icon: 'card', key: 'tierBenefits.memberCard' },
-  ],
+  top: [CASHBACK, WALLET_CASHBACK],
 };
 
 const STEPS: { icon: IconName; titleKey: string; bodyKey: string }[] = [

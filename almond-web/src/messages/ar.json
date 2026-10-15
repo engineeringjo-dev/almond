@@ -342,7 +342,11 @@
     "companyTitle": "الشركة",
     "careers": "الوظائف",
     "franchise": "الفرنشايز",
-    "company": "ألموند"
+    "company": "ألموند",
+    "contactTitle": "تواصل معنا",
+    "whatsapp": "واتساب",
+    "call": "اتصل بنا",
+    "hours": "على مدار 24 ساعة"
   },
   "Language": {
     "label": "اللغة",

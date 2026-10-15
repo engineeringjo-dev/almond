@@ -12,6 +12,12 @@ export const config = {
   MENU_URL: 'https://almond-gules.vercel.app/api/menu/app',
   ISHBEK_BASE_URL: 'https://api.ishbek.com', // delivery bridge → Careem / Talabat
   DELIVERY_REDIRECT_URL: 'https://almondcoffeehouse.com/order',
+  /** The unified call centre AND WhatsApp line — one number for both, open 24
+   *  hours (owner, 2026-10-15: «مرفق رقم ال call center والواتس اب الموحد»).
+   *  E.164; screens derive the tel: and wa.me links from it, so the app and
+   *  the website cannot drift. It replaced a placeholder (+962 6 000 0000) the
+   *  help screen had shipped since it was written. */
+  CONTACT_PHONE_E164: '+962794343400',
 
   // Loyalty / pricing constants (section 2.4)
   //
@@ -594,10 +600,11 @@ export const config = {
    * for every member whose name came across. That is why the stamp is a
    * timestamp on the member record and not a derived "has a name" check.
    *
-   * WHY IT IS WORTH PAYING AT ALL. The tier cards already promise a birthday
-   * benefit (`tierBenefits.birthday`) and nothing in this repo has ever had
-   * anywhere to store a birthday. A profile is what makes that promise real,
-   * and a named greeting is the visible half of the same thing.
+   * WHY IT IS WORTH PAYING AT ALL. The facts are what segmentation and a
+   * named greeting need. The tier cards used to promise a birthday drink on
+   * the strength of it; that promise was deleted on 2026-10-15 (owner: «لا تعد
+   * بشيء اشطب الوعد بالعيد ميلاد») because nothing pays it — the birth date is
+   * collected, and no screen promises anything for it.
    *
    * 0 switches it off entirely — the profile screen keeps working and simply
    * pays nothing.

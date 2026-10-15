@@ -342,7 +342,11 @@
     "companyTitle": "Company",
     "careers": "Careers",
     "franchise": "Franchise",
-    "company": "Almond"
+    "company": "Almond",
+    "contactTitle": "Contact us",
+    "whatsapp": "WhatsApp",
+    "call": "Call",
+    "hours": "24 hours a day"
   },
   "Language": {
     "label": "Language",
