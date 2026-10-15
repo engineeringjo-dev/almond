@@ -2,7 +2,6 @@ import type { Tier } from '@almond/shared/types';
 // The website never grants points; the earn multiplier is loyalty/earn.ts's.
 // earn-arith-exempt: tier ramp for the progress display only. §7 T7.
 import { tierFromSpend, nextTier, progressToNextTier } from '@almond/shared/loyalty';
-import { config } from '@/lib/config';
 
 /**
  * 🪦 THE REWARDS BOARD — DELETED 2026-09-08.
@@ -28,14 +27,9 @@ import { config } from '@/lib/config';
 /** Wallet top-up presets (JOD). */
 export const TOPUP_AMOUNTS = [10, 20, 35, 50];
 
-/** Reload bonus beans for a top-up amount — highest qualifying tier applies. */
-export function reloadBonus(amount: number): number {
-  let bonus = 0;
-  for (const tier of config.WALLET_RELOAD_BONUS) {
-    if (amount >= tier.minJOD) bonus = Math.max(bonus, tier.bonusBeans);
-  }
-  return bonus;
-}
+// 🪦 reloadBonus — DELETED 2026-10-15 with config.WALLET_RELOAD_BONUS. Owner:
+// «لا يوجد بونص شحن، البونص للانفاق فقط». A top-up earns nothing; paying FROM
+// the balance earns more (walletRateName in @almond/shared/loyalty).
 
 export interface TierProgress {
   current: Tier;

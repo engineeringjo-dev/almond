@@ -31,6 +31,7 @@ import { useCartBranch } from '@/hooks/useCartBranch';
 import { useAuthStore, useUserId } from '@/stores/authStore';
 import { useCreateOrder } from '@/hooks/useOrder';
 import { useWallet, useInvalidateLoyalty, useLoyaltyBalance } from '@/hooks/useLoyalty';
+import { useWalletRate } from '@/hooks/useWalletRate';
 import { estimateEarnedPoints } from '@/lib/earnEstimate';
 import { computePickupEstimate } from '@/lib/pickup';
 import { checkoutBlock, type CheckoutBlock } from '@/lib/cartBranch';
@@ -46,6 +47,7 @@ import { aggregatorService } from '@/services/aggregator.service';
 
 export default function CartScreen() {
   const { t, lang } = useI18n();
+  const walletRate = useWalletRate();
   // `review=1`: back from the sign-in the checkout gate sent a guest to.
   const { review } = useLocalSearchParams<{ review?: string }>();
   const items = useCartStore((s) => s.items);
@@ -348,16 +350,19 @@ export default function CartScreen() {
                 {t('cart.earnAllMethods')}
               </Text>
 
-              {/* Pay-from-wallet nudge. It used to promise "+50% points": that
-                  is config.WALLET_EARN_MULTIPLIER, RETIRED to 1.0 on 2026-09-06
-                  after zero rows in 171,291 live transactions, so the claim had
-                  been false on screen ever since. The nudge stays — prepayment
-                  is still worth encouraging — and now says only what is true. */}
+              {/* Pay-from-wallet nudge. It once promised a hardcoded "+50%
+                  points" while config.WALLET_EARN_MULTIPLIER sat retired at 1.0,
+                  then said nothing about points at all. The multiplier is live
+                  again (1.5, 2026-09-08) and is the wallet's ONLY bonus (owner,
+                  2026-10-15: «لا يوجد بونص شحن، البونص للانفاق فقط»), so the
+                  nudge names it as the member's rate from the balance beside
+                  their rate otherwise, off the dials (useWalletRate). The
+                  points preview above already counts it: paidFromBalance. */}
               {paymentMethod === 'wallet' ? (
                 <View style={styles.walletBonus}>
                   <Icon name="bean" size={16} color={colors.green} strokeWidth={2} />
                   <Text variant="caption" color={colors.green}>
-                    {t('cart.walletSelected')}
+                    {t('cart.walletSelected', walletRate)}
                   </Text>
                 </View>
               ) : (walletBalance ?? 0) >= totals.total ? (
@@ -368,7 +373,7 @@ export default function CartScreen() {
                 >
                   <Icon name="wallet" size={18} color={colors.primary} strokeWidth={1.9} />
                   <Text variant="caption" color={colors.dark} style={styles.flex}>
-                    {t('cart.walletUpsell')}
+                    {t('cart.walletUpsell', walletRate)}
                   </Text>
                   <Icon name="plus" size={16} color={colors.primary} />
                 </Pressable>

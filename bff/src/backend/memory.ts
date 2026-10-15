@@ -726,19 +726,13 @@ export function createMemoryBackend(): Backend {
         throw e;
       }
     },
-    async topUpWallet(id, fils, bonusPoints, reasonAr, reasonEn) {
+    async topUpWallet(id, fils) {
       const m = must(id);
       const at = new Date();
-      if (bonusPoints < 0) throw conflict('negative_grant', 'A grant cannot be negative');
       const rollback = begin(m);
       try {
         settleWalletExpiry(m, at);
         m.walletLots = grantLot(m.walletLots, fils, 'topup', at, WALLET_LOTS).lots;
-        if (bonusPoints > 0) {
-          settleExpiry(m, at);
-          m.lots = grantLot(m.lots, bonusPoints, 'earn', at, LOTS).lots;
-          log(id, { deltaPoints: bonusPoints, reasonAr, reasonEn, createdAt: at.toISOString() });
-        }
         return { walletBalanceFils: liveBalance(m.walletLots, at), pointsBalance: liveBalance(m.lots, at) };
       } catch (e) {
         rollback();

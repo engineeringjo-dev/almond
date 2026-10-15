@@ -155,7 +155,7 @@ balances match the app:
 POINTS_PER_JOD          5      // earn: 5 beans per 1 JOD (× tier multiplier; × wallet 1.5; × bonus-day)
 POINTS_PER_JOD_REDEEM   100    // redeem: 100 beans = 1 JOD
 WALLET_EARN_MULTIPLIER  1.5    // paying from wallet earns +50% beans (before tier multiplier)
-WALLET_RELOAD_BONUS     [{20→+50 beans}, {35→+120 beans}]
+WALLET_RELOAD_BONUS     DELETED 2026-10-15 — a top-up earns nothing; the bonus is on spending (WALLET_EARN_MULTIPLIER)
 BONUS_BEAN_DAY          { enabled, multiplier 2, weekdays, must Activate }
 BEAN_EXPIRY_MONTHS      12     // Bean/Silver expire after 12mo inactivity; Gold/Black never
 TAX_RATE                0.16   // 16%
@@ -231,7 +231,7 @@ PayPal.
 /cart                 Cart + cross-sell ("complete your order")
 /checkout             Order type, branch/pickup, payment, place order
 /rewards              Beans balance, tier progress, redeem rewards, vouchers
-/wallet               Stored-value balance, top-up (reload bonus), history
+/wallet               Stored-value balance, top-up (no points), history
 /gifts                Send/redeem e-gift cards (occasions)
 /account              Profile, orders, addresses, language
 /login                Phone OTP (shared identity with the app)

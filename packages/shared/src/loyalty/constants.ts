@@ -1,7 +1,7 @@
 /**
  * Loyalty tiers + helpers (shared between app + web).
  *
- * The loyalty / pricing NUMBERS (POINTS_PER_JOD, redeem rate, wallet bonuses,
+ * The loyalty / pricing NUMBERS (POINTS_PER_JOD, redeem rate, wallet multiplier,
  * tax, cup target, …) live on the `config` object in `../config` so there is a
  * single switch file; import them from there. This module owns the tier ramp.
  *
@@ -85,6 +85,37 @@ export function nextTier(spend: number): Tier | null {
  */
 export function tierName(tier: Tier, lang: 'ar' | 'en'): string {
   return lang === 'ar' ? tier.nameAr : tier.nameEn;
+}
+
+const ARABIC_DIGITS = '٠١٢٣٤٥٦٧٨٩';
+
+/**
+ * A cashback percentage written the way the rung names are: "3%" in English,
+ * «٣٪» in Arabic (Arabic-Indic digits, «٫» for a decimal point). The tier names
+ * are typed by hand in `tiers` above; bff/test/earn.test.ts asserts this
+ * function reproduces every one of them, so a rate computed here can never be
+ * written in a second style beside them.
+ */
+export function rateName(percent: number, lang: 'ar' | 'en'): string {
+  const n = String(Math.round(percent * 100) / 100);
+  if (lang === 'en') return `${n}%`;
+  return `${n.replace(/\d/g, (d) => ARABIC_DIGITS[Number(d)]).replace('.', '٫')}٪`;
+}
+
+/**
+ * The cashback a member is paid on a bill settled FROM THE WALLET (top-up or
+ * gift-card balance; they are one kind of money): the rung's rate ×
+ * config.WALLET_EARN_MULTIPLIER, under the config.MAX_EARN_MULTIPLIER ceiling —
+ * the same stack loyalty/earn.ts pays. "3%" / «٣٪» on the entry rung.
+ *
+ * Owner, 2026-10-15: «لا يوجد بونص شحن، البونص للانفاق فقط» — the wallet's
+ * reward is for SPENDING it, never for loading it. This is therefore the one
+ * wallet number a screen may promise, and it is read off the dials so it moves
+ * when they do. bff/test/earn.test.ts pins it against computeEarn itself.
+ */
+export function walletRateName(tier: Tier, lang: 'ar' | 'en'): string {
+  const stack = Math.min(tier.multiplier * config.WALLET_EARN_MULTIPLIER, config.MAX_EARN_MULTIPLIER);
+  return rateName((config.POINTS_PER_JOD * stack * 100) / config.POINTS_PER_JOD_REDEEM, lang);
 }
 
 /** The measured member basket, from 160,935 earn rows. It is what turns a

@@ -100,12 +100,21 @@ export const config = {
   // after it, as it always has been. Bringing the combo inside is D4, an offer
   // change gated on LOYALTY-EARN-PATCH §8.7, not a bug fix.
   MAX_EARN_MULTIPLIER: 4.5,
-  // Digital reload bonus beans (pre-commitment lever, adapted from the SB ToU
-  // "Digital Reload Bonus Stars"). Highest qualifying tier applies. Admin-set.
-  WALLET_RELOAD_BONUS: [
-    { minJOD: 20, bonusBeans: 50 },
-    { minJOD: 35, bonusBeans: 120 },
-  ] as { minJOD: number; bonusBeans: number }[],
+  // 🪦 WALLET_RELOAD_BONUS — DELETED 2026-10-15. It paid points for LOADING the
+  // wallet: 50 at 20 JOD, 120 at 35 JOD, granted by POST /v1/wallet/topup with
+  // no purchase behind it.
+  //
+  // Owner, 2026-10-15: «لا يوجد بونص شحن، البونص للانفاق فقط» — there is no
+  // top-up bonus; the bonus is for spending. The spending bonus is
+  // WALLET_EARN_MULTIPLIER above, paid on every bill settled from the balance,
+  // and loyalty/constants.ts#walletRateName is how a screen states it.
+  //
+  // Deleted rather than set to [] so nothing can read a threshold off it again
+  // (three surfaces interpolated `[0].minJOD` into "top up 20 JOD and get bonus
+  // points"). bff/test/profile.test.ts T34e pins that a top-up grants nothing.
+  // Precedent: Starbucks Rewards (US, 2019-2025) paid 2 Stars per $1 spent from
+  // a stored-value card against 1 for cash or a bank card; loading the card
+  // earned nothing of its own.
   // RETIRED 2026-09-06. Was enabled with a Tuesday ×2.
   //
   // Zero rows in 171,291 live transactions. And it was never safe to run as

@@ -170,11 +170,10 @@
     "title": "المحفظة",
     "balance": "رصيد المحفظة",
     "topUpTitle": "اشحن محفظتك",
-    "bonusBeans": "+{beans} نقطة",
     "topUpCta": "اشحن {amount}",
     "historyTitle": "سجل المعاملات",
     "noHistory": "لا توجد معاملات بعد",
-    "earnNote": "اشحن {min} دينار أو أكثر واحصل على نقاط إضافية"
+    "earnNote": "ادفع من رصيدك ويرجع لك {rate} بدل {base}"
   },
   "Gifts": {
     "title": "بطاقات الإهداء",

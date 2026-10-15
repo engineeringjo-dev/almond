@@ -989,17 +989,11 @@ export function createPostgresBackend(db: Db): Backend {
       });
     },
 
-    async topUpWallet(id, fils, bonusPoints, reasonAr, reasonEn) {
-      if (bonusPoints < 0) throw conflict('negative_grant', 'A grant cannot be negative');
+    async topUpWallet(id, fils) {
       return withMember(id, (m, log) => {
         const at = new Date();
         settleWalletExpiry(m, at, log);
         m.walletLots = grantLot(m.walletLots, fils, 'topup', at, WALLET_LOTS).lots;
-        if (bonusPoints > 0) {
-          settleExpiry(m, at, log);
-          m.lots = grantLot(m.lots, bonusPoints, 'earn', at, LOTS).lots;
-          log({ deltaPoints: bonusPoints, reasonAr, reasonEn, createdAt: at.toISOString() });
-        }
         return { walletBalanceFils: liveBalance(m.walletLots, at), pointsBalance: liveBalance(m.lots, at) };
       });
     },

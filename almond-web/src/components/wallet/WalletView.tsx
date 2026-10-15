@@ -4,8 +4,8 @@ import { useEffect, useState } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
 import { Sparkles, Wallet } from 'lucide-react';
 import { useLoyaltyStore } from '@/store/loyaltyStore';
-import { TOPUP_AMOUNTS, reloadBonus } from '@/data/loyalty';
-import { config } from '@/lib/config';
+import { tierName, walletRateName } from '@almond/shared/loyalty';
+import { TOPUP_AMOUNTS, tierProgress } from '@/data/loyalty';
 import { asLang, formatDate, formatJOD } from '@/lib/format';
 
 export function WalletView() {
@@ -14,10 +14,12 @@ export function WalletView() {
   const balance = useLoyaltyStore((s) => s.walletBalance);
   const history = useLoyaltyStore((s) => s.walletHistory);
   const topUp = useLoyaltyStore((s) => s.topUp);
+  const windowSpend = useLoyaltyStore((s) => s.windowSpend);
 
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
   if (!mounted) return <div className="container-content min-h-[50vh] py-xl" />;
+  const rung = tierProgress(windowSpend).current;
 
   return (
     <div className="container-content py-xl">
@@ -33,10 +35,12 @@ export function WalletView() {
           <p className="mt-2 text-display font-bold leading-none">{formatJOD(balance, lang)}</p>
           <p className="mt-4 flex items-center gap-2 text-sm text-white/80">
             <Sparkles className="h-4 w-4" />
-            {/* Not "+50% points": config.WALLET_EARN_MULTIPLIER is 1.0 (retired,
-                zero rows in 171,291 live transactions). The RELOAD bonus is real,
-                so the card names it and its own threshold. */}
-            {t('earnNote', { min: config.WALLET_RELOAD_BONUS[0].minJOD })}
+            {/* The wallet's one bonus is for SPENDING it (owner, 2026-10-15: «لا
+                يوجد بونص شحن، البونص للانفاق فقط»): the member's rate from the
+                balance beside their rate otherwise, both off the rung and the
+                dials — the same walletRateName the app's wallet lines use. It
+                replaced a «top up 20 JOD and get bonus points» line. */}
+            {t('earnNote', { rate: walletRateName(rung, lang), base: tierName(rung, lang) })}
           </p>
         </div>
 
@@ -44,24 +48,16 @@ export function WalletView() {
         <div>
           <h2 className="text-xl">{t('topUpTitle')}</h2>
           <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
-            {TOPUP_AMOUNTS.map((amount) => {
-              const bonus = reloadBonus(amount);
-              return (
-                <button
-                  key={amount}
-                  type="button"
-                  onClick={() => topUp(amount)}
-                  className="flex flex-col items-center gap-1 rounded-lg border border-neutral-warm bg-card p-4 shadow-card transition-colors hover:border-primary"
-                >
-                  <span className="text-lg font-bold text-primary">{formatJOD(amount, lang)}</span>
-                  {bonus > 0 && (
-                    <span className="rounded-pill bg-accent-light px-2 py-0.5 text-xs font-bold text-primary-dark">
-                      {t('bonusBeans', { beans: bonus })}
-                    </span>
-                  )}
-                </button>
-              );
-            })}
+            {TOPUP_AMOUNTS.map((amount) => (
+              <button
+                key={amount}
+                type="button"
+                onClick={() => topUp(amount)}
+                className="flex flex-col items-center gap-1 rounded-lg border border-neutral-warm bg-card p-4 shadow-card transition-colors hover:border-primary"
+              >
+                <span className="text-lg font-bold text-primary">{formatJOD(amount, lang)}</span>
+              </button>
+            ))}
           </div>
 
           <h2 className="mt-8 text-xl">{t('historyTitle')}</h2>

@@ -4,7 +4,7 @@ import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import type { GiftCard, PointsLogEntry, Voucher } from '@almond/shared/types';
 import { isMock } from '@/lib/config';
-import { reloadBonus, genGiftCode } from '@/data/loyalty';
+import { genGiftCode } from '@/data/loyalty';
 import type { RedeemOption } from '@almond/shared/loyalty/redeem';
 
 export interface WalletTxn {
@@ -71,7 +71,6 @@ export const useLoyaltyStore = create<LoyaltyState>()(
       vouchers: [],
       pointsHistory: [
         { id: rid('p'), deltaPoints: 45, reasonAr: 'طلب قهوة', reasonEn: 'Coffee order', createdAt: daysAgo(2) },
-        { id: rid('p'), deltaPoints: 50, reasonAr: 'مكافأة شحن المحفظة', reasonEn: 'Wallet reload bonus', createdAt: daysAgo(5) },
       ],
       walletHistory: [
         { id: rid('w'), amount: 20, labelAr: 'شحن المحفظة', labelEn: 'Wallet top-up', createdAt: daysAgo(5) },
@@ -117,22 +116,15 @@ export const useLoyaltyStore = create<LoyaltyState>()(
         return true;
       },
 
+      // A top-up is money and nothing else — no points (owner, 2026-10-15:
+      // «لا يوجد بونص شحن، البونص للانفاق فقط»), as POST /v1/wallet/topup.
       topUp: (amount) => {
-        const bonus = reloadBonus(amount);
         set((s) => ({
           walletBalance: s.walletBalance + amount,
-          points: s.points + bonus,
           walletHistory: [
             { id: rid('w'), amount, labelAr: 'شحن المحفظة', labelEn: 'Wallet top-up', createdAt: new Date().toISOString() },
             ...s.walletHistory,
           ],
-          pointsHistory:
-            bonus > 0
-              ? [
-                  { id: rid('p'), deltaPoints: bonus, reasonAr: 'مكافأة شحن المحفظة', reasonEn: 'Reload bonus', createdAt: new Date().toISOString() },
-                  ...s.pointsHistory,
-                ]
-              : s.pointsHistory,
         }));
       },
 

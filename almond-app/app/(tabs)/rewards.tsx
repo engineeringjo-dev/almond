@@ -54,10 +54,10 @@ const TIER_COLOR: Record<TierId, string> = {
 //     false and WEEKDAY_EARN_BONUS is empty. Retired 2026-09-06.
 //   - cupBonus promised double points for a personal cup. No such mechanic
 //     exists anywhere in the repo.
-//   - reloadBonus is REAL (config.WALLET_RELOAD_BONUS, granted in
-//     bff/src/routes/wallet.ts) but is identical at every rung, so listing it as
-//     a TIER benefit implied a differentiation it does not carry. It is now said
-//     where it is true instead — home.walletHint, on the wallet card.
+//   - reloadBonus was identical at every rung, so listing it as a TIER benefit
+//     implied a differentiation it did not carry. It moved to home.walletHint,
+//     and was then deleted outright (owner, 2026-10-15: «لا يوجد بونص شحن،
+//     البونص للانفاق فقط»); the wallet's bonus is on spending it.
 //
 // One row replaces all four earn* rows: `tierBenefits.cashback`, whose {{rate}}
 // IS the tier's name. 1 point = 1 qirsh exactly (10,621 live redemptions), so

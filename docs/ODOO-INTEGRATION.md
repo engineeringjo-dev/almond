@@ -67,7 +67,8 @@ Flow:
 
 - `GET  /loyalty/wallet/{userId}` → `{ balance }`
 - `POST /loyalty/wallet/topup` → `{ userId, amount }` → `{ balance }`
-  (server also grants reload-bonus beans, see `WALLET_RELOAD_BONUS`)
+  (no points: the reload bonus was deleted 2026-10-15 — the wallet's bonus is
+  `WALLET_EARN_MULTIPLIER`, paid when the balance is spent)
 - `POST /loyalty/wallet/charge` → `{ userId, amount }` → `{ walletBalance }`
   Used for **in-app** wallet payment (cart, gated by `integration.enabled.wallet`)
   and **POS** wallet payment. Pay-from-wallet still earns +50% beans

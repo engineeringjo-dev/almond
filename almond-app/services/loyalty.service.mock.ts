@@ -34,7 +34,6 @@ import { ammanDayKey, ammanWeekday } from '@almond/shared/lib/ammanWeekday';
 import { tiers } from './seed';
 import { delay, genId } from './util';
 import { defaultSpinConfig, pickWeightedPrize } from './spinDefaults';
-import { reloadBonusBeans } from '@/lib/walletBonus';
 
 export interface LoyaltyUser {
   /**
@@ -602,23 +601,9 @@ export const mockLoyaltyService: LoyaltyService = {
   topUp: (userId, amount) => {
     const u = ensureUser(userId);
     u.walletBalance += amount;
-    // Digital reload bonus beans (pre-commitment lever): grant the highest
-    // qualifying tier's bonus and log it.
-    const bonus = reloadBonusBeans(amount);
-    settleExpiry(u);
-    if (bonus > 0) {
-      // A lot of its own, with its own 12 months. This line used to be followed
-      // by `u.lastEarnAt = Date.now(); // a reload counts as activity (extends
-      // beans)` — which WAS the inactivity rule in one line. A top-up grants
-      // points; it renews nothing.
-      u.lots = grantLot(u.lots, bonus, 'bonus', new Date(), LOTS).lots;
-      u.history.unshift({
-        id: genId('log'), deltaPoints: bonus,
-        reasonAr: `مكافأة شحن المحفظة (+${bonus} نقطة)`,
-        reasonEn: `Wallet reload bonus (+${bonus} points)`,
-        createdAt: new Date().toISOString(),
-      });
-    }
+    // No points for loading the wallet — the twin of bff/src/routes/wallet.ts.
+    // Owner, 2026-10-15: «لا يوجد بونص شحن، البونص للانفاق فقط»; the reward is
+    // WALLET_EARN_MULTIPLIER on what is later paid FROM the balance.
     // Top-up of the configured amount grants a spin (section 2.4).
     if (amount >= spinConfig.eligibility.topupAmount) u.spinsAvailable += 1;
     return delay(u.walletBalance);

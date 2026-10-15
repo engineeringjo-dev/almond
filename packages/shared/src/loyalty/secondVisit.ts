@@ -194,14 +194,15 @@ export interface SecondVisitInput {
    * that difference is the evidence.
    *
    * 🔴 IT IS NOT THE RAW BALANCE, and that distinction is a defect that shipped
-   * once. POST /v1/wallet/topup grants WALLET_RELOAD_BONUS points with no order
-   * behind them (50 points at 20 JOD), so a brand-new member who topped up
+   * once. POST /v1/wallet/topup used to grant a reload bonus with no order
+   * behind it (50 points at 20 JOD), so a brand-new member who topped up
    * before their first purchase held 50 points, looked exactly like a migrated
    * one, and was written a PERMANENT 'ineligible' row — losing the voucher
-   * forever, silently, on the path the home screen's `home.walletHint` actively
-   * invites them down. It also biased the experiment: the withheld population
+   * forever, silently. It also biased the experiment: the withheld population
    * became "the holdout arm ∪ the members who topped up first", and the second
-   * set is neither randomised nor recorded as such.
+   * set is neither randomised nor recorded as such. The reload bonus is gone
+   * (owner, 2026-10-15) but the profile bonus is the same kind of orderless
+   * grant, so the subtraction stays; T32u pins it on that path.
    */
   unexplainedPoints: number;
   /** Qualifying window spend BEFORE this transaction is recorded. */

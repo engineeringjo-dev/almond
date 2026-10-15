@@ -11,6 +11,7 @@ import {
   consumeFifo, grantLot, liveBalance, walletLotRulesFromConfig,
 } from '@almond/shared/loyalty/lots';
 import { computeEarn, earnRulesFromConfig } from '@almond/shared/loyalty/earn';
+import { rateName, tierName, tiers, walletRateName } from '@almond/shared/loyalty';
 import { menuItems, itemFromPrice } from '@almond/shared/menu';
 import { build } from '../src/server';
 import { createMemoryBackend } from '../src/backend/memory';
@@ -305,6 +306,51 @@ describe('T34 the wallet ledger', () => {
     const fromWallet = computeEarn({ total: 10, paidFromBalance: true, at: new Date() }, rules);
     expect(fromWallet.points).toBeGreaterThan(cash.points);
     expect(fromWallet.points).toBe(Math.round(cash.points * config.WALLET_EARN_MULTIPLIER));
+  });
+
+  it('T34e a top-up is money and NOTHING else — no points, at any amount', async () => {
+    // Owner, 2026-10-15: «لا يوجد بونص شحن، البونص للانفاق فقط». The reload
+    // bonus (50 points at 20 JOD, 120 at 35 JOD) is deleted; the wallet's
+    // reward is T34c's multiplier, paid when the balance is SPENT. Asserted at
+    // both old thresholds and above them, through the route and the ledger.
+    const token = await signIn(app, newPhone());
+    for (const amount of [20, 35, 50]) {
+      const res = await topUp(token, amount);
+      expect(res.statusCode).toBe(201);
+      expect(res.json().pointsBalance, `a ${amount} JOD top-up granted points`).toBe(0);
+      expect(res.json()).not.toHaveProperty('bonusPoints');
+    }
+    expect(await wallet(token)).toBe(105);
+    const history = await app.inject({
+      method: 'GET', url: '/v1/me/history', headers: { authorization: `Bearer ${token}` },
+    });
+    expect(history.json(), 'a top-up wrote a points line').toEqual([]);
+  });
+
+  it('T34f the wallet rate a screen promises is the rate computeEarn pays', () => {
+    // walletRateName is the ONE wallet number the app and the website state
+    // (home card, promo tile, wallet screen, website wallet). It is computed
+    // from the dials, so it is checked against the engine that pays: a bill
+    // paid from the balance, on every rung, must earn exactly the rate named —
+    // and more than the same bill paid any other way.
+    const rules = earnRulesFromConfig();
+    const total = 50;
+    for (const tier of tiers) {
+      const at = new Date();
+      const fromWallet = computeEarn({ total, windowSpend: tier.threshold, paidFromBalance: true, at }, rules).points;
+      const other = computeEarn({ total, windowSpend: tier.threshold, at }, rules).points;
+      const percent = (fromWallet * 100) / (total * config.POINTS_PER_JOD_REDEEM);
+      expect(walletRateName(tier, 'en'), `${tier.id}: screen vs engine`).toBe(rateName(percent, 'en'));
+      expect(walletRateName(tier, 'ar'), `${tier.id}: screen vs engine`).toBe(rateName(percent, 'ar'));
+      expect(fromWallet, `${tier.id}: paying from the balance must pay more`).toBeGreaterThan(other);
+    }
+    // ... written exactly as the hand-typed rung names are («٢٪» / "2%"), so a
+    // computed rate never appears beside them in a second style.
+    for (const tier of tiers) {
+      const own = (config.POINTS_PER_JOD * tier.multiplier * 100) / config.POINTS_PER_JOD_REDEEM;
+      expect(rateName(own, 'ar')).toBe(tierName(tier, 'ar'));
+      expect(rateName(own, 'en')).toBe(tierName(tier, 'en'));
+    }
   });
 
   it('T34d money does not expire — and the mechanism still works if it ever does', async () => {

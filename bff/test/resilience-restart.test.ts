@@ -513,18 +513,16 @@ describe.each(STORES)('R2.8 🔴 a crash mid-checkout moves no money — %s', (_
     expect(d.second_visit_vouchers).toHaveLength(0);
   }, 60_000);
 
-  it('top-up is one transaction too: a crash leaves no credit without its bonus', async () => {
+  it('top-up is one transaction too: a crash at the save leaves nothing behind', async () => {
+    // It used to have a second leg — the reload bonus, a points line written
+    // AFTER the member row. That bonus is deleted (owner, 2026-10-15), so the
+    // credit is the whole write, and dying at it must leave the store as it was.
     const ok = createPostgresBackend(store.db);
     const id = (await ok.findOrCreateByPhone(phone())).id;
     await ok.creditWallet(id, 20_000, 'topup');
     const d0 = await dump(store.db);
     const diesAtSave = createPostgresBackend(crashingOn(store.db, /update members set/));
-    await expect(diesAtSave.topUpWallet(id, 20_000, 50, 'مكافأة', 'Bonus')).rejects.toThrow(/simulated crash/);
-    // The top-up's credit is in the member row, its bonus in the ledger: the
-    // ledger insert runs AFTER the member write, so dying there is the case a
-    // two-call route could not survive.
-    const diesAtBonus = createPostgresBackend(crashingOn(store.db, /insert into point_history/));
-    await expect(diesAtBonus.topUpWallet(id, 20_000, 50, 'مكافأة', 'Bonus')).rejects.toThrow(/simulated crash/);
+    await expect(diesAtSave.topUpWallet(id, 20_000)).rejects.toThrow(/simulated crash/);
     expect(await dump(store.db)).toEqual(d0);
     expect(liveBalance((await ok.getMember(id)).walletLots)).toBe(20_000);
   }, 60_000);

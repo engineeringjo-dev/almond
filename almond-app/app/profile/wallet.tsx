@@ -4,21 +4,22 @@ import { Stack } from 'expo-router';
 import { Screen } from '@/components/ui/Screen';
 import { Text } from '@/components/ui/Text';
 import { Gradient } from '@/components/ui/Gradient';
-import { Icon } from '@/components/ui/Icon';
 import { colors, spacing, radius, shadow } from '@/constants/theme';
 import { useI18n } from '@/hooks/useI18n';
 import { formatJOD } from '@/lib/format';
-import { reloadBonusBeans } from '@/lib/walletBonus';
 import { useWallet, useTopUp } from '@/hooks/useLoyalty';
+import { useWalletRate } from '@/hooks/useWalletRate';
 
-// Aligned with the reload-bonus thresholds (20 → +50, 35 → +120) so every
-// button earns a bonus — no "dead" amount below the first threshold.
+// The one-tap top-up amounts. They used to be aligned with the reload-bonus
+// thresholds (20 → +50, 35 → +120); that bonus is deleted (owner, 2026-10-15),
+// so these are just amounts and earn nothing until they are spent.
 const TOPUP_OPTIONS = [20, 35, 50];
 
 export default function WalletScreen() {
   const { t, lang } = useI18n();
   const { data: balance, isLoading, isError, refetch } = useWallet();
   const topUp = useTopUp();
+  const walletRate = useWalletRate();
 
   return (
     <>
@@ -37,43 +38,29 @@ export default function WalletScreen() {
           {t('profile.topUp')}
         </Text>
         <View style={styles.options}>
-          {TOPUP_OPTIONS.map((amount) => {
-            const bonus = reloadBonusBeans(amount);
-            return (
-              <Pressable
-                key={amount}
-                style={({ pressed }) => [styles.option, pressed && styles.pressed]}
-                onPress={() => topUp.mutate(amount)}
-                disabled={topUp.isPending}
-              >
-                <Text variant="h2" color={colors.gold}>
-                  {formatJOD(amount, lang)}
-                </Text>
-                {bonus > 0 ? (
-                  <View style={styles.bonusPill}>
-                    <Icon name="bean" size={12} color={colors.green} strokeWidth={2} />
-                    <Text variant="caption" color={colors.green}>
-                      {t('profile.reloadBonus', { beans: bonus })}
-                    </Text>
-                  </View>
-                ) : null}
-              </Pressable>
-            );
-          })}
+          {TOPUP_OPTIONS.map((amount) => (
+            <Pressable
+              key={amount}
+              style={({ pressed }) => [styles.option, pressed && styles.pressed]}
+              onPress={() => topUp.mutate(amount)}
+              disabled={topUp.isPending}
+            >
+              <Text variant="h2" color={colors.gold}>
+                {formatJOD(amount, lang)}
+              </Text>
+            </Pressable>
+          ))}
         </View>
 
+        {/* The wallet's bonus is for SPENDING it (owner, 2026-10-15: «لا يوجد
+            بونص شحن، البونص للانفاق فقط»), so this states the member's rate
+            from the balance beside their rate otherwise — both read off the
+            rung and config.WALLET_EARN_MULTIPLIER by useWalletRate. It replaced
+            a reload-bonus pill on each amount and a «اشحن أكثر واكسب نقاطاً
+            إضافية» note: top-ups earn nothing. */}
         <Text variant="caption" color={colors.green} center style={styles.bonusNote}>
-          {t('profile.reloadBonusNote')}
+          {t('profile.walletEarnNote', walletRate)}
         </Text>
-        {/* 🔴 DELETED, not reworded: this line promised «+50% نقاط (×1.5)» /
-            "+50% points (×1.5)" for paying from the balance. That is
-            config.WALLET_EARN_MULTIPLIER, RETIRED to 1.0 on 2026-09-06 after
-            zero rows in 171,291 live transactions, so it paid nothing. The
-            same claim was removed from the cart nudge, the home wallet card
-            and the website in W4; it survived HERE because it was a hardcoded
-            bilingual literal and the copy sweep read only the locale files.
-            Nothing replaces it: `profile.reloadBonusNote` directly above
-            already states the bonus that is real. */}
       </Screen>
     </>
   );
@@ -100,15 +87,5 @@ const styles = StyleSheet.create({
     ...shadow.card,
   },
   pressed: { opacity: 0.85 },
-  bonusPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 2,
-    backgroundColor: 'rgba(108,92,180,0.12)',
-    borderRadius: radius.pill,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 2,
-    marginTop: spacing.xs,
-  },
   bonusNote: { marginTop: spacing.lg },
 });

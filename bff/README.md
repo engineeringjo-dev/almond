@@ -28,7 +28,7 @@ into a public bundle. This service fixes all of that:
 | POST | `/v1/auth/otp/request` | `{ phone }` → sends OTP (dev: fixed code) |
 | POST | `/v1/auth/otp/verify` | `{ phone, code }` → `{ token, member }` |
 | POST | `/v1/checkout` | 🔒 + Idempotency-Key — atomic order + earn |
-| POST | `/v1/wallet/topup` | 🔒 + Idempotency-Key — reload + bonus |
+| POST | `/v1/wallet/topup` | 🔒 + Idempotency-Key — reload only; no points (the bonus is on spending the balance) |
 | POST | `/v1/loyalty/redeem` | 🔒 + Idempotency-Key — spend points |
 | POST | `/v1/pos/token` | 🔒 — issue a short-lived POS token |
 | POST | `/v1/pos/scan` | server-to-server (`x-pos-key`) — verify a token |

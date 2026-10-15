@@ -726,11 +726,10 @@ export interface Backend {
    * stamp makes it once per friend; a replayed or later paid order pays nothing.
    */
   checkout(memberId: string, input: CheckoutInput): Promise<CheckoutResult>;
-  /** Credit a top-up lot and grant its reload bonus in ONE transaction. A
-   *  bonus of 0 writes no points line, as the route always behaved. */
-  topUpWallet(
-    id: string, fils: number, bonusPoints: number, reasonAr: string, reasonEn: string,
-  ): Promise<{ walletBalanceFils: number; pointsBalance: number }>;
+  /** Credit a top-up lot. It grants no points: the reload bonus that used to
+   *  ride in this transaction was deleted (owner, 2026-10-15 — the bonus is for
+   *  spending, not loading). `pointsBalance` is reported, not changed. */
+  topUpWallet(id: string, fils: number): Promise<{ walletBalanceFils: number; pointsBalance: number }>;
 
   // ---- The till's earn (POST /v1/pos/earn) ----
   /**

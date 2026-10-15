@@ -5,23 +5,25 @@ import { Text } from '@/components/ui/Text';
 import { Icon } from '@/components/ui/Icon';
 import { Gradient } from '@/components/ui/Gradient';
 import { colors, spacing, radius, shadow } from '@/constants/theme';
-import { config } from '@/constants/config';
 import { useI18n } from '@/hooks/useI18n';
 import { formatJOD } from '@/lib/format';
 import { useWallet } from '@/hooks/useLoyalty';
+import { useWalletRate } from '@/hooks/useWalletRate';
 
 /**
  * Wallet card on Home (Revision Pack §J): prominent balance + top-up CTA.
  *
- * The hint used to read "Pay from balance and earn +50% points (×1.5)" —
- * config.WALLET_EARN_MULTIPLIER is 1.0 (retired, zero rows in 171,291 live
- * transactions), so that paid nothing. The RELOAD bonus is real and unretired
- * (config.WALLET_RELOAD_BONUS, granted in bff/src/routes/wallet.ts), so the
- * card now says that instead, with its own threshold interpolated.
+ * The hint states the wallet's one bonus: paying FROM the balance earns more
+ * (config.WALLET_EARN_MULTIPLIER, reinstated at 1.5 on 2026-09-08), named as
+ * the member's rate from the balance beside their rate otherwise — «٣٪» vs
+ * «٢٪» on the entry rung — by useWalletRate. It used to promise a reload bonus
+ * ("top up 20 JOD or more and get bonus points"); that is deleted (owner,
+ * 2026-10-15: «لا يوجد بونص شحن، البونص للانفاق فقط»).
  */
 export function WalletCard() {
   const { t, lang } = useI18n();
   const { data: balance } = useWallet();
+  const walletRate = useWalletRate();
 
   return (
     <Gradient preset="purple" style={styles.card}>
@@ -40,7 +42,7 @@ export function WalletCard() {
       </View>
 
       <Text variant="caption" color={colors.white} style={styles.hint}>
-        {t('home.walletHint', { min: config.WALLET_RELOAD_BONUS[0].minJOD })}
+        {t('home.walletHint', walletRate)}
       </Text>
 
       {/* Gold button → white background, black text (per design). */}

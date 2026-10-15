@@ -710,7 +710,7 @@ describe('R1.8 🔴 postgres.ts takes a row lock (FOR NO KEY UPDATE on members) 
       ['sweepRedemptions', () => b.sweepRedemptions(id, new Date())],
       // The composite movements that replaced multi-transaction sagas: ONE
       // transaction each, and it is the member lock that opens it.
-      ['topUpWallet', () => b.topUpWallet(id, 20_000, 50, 'أ', 'A')],
+      ['topUpWallet', () => b.topUpWallet(id, 20_000)],
       ['checkout', () => b.checkout(id, {
         order: { branchId: 'b1', type: 'pickup', paymentMethod: 'wallet', subtotal: 3, tax: 0.24, total: 3.24 },
         walletDebitFils: 3_240, pointsEarned: 16, pointsReasonAr: 'نقاط طلب', pointsReasonEn: 'Order points',

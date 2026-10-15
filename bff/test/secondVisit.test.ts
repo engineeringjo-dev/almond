@@ -707,28 +707,31 @@ describe('T32t the row stores the stamp, not a boolean', () => {
 // ---------------------------------------------------------------------------
 // T32u — the guard must withhold from migrated members and NOBODY ELSE.
 // ---------------------------------------------------------------------------
-describe('T32u a wallet top-up does not disqualify a brand-new member', () => {
-  it('the member who tops up first still gets the voucher on their first drink', async () => {
+describe('T32u points the BFF granted itself do not disqualify a brand-new member', () => {
+  it('the member who completes their profile first still gets the voucher on their first drink', async () => {
     // 🔴 THE DEFECT. The eligibility guard read the member's RAW points
     // balance as evidence of a history the BFF cannot see. But the BFF grants
-    // points itself: POST /v1/wallet/topup pays WALLET_RELOAD_BONUS (50 points
-    // at 20 JOD) with no order behind it. A first-time member who topped up
-    // before their first purchase therefore looked migrated, was written a
+    // points itself with no order behind them. It was found on the wallet
+    // top-up, whose reload bonus paid 50 points at 20 JOD: a first-time member
+    // who topped up before their first purchase looked migrated, was written a
     // PERMANENT 'ineligible' row, and could never be issued the voucher —
-    // silently, with no error raised. W4's home screen actively invites that
-    // path ("Top up 20 JOD or more and get bonus points ☕"), and the damage is
-    // not only the lost voucher: the withheld population becomes "the holdout
-    // arm ∪ the members who topped up first", and the second set is neither
-    // randomised nor recorded as such.
+    // silently. The damage was not only the lost voucher: the withheld
+    // population became "the holdout arm ∪ the members who topped up first",
+    // neither randomised nor recorded as such.
+    //
+    // The reload bonus is deleted (owner, 2026-10-15), but the class is not:
+    // the profile bonus (config.PROFILE_COMPLETION_BONUS) is the same kind of
+    // orderless grant, offered on Home before the first order. It carries the
+    // assertion now.
     const m = await enrolTreatment();
 
-    const top = await app.inject({
-      method: 'POST', url: '/v1/wallet/topup',
-      payload: { amount: 20 },
-      headers: auth(m.token, { 'idempotency-key': randomUUID() }),
+    const profile = await app.inject({
+      method: 'POST', url: '/v1/me/profile',
+      payload: { name: 'سارة', birthday: '1994-03-02', gender: 'female' },
+      headers: auth(m.token),
     });
-    expect(top.statusCode).toBe(201);
-    expect(top.json().bonusPoints).toBeGreaterThan(0);
+    expect(profile.statusCode).toBe(200);
+    expect(profile.json().bonusGranted).toBeGreaterThan(0);
     expect(liveBalance((await backend.getMember(m.id)).lots)).toBeGreaterThan(0);
 
     const r = await checkout(m.token, DRINK.id);

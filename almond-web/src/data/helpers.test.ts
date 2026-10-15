@@ -3,13 +3,13 @@ import type { Branch, CartItem } from '@almond/shared/types';
 import { menuItems } from '@almond/shared/menu';
 import { config } from '@/lib/config';
 import { createMockOrder, estimatePrepMinutes, DISPLAY_EARN_RULES, type PlaceOrderInput } from '@/data/order';
-import { reloadBonus, tierProgress, genGiftCode } from '@/data/loyalty';
+import { tierProgress, genGiftCode } from '@/data/loyalty';
 import { getBranches, isBranchOpen } from '@/data/branches';
 import { getFeaturedItems } from '@/data/featured';
 
 /**
  * Guards the branching helpers under src/data/**: the order the site builds at
- * checkout (money + Amman timestamps), prep-time estimate, wallet reload bonus,
+ * checkout (money + Amman timestamps), prep-time estimate,
  * tier progress, branch open/closed and the featured row.
  *
  * All clocks are fixed (fake timers); the suite runs with TZ=UTC
@@ -111,17 +111,6 @@ describe('createMockOrder', () => {
 describe('DISPLAY_EARN_RULES', () => {
   it('keeps the Friday/weekday bonus OUT of the displayed beans (LOYALTY-EARN-PATCH §8.9)', () => {
     expect(DISPLAY_EARN_RULES.weekdayBonus).toEqual([]);
-  });
-});
-
-describe('reloadBonus', () => {
-  it('applies the highest qualifying tier from config.WALLET_RELOAD_BONUS', () => {
-    const tiers = [...config.WALLET_RELOAD_BONUS].sort((a, b) => a.minJOD - b.minJOD);
-    expect(reloadBonus(0)).toBe(0);
-    expect(reloadBonus(tiers[0].minJOD - 0.001)).toBe(0);
-    for (const t of tiers) expect(reloadBonus(t.minJOD)).toBe(t.bonusBeans);
-    const top = tiers[tiers.length - 1];
-    expect(reloadBonus(top.minJOD * 10)).toBe(Math.max(...tiers.map((t) => t.bonusBeans)));
   });
 });
 

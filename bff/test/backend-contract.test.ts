@@ -338,14 +338,12 @@ describe.each(BACKENDS)('T37 backend contract — %s', (_name, make) => {
     expect((await backend.getStanding(id)).windowSpend).toBe(0);
   });
 
-  it('a top-up and its reload bonus land together; a zero bonus writes no points line', async () => {
+  it('a top-up credits money and writes no points line (no reload bonus, owner 2026-10-15)', async () => {
     const id = await newMember();
-    expect(await backend.topUpWallet(id, 20_000, 50, 'مكافأة', 'Bonus')).toEqual({ walletBalanceFils: 20_000, pointsBalance: 50 });
-    expect((await backend.getHistory(id))[0]).toMatchObject({ deltaPoints: 50, reasonEn: 'Bonus' });
-    await backend.topUpWallet(id, 1_000, 0, 'مكافأة', 'Bonus');
-    expect(await backend.getHistory(id)).toHaveLength(1);
-    await expect(backend.topUpWallet(id, 1_000, -5, 'x', 'x')).rejects.toMatchObject({ code: 'negative_grant' });
-    expect(await wallet(id)).toBe(21_000);
+    expect(await backend.topUpWallet(id, 20_000)).toEqual({ walletBalanceFils: 20_000, pointsBalance: 0 });
+    expect(await backend.topUpWallet(id, 35_000)).toEqual({ walletBalanceFils: 55_000, pointsBalance: 0 });
+    expect(await backend.getHistory(id)).toHaveLength(0);
+    expect(await wallet(id)).toBe(55_000);
   });
 
   // ---- the Idempotency-Key store ----

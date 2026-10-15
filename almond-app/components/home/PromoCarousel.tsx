@@ -5,8 +5,8 @@ import { Text } from '@/components/ui/Text';
 import { Gradient } from '@/components/ui/Gradient';
 import { ComboOfferCard } from '@/components/home/ComboOfferCard';
 import { colors, spacing, radius, shadow } from '@/constants/theme';
-import { config } from '@/constants/config';
 import { useI18n } from '@/hooks/useI18n';
+import { useWalletRate } from '@/hooks/useWalletRate';
 
 interface Promo {
   id: string;
@@ -15,7 +15,8 @@ interface Promo {
    *  `titleEn` string literals, which is how three false claims lived on the
    *  offers page through a copy repair that scanned only the locale files. */
   titleKey: string;
-  params?: Record<string, string | number>;
+  /** Read at render, because a tile may name the member's own rate. */
+  params?: (ctx: { walletRate: { rate: string; base: string } }) => Record<string, string | number>;
   onPress: () => void;
 }
 
@@ -37,12 +38,12 @@ interface Promo {
  *     `[]` and `BONUS_BEAN_DAY.enabled` is false, both retired 2026-09-06. This
  *     is the same promise W4 removed from the locale files as
  *     `tierBenefits.doubleDays4/6`; only the hardcoding saved it.
- *   - `wallet` — "Top up your wallet, earn +50% points". The claim was
- *     `WALLET_EARN_MULTIPLIER`, retired to 1.0 after ZERO rows in 171,291 live
- *     transactions, so it paid nothing. The RELOAD bonus is real
- *     (config.WALLET_RELOAD_BONUS, granted in bff/src/routes/wallet.ts), so the
- *     tile now says that instead, through `home.walletHint` — the same key and
- *     the same threshold the wallet card on this screen already uses.
+ *   - `wallet` — "Top up your wallet, earn +50% points". A hardcoded rate,
+ *     invisible to the locale tests. The tile says the same thing through
+ *     `home.walletHint` now — the key the wallet card on this screen uses —
+ *     with the member's rate from the balance interpolated (useWalletRate).
+ *     For a few weeks it advertised a RELOAD bonus instead; that was deleted
+ *     2026-10-15 (owner: «لا يوجد بونص شحن، البونص للانفاق فقط»).
  *
  * The `rewards` tile replaces the deleted Friday one with a claim that is
  * true at every rung and states no number at all, on keys that already ship.
@@ -52,7 +53,7 @@ const promos: Promo[] = [
     id: 'wallet',
     emoji: '👛',
     titleKey: 'home.walletHint',
-    params: { min: config.WALLET_RELOAD_BONUS[0].minJOD },
+    params: ({ walletRate }) => walletRate,
     onPress: () => router.push('/profile/wallet'),
   },
   {
@@ -65,6 +66,7 @@ const promos: Promo[] = [
 
 export function PromoCarousel() {
   const { t } = useI18n();
+  const walletRate = useWalletRate();
   return (
     <View>
       <Text variant="title" style={styles.heading}>
@@ -86,7 +88,7 @@ export function PromoCarousel() {
             <Gradient preset="purple" style={styles.card}>
               <Text style={styles.emoji}>{p.emoji}</Text>
               <Text variant="bodyBold" color={colors.white}>
-                {t(p.titleKey, p.params)}
+                {t(p.titleKey, p.params?.({ walletRate }))}
               </Text>
             </Gradient>
           </Pressable>

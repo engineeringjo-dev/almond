@@ -1,13 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { redeemOptions } from '@almond/shared/loyalty/redeem';
-import { reloadBonus } from '@/data/loyalty';
 
 /**
  * Guards the other client stores:
  *   - menuOverlayStore: how admin edits MERGE per item (the overlay that
  *     data/menu.ts#applyOverlay renders), reset one / reset all;
  *   - loyaltyStore: redeeming points never overspends, the voucher is worth
- *     exactly the option shown, top-up bonus = data/loyalty#reloadBonus, a sent
+ *     exactly the option shown, a top-up earns no points, a sent
  *     gift can be redeemed once;
  *   - authStore: the mock OTP accepts only 4 digits for a pending phone and
  *     derives a stable id from the phone.
@@ -85,19 +84,14 @@ describe('loyaltyStore', () => {
     expect(s.getState().redeemReward(option)).toBe(false);
   });
 
-  it('topUp credits the wallet and adds exactly reloadBonus(amount) points', async () => {
+  it('topUp credits the wallet and NOTHING else — no points at any amount', async () => {
+    // Owner, 2026-10-15: «لا يوجد بونص شحن، البونص للانفاق فقط». Asserted at
+    // the deleted reload bonus's two thresholds (20 → +50, 35 → +120) and above.
     const s = await load();
-    const { walletBalance, points } = s.getState();
-    s.getState().topUp(35);
-    expect(s.getState().walletBalance).toBeCloseTo(walletBalance + 35, 9);
-    expect(s.getState().points).toBe(points + reloadBonus(35));
-    expect(s.getState().walletHistory[0].amount).toBe(35);
-  });
-
-  it('a top-up below every bonus tier adds no points and no points-history row', async () => {
-    const s = await load();
-    const { points, pointsHistory } = s.getState();
-    s.getState().topUp(1);
+    const { walletBalance, points, pointsHistory } = s.getState();
+    for (const amount of [20, 35, 50]) s.getState().topUp(amount);
+    expect(s.getState().walletBalance).toBeCloseTo(walletBalance + 105, 9);
+    expect(s.getState().walletHistory[0].amount).toBe(50);
     expect(s.getState().points).toBe(points);
     expect(s.getState().pointsHistory).toBe(pointsHistory);
   });
