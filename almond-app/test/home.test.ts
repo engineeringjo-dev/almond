@@ -84,6 +84,20 @@ describe('H2 «الأكثر طلباً» is measured, not a sample', () => {
   });
 });
 
+describe('H2b every row headed «الأكثر طلباً» is ranked by bestSellers', () => {
+  // Three rows said "most ordered" and none was: the Home row and the Order
+  // tab's strip took the first photographed item of each category, and the
+  // website every Nth photographed item.
+  it('the Order tab\'s strip, the Home carousel and the website row', () => {
+    const order = code('app/(tabs)/order.tsx');
+    expect(order).toMatch(/t\('order\.trending'\)/);
+    expect(order).toMatch(/const trending = useMemo\(\(\) => bestSellers\(/);
+    expect(code('lib/homeSlides.ts')).toMatch(/bestSellers\(1, \{ kind, items: ctx\.items \}\)/);
+    const web = readFileSync(join(APP, '..', 'almond-web', 'src', 'data', 'featured.ts'), 'utf8');
+    expect(web).toMatch(/return bestSellers\(limit\)/);
+  });
+});
+
 describe('H3 the carousel slides', () => {
   const ctx = {
     lang: 'ar' as const,

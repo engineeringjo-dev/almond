@@ -139,11 +139,21 @@ export function ItemModal({ item, visible, onClose }: Props) {
         >
           <Icon name="heart" size={22} color={isFav ? colors.red : colors.warmGray} strokeWidth={2} />
         </Pressable>
-        <View style={styles.thumb}>
+        {/* The photograph is the page's first word: full width and tall,
+            where it was a 112pt thumbnail, about a fifth of the width (expert
+            panel, 2026-10-15). Precedent: Talabat and Starbucks open an item
+            on its photo. White in both schemes: the menu photos are shot on
+            white. */}
+        <View style={[styles.hero, item.imageUrl ? styles.heroPhoto : styles.heroIcon]}>
           {item.imageUrl ? (
-            <Image source={{ uri: menuImage(item.imageUrl, 560) }} style={styles.photo} resizeMode="contain" />
+            <Image
+              source={{ uri: menuImage(item.imageUrl, 720) }}
+              style={styles.photo}
+              resizeMode="contain"
+              accessibilityIgnoresInvertColors
+            />
           ) : (
-            <Icon name={iconForCategory(item.categoryId)} size={52} color={colors.brown} strokeWidth={1.6} />
+            <Icon name={iconForCategory(item.categoryId)} size={72} color={colors.dark} strokeWidth={1.4} />
           )}
         </View>
         <Text variant="h2" center>{lang === 'ar' ? item.nameAr : item.nameEn}</Text>
@@ -332,10 +342,11 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 const styles = StyleSheet.create({
   header: { alignItems: 'center', gap: 2, marginBottom: spacing.md },
   footer: { gap: spacing.sm },
+  // Inside the photograph's corner, where Talabat and Starbucks put it.
   favBtn: {
     position: 'absolute',
-    top: 0,
-    end: 0,
+    top: spacing.sm,
+    end: spacing.sm,
     width: 40,
     height: 40,
     borderRadius: 20,
@@ -344,11 +355,22 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     zIndex: 2,
   },
-  thumb: {
-    width: 112, height: 112, borderRadius: radius.lg, backgroundColor: colors.white,
-    alignItems: 'center', justifyContent: 'center', marginBottom: spacing.sm, overflow: 'hidden',
+  hero: {
+    alignSelf: 'stretch',
+    height: 240,
+    borderRadius: radius.lg,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: spacing.md,
+    overflow: 'hidden',
   },
-  photo: { width: '100%', height: '100%' },
+  heroPhoto: { backgroundColor: colors.white },
+  // No photo: a quiet fill under an ink icon, which is light in dark mode
+  // and would vanish on white.
+  heroIcon: { backgroundColor: colors.neutralWarm },
+  // The product fills about half of each square frame; the zoom crops the
+  // white margin so the product, not the paper, fills the frame.
+  photo: { width: '100%', height: '100%', transform: [{ scale: 1.3 }] },
   desc: { marginTop: spacing.sm },
   nutrition: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: spacing.sm, marginTop: spacing.md },
   nutriPill: {

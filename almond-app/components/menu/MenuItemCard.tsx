@@ -51,7 +51,8 @@ function MenuItemCardBase({ item, onPress }: Props) {
           </View>
         ) : null}
       </View>
-      <Text variant="bodyBold" numberOfLines={1}>
+      {/* Two lines: «بايغل مع أومليت وجبنة شيدر» was «بايغل مع أومل…» on one. */}
+      <Text variant="bodyBold" numberOfLines={2}>
         {lang === 'ar' ? item.nameAr : item.nameEn}
       </Text>
       {/* The other language's name, only when Odoo has a translation —

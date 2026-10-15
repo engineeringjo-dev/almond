@@ -29,6 +29,7 @@ import { useFavouritesStore } from '@/stores/favouritesStore';
 import { useCartStore } from '@/stores/cartStore';
 import { useToastStore } from '@/stores/toastStore';
 import type { MenuItem, Order, CartItem } from '@/types';
+import { bestSellers } from '@almond/shared/lib/recommendations';
 
 type SubTab = 'menu' | 'featured' | 'previous' | 'favourites';
 
@@ -40,7 +41,6 @@ const SUB_TABS: { id: SubTab; label: string }[] = [
   { id: 'favourites', label: 'order.tabFavourites' },
 ];
 
-// A small, curated "trending" set for the Menu strip (§2.2).
 // Category-name keywords used to surface the Featured tab's collections.
 const SEASONAL_KW = /seasonal|new|autumn|spring|mother|ramadan|gift/i;
 const HIGHLIGHT_KW = /croissant|sandwich|manaqeesh|bagel|pizza|cake|dessert/i;
@@ -159,14 +159,10 @@ function MenuTab({
   const [activeCat, setActiveCat] = useState('all');
   const [query, setQuery] = useState('');
 
-  // Trending = a varied set across categories (drinks + food + pizza + cakes).
-  const trending = useMemo(() => {
-    const byCat = new Map<string, MenuItem>();
-    for (const it of items) {
-      if (it.imageUrl && !byCat.has(it.categoryId)) byCat.set(it.categoryId, it);
-    }
-    return [...byCat.values()].slice(0, 12);
-  }, [items]);
+  // «الأكثر طلباً» means it: the items paid Odoo orders hold most, from the
+  // one shared rule (bestSellers). It was the first photographed item of
+  // each category, a sample under a heading that claimed a ranking.
+  const trending = useMemo(() => bestSellers(12, { items }), [items]);
 
   const displayed = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -205,7 +201,12 @@ function MenuTab({
               </Text>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.trendRow}>
                 {trending.map((item) => (
-                  <Pressable key={item.id} style={styles.trendItem} onPress={() => onSelect(item)}>
+                  <Pressable
+                    key={item.id}
+                    style={styles.trendItem}
+                    onPress={() => onSelect(item)}
+                    accessibilityRole="button"
+                  >
                     <View style={styles.trendThumb}>
                       {item.imageUrl ? (
                         <Image source={{ uri: menuImage(item.imageUrl, 200) }} style={styles.trendPhoto} resizeMode="cover" />
