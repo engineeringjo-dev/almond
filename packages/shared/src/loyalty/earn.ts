@@ -1,6 +1,6 @@
 import { config } from '../config';
 import { corporateEarnsPoints } from './corporate';
-import { tiers } from './constants';
+import { rateName, tiers } from './constants';
 import { ammanWeekday } from '../lib/ammanWeekday';
 
 /** One rung of the ladder, as the earn calculation needs it. */
@@ -76,6 +76,28 @@ export function rungFromSpend(spend: number, ramp: readonly TierRung[]): TierRun
  */
 export function higherRung(a: TierRung, b: TierRung): TierRung {
   return b.multiplier > a.multiplier ? b : a;
+}
+
+/**
+ * The cashback a member is paid on a bill settled FROM THE WALLET (top-up or
+ * gift-card balance; they are one kind of money): the rung's multiplier ×
+ * walletMultiplier, under the maxEarnMultiplier ceiling — the stack
+ * computeEarn below pays — named as the rungs are: "3%" / «٣٪» on the entry
+ * rung. It lives here because T7 keeps every piece of earn arithmetic in this
+ * one module.
+ *
+ * Owner, 2026-10-15: «لا يوجد بونص شحن، البونص للانفاق فقط» — the wallet's
+ * reward is for SPENDING it, never for loading it. This is therefore the one
+ * wallet number a screen may promise, read off the dials so it moves when they
+ * do. bff/test/profile.test.ts T34f pins it against computeEarn on every rung.
+ */
+export function walletRateName(
+  tier: { multiplier: number },
+  lang: 'ar' | 'en',
+  rules: EarnRules = earnRulesFromConfig(),
+): string {
+  const stack = Math.min(tier.multiplier * rules.walletMultiplier, rules.maxEarnMultiplier);
+  return rateName((rules.pointsPerJod * stack * 100) / rules.pointsPerJodRedeem, lang);
 }
 
 export function earnRulesFromConfig(): EarnRules {
