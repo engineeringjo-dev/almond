@@ -48,7 +48,7 @@ export function UsualOrderCard() {
       cta={t('home.usualAdd', { total: formatJOD(total, lang) })}
       photos={photos}
       icon={iconForItem(usual.items[0]?.itemId ?? '')}
-      plate={96}
+      plate={120}
       onPress={addAll}
       style={styles.block}
     />

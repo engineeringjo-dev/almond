@@ -47,7 +47,7 @@ export function OrderNowButton({ branch }: { branch?: Branch }) {
         subtitle={t('home.cartLine', { count, total: formatJOD(total, lang) })}
         photos={[lead?.imageUrl]}
         icon="cart"
-        plate={84}
+        plate={112}
         onPress={() => router.push('/cart')}
       />
     );
@@ -62,7 +62,7 @@ export function OrderNowButton({ branch }: { branch?: Branch }) {
         subtitle={branchName ? t('home.pickupAt', { branch: branchName }) : undefined}
         photos={[photo]}
         icon="coffee"
-        plate={84}
+        plate={112}
         onPress={() => setOpen(true)}
       />
       <OrderTypeSheet visible={open} onClose={() => setOpen(false)} />

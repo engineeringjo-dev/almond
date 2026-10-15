@@ -78,7 +78,8 @@ export function TierProgress({ tier, windowSpend, nextTier }: Props) {
         </View>
       </View>
 
-      {/* labels — the rate itself, from the tier data */}
+      {/* labels — the rate itself, from the tier data. The member's rung is
+          named in words under its rate, not by colour alone (WCAG 1.4.1). */}
       <View style={styles.labels}>
         {tiers.map((tr) => (
           <View key={tr.id} style={styles.labelCol}>
@@ -90,6 +91,11 @@ export function TierProgress({ tier, windowSpend, nextTier }: Props) {
             >
               {tierName(tr, lang)}
             </Text>
+            {tr.id === tier ? (
+              <Text variant="caption" color={colors.dark} center>
+                {t('loyalty.tier')}
+              </Text>
+            ) : null}
           </View>
         ))}
       </View>
@@ -111,13 +117,16 @@ const STOP = 26;
 const styles = StyleSheet.create({
   wrap: { gap: spacing.sm },
   trackArea: { height: STOP, justifyContent: 'center' },
+  // The road not yet travelled is a boundary you must see: `outline`, 3.47:1
+  // on the card (WCAG 1.4.11). It was `neutralWarm`, 1.15:1, and the rungs
+  // ahead all but vanished (Dunkin' panel, 2026-10-15).
   track: {
     position: 'absolute',
     start: STOP / 2,
     end: STOP / 2,
     height: 8,
     borderRadius: radius.pill,
-    backgroundColor: colors.neutralWarm,
+    backgroundColor: colors.outline,
   },
   fill: {
     position: 'absolute',
@@ -135,7 +144,7 @@ const styles = StyleSheet.create({
     borderRadius: STOP / 2,
     backgroundColor: colors.cardBg,
     borderWidth: 2,
-    borderColor: colors.neutralWarm,
+    borderColor: colors.outline,
     alignItems: 'center',
     justifyContent: 'center',
   },

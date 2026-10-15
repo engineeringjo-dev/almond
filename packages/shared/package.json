@@ -30,6 +30,7 @@
     "./loyalty/visitRating": "./src/loyalty/visitRating.ts",
     "./loyalty/accountDeletion": "./src/loyalty/accountDeletion.ts",
     "./loyalty/welcome": "./src/loyalty/welcome.ts",
+    "./loyalty/balanceBuys": "./src/loyalty/balanceBuys.ts",
     "./pos/tokenWire": "./src/pos/tokenWire.ts",
     "./menu": "./src/menu/index.ts",
     "./menu/menu.generated": "./src/menu/menu.generated.ts",

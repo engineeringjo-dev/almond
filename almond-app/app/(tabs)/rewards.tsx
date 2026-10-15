@@ -16,6 +16,7 @@ import { PeekCarousel } from '@/components/ui/PeekCarousel';
 import { TierBadge, TIER_FILL } from '@/components/loyalty/TierBadge';
 import { BonusDayBanner } from '@/components/loyalty/BonusDayBanner';
 import { WelcomeGiftNote } from '@/components/loyalty/WelcomeGiftNote';
+import { BalanceWorth } from '@/components/loyalty/BalanceWorth';
 import { colors, spacing, radius, shadow } from '@/constants/theme';
 import { config } from '@/constants/config';
 import { useI18n } from '@/hooks/useI18n';
@@ -207,6 +208,7 @@ export default function RewardsScreen() {
         <Text variant="display" color={colors.onHero}>
           {formatNumber(points, lang)}
         </Text>
+        <BalanceWorth points={points} />
         <Text variant="caption" color={colors.onHeroMuted}>
           {/* WHICH points, and WHEN — never "your points expire on X" for a
               balance made of grants months apart, and never "your points never

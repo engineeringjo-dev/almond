@@ -7,6 +7,7 @@ import { Card } from '@/components/ui/Card';
 import { HeroCard } from '@/components/ui/HeroCard';
 import { TierBadge } from '@/components/loyalty/TierBadge';
 import { TierProgress } from '@/components/loyalty/TierProgress';
+import { BalanceWorth } from '@/components/loyalty/BalanceWorth';
 import { VoucherCard } from '@/components/loyalty/VoucherCard';
 import { PointsHistory } from '@/components/loyalty/PointsHistory';
 import { colors, spacing, radius, shadow } from '@/constants/theme';
@@ -49,6 +50,7 @@ export default function LoyaltyScreen() {
           <Text variant="display" color={colors.onHero}>
             {formatNumber(balance.points, lang)}
           </Text>
+          <BalanceWorth points={balance.points} />
           <View style={styles.tierRow}>
             <TierBadge tier={balance.tier} onHero />
           </View>

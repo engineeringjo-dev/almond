@@ -147,6 +147,17 @@ export function paletteFor(scheme: ColorScheme) {
     /** A scrim under a sheet or a dialog. */
     scrim: scheme === 'dark' ? 'rgba(0,0,0,0.6)' : 'rgba(17,17,17,0.45)',
     /**
+     * DARK MODE DIMS A PRODUCT PHOTOGRAPH, ITS WHITE GROUND WITH IT. The 308
+     * menu photographs are shot on white, so a white plate is their own
+     * ground; in dark mode it was the brightest thing on screen — 14.8% of the
+     * order screen and 20.3% of the item sheet, brighter than the primary
+     * button (Dunkin' panel, 2026-10-15). This layer over the photograph turns
+     * the white into #E2E2E2 and leaves the button the brightest again.
+     * Nothing in light mode. Precedent: iOS dims the wallpaper in the dark
+     * appearance; Apple HIG (Dark Mode) asks images to suit both.
+     */
+    photoDim: scheme === 'dark' ? 'rgba(15,15,15,0.12)' : 'transparent',
+    /**
      * THE BLACK CARD — the membership card, the wallet, a promotion: the
      * cards that used to be violet gradients. Black on the white page, like
      * the shops' black facades; in dark mode a black card would vanish into

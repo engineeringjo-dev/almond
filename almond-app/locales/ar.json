@@ -419,7 +419,8 @@
     "wholeBalance": "كل نقاطك",
     "costsPoints": "{{points}} نقطة",
     "redeemA11y": "اخصم {{jod}} من فاتورتك مقابل {{points}} نقطة",
-    "creditVoucher": "خصم {{jod}} من فاتورتك"
+    "creditVoucher": "خصم {{jod}} من فاتورتك",
+    "balanceBuys": "تساوي {{jod}}، وتكفي {{times}}× {{name}}"
   },
   "tierBenefits": {
     "cashback": "{{rate}} ترجع لك من كل طلب",

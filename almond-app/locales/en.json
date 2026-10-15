@@ -419,7 +419,8 @@
     "wholeBalance": "all your points",
     "costsPoints": "Points: {{points}}",
     "redeemA11y": "Take {{jod}} off your bill for {{points}} points",
-    "creditVoucher": "{{jod}} off your bill"
+    "creditVoucher": "{{jod}} off your bill",
+    "balanceBuys": "Worth {{jod}}: enough for {{times}}× {{name}}"
   },
   "tierBenefits": {
     "cashback": "{{rate}} back on every order",

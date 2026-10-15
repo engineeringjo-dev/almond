@@ -4,6 +4,7 @@ import { Text } from '@/components/ui/Text';
 import { Icon, type IconName } from '@/components/ui/Icon';
 import { colors, spacing, radius } from '@/constants/theme';
 import { menuImage } from '@/lib/menuImage';
+import { PhotoDim } from '@/components/ui/PhotoDim';
 
 export interface PhotoTileProps {
   title: string;
@@ -20,7 +21,7 @@ export interface PhotoTileProps {
   /** Keyboard focus on the web: the carousel brings a focused slide into view. */
   onFocus?: () => void;
   titleVariant?: 'h2' | 'bodyBold';
-  /** Side of the photo plate, in points. */
+  /** The photo panel's width and least height, in points. */
   plate?: number;
   style?: StyleProp<ViewStyle>;
 }
@@ -37,9 +38,16 @@ export interface PhotoTileProps {
  * The tile is the `surface` fill, the colour of something to press. The black
  * card above it is the only black on Home.
  *
+ * THE PHOTOGRAPH LEADS: it fills the tile's end edge to edge, top to bottom,
+ * where it was a 112pt plate inset in the tile, 24% of it (Dunkin' panel,
+ * 2026-10-15: photographs fill 53% of Dunkin's Home and 5.7% of ours).
+ * Precedent: Dunkin', Talabat and Careem offer cards, the picture to the
+ * card's edge.
+ *
  * The photograph sits on a WHITE plate in both schemes. All but two of the
  * 308 menu photos are shot on white, so a plate is the photo's own ground. In
- * dark mode it reads as a product card, not as a white hole cut in the tile.
+ * dark mode it reads as a product card, not as a white hole cut in the tile,
+ * and PhotoDim takes the edge off it, so it is not the brightest thing there.
  */
 export function PhotoTile({
   title,
@@ -51,7 +59,7 @@ export function PhotoTile({
   accessibilityHint,
   onFocus,
   titleVariant = 'bodyBold',
-  plate = 112,
+  plate = 140,
   style,
 }: PhotoTileProps) {
   const shots = photos.filter((p): p is string => !!p).slice(0, 2);
@@ -90,14 +98,14 @@ export function PhotoTile({
 function Plate({ shots, icon, size }: { shots: string[]; icon: IconName; size: number }) {
   if (shots.length === 0) {
     return (
-      <View style={[styles.plate, styles.iconPlate, { width: size, height: size }]}>
+      <View style={[styles.plate, styles.iconPlate, { width: size, minHeight: size }]}>
         <Icon name={icon} size={Math.round(size * 0.42)} color={colors.dark} strokeWidth={1.5} />
       </View>
     );
   }
   return (
     <View
-      style={[styles.plate, styles.photoPlate, { width: size, height: size }]}
+      style={[styles.plate, styles.photoPlate, { width: size, minHeight: size }]}
       accessibilityElementsHidden
       importantForAccessibility="no-hide-descendants"
     >
@@ -115,23 +123,25 @@ function Plate({ shots, icon, size }: { shots: string[]; icon: IconName; size: n
           ))}
         </View>
       )}
+      <PhotoDim />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
+  // The words keep the padding; the photo runs to the tile's edge, which
+  // clips it to the tile's corners.
   tile: {
     flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
+    alignItems: 'stretch',
     backgroundColor: colors.surface,
     borderRadius: radius.lg,
-    padding: spacing.lg,
+    overflow: 'hidden',
   },
   pressed: { opacity: 0.85 },
   /** `minWidth: 0` lets a long Arabic name wrap instead of pushing the plate
    *  off the tile. */
-  words: { flex: 1, minWidth: 0, gap: spacing.xs, alignItems: 'flex-start' },
+  words: { flex: 1, minWidth: 0, gap: spacing.xs, alignItems: 'flex-start', justifyContent: 'center', padding: spacing.lg },
   cta: {
     marginTop: spacing.xs,
     backgroundColor: colors.dark,
@@ -141,7 +151,7 @@ const styles = StyleSheet.create({
     maxWidth: '100%',
   },
   ctaText: { fontWeight: '700' },
-  plate: { borderRadius: radius.md, overflow: 'hidden', alignItems: 'center', justifyContent: 'center' },
+  plate: { alignSelf: 'stretch', overflow: 'hidden', alignItems: 'center', justifyContent: 'center' },
   photoPlate: { backgroundColor: colors.white },
   iconPlate: { backgroundColor: colors.neutralWarm },
   // The product fills about half of each frame; the zoom crops the white

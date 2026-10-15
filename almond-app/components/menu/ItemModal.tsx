@@ -4,6 +4,7 @@ import { View, StyleSheet, Pressable, Image } from 'react-native';
 import { BottomSheet } from '@/components/ui/BottomSheet';
 import { Text } from '@/components/ui/Text';
 import { menuImage } from '@/lib/menuImage';
+import { PhotoDim } from '@/components/ui/PhotoDim';
 import { Button } from '@/components/ui/Button';
 import { Stepper } from '@/components/ui/Stepper';
 import { Icon } from '@/components/ui/Icon';
@@ -159,6 +160,7 @@ export function ItemModal({ item, visible, onClose }: Props) {
           ) : (
             <Icon name={iconForCategory(item.categoryId)} size={72} color={colors.dark} strokeWidth={1.4} />
           )}
+          {item.imageUrl ? <PhotoDim /> : null}
         </View>
         <Text variant="h2" center>{lang === 'ar' ? item.nameAr : item.nameEn}</Text>
         {secondaryName(item, lang) ? (

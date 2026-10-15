@@ -24,6 +24,7 @@ import { useOrderHistory } from '@/hooks/useOrder';
 import { MIN_TOUCH_TARGET, tabA11y } from '@/lib/a11y';
 import { formatJOD, formatDate } from '@/lib/format';
 import { menuImage } from '@/lib/menuImage';
+import { PhotoDim } from '@/components/ui/PhotoDim';
 import { iconForCategory, iconForItem } from '@/lib/productIcon';
 import { useFavouritesStore } from '@/stores/favouritesStore';
 import { useCartStore } from '@/stores/cartStore';
@@ -318,7 +319,10 @@ function MenuTab({
                         >
                           <View style={styles.trendThumb}>
                             {item.imageUrl ? (
-                              <Image source={{ uri: menuImage(item.imageUrl, 200) }} style={styles.trendPhoto} resizeMode="cover" />
+                              <>
+                                <Image source={{ uri: menuImage(item.imageUrl, 200) }} style={styles.trendPhoto} resizeMode="cover" />
+                                <PhotoDim />
+                              </>
                             ) : (
                               <Icon name={iconForCategory(item.categoryId)} size={30} color={colors.brown} strokeWidth={1.6} />
                             )}

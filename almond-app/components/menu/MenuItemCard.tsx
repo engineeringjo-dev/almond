@@ -2,6 +2,7 @@ import { memo } from 'react';
 import { Pressable, StyleSheet, View, Image, useWindowDimensions } from 'react-native';
 import { Text } from '@/components/ui/Text';
 import { menuImage } from '@/lib/menuImage';
+import { PhotoDim } from '@/components/ui/PhotoDim';
 import { Icon } from '@/components/ui/Icon';
 import { colors, radius, spacing, shadow } from '@/constants/theme';
 import { useI18n } from '@/hooks/useI18n';
@@ -41,6 +42,7 @@ function MenuItemCardBase({ item, onPress }: Props) {
         ) : (
           <Icon name={iconForCategory(item.categoryId)} size={44} color={colors.brown} strokeWidth={1.6} />
         )}
+        <PhotoDim />
         {item.isBrunch ? (
           <View style={styles.brBadge}>
             <Text variant="caption" color={colors.dark} style={styles.brText}>
