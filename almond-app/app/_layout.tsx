@@ -20,6 +20,7 @@ import { useAppFonts } from '@/constants/fonts';
 import { useReducedMotion } from '@/hooks/useReducedMotion';
 import { ErrorBoundary } from '@/components/ui/ErrorBoundary';
 import { CartToast } from '@/components/ui/CartToast';
+import { EarnQrSheet } from '@/components/pay/EarnQrSheet';
 import { colors, layout } from '@/constants/theme';
 import { hydrateMenuFromCache, refreshMenu } from '@/services/menuSync';
 
@@ -163,6 +164,9 @@ export default function RootLayout() {
             <Stack.Screen name="transfer" />
           </Stack>
           <CartToast />
+          {/* «اجمع نقاطك» — one sheet over every screen, opened on launch and
+              from Home's header (components/pay/EarnQrSheet.tsx). */}
+          <EarnQrSheet />
           </ErrorBoundary>
         </QueryClientProvider>
       </SafeAreaProvider>

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { View, StyleSheet, Pressable } from 'react-native';
 import { Stack, router } from 'expo-router';
+import { useAppStore } from '@/stores/appStore';
 
 import { Screen } from '@/components/ui/Screen';
 import { Text } from '@/components/ui/Text';
@@ -30,6 +31,9 @@ const CATEGORY_EMOJI: Record<string, string> = {
 
 export default function NotificationsScreen() {
   const { t, lang } = useI18n();
+  // A device setting, not a server one: whether «اجمع نقاطك» opens on launch.
+  const autoEarnQr = useAppStore((s) => s.autoEarnQr);
+  const setAutoEarnQr = useAppStore((s) => s.setAutoEarnQr);
   const userId = useUserId();
   const inboxQ = useInbox();
   const settingsQ = useNotifSettings();
@@ -89,6 +93,12 @@ export default function NotificationsScreen() {
             hint={t('notifications.locationOptIn')}
             value={!!settings?.location}
             onChange={onToggleLocation}
+            bordered
+          />
+          <SettingRow
+            label={t('notifications.autoEarnQr')}
+            value={autoEarnQr}
+            onChange={setAutoEarnQr}
             bordered
           />
         </Card>

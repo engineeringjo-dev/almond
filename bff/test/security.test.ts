@@ -326,8 +326,11 @@ describe('T30 the static member barcode cannot come back', () => {
   });
 
   it('the Pay screen cannot build a code out of the member id', () => {
-    const pay = sources.find((f) => f.path === 'almond-app/app/(tabs)/pay.tsx');
-    expect(pay, 'the walk must reach the Pay screen').toBeDefined();
+    // The code is drawn by components/pay/EarnQr.tsx since 2026-10-15 — the
+    // barcode tab and the «اجمع نقاطك» sheet both render it, and
+    // almond-app/test/earnSheet.test.ts Q3 pins that neither draws its own.
+    const pay = sources.find((f) => f.path === 'almond-app/components/pay/EarnQr.tsx');
+    expect(pay, 'the walk must reach the code component').toBeDefined();
     const code = pay!.code;
 
     // (1) Nothing handed to <QRCode value={…}> may be derived from the userId.

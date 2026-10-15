@@ -4,6 +4,7 @@ import { View, StyleSheet, Pressable } from 'react-native';
 import { Screen } from '@/components/ui/Screen';
 import { Text } from '@/components/ui/Text';
 import { HomeTopBar } from '@/components/home/HomeTopBar';
+import { useAutoOpenEarnSheet } from '@/hooks/useAutoOpenEarnSheet';
 import { LoyaltyCard } from '@/components/home/LoyaltyCard';
 import { UsualOrderCard } from '@/components/home/UsualOrderCard';
 import { VisitRewardBanner } from '@/components/home/VisitRewardBanner';
@@ -33,6 +34,8 @@ export default function HomeScreen() {
   const selectedBranchId = useCartStore((s) => s.branchId);
   const setBranch = useCartStore((s) => s.setBranch);
   const [pickerOpen, setPickerOpen] = useState(false);
+  // «اجمع نقاطك» opens by itself once per launch (lib/earnSheet.ts).
+  useAutoOpenEarnSheet();
 
   const activeBranch = useMemo<Branch | undefined>(
     () => branches.find((b) => b.id === selectedBranchId) ?? nearest,

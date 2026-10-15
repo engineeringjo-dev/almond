@@ -75,7 +75,7 @@ describe('M2 every moving animation asks', () => {
     'components/ui/CartToast.tsx',
     'components/ui/Skeleton.tsx',
     'components/order/StatusTimeline.tsx',
-    'app/(tabs)/pay.tsx',
+    'components/pay/EarnQr.tsx',
     'app/order/confirm.tsx',
     'app/_layout.tsx',
   ];

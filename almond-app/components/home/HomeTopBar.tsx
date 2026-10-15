@@ -7,6 +7,7 @@ import { Logo } from '@/components/ui/Logo';
 import { colors, spacing, radius } from '@/constants/theme';
 import { useI18n } from '@/hooks/useI18n';
 import { useCartCount } from '@/stores/cartStore';
+import { useEarnSheetStore } from '@/stores/earnSheetStore';
 import type { Branch } from '@/types';
 
 interface Props {
@@ -17,6 +18,7 @@ interface Props {
 export function HomeTopBar({ branch, onBranchPress }: Props) {
   const { t, lang } = useI18n();
   const cartCount = useCartCount();
+  const openEarnSheet = useEarnSheetStore((s) => s.open);
   const branchName = branch
     ? lang === 'ar'
       ? branch.nameAr
@@ -38,6 +40,17 @@ export function HomeTopBar({ branch, onBranchPress }: Props) {
       </Pressable>
 
       <View style={styles.actions}>
+        {/* «اجمع نقاطك» on demand — the same sheet that opens on launch, a
+            tap away from Home at any time (owner, 2026-10-15, after Al Ameed). */}
+        <Pressable
+          onPress={() => openEarnSheet()}
+          hitSlop={8}
+          style={styles.iconBtn}
+          accessibilityRole="button"
+          accessibilityLabel={t('earnSheet.open')}
+        >
+          <Icon name="qr" size={22} color={colors.dark} />
+        </Pressable>
         <Pressable onPress={() => router.push('/notifications')} hitSlop={8} style={styles.iconBtn}>
           <Icon name="bell" size={22} color={colors.dark} />
         </Pressable>

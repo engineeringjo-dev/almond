@@ -229,14 +229,17 @@ describe('P5 the screen really feeds the state machine what it needs', () => {
   // the screen can supply that distinction, and only `tsc --noEmit` looks at
   // the screen. So the wiring is asserted here, in the idiom C13/C14 use in
   // bff/test/copy.test.ts.
+  // The code lives in components/pay/EarnQr.tsx since 2026-10-15, shared by
+  // the barcode tab and the «اجمع نقاطك» sheet; the tab owns only the focus.
+  const qr = readFileSync(join(__dirname, '..', 'components', 'pay', 'EarnQr.tsx'), 'utf8');
   const pay = readFileSync(join(__dirname, '..', 'app', '(tabs)', 'pay.tsx'), 'utf8');
 
   it('passes the settled flag, so the offline panel needs a real failure', () => {
-    expect(pay).toContain('posQrStatus(');
+    expect(qr).toContain('posQrStatus(');
     // Without this the query's disabled first render — `enabled: focused`, and
     // `focused` starts false — reads as `unavailable` and shows "you may be
     // offline" before one request has been made.
-    expect(pay).toMatch(/settled:\s*!isPending/);
+    expect(qr).toMatch(/settled:\s*!isPending/);
   });
 
   it('has no pay/earn toggle, and the live client mints with an empty body', () => {
@@ -244,7 +247,8 @@ describe('P5 the screen really feeds the state machine what it needs', () => {
     // earning and spending it must not come back, and the request must not
     // carry a mode the server no longer needs.
     expect(pay).not.toMatch(/scanAndPay|scanOnly|setMode\(/);
-    expect(pay).toMatch(/usePosToken\(\{\s*focused\s*\}\)/);
+    expect(qr).not.toMatch(/scanAndPay|scanOnly|setMode\(/);
+    expect(qr).toMatch(/usePosToken\(\{\s*focused:\s*active\s*\}\)/);
     const live = readFileSync(join(__dirname, '..', 'services', 'loyalty.service.live.ts'), 'utf8');
     expect(live).toMatch(/post<unknown>\(E\.posToken,\s*\{\}\)/);
   });
@@ -252,7 +256,8 @@ describe('P5 the screen really feeds the state machine what it needs', () => {
   it('and stops asking when the tab is not focused', () => {
     // The other half of the same hook. A member who opens Pay and walks away
     // must not keep minting a code a minute from their pocket.
-    expect(pay).toMatch(/usePosToken\(\{[^}]*focused/);
+    expect(qr).toMatch(/usePosToken\(\{[^}]*focused:\s*active/);
+    expect(pay).toMatch(/<EarnQr active=\{focused\}/);
     expect(pay).toMatch(/setFocused\(false\)/);
   });
 });

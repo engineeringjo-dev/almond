@@ -417,6 +417,12 @@
     "disabled": "The lucky wheel is currently unavailable",
     "collect": "Collect prize"
   },
+  "earnSheet": {
+    "title": "Collect your points",
+    "body": "Show this code at the till to collect your points or pay with them.",
+    "open": "Collect your points",
+    "dontAutoOpen": "Don't open this when the app starts"
+  },
   "help": {
     "heading": "How can we help?",
     "hours": "Call centre and WhatsApp, 24 hours",
@@ -483,6 +489,7 @@
     "promos": "Offers & campaigns",
     "order": "Order updates",
     "location": "Location-based offers",
+    "autoEarnQr": "Show my points code when the app opens",
     "locationOptIn": "We'll send you an offer when you're near our branches",
     "markAllRead": "Mark all as read"
   },

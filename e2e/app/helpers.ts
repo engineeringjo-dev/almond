@@ -13,15 +13,19 @@ export const appUrl = (path: string): string => `${E2E_ENV.APP_URL}${path}`;
 
 export async function seedApp(
   page: Page,
-  opts: { lang?: 'ar' | 'en'; signedIn?: boolean } = {},
+  opts: { lang?: 'ar' | 'en'; signedIn?: boolean; earnSheet?: boolean } = {},
 ): Promise<void> {
   await page.addInitScript(
-    ({ lang, signedIn }) => {
+    ({ lang, signedIn, earnSheet }) => {
       try {
         if (sessionStorage.getItem('e2e.seeded')) return;
         sessionStorage.setItem('e2e.seeded', '1');
         localStorage.setItem('almond.onboarded', '1');
         if (lang) localStorage.setItem('almond.lang', lang);
+        // «اجمع نقاطك» opens by itself over Home for a signed-in member. A spec
+        // about another screen would find it in the way, so it is off unless
+        // the spec asks for it (e2e/app/earn-sheet.spec.ts does).
+        if (!earnSheet) localStorage.setItem('almond.autoEarnQr', '0');
         if (signedIn) {
           localStorage.setItem(
             'almond.user',
@@ -32,7 +36,7 @@ export async function seedApp(
         /* storage blocked */
       }
     },
-    { lang: opts.lang ?? null, signedIn: opts.signedIn ?? false },
+    { lang: opts.lang ?? null, signedIn: opts.signedIn ?? false, earnSheet: opts.earnSheet ?? false },
   );
 }
 
