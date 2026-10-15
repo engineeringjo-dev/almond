@@ -13,7 +13,7 @@
 
 </div>
 
-**Counts.** Top-level `docs/*.md`: 33 (31 existing + `INTEGRATIONS.md` + this index) — **6 Current**, **13 Reference**, **14 Historical**. 19 of them carry a "⚠️ Historical" banner (20 with `ishbek/README.md`) (some Current and Reference documents carry one for specific outdated passages). Plus two non-Markdown files and five sub-folders, classified below.
+**Counts.** Top-level `docs/*.md`: 37 — **8 Current**, **15 Reference**, **14 Historical**. 19 of them carry a "⚠️ Historical" banner (20 with `ishbek/README.md`) (some Current and Reference documents carry one for specific outdated passages). Plus two non-Markdown files and seven sub-folders, classified below.
 
 ## Current
 
@@ -25,6 +25,8 @@
 | [`DEPLOY.md`](DEPLOY.md) | The Vercel decision (project `almond`, root directory, why `outputDirectory` is required). Read before touching `vercel.json`. | yes — its opening "all five projects fail" is historical |
 | [`LOAD-BASELINE.md`](LOAD-BASELINE.md) | Measured capacity: one process in memory, and Postgres 16 with 1M orders (checkout 386 req/s, p99 199 ms). | yes — its closing "does not cover" list is partly outdated |
 | [`DELIVERY-INTEGRATION.md`](DELIVERY-INTEGRATION.md) | Delivery via Ishbek → Careem/Talabat: architecture, the `+03:00` timestamp rule, server-only key. | yes — auth-variable and "via Odoo" passages |
+| [`PUBLIC-MENU-FEED.md`](PUBLIC-MENU-FEED.md) | The read-only public menu feed the website and the app share: the same items, prices, choices and photos, pulled from Odoo daily. | — |
+| [`MENU-PHOTOS.ar.md`](MENU-PHOTOS.ar.md) | Menu photo coverage (308 of 375 items), the items with no photo by category and orders, the 33 untranslated names, and where a new photo goes. | — |
 
 ## Reference
 
@@ -41,6 +43,8 @@
 | [`MARKET-RESEARCH.md`](MARKET-RESEARCH.md) | Adversarially verified market/competitor findings (Starbucks 2026 rewards, expiry mechanics). | — |
 | [`STARBUCKS-REVERSE-ENGINEERING.md`](STARBUCKS-REVERSE-ENGINEERING.md) | Starbucks app mechanics mapped to Almond; screenshots in `reference/starbucks/`. | — |
 | [`WEB-UX-RESEARCH.md`](WEB-UX-RESEARCH.md) | Ordering-UX research for `almond-web` (Starbucks, Costa, McDonald's, Dunkin', Pret). | — |
+| [`ISHBEK-INTEGRATION.md`](ISHBEK-INTEGRATION.md) | Proposal for the Loyalty ↔ Ishbek ↔ Odoo link (2026-09-24 meeting): what is ready in this repository, and what is ours to confirm from Ishbek's docs. | — |
+| [`ISHBEK-MEETING-ONE-PAGER.md`](ISHBEK-MEETING-ONE-PAGER.md) | One page for the 2026-09-24 Ishbek meeting; the detail is in `ISHBEK-INTEGRATION.md`. | — |
 | [`BRANCH-SALES-MAP.ar.md`](BRANCH-SALES-MAP.ar.md) | **Other system** (branch-management dashboard): the sales map page `tools/branch-sales-map.html` and migration `20260810_branch_geo.sql`. | — |
 | [`SQL-CORRECTION-PLAN.ar.md`](SQL-CORRECTION-PLAN.ar.md) | **Other system**: correction plan for the warehouse-order trigger (`20260807`/`20260808` migrations) — not the loyalty database. | — |
 
@@ -77,6 +81,9 @@
 | [`ishbek/`](ishbek/README.md) | Almond-side sample contract for Ishbek delivery: `README.md`, `0.README.json` plus seven JSON request/response samples (`1.`–`7.`), `sample.ts`. Field names are to be fixed from Ishbek's official docs. | Reference — `README.md` has a banner (16 % tax in the samples) |
 | [`meps-integration/`](meps-integration/HANDOFF.md) | `HANDOFF.md`, `apex_ecr_claude_brief.md` and a terminal mapping spreadsheet for card-present MEPS terminals (`integrations/pos_meps_apex`, paused on the Apex ECR spec). | Reference |
 | [`odoo/`](odoo/branch-filter-design.md) | `branch-filter-design.md`, `branch-dashboard-wiring.md` (the `almond_branch` addon), `perf-audit-runbook.md` and `collector.sql` (read-only Odoo performance audit). | Reference |
+| [`competitors/`](competitors/DUNKIN-2026-10.ar.md) | Competitor app studies against Almond, each with what was built from it and the owner's open questions: `AL-AMEED-2026-10.ar.md` (Al Ameed, 19 screenshots) and `DUNKIN-2026-10.ar.md` (Dunkin' Rewards UAE, 14 screenshots, a three-expert panel). | Reference |
+| [`gift-cards/`](gift-cards/README.md) | The gift-card design pack: `README.md`, `CLAUDE_CODE_PLAN.md` and the print files. | Reference |
+| [`reference/`](reference/starbucks) | Reference screenshots (`starbucks/`) for `STARBUCKS-REVERSE-ENGINEERING.md`. | Reference |
 | [`maintenance/`](maintenance/صيانات-تطبيق-شهر-8.md) | August 2026 operations logs for production Odoo and the `production-almond` app: `2026-08-02/` (handoff, reports, Python scripts), `2026-08-16/RUNBOOK.md`, `2026-08-17/VARIANCE-SHRINKAGE.md`, `صيانات-تطبيق-شهر-8.md`. | Reference (other system; historical operations record) |
 | `reference/starbucks/` | 16 screenshots (`01.jpg`–`16.jpg`) used by `STARBUCKS-REVERSE-ENGINEERING.md`. | Reference |
 
