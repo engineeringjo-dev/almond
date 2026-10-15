@@ -1,6 +1,7 @@
 import type { FastifyInstance } from 'fastify';
 import { tiers } from '@almond/shared/loyalty';
 import { liveBalance, nextExpiry } from '@almond/shared/loyalty/lots';
+import { welcomeBonusFor } from '@almond/shared/loyalty/welcome';
 import type { TierId } from '@almond/shared/types';
 import type { MeBalanceWire } from '@almond/shared/loyalty/balanceWire';
 import { z } from 'zod';
@@ -116,6 +117,11 @@ export function registerMeRoutes(app: FastifyInstance, backend: Backend): void {
       // Amman day key; the app must format it with formatDayKey and never with
       // `new Date(string)`, which would print the day before.
       nextExpiry: nextExpiry(m.lots, at),
+      // The welcome gift still on offer — shown, not held: it becomes a lot
+      // only on the first paid purchase (loyalty/welcome.ts).
+      welcomeBonusPending: welcomeBonusFor(
+        m.welcomeBonusAt !== null, (await backend.entitlementFor(id)) !== null,
+      ),
     };
   });
 

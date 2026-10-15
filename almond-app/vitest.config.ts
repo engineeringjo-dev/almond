@@ -25,8 +25,12 @@ export default defineConfig({
   },
   test: {
     // Empties the double-points calendar so a run on a holiday computes what
-    // any other day does — see the file.
-    setupFiles: [path.resolve(root, '../packages/shared/test-setup/no-double-days.ts')],
+    // any other day does, and switches the welcome gift off so a first
+    // purchase leaves the balance a test asserts — see each file.
+    setupFiles: [
+      path.resolve(root, '../packages/shared/test-setup/no-double-days.ts'),
+      path.resolve(root, '../packages/shared/test-setup/no-welcome-gift.ts'),
+    ],
     environment: 'node',
     include: ['test/**/*.test.ts'],
     // Reported, not enforced (no thresholds yet). The source dirs are listed

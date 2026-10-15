@@ -12,6 +12,7 @@ import type { Backend } from '../src/backend';
 import type { CheckoutInput, TillEarnInput, TillSpendInput } from '../src/backend/types';
 import { IDEMPOTENCY_TTL_MS } from '../src/backend/idempotency';
 import { pgTestDb } from './lib/pgTestDb';
+import { SHIPPED_WELCOME_BONUS_POINTS, withWelcomeGift } from '../../packages/shared/test-setup/no-welcome-gift';
 
 /**
  * T37 — ONE SPECIFICATION, TWO BACKENDS.
@@ -1009,6 +1010,79 @@ describe.each(BACKENDS)('T37 backend contract — %s', (_name, make) => {
     await backend.replaceRoster('acme', []);
     await backend.checkout(friend, paidCheckout(friend));
     expect(await points(referrer)).toBe(0);
+  });
+
+  // ---- the welcome gift (owner, 2026-10-15: «امنح ٢٠٠ نقطة تفعل بعد اول عملية شراء») ----
+
+  const GIFT = SHIPPED_WELCOME_BONUS_POINTS;
+  const giftLines = async (id: string) =>
+    (await backend.getHistory(id)).filter((h) => h.reasonEn === 'Welcome gift');
+
+  it('🔴 the welcome gift: the first PAID checkout settles it once — its own lot and line, in the balance it reports', async () => {
+    await withWelcomeGift(async () => {
+      const id = await newMember();
+      await backend.checkout(id, unpaidCheckout(id));                  // nothing collected: nothing yet
+      expect(await points(id)).toBe(0);
+      expect((await backend.getMember(id)).welcomeBonusAt).toBeNull();
+
+      const r = await backend.checkout(id, paidCheckout(id));
+      expect(r.pointsBalance).toBe(12 + GIFT);
+      expect(await points(id)).toBe(12 + GIFT);
+      const at = (await backend.getMember(id)).welcomeBonusAt;
+      expect(at).not.toBeNull();
+      const lines = await giftLines(id);
+      expect(lines).toHaveLength(1);
+      expect(lines[0]).toMatchObject({
+        deltaPoints: GIFT, reasonAr: 'هدية الترحيب', kind: 'bonus', branchId: 'b1',
+        expiresOn: lotExpiresOn(ammanDayKey(new Date())),
+      });
+      expect(lines[0].sourceRef ?? null).toBeNull();                    // not the purchase
+
+      await backend.checkout(id, paidCheckout(id));                    // the second purchase
+      expect(await points(id)).toBe(12 + GIFT + 12);
+      expect(await giftLines(id)).toHaveLength(1);
+      expect((await backend.getMember(id)).welcomeBonusAt).toBe(at);
+    });
+  });
+
+  it('🔴 a till sale that collected money settles it, inside the balance its receipt prints; a 0 JOD sale and a replay do not', async () => {
+    await withWelcomeGift(async () => {
+      const id = await newMember();
+      await backend.tillEarn(sale(id, { paidFils: 0, pointsEarned: 0, earn: null, spendJod: null }));
+      expect(await giftLines(id)).toHaveLength(0);
+      expect((await backend.getMember(id)).welcomeBonusAt).toBeNull();
+      const input = sale(id);
+      const r = await backend.tillEarn(input);
+      expect(r.sale.pointsBalanceAfter).toBe(25 + GIFT);
+      const replay = await backend.tillEarn(input);                    // the till retries
+      expect(replay.replay).toBe(true);
+      expect(await points(id)).toBe(25 + GIFT);
+      expect(await giftLines(id)).toHaveLength(1);
+    });
+  });
+
+  it('a corporate member is stamped and paid 0 — so leaving the company later pays nothing', async () => {
+    await withWelcomeGift(async () => {
+      await backend.saveCompany({ id: 'acme', nameAr: '', nameEn: 'Acme', percentOff: 50, active: true });
+      await backend.replaceRoster('acme', [{ phone: '+962791111111', companyId: 'acme' }]);
+      const id = await newMember('+962791111111');
+      await backend.checkout(id, paidCheckout(id));
+      expect(await giftLines(id)).toHaveLength(0);
+      expect((await backend.getMember(id)).welcomeBonusAt).not.toBeNull();
+      await backend.replaceRoster('acme', []);
+      await backend.checkout(id, paidCheckout(id));
+      expect(await giftLines(id)).toHaveLength(0);
+    });
+  });
+
+  it('a purchase made while the dial is 0 is stamped and paid 0; raising the dial later pays nothing back-dated', async () => {
+    const id = await newMember();
+    await backend.checkout(id, paidCheckout(id));                      // the setup file holds it at 0
+    expect((await backend.getMember(id)).welcomeBonusAt).not.toBeNull();
+    await withWelcomeGift(async () => {
+      await backend.checkout(id, paidCheckout(id));
+      expect(await giftLines(id)).toHaveLength(0);
+    });
   });
 
   // ---- transfers to a friend (owner, 2026-09-24) ----

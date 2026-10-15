@@ -40,6 +40,7 @@ const PROFILE_FIELDS_MIGRATION = readMigration('20261003_member_profile_fields.s
 const HISTORY_DETAIL_MIGRATION = readMigration('20261015_point_history_detail.sql');
 const VISIT_RATINGS_MIGRATION = readMigration('20261016_visit_ratings.sql');
 const ACCOUNT_DELETIONS_MIGRATION = readMigration('20261017_account_deletions.sql');
+const WELCOME_BONUS_MIGRATION = readMigration('20261018_welcome_bonus.sql');
 /** The whole loyalty schema, as a deploy leaves it (minus the Supabase-only RLS file). */
 const SCHEMA = loyaltySchemaSql();
 const POSTGRES_TS = readFileSync(join(HERE, '..', 'src', 'backend', 'postgres.ts'), 'utf8');
@@ -293,6 +294,8 @@ describe('R3 migration 20260909_loyalty_backend.sql', () => {
     await pg.exec(VISIT_RATINGS_MIGRATION);
     // 20261017 closes its own table: it says whose account is going.
     await pg.exec(ACCOUNT_DELETIONS_MIGRATION);
+    // 20261018 adds a column to members, which 20260923 already closed.
+    await pg.exec(WELCOME_BONUS_MIGRATION);
     const tables = await rows<{ t: string }>(pg,
       `select table_name as t from information_schema.tables where table_schema = 'public' order by 1`);
     expect(tables.map((x) => x.t)).toEqual([...ALL_TABLES].sort());
@@ -1031,5 +1034,32 @@ describe('R3.19 migration 20261017_account_deletions.sql', () => {
     await pg.query(`insert into members (id, phone, held_tier_id) values ('m2', '+962792222222', 'base')`);
     expect(await put(`insert into account_deletions (member_id, requested_at, erase_after)
       values ('m2', '2026-10-15T09:00:00Z', '2026-10-15T09:00:00Z')`)).toBe('23514');  // a grace period, not none
+  });
+});
+
+/**
+ * R3.20 — 20261018_welcome_bonus.sql: the welcome gift's once-only stamp
+ * (loyalty/welcome.ts). A member who had already paid is settled at that
+ * moment — the gift is for the first purchase, never back-dated — and one who
+ * never paid is left on offer.
+ */
+describe('R3.20 migration 20261018_welcome_bonus.sql', () => {
+  it('R3.20 settles every member who has paid, leaves the rest on offer, and re-applies unchanged', async () => {
+    const pg = await fresh();
+    await pg.exec(LOYALTY_MIGRATIONS.filter((f) => f < '20261018').map(readMigration).join('\n;\n'));
+    await pg.query(`insert into members (id, phone, held_tier_id, first_paid_at)
+      values ('paid', '+962791111111', 'base', '2026-09-01T10:00:00Z')`);
+    await pg.query(`insert into members (id, phone, held_tier_id) values ('new', '+962792222222', 'base')`);
+    await pg.exec(WELCOME_BONUS_MIGRATION);
+    const stamps = () => rows<{ id: string; at: string | null }>(pg,
+      `select id, welcome_bonus_at::text as at from members order by id`);
+    const first = await stamps();
+    expect(first.find((r) => r.id === 'new')!.at).toBeNull();
+    expect(first.find((r) => r.id === 'paid')!.at).not.toBeNull();
+    const col = () => rows(pg, `select data_type, is_nullable from information_schema.columns
+      where table_name = 'members' and column_name = 'welcome_bonus_at'`);
+    expect(await col()).toEqual([{ data_type: 'timestamp with time zone', is_nullable: 'YES' }]);
+    await pg.exec(WELCOME_BONUS_MIGRATION);
+    expect(await stamps()).toEqual(first);
   });
 });

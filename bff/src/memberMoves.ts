@@ -4,6 +4,7 @@ import {
 } from '@almond/shared/loyalty/referral';
 import type { TransferKind, TransferRefusal } from '@almond/shared/loyalty/transfer';
 import type { PointLot } from '@almond/shared/loyalty/lots';
+import { WELCOME_BONUS_REASON } from '@almond/shared/loyalty/welcome';
 import { toJod } from './money';
 import { HttpError, conflict } from './http-error';
 import type { HistoryEntry } from './backend/types';
@@ -43,6 +44,17 @@ export const attachRefused = (code: ReferralAttachError) => conflict(code, ATTAC
 export const referralRewardLine = (points: number, at: Date, lot: PointLot | null): HistoryEntry => ({
   deltaPoints: points, reasonAr: 'مكافأة دعوة صديق', reasonEn: 'Referral reward', createdAt: at.toISOString(),
   kind: 'bonus', expiresOn: lot?.expiresOn ?? null,
+});
+
+/** The welcome gift's ledger line (loyalty/welcome.ts), written on the
+ *  member's first paid purchase beside that purchase's own line. It names the
+ *  branch the purchase was made at, and no source: it is not the purchase, so
+ *  nothing that reads a purchase's lines by `sourceRef` may count it as one. */
+export const welcomeGiftLine = (
+  points: number, at: Date, lot: PointLot | null, branchId: string,
+): HistoryEntry => ({
+  deltaPoints: points, reasonAr: WELCOME_BONUS_REASON.ar, reasonEn: WELCOME_BONUS_REASON.en,
+  createdAt: at.toISOString(), kind: 'bonus', branchId, expiresOn: lot?.expiresOn ?? null,
 });
 
 const TRANSFER_MESSAGES: Record<TransferRefusal, string> = {

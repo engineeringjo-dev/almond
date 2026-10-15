@@ -4,6 +4,7 @@ import { router } from 'expo-router';
 import { Text } from '@/components/ui/Text';
 import { Gradient } from '@/components/ui/Gradient';
 import { TierBadge } from '@/components/loyalty/TierBadge';
+import { WelcomeGiftNote } from '@/components/loyalty/WelcomeGiftNote';
 import { colors, spacing, radius, shadow } from '@/constants/theme';
 import { useI18n } from '@/hooks/useI18n';
 import { formatNumber } from '@/lib/format';
@@ -37,6 +38,7 @@ export function LoyaltyCard() {
                 {formatNumber(data.points, lang)}
               </Text>
               <TierBadge tier={data.tier} />
+              <WelcomeGiftNote points={data.welcomeBonusPending} />
               {(() => {
                 // Progress sense (§O), in VISITS and in one place — lib/tierCopy.ts.
                 // This card used to gate its "one step away" line on

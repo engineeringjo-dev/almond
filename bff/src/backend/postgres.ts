@@ -28,6 +28,7 @@ import { referralAttachError, referralRewardFor } from '@almond/shared/loyalty/r
 import { transferRefusal, type TransferKind } from '@almond/shared/loyalty/transfer';
 import { normalizeComment, pendingVisit } from '@almond/shared/loyalty/visitRating';
 import { newDeletion, type AccountDeletion } from '@almond/shared/loyalty/accountDeletion';
+import { welcomeBonusFor } from '@almond/shared/loyalty/welcome';
 import { conflict, notFound } from '../http-error';
 import type { Db } from './db';
 import type { HoldoutStamp } from '@almond/shared/loyalty/holdout';
@@ -46,7 +47,7 @@ import { applyTillRefund } from '@almond/shared/loyalty';
 import { assertIntentSpendable, nextIntentStatus } from '../payments/intent';
 import { toFils, toJod } from '../money';
 import {
-  attachRefused, insufficientFor, newReferralCode, referralCodeNotFound, referralRewardLine,
+  attachRefused, insufficientFor, newReferralCode, referralCodeNotFound, referralRewardLine, welcomeGiftLine,
   transferLines, transferRefused,
 } from '../memberMoves';
 
@@ -90,6 +91,7 @@ interface MemberRow {
   id: string; phone: string; name: string; birthday: string | null;
   gender: string | null; first_paid_at: Date | string | null;
   profile_bonus_at: Date | string | null;
+  welcome_bonus_at?: Date | string | null;
   lots: unknown; expiry_settled_through: string;
   wallet_lots: unknown; wallet_expiry_settled_through: string;
   spend: unknown; held_tier_id: string; evaluated_through: string;
@@ -101,6 +103,7 @@ function toMember(r: MemberRow): Member {
     gender: (r.gender ?? null) as Gender | null,
     firstPaidAt: iso(r.first_paid_at),
     profileBonusAt: iso(r.profile_bonus_at),
+    welcomeBonusAt: iso(r.welcome_bonus_at),
     lots: (r.lots ?? []) as Member['lots'],
     expirySettledThrough: r.expiry_settled_through,
     walletLots: (r.wallet_lots ?? []) as Member['walletLots'],
@@ -319,6 +322,25 @@ export function createPostgresBackend(db: Db): Backend {
     );
   }
 
+  /**
+   * THE WELCOME GIFT (loyalty/welcome.ts), settled on the member's first PAID
+   * purchase — the memory backend's settleWelcome, on the member this
+   * transaction already locked, so it commits with the purchase or not at all.
+   * Stamped once whatever it pays (0 for a corporate member, or while the
+   * dial is 0); the stamp is saved by withMember with the rest of the member.
+   */
+  async function settleWelcomeIn(
+    t: Db, m: Member, at: Date, log: (e: HistoryEntry) => void, branchId: string,
+  ): Promise<void> {
+    if (m.welcomeBonusAt !== null) return;
+    const points = welcomeBonusFor(false, await isCorporateIn(t, m.phone));
+    m.welcomeBonusAt = at.toISOString();
+    if (points <= 0) return;
+    const grant = grantLot(m.lots, points, 'bonus', at, LOTS);
+    m.lots = grant.lots;
+    log(welcomeGiftLine(points, at, grant.lot, branchId));
+  }
+
   /** What `memberId` sent on the Amman `day`, of `kind` — the cap's input. */
   async function sentOnIn(t: Db, memberId: string, kind: TransferKind, day: string): Promise<number> {
     const rows = await t.query<{ n: string }>(
@@ -333,12 +355,14 @@ export function createPostgresBackend(db: Db): Backend {
     await t.query(
       `update members set name=$2, birthday=$3, profile_bonus_at=$4, lots=$5,
          expiry_settled_through=$6, wallet_lots=$7, wallet_expiry_settled_through=$8,
-         spend=$9, held_tier_id=$10, evaluated_through=$11, gender=$12, first_paid_at=$13
+         spend=$9, held_tier_id=$10, evaluated_through=$11, gender=$12, first_paid_at=$13,
+         welcome_bonus_at=$14
        where id=$1`,
       [
         m.id, m.name, m.birthday, m.profileBonusAt, JSON.stringify(m.lots),
         m.expirySettledThrough, JSON.stringify(m.walletLots), m.walletExpirySettledThrough,
         JSON.stringify(m.spend), m.heldTierId, m.evaluatedThrough, m.gender, m.firstPaidAt,
+        m.welcomeBonusAt,
       ],
     );
   }
@@ -519,6 +543,9 @@ export function createPostgresBackend(db: Db): Backend {
           id: `m_${randomUUID()}`, phone, name: normalizeName(name), birthday: null,
           gender: null, firstPaidAt: null,
           profileBonusAt: null,
+          // On offer until the first paid purchase settles it; the column's
+          // default is NULL, so the insert below needs no word about it.
+          welcomeBonusAt: null,
           lots: [], expirySettledThrough: todayKey(),
           walletLots: [], walletExpirySettledThrough: todayKey(),
           spend: [], heldTierId: 'base',
@@ -1130,6 +1157,8 @@ export function createPostgresBackend(db: Db): Backend {
           kind: 'purchase', branchId: input.order.branchId, sourceRef: `order:${order.id}`,
           expiresOn: grant.lot?.expiresOn ?? null,
         });
+        // A paid order settles the welcome gift, beside its own points.
+        if (input.spendJod !== null) await settleWelcomeIn(t, m, at, log, input.order.branchId);
         if (input.spendJod !== null) applySpend(m, input.spendJod, at, log);
         // A PAID order is the referral rail's trigger — in this transaction.
         if (input.spendJod !== null) await settlePaidOrderIn(t, m, at);
@@ -1180,6 +1209,9 @@ export function createPostgresBackend(db: Db): Backend {
           kind: 'purchase', branchId: input.branchId, sourceRef: `pos:${input.posOrderRef}`,
           expiresOn: grant.lot?.expiresOn ?? null,
         });
+        // Money was collected: the welcome gift is settled with this sale, and
+        // is in the balance the receipt prints.
+        if (input.paidFils > 0) await settleWelcomeIn(t, m, at, log, input.branchId);
         // The day the spend is dated on is STORED, so a reversal can find it.
         const spendDay = input.spendJod !== null && input.spendJod > 0 ? (input.spendDay ?? ammanDayKey(at)) : null;
         if (input.spendJod !== null && spendDay !== null) applySpend(m, input.spendJod, at, log, spendDay);

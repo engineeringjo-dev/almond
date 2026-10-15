@@ -20,6 +20,7 @@ import { Logo } from '@/components/ui/Logo';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { TierBadge } from '@/components/loyalty/TierBadge';
 import { BonusDayBanner } from '@/components/loyalty/BonusDayBanner';
+import { WelcomeGiftNote } from '@/components/loyalty/WelcomeGiftNote';
 import { colors, spacing, radius, shadow } from '@/constants/theme';
 import { config } from '@/constants/config';
 import { useI18n } from '@/hooks/useI18n';
@@ -250,6 +251,7 @@ export default function RewardsScreen() {
         <View style={styles.tierRow}>
           <TierBadge tier={balance.tier} />
         </View>
+        <WelcomeGiftNote points={balance.welcomeBonusPending} />
       </Gradient>
 
       {/* «نقاطك نقود» and the whole ladder in one line, read off the dials.

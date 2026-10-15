@@ -75,6 +75,17 @@ export interface MeBalanceWire {
    * field go missing would silently downgrade a real warning to no warning.
    */
   nextExpiry: { amount: number; on: string } | null;
+  /**
+   * The welcome gift still waiting for the member's first paid purchase
+   * (loyalty/welcome.ts), in points — 0 when there is none: already settled, a
+   * corporate member, or the dial is 0. NOT held: no lot exists until the
+   * purchase, so it is not in `points` and cannot be spent or sent.
+   *
+   * OPTIONAL ON THE WIRE, READ AS 0. Unlike `nextExpiry`, absence here can
+   * only under-promise — a server that predates the gift simply never mentions
+   * it — so an app that ships before its server keeps working.
+   */
+  welcomeBonusPending?: number;
 }
 
 /** Thrown by `parseMeBalance` when the body is not the contract above. Named,
@@ -185,7 +196,17 @@ export function parseMeBalance(raw: unknown): MeBalanceWire {
     nextExpiry: expiry
       ? { amount: num(expiry, 'amount', 'nextExpiry.'), on: dayKey(expiry, 'on', 'nextExpiry.') }
       : null,
+    welcomeBonusPending: raw.welcomeBonusPending === undefined ? 0 : wholePoints(raw, 'welcomeBonusPending'),
   };
+}
+
+/** A count of points: a finite whole number, never negative. */
+function wholePoints(o: Record<string, unknown>, key: string): number {
+  const v = num(o, key, '');
+  if (!Number.isInteger(v) || v < 0) {
+    throw new BalanceWireError(key, `expected a whole number of points, got ${JSON.stringify(v)}`);
+  }
+  return v;
 }
 
 /**
@@ -220,5 +241,6 @@ export function toLoyaltyBalance(wire: MeBalanceWire, userId: string): LoyaltyBa
     // Carried through verbatim. The day key stays a day key all the way to the
     // screen — see LoyaltyBalance.nextExpiry and lib/format.ts formatDayKey.
     nextExpiry: wire.nextExpiry,
+    welcomeBonusPending: wire.welcomeBonusPending ?? 0,
   };
 }

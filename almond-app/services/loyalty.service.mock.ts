@@ -11,6 +11,7 @@ import { config } from '@/constants/config';
 import { ApiError } from '@/lib/apiClient';
 import { computeEarn } from '@almond/shared/loyalty/earn';
 import { maskedDisplayName, normalizeName, profileBonusFor, type Gender } from '@almond/shared/loyalty/profile';
+import { WELCOME_BONUS_REASON, welcomeBonusFor } from '@almond/shared/loyalty/welcome';
 import {
   normalizeReferralCode, referralAttachError, referralRewardFor, referralShareLink,
   REFERRAL_CODE_ALPHABET, REFERRAL_CODE_LENGTH,
@@ -108,6 +109,9 @@ export interface LoyaltyUser {
   /** When this member's first PAID order happened (the mock's `earn` IS a paid
    *  order), or null. A code may be attached only while it is null. */
   firstPaidAt: string | null;
+  /** The welcome gift's once-only stamp — Member.welcomeBonusAt in the BFF.
+   *  Null while the gift is on offer; set by the first paid order. */
+  welcomeBonusAt: string | null;
   /** Referral rewards this member has been paid, one per friend. */
   referralPointsEarned: number;
   /** Transfers sent, for the daily cap: kind + Amman day + amount. */
@@ -229,7 +233,11 @@ function ensureUser(userId: string): LoyaltyUser {
       // points, as they do for real.
       vouchers: [],
       history: [
-        { id: genId('log'), deltaPoints: 240, reasonAr: 'مكافأة ترحيبية', reasonEn: 'Welcome bonus', createdAt: new Date(Date.now() - 86400000 * 10).toISOString(), kind: 'bonus' },
+        // The seeded balance is points this system did not grant (see `lots`
+        // above), so its line says so. It used to read «مكافأة ترحيبية» —
+        // now that a real welcome gift exists (loyalty/welcome.ts), a demo
+        // that showed one already paid would contradict the gift on offer.
+        { id: genId('log'), deltaPoints: 240, reasonAr: 'رصيد سابق', reasonEn: 'Opening balance', createdAt: new Date(Date.now() - 86400000 * 10).toISOString(), kind: 'bonus' },
         { id: genId('log'), deltaPoints: 15, reasonAr: 'نقاط طلب', reasonEn: 'Order points', createdAt: new Date(Date.now() - 86400000 * 7).toISOString(), kind: 'purchase', branchId: branches[0]?.id ?? null, expiresOn: lotExpiresOn(ammanDayKey(new Date(Date.now() - 86400000 * 7))) },
       ],
       visits: 4,
@@ -240,6 +248,8 @@ function ensureUser(userId: string): LoyaltyUser {
       referralCode: newReferralCode(),
       referredBy: null,
       firstPaidAt: null,
+      // On offer: the demo shows the gift waiting for the first order.
+      welcomeBonusAt: null,
       referralPointsEarned: 0,
       transfersSent: [],
       phone: demoPhoneFor(userId),
@@ -293,6 +303,23 @@ function settlePaidOrder(u: LoyaltyUser, at: Date): void {
     id: genId('log'), deltaPoints: points,
     reasonAr: 'مكافأة دعوة صديق', reasonEn: 'Referral reward', createdAt: at.toISOString(),
     kind: 'bonus', expiresOn: reward.lot?.expiresOn ?? null,
+  });
+}
+
+/** The mock's twin of the BFF's settleWelcome (loyalty/welcome.ts): the first
+ *  paid order settles the gift — one lot and its own line — once. */
+function settleWelcome(u: LoyaltyUser, at: Date, branchId: string | null): void {
+  if (u.welcomeBonusAt !== null) return;
+  // The mock holds no corporate roster; the shared rule is still the one asked.
+  const points = welcomeBonusFor(false, false);
+  u.welcomeBonusAt = at.toISOString();
+  if (points <= 0) return;
+  const grant = grantLot(u.lots, points, 'bonus', at, LOTS);
+  u.lots = grant.lots;
+  u.history.unshift({
+    id: genId('log'), deltaPoints: points,
+    reasonAr: WELCOME_BONUS_REASON.ar, reasonEn: WELCOME_BONUS_REASON.en,
+    createdAt: at.toISOString(), kind: 'bonus', branchId, expiresOn: grant.lot?.expiresOn ?? null,
   });
 }
 
@@ -369,6 +396,8 @@ function buildBalance(userId: string, u: LoyaltyUser): LoyaltyBalance {
     // this member holds grants made months apart and each one dies on its own
     // day. The tier is not consulted — «لا إعفاء».
     nextExpiry: nextExpiry(u.lots, at),
+    // Shown, not held — the same answer GET /v1/me/balance gives.
+    welcomeBonusPending: welcomeBonusFor(u.welcomeBonusAt !== null, false),
   };
 }
 
@@ -563,7 +592,9 @@ export const mockLoyaltyService: LoyaltyService = {
     });
 
     // This IS a paid order in the mock (cart.tsx calls earn after the order is
-    // placed), so it is the referral rail's trigger — as in the BFF.
+    // placed): it settles the welcome gift and is the referral rail's trigger
+    // — as in the BFF.
+    settleWelcome(u, at ?? new Date(), branchId ?? null);
     settlePaidOrder(u, at ?? new Date());
 
     // The combo bonus is already INSIDE pointsEarned (computeEarn adds it, in

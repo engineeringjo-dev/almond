@@ -83,6 +83,20 @@ export interface Member {
    */
   profileBonusAt: string | null;
   /**
+   * 🔴 WHEN THE WELCOME GIFT WAS SETTLED (loyalty/welcome.ts) — the once-only
+   * stamp, written in the transaction of the member's first PAID purchase (the
+   * same moments that stamp `firstPaidAt`), with or without points: a
+   * corporate member, or a purchase made while the dial was 0, is stamped and
+   * paid 0, so a later change never pays retroactively — the referral rule.
+   *
+   * Kept by account deletion (it is not a profile fact), so leaving and coming
+   * back with the same number does not pay twice. The Wafii migration decides
+   * whether its members arrive stamped; see config.WELCOME_BONUS_POINTS.
+   *
+   * `null` means not settled yet: the gift is still on offer.
+   */
+  welcomeBonusAt: string | null;
+  /**
    * 🔴 THE MONEY LEDGER. This replaced `walletFils: number`, for the same
    * reason `points: number` became `lots`.
    *

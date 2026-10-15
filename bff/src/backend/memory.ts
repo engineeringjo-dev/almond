@@ -32,6 +32,7 @@ import {
   isRateableVisit, normalizeComment, pendingVisit, type VisitRating,
 } from '@almond/shared/loyalty/visitRating';
 import { isDeletionDue, newDeletion, type AccountDeletion } from '@almond/shared/loyalty/accountDeletion';
+import { welcomeBonusFor } from '@almond/shared/loyalty/welcome';
 import { conflict, notFound } from '../http-error';
 import { toFils } from '../money';
 import type { HoldoutStamp } from '@almond/shared/loyalty/holdout';
@@ -47,7 +48,7 @@ import {
 import { applyTillRefund } from '@almond/shared/loyalty';
 import { assertIntentSpendable, nextIntentStatus } from '../payments/intent';
 import {
-  attachRefused, insufficientFor, newReferralCode, referralCodeNotFound, referralRewardLine,
+  attachRefused, insufficientFor, newReferralCode, referralCodeNotFound, referralRewardLine, welcomeGiftLine,
   transferLines, transferRefused,
 } from '../memberMoves';
 
@@ -206,6 +207,9 @@ export function createMemoryBackend(): Backend {
     // otherwise the fixture would hand out 50 points the first time anyone
     // opened the profile screen against it.
     profileBonusAt: new Date().toISOString(),
+    // ... and they have paid before, so their welcome gift was settled then,
+    // as 20261018_welcome_bonus.sql settles every member who had already paid.
+    welcomeBonusAt: new Date(Date.now() - 86_400_000 * 200).toISOString(),
     lots: grantLot(
       migrateBalance(200, shiftDayKey(todayKey(), -335), LOTS),
       40, 'migration', undefined, LOTS, todayKey(),
@@ -477,6 +481,27 @@ export function createMemoryBackend(): Backend {
     return () => { undoReferrer(); Object.assign(ref, refBefore); };
   };
 
+  /**
+   * THE WELCOME GIFT (loyalty/welcome.ts), settled on the member's first PAID
+   * purchase — the same two moments as settlePaidOrder (a funded checkout, a
+   * till sale that collected money) — and called beside the purchase's own
+   * grant, so the balance a checkout or a till receipt reports includes it.
+   *
+   * Only `m` changes, and the caller's begin(m) covers `m` and its history, so
+   * a refusal later in the same call rolls the gift back with the purchase.
+   * Stamped once whatever it pays: 0 for a corporate member (they earn no
+   * points) or while the dial is 0, so a later change never pays back-dated.
+   */
+  const settleWelcome = (m: Member, at: Date, branchId: string): void => {
+    if (m.welcomeBonusAt !== null) return;
+    const points = welcomeBonusFor(false, entitlementFor(m.phone, companies, roster) !== null);
+    m.welcomeBonusAt = at.toISOString();
+    if (points <= 0) return;
+    const grant = grantLot(m.lots, points, 'bonus', at, LOTS);
+    m.lots = grant.lots;
+    log(m.id, welcomeGiftLine(points, at, grant.lot, branchId));
+  };
+
   // ---- Idempotency-Key store ----
   type IdemEntry =
     | { hash: string; at: number; status: 'pending' }
@@ -504,6 +529,8 @@ export function createMemoryBackend(): Backend {
         // Never paid for anything yet — the referral rail's clock starts here.
         firstPaidAt: null,
         profileBonusAt: null,
+        // The welcome gift is on offer until the first paid purchase settles it.
+        welcomeBonusAt: null,
         // A genuinely NEW member gets an empty ledger — never a migration lot.
         // Minting one would make every new member look migrated to
         // `unexplainedPoints` and cost them the second-visit voucher (T32u's
@@ -802,6 +829,8 @@ export function createMemoryBackend(): Backend {
           kind: 'purchase', branchId: input.order.branchId, sourceRef: `order:${order.id}`,
           expiresOn: grant.lot?.expiresOn ?? null,
         });
+        // A paid order settles the welcome gift, beside its own points.
+        if (input.spendJod !== null) settleWelcome(m, at, input.order.branchId);
         if (input.spendJod !== null) applySpend(m, input.spendJod, at);
         // LAST, after every step that can refuse: a paid order is the
         // referral rail's trigger (settlePaidOrder).
@@ -860,6 +889,9 @@ export function createMemoryBackend(): Backend {
           kind: 'purchase', branchId: input.branchId, sourceRef: `pos:${input.posOrderRef}`,
           expiresOn: grant.lot?.expiresOn ?? null,
         });
+        // Money was collected: the welcome gift is settled with this sale, and
+        // is in the balance the receipt prints.
+        if (input.paidFils > 0) settleWelcome(m, at, input.branchId);
         // The day the spend is dated on is STORED, so a reversal can find it.
         const spendDay = input.spendJod !== null && input.spendJod > 0 ? (input.spendDay ?? ammanDayKey(at)) : null;
         if (input.spendJod !== null && spendDay !== null) applySpend(m, input.spendJod, at, spendDay);

@@ -621,5 +621,9 @@
       "rate_limited": "Too many tries. Wait a minute and try again.",
       "generic": "We couldn’t send it. Please try again."
     }
+  },
+  "welcomeGift": {
+    "pending": "{{points}} gift points, added to your balance with your first purchase",
+    "pendingA11y": "Welcome gift: {{points}} points, added with your first purchase"
   }
 }

@@ -251,6 +251,10 @@ export interface LoyaltyBalance {
    * producer bug, not a missing feature.
    */
   nextExpiry: { amount: number; on: string } | null;
+  /** The welcome gift waiting for the first paid purchase, in points; 0 or
+   *  absent when there is none (loyalty/welcome.ts, MeBalanceWire). Shown,
+   *  never held — it is not part of `points`. */
+  welcomeBonusPending?: number;
 }
 
 export type VoucherType = 'credit' | 'free-item' | 'discount';
