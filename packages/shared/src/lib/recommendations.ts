@@ -212,6 +212,43 @@ export function getComboStarter(): ComboStarter | null {
 }
 
 /**
+ * THE MOST ORDERED ITEMS, MEASURED.
+ *
+ * Two rows were headed «الأكثر طلباً» / "Most popular", and neither was ranked
+ * by orders:
+ * - the app showed the first photographed item of each category;
+ * - the website showed every Nth photographed item.
+ * Both made the claim about a sample. This ranks by `itemInsights[id].orders`,
+ * the number of paid Odoo POS orders that held the item over `insightsWindow`,
+ * so the heading is true.
+ *
+ * It keeps only what a row of photographs can offer:
+ * - in stock, with a photo;
+ * - a drink or a food (water, cups and flowers, which Odoo files under
+ *   «Sides», are neither);
+ * - not an occasion purchase, such as a whole cake ordered for a birthday.
+ *
+ * An item with no measured orders is never "most ordered". `kind` narrows the
+ * list to drinks or to foods. Ties keep menu order, so the result is the same
+ * in every process, and the website server and client agree.
+ */
+export function bestSellers(
+  limit: number,
+  opts: { kind?: 'drink' | 'food'; items?: readonly MenuItem[] } = {},
+): MenuItem[] {
+  return (opts.items ?? getMenu().items)
+    .map((item, at) => ({ item, at, orders: itemInsights[item.id]?.orders ?? 0 }))
+    .filter(({ item, orders }) => {
+      if (orders <= 0 || !item.imageUrl || item.inStock === false || isOccasionItem(item)) return false;
+      const kind = categoryKind(item.categoryId);
+      return opts.kind ? kind === opts.kind : kind === 'drink' || kind === 'food';
+    })
+    .sort((a, b) => b.orders - a.orders || a.at - b.at)
+    .slice(0, Math.max(0, limit))
+    .map(({ item }) => item);
+}
+
+/**
  * A PAIRING IS A COMPANION, NOT AN OCCASION PURCHASE.
  *
  * «يُطلب عادةً مع» under an iced latte (3.950) offered «قالب لينزار التفاح» —

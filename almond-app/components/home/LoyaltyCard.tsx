@@ -3,7 +3,6 @@ import { router } from 'expo-router';
 
 import { Text } from '@/components/ui/Text';
 import { Icon } from '@/components/ui/Icon';
-import { Logo } from '@/components/ui/Logo';
 import { HeroCard } from '@/components/ui/HeroCard';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { TierBadge } from '@/components/loyalty/TierBadge';
@@ -11,7 +10,7 @@ import { WelcomeGiftNote } from '@/components/loyalty/WelcomeGiftNote';
 import { colors, spacing, radius, shadow } from '@/constants/theme';
 import { useI18n } from '@/hooks/useI18n';
 import { formatJOD, formatNumber } from '@/lib/format';
-import { useLoyaltyBalance } from '@/hooks/useLoyalty';
+import { useLoyaltyBalance, useWallet } from '@/hooks/useLoyalty';
 import { tierProgressCopy } from '@/lib/tierCopy';
 import { useEarnSheetStore } from '@/stores/earnSheetStore';
 // earn-arith-exempt: points→JOD for DISPLAY, via the one shared conversion. §7 T7.
@@ -31,12 +30,20 @@ import { jodFromPoints } from '@almond/shared/loyalty/earn';
  * (POINTS_PER_JOD_REDEEM), so the balance is also a sum of money and the card
  * says which (jodFromPoints, the one shared conversion).
  *
- * Black, like the shops' facades (HeroCard). Tapping anywhere else on it opens
- * the rewards tab.
+ * The wallet is on the same card, one line under the points (expert panel,
+ * 2026-10-15: «بطاقة واحدة للنقاط والمحفظة»). It was a second black card of its
+ * own; the two balances are the member's money in two forms, read together at
+ * the counter. The line opens the wallet, where the top-up is.
+ *
+ * No logo: the header above carries it, and a card is not a title.
+ *
+ * Black, like the shops' facades (HeroCard). Tapping the points opens the
+ * rewards tab.
  */
 export function LoyaltyCard() {
   const { t, lang } = useI18n();
   const { data, isLoading } = useLoyaltyBalance();
+  const { data: wallet } = useWallet();
   const openEarnSheet = useEarnSheetStore((s) => s.open);
 
   if (isLoading || !data) {
@@ -64,12 +71,11 @@ export function LoyaltyCard() {
           style={styles.body}
         >
           <View style={styles.topRow}>
-            <Logo variant="badge" tone="light" size={34} />
+            <Text variant="caption" color={colors.onHeroMuted}>
+              {t('home.loyaltyPoints')}
+            </Text>
             <TierBadge tier={data.tier} onHero />
           </View>
-          <Text variant="caption" color={colors.onHeroMuted}>
-            {t('home.loyaltyPoints')}
-          </Text>
           <View style={styles.pointsRow}>
             <Text variant="display" color={colors.onHero} style={styles.points}>
               {formatNumber(data.points, lang)}
@@ -88,10 +94,26 @@ export function LoyaltyCard() {
         </Pressable>
 
         <Pressable
+          onPress={() => router.push('/profile/wallet')}
+          style={({ pressed }) => [styles.walletRow, pressed && styles.pressed]}
+          accessibilityRole="button"
+        >
+          <Icon name="wallet" size={18} color={colors.onHeroMuted} />
+          <Text variant="caption" color={colors.onHeroMuted}>
+            {t('home.walletBalance')}
+          </Text>
+          <Text variant="bodyBold" color={colors.onHero} style={styles.walletAmount}>
+            {formatJOD(wallet ?? 0, lang)}
+          </Text>
+          <Text variant="caption" color={colors.onHero} style={styles.topUp}>
+            {t('home.topUp')}
+          </Text>
+        </Pressable>
+
+        <Pressable
           onPress={() => openEarnSheet()}
           style={({ pressed }) => [styles.codeBtn, pressed && styles.pressed]}
           accessibilityRole="button"
-          accessibilityLabel={t('earnSheet.open')}
         >
           <Icon name="qr" size={22} color={colors.hero} />
           <Text variant="bodyBold" color={colors.hero}>
@@ -117,7 +139,7 @@ const styles = StyleSheet.create({
    * LoyaltyCard defect of 2026-09-08, reported from the live web build).
    */
   body: { gap: spacing.xs, minWidth: 0 },
-  topRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing.sm },
+  topRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   pointsRow: { flexDirection: 'row', alignItems: 'baseline', flexWrap: 'wrap', columnGap: spacing.sm },
   points: { lineHeight: 42 },
   // The card's one action, as a light button on the black card: 52pt, the
@@ -131,5 +153,18 @@ const styles = StyleSheet.create({
     backgroundColor: colors.onHero,
     borderRadius: radius.md,
   },
+  /** The wallet line: under a rule, so it reads as the card's second balance
+   *  and not as more of the points. 44pt, the smallest target. */
+  walletRow: {
+    minHeight: 44,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: colors.onHeroMuted,
+    paddingTop: spacing.sm,
+  },
+  walletAmount: { flex: 1 },
+  topUp: { fontWeight: '700', textDecorationLine: 'underline' },
   pressed: { opacity: 0.88 },
 });

@@ -6,6 +6,9 @@ import { createMockOrder, estimatePrepMinutes, DISPLAY_EARN_RULES, type PlaceOrd
 import { tierProgress, genGiftCode } from '@/data/loyalty';
 import { getBranches, isBranchOpen } from '@/data/branches';
 import { getFeaturedItems } from '@/data/featured';
+import { itemInsights } from '@almond/shared/menu/menu.insights.generated';
+import { categoryKind } from '@almond/shared/lib/categoryKind';
+import { isOccasionItem } from '@almond/shared/lib/recommendations';
 
 /**
  * Guards the branching helpers under src/data/**: the order the site builds at
@@ -209,8 +212,24 @@ describe('getFeaturedItems', () => {
     expect(new Set(a).size).toBe(a.length);
   });
 
-  it('returns every candidate when the limit exceeds the pool', () => {
-    const pool = menuItems.filter((i) => i.imageUrl && i.inStock !== false);
-    expect(getFeaturedItems(pool.length + 5)).toHaveLength(pool.length);
+  it('is ranked by measured orders: «الأكثر طلبًا» is true, not a sample', () => {
+    // It used to be every Nth photographed item. Now it is the shared
+    // bestSellers(): paid Odoo orders per item, most first.
+    const out = getFeaturedItems(12);
+    const orders = out.map((i) => itemInsights[i.id]?.orders ?? 0);
+    expect(orders.every((n) => n > 0), 'an unmeasured item is never "most ordered"').toBe(true);
+    expect(orders).toEqual([...orders].sort((a, b) => b - a));
+    // The best-selling photographed drink or food leads the row.
+    const top = menuItems
+      .filter((i) => i.imageUrl && i.inStock !== false && (itemInsights[i.id]?.orders ?? 0) > 0)
+      .filter((i) => categoryKind(i.categoryId) !== 'other' && !isOccasionItem(i))
+      .sort((a, b) => (itemInsights[b.id]?.orders ?? 0) - (itemInsights[a.id]?.orders ?? 0))[0];
+    expect(out[0]?.id).toBe(top?.id);
+  });
+
+  it('offers neither water nor a whole cake from a row of photos', () => {
+    const out = getFeaturedItems(40);
+    expect(out.every((i) => categoryKind(i.categoryId) !== 'other')).toBe(true);
+    expect(out.some(isOccasionItem)).toBe(false);
   });
 });

@@ -1,28 +1,40 @@
-import { View, StyleSheet, Pressable } from 'react-native';
+import { StyleSheet } from 'react-native';
 import { router } from 'expo-router';
 
-import { Text } from '@/components/ui/Text';
-import { Icon } from '@/components/ui/Icon';
-import { HeroCard } from '@/components/ui/HeroCard';
-import { colors, spacing, radius, shadow } from '@/constants/theme';
+import { PhotoTile } from '@/components/home/PhotoTile';
+import { spacing } from '@/constants/theme';
 import { useI18n } from '@/hooks/useI18n';
+import { useMenuState } from '@/hooks/useMenuState';
 import { useUsualOrder } from '@/hooks/useOrder';
 import { useCartStore, lineUnitPrice } from '@/stores/cartStore';
 import { iconForItem } from '@/lib/productIcon';
 import { formatJOD } from '@/lib/format';
 
-/** "طلبك المعتاد" one-tap reorder card (section 4.4 #3, 7.2). */
+/**
+ * «طلبك المعتاد» — the order a member places most, back in the cart in one
+ * tap (section 4.4 #3, 7.2), with a photograph of what is in it. Expert panel,
+ * 2026-10-15: «اطلب مجدداً بصورة آخر طلب». Precedent: Starbucks' and Talabat's
+ * "Order again", which show the item, not only its name.
+ *
+ * It renders nothing for a member with no orders yet, and carries its own
+ * margin for that reason: a wrapper on Home would leave the gap behind.
+ */
 export function UsualOrderCard() {
   const { t, lang } = useI18n();
   const usual = useUsualOrder();
+  const menu = useMenuState();
   const addLine = useCartStore((s) => s.addLine);
 
   if (!usual) return null;
 
-  const summary = usual.items
-    .map((i) => `${i.qty}× ${lang === 'ar' ? i.nameAr : i.nameEn}`)
-    .join('، ');
+  const names = usual.items
+    .map((i) => {
+      const name = lang === 'ar' ? i.nameAr : i.nameEn;
+      return i.qty > 1 ? `${name} ×${i.qty}` : name;
+    })
+    .join(lang === 'ar' ? '، ' : ', ');
   const total = usual.items.reduce((s, i) => s + lineUnitPrice(i) * i.qty, 0);
+  const photos = usual.items.map((i) => menu.items.find((m) => m.id === i.itemId)?.imageUrl).filter(Boolean);
 
   const addAll = () => {
     usual.items.forEach((i) => addLine({ ...i }));
@@ -30,52 +42,19 @@ export function UsualOrderCard() {
   };
 
   return (
-    <Pressable
-      style={({ pressed }) => [styles.shadow, pressed && styles.pressed]}
+    <PhotoTile
+      title={t('home.usualOrder')}
+      subtitle={names}
+      cta={t('home.usualAdd', { total: formatJOD(total, lang) })}
+      photos={photos}
+      icon={iconForItem(usual.items[0]?.itemId ?? '')}
+      plate={96}
       onPress={addAll}
-      accessibilityRole="button"
-    >
-      <HeroCard style={styles.card}>
-        <View style={styles.iconWrap}>
-          <Icon name={iconForItem(usual.items[0]?.itemId ?? '')} size={26} color={colors.onHero} strokeWidth={1.7} />
-        </View>
-        <View style={styles.body}>
-          <Text variant="caption" color={colors.onHero} style={styles.label}>
-            {t('home.usualOrder')}
-          </Text>
-          <Text variant="bodyBold" color={colors.onHero} numberOfLines={1}>
-            {summary}
-          </Text>
-          <Text variant="caption" color={colors.onHero}>
-            {t('home.usualOrderCta')} · {formatJOD(total, lang)}
-          </Text>
-        </View>
-        <Text style={styles.plus}>＋</Text>
-      </HeroCard>
-    </Pressable>
+      style={styles.block}
+    />
   );
 }
 
 const styles = StyleSheet.create({
-  shadow: { borderRadius: radius.lg, ...shadow.card },
-  card: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderRadius: radius.lg,
-    padding: spacing.md,
-    gap: spacing.md,
-    overflow: 'hidden',
-  },
-  pressed: { opacity: 0.85 },
-  iconWrap: {
-    width: 52,
-    height: 52,
-    borderRadius: radius.md,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  label: { opacity: 0.85 },
-  body: { flex: 1, gap: 2 },
-  plus: { fontSize: 28, color: colors.onHero, paddingHorizontal: spacing.sm },
+  block: { marginBottom: spacing.lg },
 });

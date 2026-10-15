@@ -81,7 +81,7 @@ export function ChallengeBanner() {
           {t(`challenge.${challenge.id}Sub`)}
         </Text>
       </View>
-      <Text style={[styles.chevron, lang === 'ar' && styles.chevronRTL]}>›</Text>
+      <Icon name={lang === 'ar' ? 'chevron-left' : 'chevron-right'} size={20} color={colors.dark} />
     </Pressable>
   );
 }
@@ -109,6 +109,4 @@ const styles = StyleSheet.create({
   // flex + minWidth for the same reason as LoyaltyCard: this row clips on the
   // web build otherwise, and the sub-line is a full sentence.
   body: { flex: 1, minWidth: 0, gap: 2 },
-  chevron: { fontSize: 24, lineHeight: 26, color: colors.primary },
-  chevronRTL: { transform: [{ scaleX: -1 }] },
 });

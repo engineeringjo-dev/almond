@@ -1,19 +1,12 @@
 import type { MenuItem } from '@almond/shared/types';
-import { menuItems } from '@almond/shared/menu';
+import { bestSellers } from '@almond/shared/lib/recommendations';
 
 /**
- * A demoable "most loved" set: in-stock items that have a real photo, spread
- * across the menu for visual variety. Deterministic (no Math.random) so server
- * and client render the same order — no hydration mismatch.
+ * The row headed «الأكثر طلبًا»: the items customers order most, measured from
+ * paid Odoo orders (bestSellers in @almond/shared, the app's rule too). It used
+ * to be every Nth photographed item, which made the heading a claim about a
+ * sample. Deterministic, so the server and the client render the same order.
  */
 export function getFeaturedItems(limit = 10): MenuItem[] {
-  const withPhotos = menuItems.filter((i) => i.imageUrl && i.inStock !== false);
-  if (withPhotos.length <= limit) return withPhotos;
-
-  const step = Math.floor(withPhotos.length / limit);
-  const picked: MenuItem[] = [];
-  for (let i = 0; i < withPhotos.length && picked.length < limit; i += step) {
-    picked.push(withPhotos[i]);
-  }
-  return picked;
+  return bestSellers(limit);
 }

@@ -1,31 +1,31 @@
-import { View, StyleSheet, Pressable } from 'react-native';
+import { StyleSheet } from 'react-native';
 import { router } from 'expo-router';
 
-import { Text } from '@/components/ui/Text';
-import { Icon } from '@/components/ui/Icon';
-import { HeroCard } from '@/components/ui/HeroCard';
-import { colors, spacing, radius, shadow } from '@/constants/theme';
+import { PhotoTile } from '@/components/home/PhotoTile';
 import { config } from '@/constants/config';
 import { useI18n } from '@/hooks/useI18n';
 import { comboOfferCopy } from '@/lib/comboOffer';
 import { getComboStarter } from '@almond/shared/lib/recommendations';
 import { useCartStore } from '@/stores/cartStore';
+import type { Lang } from '@/types';
 
 /**
- * THE COMBO, ON THE OFFERS PAGE.
+ * THE COMBO, THE FIRST SLIDE OF HOME'S OFFERS CAROUSEL.
  *
  * ── WHERE IT SITS, AND WHAT MOVED ───────────────────────────────────────────
  *
- * It is the HEADLINE of the Offers section (`home.promotions` = "Offers" /
- * «العروض»), full width, above the horizontal promo strip — because it is the
- * only offer in that section that changes what a member puts in a basket, and
- * because the strip is where it was invisible. Two things moved to make room:
+ * It leads the offers carousel (PromoCarousel, «العروض»): it is the only offer
+ * there that changes what a member puts in a basket. It was the full-width
+ * headline above a strip of tiles; Home is now four blocks (expert panel,
+ * 2026-10-15) and the offers are one carousel, so it is the first slide, with
+ * a photograph of the pair it adds. Two things moved before that, and stay
+ * moved:
  *
  *   - The old `combo` tile came OUT of the strip. It said «مشروب + طعام = 50
  *     نقطة» / "Drink + food = 50 points" as a hardcoded bilingual literal, so it
  *     was both the second copy of a config number (the exact drift that shipped
  *     in the cart banner when the dial went to 25) and invisible to the locale
- *     scan that would otherwise have caught it. Its content is this card now.
+ *     scan that would otherwise have caught it.
  *   - The `friday` tile — "+50% points every Friday" — was DELETED. That
  *     mechanic is retired: `config.WEEKDAY_EARN_BONUS` is `[]` and
  *     `BONUS_BEAN_DAY.enabled` is false. It is the same promise W4 deleted from
@@ -55,19 +55,19 @@ import { useCartStore } from '@/stores/cartStore';
  * ── COLD COPY ───────────────────────────────────────────────────────────────
  *
  * Read by someone who has not started an order, so it assumes no basket: it
- * states the offer ("any drink + any food"), states the price honestly (full
- * price for both — `config.BRUNCH_COMBO_DISCOUNT` is 0 and the points are the
- * entire offer), and names one concrete pair as an EXAMPLE, not as a
- * restriction. The count comes from the dial through `comboOfferCopy`; there is
- * no literal in this file, in the locale values, or in either language.
+ * states the offer ("any drink + any food") and names one concrete pair as an
+ * EXAMPLE, not as a restriction. The plain statement — full price for both,
+ * `config.BRUNCH_COMBO_DISCOUNT` is 0 and the points are the entire offer —
+ * does not fit on a slide; a screen reader reads it with the slide, and the
+ * cart shows the real totals the moment the pair lands there. The count comes
+ * from the dial through `comboOfferCopy`; there is no literal in this file, in
+ * the locale values, or in either language.
  */
-export function ComboOfferCard() {
+export function ComboOfferCard({ onFocus, press }: { onFocus?: () => void; press?: (fn: () => void) => () => void }) {
   const { t, lang } = useI18n();
   const addItem = useCartStore((s) => s.addItem);
 
-  // earn-arith-exempt: an offer LABEL — no invoice, no grant. §3.5 / §7 T7.
-  const points = config.COMBO_BONUS_POINTS;
-  const copy = comboOfferCopy(points, STARTER, lang);
+  const copy = comboOffer(lang);
   if (!copy) return null;
 
   const onPress = () => {
@@ -86,32 +86,28 @@ export function ComboOfferCard() {
   };
 
   return (
-    <Pressable style={styles.shadow} onPress={onPress} accessibilityRole="button">
-      <HeroCard style={styles.card}>
-        <Icon name="brunch" size={26} color={colors.onHero} strokeWidth={1.75} />
-        <Text variant="bodyBold" color={colors.onHero}>
-          {t(copy.titleKey, copy.params)}
-        </Text>
-        <Text variant="caption" color={colors.onHero} style={styles.body}>
-          {t(copy.bodyKey, copy.params)}
-        </Text>
-        <View style={styles.footer}>
-          {copy.example ? (
-            <Text variant="caption" color={colors.onHero} style={styles.example} numberOfLines={2}>
-              {t(copy.example.key, copy.example.params)}
-            </Text>
-          ) : (
-            <View style={styles.example} />
-          )}
-          <View style={styles.cta}>
-            <Text variant="caption" color={colors.hero} style={styles.ctaLabel}>
-              {t('offers.comboCta')}
-            </Text>
-          </View>
-        </View>
-      </HeroCard>
-    </Pressable>
+    <PhotoTile
+      title={t(copy.titleKey, copy.params)}
+      subtitle={copy.example ? t(copy.example.key, copy.example.params) : undefined}
+      cta={t('offers.comboCta')}
+      // The whole statement — full price for both, the points are the offer —
+      // is read out with the slide; it does not fit on one.
+      accessibilityHint={t(copy.bodyKey, copy.params)}
+      photos={[STARTER?.drink.imageUrl, STARTER?.food.imageUrl]}
+      icon="brunch"
+      onPress={press ? press(onPress) : onPress}
+      onFocus={onFocus}
+      style={styles.fill}
+    />
   );
+}
+
+/** The offer, or null when the dial is off: the carousel asks before it
+ *  counts the slide, so an empty dial leaves no empty slide behind. */
+export function comboOffer(lang: Lang) {
+  // earn-arith-exempt: an offer LABEL — no invoice, no grant. §3.5 / §7 T7.
+  const points = config.COMBO_BONUS_POINTS;
+  return comboOfferCopy(points, STARTER, lang);
 }
 
 /**
@@ -122,26 +118,5 @@ export function ComboOfferCard() {
 const STARTER = getComboStarter();
 
 const styles = StyleSheet.create({
-  shadow: { borderRadius: radius.lg, marginBottom: spacing.md, ...shadow.card },
-  card: {
-    borderRadius: radius.lg,
-    padding: spacing.lg,
-    gap: spacing.xs,
-    overflow: 'hidden',
-  },
-  body: { opacity: 0.92 },
-  footer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
-    marginTop: spacing.sm,
-  },
-  example: { flex: 1 },
-  cta: {
-    backgroundColor: colors.onHero,
-    borderRadius: radius.sm,
-    paddingVertical: spacing.xs,
-    paddingHorizontal: spacing.md,
-  },
-  ctaLabel: { fontWeight: '700' },
+  fill: { flex: 1 },
 });

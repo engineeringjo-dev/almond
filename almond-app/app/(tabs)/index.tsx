@@ -1,35 +1,57 @@
 import { useMemo, useState } from 'react';
-import { View, StyleSheet, Pressable } from 'react-native';
+import { View, StyleSheet } from 'react-native';
 
 import { Screen } from '@/components/ui/Screen';
 import { Text } from '@/components/ui/Text';
 import { HomeTopBar } from '@/components/home/HomeTopBar';
 import { useLaunchSheets } from '@/hooks/useLaunchSheets';
 import { LoyaltyCard } from '@/components/home/LoyaltyCard';
-import { UsualOrderCard } from '@/components/home/UsualOrderCard';
-import { NearestBranchButton } from '@/components/home/NearestBranchButton';
 import { OrderNowButton } from '@/components/home/OrderNowButton';
-import { WalletCard } from '@/components/home/WalletCard';
-import { GiftCardHome } from '@/components/home/GiftCardHome';
+import { PromoCarousel } from '@/components/home/PromoCarousel';
+import { UsualOrderCard } from '@/components/home/UsualOrderCard';
 import { ActiveOrderBanner } from '@/components/home/ActiveOrderBanner';
-import { FeaturedRow } from '@/components/home/FeaturedRow';
 import { ChallengeBanner } from '@/components/home/ChallengeBanner';
 import { HomeNudge } from '@/components/home/HomeNudge';
 import { PromotionBanner } from '@/components/home/PromotionBanner';
-import { PromoCarousel } from '@/components/home/PromoCarousel';
-import { BranchCard } from '@/components/branch/BranchCard';
 import { BranchPicker } from '@/components/branch/BranchPicker';
-import { colors, spacing } from '@/constants/theme';
+import { spacing } from '@/constants/theme';
 import { useI18n } from '@/hooks/useI18n';
 import { useNearestBranch } from '@/hooks/useNearestBranch';
+import { useInvalidateLoyalty } from '@/hooks/useLoyalty';
 import { useAuthStore } from '@/stores/authStore';
 import { useCartStore } from '@/stores/cartStore';
 import type { Branch } from '@/types';
 
+/**
+ * HOME, IN FOUR BLOCKS (expert panel, 2026-10-15, «رئيسية من 4 كتل»;
+ * precedent Starbucks):
+ *
+ *   1. The membership card: points, what they are worth, the wallet, and the
+ *      code (owner: «نفذ ظهور الرمز أولاً», the code first).
+ *   2. Order: «اطلب الآن», or «أكمل طلبك» when the cart holds something.
+ *   3. The offers carousel, explorable like Al Ameed's top bar, with the
+ *      menu's own photographs.
+ *   4. «طلبك المعتاد», with a photograph, once there is one.
+ *
+ * What it replaced was fourteen sections: the wallet, gift-card, nearest-
+ * branch, «الأكثر طلباً» and offers cards and a list of three branches. The
+ * wallet is on the card now, gift cards and the best sellers are slides, and
+ * the branches are behind the header's chip.
+ *
+ * Above the card only what is live: an order being made, and a promotion to
+ * celebrate. Below the blocks, the nudges: the first-week ladder and a
+ * double-points day or points about to expire.
+ *
+ * 🔴 NO WRAPPER AROUND A BLOCK THAT CAN BE EMPTY. A section View with a
+ * margin stays on screen when its child renders nothing. That is the 76pt
+ * blank the experts measured, under the nudges, on every launch with no
+ * active order. Each block that can be empty carries its own margin.
+ */
 export default function HomeScreen() {
   const { t } = useI18n();
   const user = useAuthStore((s) => s.user);
-  const { branches, nearest, permissionDenied, loading, error, refetch } = useNearestBranch();
+  const { branches, nearest, loading, error, refetch } = useNearestBranch();
+  const invalidateLoyalty = useInvalidateLoyalty();
   const selectedBranchId = useCartStore((s) => s.branchId);
   const setBranch = useCartStore((s) => s.setBranch);
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -59,120 +81,52 @@ export default function HomeScreen() {
     ? t(`home.greeting${base}Guest`)
     : t(`home.greeting${base}`, { name });
 
+  const refresh = () => {
+    void refetch();
+    invalidateLoyalty();
+  };
+
   return (
     <View style={styles.root}>
-      <Screen
-        loading={loading}
-        error={error}
-        onRetry={refetch}
-        refreshing={false}
-        onRefresh={refetch}
-        edges={['top']}
-      >
-        <HomeTopBar branch={activeBranch} onBranchPress={() => setPickerOpen(true)} />
+      <Screen refreshing={false} onRefresh={refresh} edges={['top']}>
+        <HomeTopBar
+          branch={activeBranch}
+          loading={loading}
+          error={error}
+          onRetry={() => void refetch()}
+          onBranchPress={() => setPickerOpen(true)}
+        />
 
-        <Text variant="h1" style={styles.greeting}>
+        <Text variant="h2" style={styles.greeting} accessibilityRole="header">
           {greetingText}
         </Text>
 
-        {/* 🎉 The promotion celebration. Above everything else on purpose: the
-            rate changed at a till, possibly days ago, and this is the only
-            place the member is ever told. Renders nothing unless a rise in the
-            rung they are PAID at is owed and undismissed — see
-            lib/promotion.ts. Unwrapped, like HomeNudge: a section wrapper would
-            leave its own margin behind on every launch that has nothing to
-            celebrate, which is almost all of them. */}
+        {/* Live, so above the card; each renders nothing when there is
+            nothing to say, and carries its own margin. */}
+        <ActiveOrderBanner />
+        {/* 🎉 The promotion celebration: the rate changed at a till, possibly
+            days ago, and this is the only place the member is told — see
+            lib/promotion.ts. */}
         <PromotionBanner />
 
-        {/* The onboarding ladder: fill in your details, then invite a friend.
-            One at a time, decided in @almond/shared/loyalty/challenges, and
-            nothing at all once both are done. Placed ABOVE HomeNudge because a
-            challenge is a first-week thing and the nudge is a forever thing —
-            a member with an abandoned cart AND an unfinished profile is newer
-            than they are hungry.
-
-            Unwrapped, like PromotionBanner and HomeNudge: a wrapper View with a
-            margin would leave a blank gap on Home for every member who has
-            finished the ladder, which is eventually everyone. The component
-            carries its own spacing and renders nothing at all when done. */}
-        <ChallengeBanner />
-
-        {/* Lifecycle nudge: abandoned cart / points expiring (renders only when relevant) */}
-        <HomeNudge />
-
-        {/* Live active-order status, front-and-centre (Starbucks pattern) */}
-        <View style={styles.section}>
-          <ActiveOrderBanner />
-        </View>
-
-        {/* Starbucks layout (Master Pack §2): rewards hero → order CTA → wallet
-            → usual → horizontal sections → branches, with generous spacing. */}
-        {/* 🪦 WelcomeOffer sat here — «هدية الترحيب: مشروب مجاني على أول طلب».
-            Deleted 2026-09-08 («الغي الكاس المجاني»): no code anywhere granted a
-            drink on a first order, so the card was a promise with nothing
-            behind it. The second-visit voucher («تانية علينا») that replaced it
-            was withdrawn too, on 2026-09-24 («نلغي من التطبيق المشروب الثاني
-            علينا»): its flag is off and nothing on this screen offers it. */}
-
-        <View style={styles.heroSection}>
+        <View style={styles.block}>
           <LoyaltyCard />
         </View>
 
-        <View style={styles.section}>
-          <OrderNowButton />
+        <View style={styles.block}>
+          <OrderNowButton branch={activeBranch} />
         </View>
 
-        <View style={styles.section}>
-          <WalletCard />
-        </View>
-
-        <View style={styles.section}>
-          <GiftCardHome />
-        </View>
-
-        <View style={styles.section}>
-          <NearestBranchButton />
-        </View>
-
-        <View style={styles.section}>
-          <UsualOrderCard />
-        </View>
-
-        <View style={styles.section}>
-          <FeaturedRow />
-        </View>
-
-        <View style={styles.section}>
+        <View style={styles.block}>
           <PromoCarousel />
         </View>
 
-        <View style={styles.section}>
-          <View style={styles.branchHeader}>
-            <Text variant="title">{t('home.nearestBranches')}</Text>
-            <Pressable onPress={() => setPickerOpen(true)} hitSlop={8}>
-              <Text variant="caption" color={colors.gold}>
-                {t('home.viewAll')}
-              </Text>
-            </Pressable>
-          </View>
+        <UsualOrderCard />
 
-          {permissionDenied ? (
-            <Text variant="caption" color={colors.warmGray} style={styles.locHint}>
-              {t('home.noBranchLocation')}
-            </Text>
-          ) : null}
-
-          <View style={styles.branchList}>
-            {branches.slice(0, 3).map((b) => (
-              <BranchCard
-                key={b.id}
-                branch={b}
-                selected={b.id === activeBranch?.id}
-                onPress={() => setBranch(b)}
-              />
-            ))}
-          </View>
-        </View>
+        {/* The first-week ladder (fill in your details, then invite a friend),
+            then the day's nudge. Both unwrapped, both nothing once done. */}
+        <ChallengeBanner />
+        <HomeNudge />
       </Screen>
 
       <BranchPicker
@@ -188,15 +142,6 @@ export default function HomeScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1 },
-  greeting: { marginBottom: spacing.lg },
-  section: { marginBottom: spacing.xl + spacing.xs },
-  heroSection: { marginBottom: spacing.xl + spacing.sm },
-  branchHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: spacing.md,
-  },
-  locHint: { marginBottom: spacing.md },
-  branchList: { gap: spacing.md },
+  greeting: { marginBottom: spacing.md },
+  block: { marginBottom: spacing.lg },
 });

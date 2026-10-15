@@ -1,13 +1,8 @@
-import { useRef, useState } from 'react';
 import {
   View,
   StyleSheet,
   Pressable,
-  ScrollView,
   Alert,
-  useWindowDimensions,
-  type NativeSyntheticEvent,
-  type NativeScrollEvent,
 } from 'react-native';
 import { router } from 'expo-router';
 
@@ -18,6 +13,7 @@ import { Icon, type IconName } from '@/components/ui/Icon';
 import { HeroCard } from '@/components/ui/HeroCard';
 import { Logo } from '@/components/ui/Logo';
 import { Skeleton } from '@/components/ui/Skeleton';
+import { PeekCarousel } from '@/components/ui/PeekCarousel';
 import { TierBadge, TIER_FILL } from '@/components/loyalty/TierBadge';
 import { BonusDayBanner } from '@/components/loyalty/BonusDayBanner';
 import { WelcomeGiftNote } from '@/components/loyalty/WelcomeGiftNote';
@@ -111,14 +107,8 @@ const STEPS: { icon: IconName; titleKey: string; bodyKey: string }[] = [
 
 export default function RewardsScreen() {
   const { t, lang } = useI18n();
-  const { width } = useWindowDimensions();
   const balanceQ = useLoyaltyBalance();
   const redeemReward = useRedeemReward();
-  const [statusPage, setStatusPage] = useState(0);
-  // Status carousel scroll handle. Declared BEFORE the early returns below: a
-  // hook after them runs only once data has loaded, so the loading→loaded
-  // render would call one more hook than the previous one and React throws.
-  const statusRef = useRef<ScrollView>(null);
 
   if (balanceQ.isError) {
     return <Screen error onRetry={balanceQ.refetch} />;
@@ -199,20 +189,6 @@ export default function RewardsScreen() {
   const segPct = next
     ? Math.min(100, Math.max(0, ((balance.windowSpend - segFrom) / (segTo - segFrom)) * 100))
     : 100;
-
-  // Status carousel: cards are narrower than the screen so the NEXT tier card
-  // peeks in — a clear signal there's more than one. Arrows + dots reinforce it.
-  const cardW = width - spacing.lg * 2 - 40;
-  const step = cardW + spacing.md;
-  const onStatusScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
-    const idx = Math.round(e.nativeEvent.contentOffset.x / step);
-    if (idx !== statusPage) setStatusPage(idx);
-  };
-  const goToTier = (i: number) => {
-    const idx = Math.max(0, Math.min(tiers.length - 1, i));
-    statusRef.current?.scrollTo({ x: idx * step, animated: true });
-    setStatusPage(idx);
-  };
 
   return (
     <Screen onRefresh={balanceQ.refetch}>
@@ -345,18 +321,19 @@ export default function RewardsScreen() {
         {t('rewards.routineSub')} · {t('rewards.swipeTiers')}
       </Text>
 
-      <ScrollView
-        ref={statusRef}
-        horizontal
-        decelerationRate="fast"
-        snapToInterval={step}
-        snapToAlignment="start"
-        showsHorizontalScrollIndicator={false}
-        onScroll={onStatusScroll}
-        scrollEventThrottle={16}
-        contentContainerStyle={styles.statusScroll}
-      >
-        {tiers.map((tr) => {
+      {/* The tiers, one card at a time with the next one showing: the same
+          carousel as Home's offers (PeekCarousel). It was a horizontal
+          ScrollView whose page was its offset divided by the card width; the
+          web reports that offset as negative in Arabic, so the page came out
+          as -1 and the arrows scrolled to an offset the browser clamps to 0. */}
+      <PeekCarousel
+        count={tiers.length}
+        label={t('rewards.routineTitle')}
+        pickLabel={(n) => tierName(tiers[n - 1]!, lang)}
+        bleed={spacing.lg}
+        arrows
+        renderSlide={(i) => {
+          const tr = tiers[i]!;
           const isCurrent = tr.id === currentTier.id;
           const fg = colors.onInk; // the ramp carries onInk at ≥4.5:1 in both schemes
           // The qualifying door, said the way the member can act on it. The
@@ -369,7 +346,7 @@ export default function RewardsScreen() {
               ? t('rewards.statusSubPlus', { visits: config.TIER2_VISITS_ALTERNATIVE })
               : t('rewards.statusSubTop');
           return (
-            <View key={tr.id} style={[styles.statusCard, { width: cardW, backgroundColor: TIER_COLOR[tr.id] }]}>
+            <View style={[styles.statusCard, { backgroundColor: TIER_COLOR[tr.id] }]}>
               {isCurrent ? (
                 <View style={styles.currentPill}>
                   <Text variant="caption" color={TIER_COLOR[tr.id]} style={styles.currentPillText}>
@@ -408,40 +385,8 @@ export default function RewardsScreen() {
               </View>
             </View>
           );
-        })}
-      </ScrollView>
-
-      {/* Carousel controls: ‹ arrows + dots + › so 4 tiers are obvious */}
-      <View style={styles.carouselNav}>
-        <Pressable
-          onPress={() => goToTier(statusPage - 1)}
-          disabled={statusPage === 0}
-          hitSlop={10}
-          accessibilityRole="button"
-        >
-          <Text style={[styles.chevron, statusPage === 0 && styles.chevronOff]}>‹</Text>
-        </Pressable>
-
-        <View style={styles.dots}>
-          {tiers.map((tr, i) => (
-            <Pressable key={tr.id} onPress={() => goToTier(i)} hitSlop={8}>
-              <View style={[styles.dot, i === statusPage && styles.dotActive]} />
-            </Pressable>
-          ))}
-        </View>
-
-        <Pressable
-          onPress={() => goToTier(statusPage + 1)}
-          disabled={statusPage === tiers.length - 1}
-          hitSlop={10}
-          accessibilityRole="button"
-        >
-          <Text style={[styles.chevron, statusPage === tiers.length - 1 && styles.chevronOff]}>›</Text>
-        </Pressable>
-      </View>
-      <Text variant="caption" color={colors.warmGray} center style={styles.counter}>
-        {t('rewards.tierCounter', { n: statusPage + 1, total: tiers.length })}
-      </Text>
+        }}
+      />
 
       {/* History */}
       <Pressable style={styles.historyLink} onPress={() => router.push('/loyalty')} hitSlop={8}>
@@ -512,6 +457,7 @@ const styles = StyleSheet.create({
 
   // Status carousel
   statusCard: {
+    flex: 1,
     borderRadius: radius.lg,
     padding: spacing.xl,
     gap: spacing.sm,
@@ -540,20 +486,6 @@ const styles = StyleSheet.create({
   benefits: { gap: spacing.sm, marginTop: spacing.xs },
   benefitRow: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.sm },
 
-  statusScroll: { gap: spacing.md, paddingEnd: 40 },
-  carouselNav: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: spacing.md,
-    marginTop: spacing.md,
-  },
-  chevron: { fontSize: 30, lineHeight: 34, color: colors.primary, paddingHorizontal: spacing.sm },
-  chevronOff: { color: colors.neutralWarm },
-  dots: { flexDirection: 'row', justifyContent: 'center', gap: spacing.sm },
-  dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: colors.neutralWarm },
-  dotActive: { backgroundColor: colors.primary, width: 22 },
-  counter: { marginTop: spacing.xs },
 
   historyLink: {
     flexDirection: 'row',

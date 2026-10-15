@@ -3,7 +3,7 @@ import { router } from 'expo-router';
 
 import { Text } from '@/components/ui/Text';
 import { Icon, type IconName } from '@/components/ui/Icon';
-import { colors, spacing, radius, shadow } from '@/constants/theme';
+import { colors, spacing, radius } from '@/constants/theme';
 import { useI18n } from '@/hooks/useI18n';
 import { formatTime } from '@/lib/format';
 import { useActiveOrders } from '@/hooks/useOrder';
@@ -21,6 +21,12 @@ const STATUS_ICON: Record<OrderStatus, IconName> = {
  * Live active-order banner on Home (Starbucks "your order" front-and-centre):
  * surfaces the most recent in-progress order with its status + ready time, one
  * tap to the full tracking screen. Hidden when there's no active order.
+ *
+ * It carries its own margin and renders nothing at all when there is no
+ * order. Home used to wrap it in a section View, which left a 76pt blank on
+ * every launch without an order (the gap the expert panel measured,
+ * 2026-10-15). A control's fill with an ink status disc, not a second black
+ * card under the membership card.
  */
 export function ActiveOrderBanner() {
   const { t, lang } = useI18n();
@@ -36,21 +42,21 @@ export function ActiveOrderBanner() {
       style={({ pressed }) => [styles.card, pressed && styles.pressed]}
     >
       <View style={styles.iconWrap}>
-        <Icon name={STATUS_ICON[order.status]} size={22} color={colors.lightGold} strokeWidth={2} />
+        <Icon name={STATUS_ICON[order.status]} size={22} color={colors.onInk} strokeWidth={2} />
       </View>
       <View style={styles.body}>
-        <Text variant="caption" color={colors.onInk}>
+        <Text variant="caption" color={colors.warmGray}>
           {t('track.orderNumber')} {order.id.slice(-6).toUpperCase()}
         </Text>
-        <Text variant="bodyBold" color={colors.onInk}>
+        <Text variant="bodyBold">
           {t(`track.${order.status}`)}
         </Text>
       </View>
       <View style={styles.time}>
-        <Text variant="caption" color={colors.onInk}>
+        <Text variant="caption" color={colors.warmGray}>
           {t('confirm.readyAt')}
         </Text>
-        <Text variant="bodyBold" color={colors.lightGold}>
+        <Text variant="bodyBold">
           {formatTime(order.targetReadyAt, lang)}
         </Text>
       </View>
@@ -63,15 +69,15 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.md,
-    backgroundColor: colors.dark,
+    backgroundColor: colors.surface,
     borderRadius: radius.lg,
     padding: spacing.lg,
-    ...shadow.card,
+    marginBottom: spacing.lg,
   },
   pressed: { opacity: 0.92 },
   iconWrap: {
     width: 44, height: 44, borderRadius: 22,
-    backgroundColor: 'rgba(255,255,255,0.16)',
+    backgroundColor: colors.dark,
     alignItems: 'center', justifyContent: 'center',
   },
   body: { flex: 1, gap: 2 },

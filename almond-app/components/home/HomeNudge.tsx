@@ -7,7 +7,6 @@ import { colors, spacing, radius } from '@/constants/theme';
 import { useI18n } from '@/hooks/useI18n';
 import { formatDayKey } from '@/lib/format';
 import { daysUntilDayKey } from '@almond/shared/loyalty/lots';
-import { useCartCount } from '@/stores/cartStore';
 import { useLoyaltyBalance } from '@/hooks/useLoyalty';
 import { activeDoubleDay, upcomingDoubleDay } from '@almond/shared/loyalty/earn';
 
@@ -19,12 +18,15 @@ const EXPIRY_WINDOW_DAYS = 14;
 
 /**
  * Lifecycle nudge on Home (client-side; no backend needed). Shows the single
- * highest-value reminder: an abandoned cart (order recovery) or points about
- * to expire (retention). Renders nothing when neither applies.
+ * highest-value reminder: a double-points day, or points about to expire
+ * (retention). Renders nothing when neither applies.
+ *
+ * The abandoned cart is not a nudge any more: Home's order block becomes
+ * «أكمل طلبك» the moment the cart holds something (OrderNowButton), above
+ * the fold. A nudge below it would have said the same thing twice.
  */
 export function HomeNudge() {
   const { t, lang } = useI18n();
-  const cartCount = useCartCount();
   const { data: balance } = useLoyaltyBalance();
   const today = activeDoubleDay();
   const tomorrow = upcomingDoubleDay();
@@ -42,19 +44,7 @@ export function HomeNudge() {
     );
   }
 
-  // 1) Abandoned cart — the persisted cart still has items.
-  if (cartCount > 0) {
-    return (
-      <Nudge
-        icon="cart"
-        text={t('home.nudgeCart', { count: cartCount })}
-        onPress={() => router.push('/cart')}
-        isRTL={lang === 'ar'}
-      />
-    );
-  }
-
-  // 2) The next slice of points to die, if it is close.
+  // 1) The next slice of points to die, if it is close.
   //
   // 🔴 DAY-KEY ARITHMETIC, NOT MILLISECONDS. `nextExpiry.on` is an Amman
   // calendar day, and `new Date('2026-11-15')` parses as UTC MIDNIGHT — so the
@@ -78,7 +68,7 @@ export function HomeNudge() {
     }
   }
 
-  // 3) The day before an occasion — the «غداً» notice.
+  // 2) The day before an occasion — the «غداً» notice.
   if (tomorrow) {
     return (
       <Nudge
@@ -112,9 +102,7 @@ function Nudge({
       <Text variant="bodyBold" color={colors.dark} style={styles.text} numberOfLines={2}>
         {text}
       </Text>
-      <Text variant="title" color={colors.primary}>
-        {isRTL ? '‹' : '›'}
-      </Text>
+      <Icon name={isRTL ? 'chevron-left' : 'chevron-right'} size={20} color={colors.dark} />
     </Pressable>
   );
 }
@@ -128,7 +116,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.lg,
     paddingVertical: spacing.md,
     paddingHorizontal: spacing.md,
-    marginBottom: spacing.xl,
+    marginBottom: spacing.md,
   },
   iconChip: {
     width: 34,
