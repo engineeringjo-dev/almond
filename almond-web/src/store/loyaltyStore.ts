@@ -160,7 +160,7 @@ export const useLoyaltyStore = create<LoyaltyState>()(
             walletBalance: s.walletBalance + sent.amount,
             giftsSent: s.giftsSent.map((g) => (g.id === sent.id ? { ...g, redeemed: true } : g)),
             walletHistory: [
-              { id: rid('w'), amount: sent.amount, labelAr: 'استبدال هدية', labelEn: 'Gift redeemed', createdAt: new Date().toISOString() },
+              { id: rid('w'), amount: sent.amount, labelAr: 'إضافة هدية', labelEn: 'Gift redeemed', createdAt: new Date().toISOString() },
               ...s.walletHistory,
             ],
           }));
@@ -174,7 +174,7 @@ export const useLoyaltyStore = create<LoyaltyState>()(
           set((s) => ({
             walletBalance: s.walletBalance + 5,
             walletHistory: [
-              { id: rid('w'), amount: 5, labelAr: 'استبدال هدية', labelEn: 'Gift redeemed', createdAt: new Date().toISOString() },
+              { id: rid('w'), amount: 5, labelAr: 'إضافة هدية', labelEn: 'Gift redeemed', createdAt: new Date().toISOString() },
               ...s.walletHistory,
             ],
           }));

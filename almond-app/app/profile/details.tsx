@@ -12,6 +12,7 @@ import { useI18n } from '@/hooks/useI18n';
 import { choiceA11y, choiceGroupA11y } from '@/lib/a11y';
 import { formatNumber } from '@/lib/format';
 import { notify } from '@/lib/dialog';
+import { ltrIsolate } from '@almond/shared/lib/phone';
 import { useUpdateProfile } from '@/hooks/useLoyalty';
 import { useAuthStore, useUser } from '@/stores/authStore';
 import {
@@ -232,7 +233,7 @@ export default function ProfileDetailsScreen() {
               it would change which account this is. */}
           {user?.phone ? (
             <Text variant="caption" color={colors.warmGray} style={styles.label}>
-              {t('details.phoneFixed', { phone: user.phone })}
+              {t('details.phoneFixed', { phone: ltrIsolate(user.phone) })}
             </Text>
           ) : null}
         </Card>

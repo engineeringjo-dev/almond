@@ -505,7 +505,7 @@ export function createPostgresBackend(db: Db): Backend {
       const back = grantLot(m.lots, row.points, 'earn', at, LOTS);
       m.lots = back.lots;
       log({
-        deltaPoints: row.points, reasonAr: 'انتهت صلاحية الاستبدال',
+        deltaPoints: row.points, reasonAr: 'إرجاع نقاط استبدال لم يُستخدم',
         reasonEn: 'Redemption expired', createdAt: at.toISOString(),
         kind: 'return', expiresOn: back.lot?.expiresOn ?? null,
       });
@@ -649,7 +649,7 @@ export function createPostgresBackend(db: Db): Backend {
           const grant = grantLot(m.lots, bonus, 'earn', at, LOTS);
           m.lots = grant.lots;
           log({
-            deltaPoints: bonus, reasonAr: 'إكمال الملف الشخصي',
+            deltaPoints: bonus, reasonAr: 'إكمال بياناتك',
             reasonEn: 'Profile completed', createdAt: at.toISOString(),
             kind: 'bonus', expiresOn: grant.lot?.expiresOn ?? null,
           });

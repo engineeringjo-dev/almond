@@ -44,7 +44,7 @@ test.describe('App design system: selection state reaches the web', () => {
     await expect(cats.locator('[aria-current="true"]')).toHaveCount(1);
 
     const sub = page.getByRole('tablist', { name: 'اطلب' });
-    await expect(sub.getByRole('tab', { name: 'القائمة' })).toHaveAttribute('aria-selected', 'true');
+    await expect(sub.getByRole('tab', { name: 'المنيو' })).toHaveAttribute('aria-selected', 'true');
     await sub.getByRole('tab', { name: 'المميّز' }).click();
     await expect(sub.getByRole('tab', { name: 'المميّز' })).toHaveAttribute('aria-selected', 'true');
     await expect(sub.getByRole('tab', { selected: true })).toHaveCount(1);
@@ -295,7 +295,7 @@ test.describe('App design system: targets, digits, direction, names', () => {
     await expect(tile.getByText('Cortado', { exact: true })).toHaveCount(1);
 
     await page.goto(appUrl('/profile'));
-    await expect(page.getByText('بياناتك')).toBeVisible({ timeout: 20_000 });
+    await expect(page.getByText('بياناتي')).toBeVisible({ timeout: 20_000 });
     expect(await page.locator('body').innerText()).not.toMatch(/[‹›]/);
   });
 
@@ -303,7 +303,7 @@ test.describe('App design system: targets, digits, direction, names', () => {
     await seedApp(page, { signedIn: true });
     await page.goto(appUrl('/menu'));
     await expect(page).toHaveURL(/\/almond\/order$/);
-    await expect(page.getByRole('tab', { name: 'القائمة', selected: true })).toBeVisible();
+    await expect(page.getByRole('tab', { name: 'المنيو', selected: true })).toBeVisible();
   });
 });
 

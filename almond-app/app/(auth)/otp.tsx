@@ -19,6 +19,7 @@ import { loyaltyService } from '@/services/loyalty.service';
 import { useToastStore } from '@/stores/toastStore';
 import { useAuthStore } from '@/stores/authStore';
 import { safeReturnTo } from '@/lib/returnTo';
+import { ltrIsolate } from '@almond/shared/lib/phone';
 
 const OTP_LENGTH = 6;
 const RESEND_SECONDS = 60;
@@ -93,7 +94,7 @@ export default function Otp() {
             {t('auth.otpTitle')}
           </Text>
           <Text variant="body" color={colors.warmGray} center style={styles.subtitle}>
-            {t('auth.otpSubtitle', { phone })}
+            {t('auth.otpSubtitle', { phone: ltrIsolate(phone) })}
           </Text>
 
           <Pressable style={styles.boxes} onPress={() => inputRef.current?.focus()}>
@@ -139,7 +140,7 @@ export default function Otp() {
 
           <Pressable style={styles.resend} onPress={resend} disabled={seconds > 0} hitSlop={10}>
             <Text variant="bodyBold" color={seconds > 0 ? colors.warmGray : colors.brown}>
-              {seconds > 0 ? t('auth.resendIn', { seconds }) : t('auth.resend')}
+              {seconds > 0 ? t('auth.resendIn', { count: seconds, seconds }) : t('auth.resend')}
             </Text>
           </Pressable>
         </View>

@@ -80,7 +80,7 @@ test.describe('Menu', () => {
     await expect(page.getByRole('link', { name: /السلة/ }).first()).toContainText('2');
 
     await page.goto('/cart');
-    await expect(page.getByRole('heading', { level: 1, name: 'سلة الطلبات' })).toBeVisible();
+    await expect(page.getByRole('heading', { level: 1, name: 'السلة', exact: true })).toBeVisible();
     const totalRow = page.getByText('الإجمالي', { exact: true }).locator('..');
     const total = parseJod(await totalRow.innerText());
     expect(total, 'cart total').toBeGreaterThan(0);

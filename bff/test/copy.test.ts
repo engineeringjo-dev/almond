@@ -62,9 +62,11 @@ function flatten(value: unknown, prefix = '', out: Flat = {}): Flat {
 const load = (rel: string): Flat =>
   flatten(JSON.parse(readFileSync(join(REPO, rel), 'utf8')));
 
-/** i18next uses {{x}}; next-intl uses {x}. Both are read here. */
+/** i18next uses {{x}}; next-intl uses {x}. Both are read here. A SET: an ICU
+ *  plural repeats its argument in every branch («{minutes} دقائق» … «{minutes}
+ *  دقيقة») and is still one name to pass. */
 const placeholders = (s: string): string[] =>
-  [...s.matchAll(/\{\{?(\w+)\}?\}/g)].map((m) => m[1]).sort();
+  [...new Set([...s.matchAll(/\{\{?(\w+)\}?\}/g)].map((m) => m[1]))].sort();
 
 let sources: SourceFile[];
 beforeAll(() => { sources = collectSources(); });
@@ -797,6 +799,57 @@ describe('C21 «كاش باك» in the headline only, and only with the computed
         expect(flat[key], `${rel} ${key}: a typed rate goes stale when a dial moves`).not.toMatch(/\d\s*[%٪]/);
       }
     }
+  });
+});
+
+describe('C25 Arabic copy that a right-to-left line cannot scramble', () => {
+  // The Arabic expert rendered the strings in Chromium, 2026-10-15. A sign
+  // glued to a number inside Arabic text jumps to the far side: «+{{points}}
+  // نقطة» showed «50+ نقطة», «+{{delta}}» showed «0.500+». A prefix glued to a
+  // value that starts with a digit («بـ{{phone}}», «بـ{{points}}») splits from
+  // it the same way. Say it in a word (بزيادة، تقريباً) and keep the value free.
+  const GLUED = /[+~−]\{\{?\w+\}?\}|[بل]ـ\{\{?\w+/;
+  it('in both Arabic files', () => {
+    const offenders: string[] = [];
+    for (const rel of [APP_LOCALES.ar, WEB_LOCALES.ar]) {
+      for (const [k, v] of Object.entries(load(rel))) {
+        if (GLUED.test(v)) offenders.push(`${rel} ${k}: ${v}`);
+      }
+    }
+    expect(offenders).toEqual([]);
+  });
+});
+
+describe('C26 one Arabic word for each thing', () => {
+  // The expert's glossary, 2026-10-15. Two words for one thing read as two
+  // things: «بطاقة إهداء» on one screen and «بطاقة هدية» on the next, tiers
+  // called «فئات» on every card and «شرائح» under the carousel, the menu called
+  // «المنيو» on the website and «القائمة» in the app. And what the cashier SCANS
+  // is «الباركود», the tab's own name; «الرمز» is what the member TYPES (the
+  // sign-in, promo, invite and gift codes).
+  const BANNED: { name: string; re: RegExp; files: readonly string[] }[] = [
+    { name: 'gift card is «بطاقة هدية»', re: /إهداء/, files: [APP_LOCALES.ar, WEB_LOCALES.ar] },
+    { name: 'a tier is «فئة»', re: /شرائح|شريحة/, files: [APP_LOCALES.ar, WEB_LOCALES.ar] },
+    { name: 'the menu is «المنيو»', re: /القائمة/, files: [APP_LOCALES.ar] },
+  ];
+  it('in the Arabic files', () => {
+    const offenders: string[] = [];
+    for (const b of BANNED) {
+      for (const rel of b.files) {
+        for (const [k, v] of Object.entries(load(rel))) {
+          if (b.re.test(v)) offenders.push(`${rel} ${k} [${b.name}]: ${v}`);
+        }
+      }
+    }
+    expect(offenders).toEqual([]);
+  });
+
+  it('the barcode is never «رمز» where the member shows it to be scanned', () => {
+    const flat = load(APP_LOCALES.ar);
+    const scanned = Object.keys(flat).filter((k) =>
+      /^(pay|earnSheet)\./.test(k) || ['home.showCode', 'notifications.autoEarnQr', 'rewards.step1Body'].includes(k));
+    expect(scanned.length, 'the scan must find the barcode strings').toBeGreaterThan(8);
+    expect(scanned.filter((k) => /رمز/.test(flat[k]!)).map((k) => `${k}: ${flat[k]}`)).toEqual([]);
   });
 });
 

@@ -17,7 +17,7 @@ test.describe('App: the earn sheet', () => {
 
     const sheet = page.getByRole('dialog', { name: SHEET });
     await expect(sheet).toBeVisible({ timeout: 20_000 });
-    await expect(sheet.getByText('اعرض الرمز على الكاشير', { exact: false })).toBeVisible();
+    await expect(sheet.getByText('اعرض الباركود على الكاشير', { exact: false })).toBeVisible();
 
     const { blocking } = await blockingViolations(page);
     expect(blocking, 'the open sheet must pass axe').toEqual([]);

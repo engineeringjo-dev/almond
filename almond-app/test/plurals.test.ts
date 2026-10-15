@@ -84,6 +84,7 @@ describe('N6 every caller of a counted string passes `count`', () => {
   const COUNTED = [
     'cart.readyIn', 'cart.earnEstimate', 'cart.comboAddFood', 'cart.comboAddDrink',
     'cart.comboAddItem', 'menu.brunchOffer', 'order.cartButton',
+    'auth.resendIn', 'confirm.cancelWindow', 'rewards.statusSubPlus',
   ];
   it('holds for every call site in the app', () => {
     const calls: string[] = [];
@@ -106,5 +107,34 @@ describe('N6 every caller of a counted string passes `count`', () => {
     for (const root of ['app', 'components']) walk(join(__dirname, '..', root));
     expect(calls.length, 'the scan must find the call sites').toBeGreaterThanOrEqual(COUNTED.length);
     expect(offenders).toEqual([]);
+  });
+});
+
+describe('N7 the countdowns and the visit count agree with the number', () => {
+  // The Arabic expert, 2026-10-15: the sign-in countdown runs 60 → 1 and read
+  // «10 ثانية … 2 ثانية»; the cancel window runs 30 → 1; the 4% card told every
+  // member «4 زيارة». And «خلال» means "within", where the button waits "after".
+  it('the resend countdown', () => {
+    const r = (n: number) => ar.t('auth.resendIn', { count: n, seconds: n });
+    expect(r(60)).toBe('إعادة الإرسال بعد 60 ثانية');
+    expect(r(10)).toBe('إعادة الإرسال بعد 10 ثوانٍ');
+    expect(r(3)).toBe('إعادة الإرسال بعد 3 ثوانٍ');
+    expect(r(2)).toBe('إعادة الإرسال بعد ثانيتين');
+    expect(r(1)).toBe('إعادة الإرسال بعد ثانية واحدة');
+    expect(en.t('auth.resendIn', { count: 10, seconds: 10 })).toBe('Resend in 10s');
+  });
+
+  it('the cancel window', () => {
+    const c = (n: number) => ar.t('confirm.cancelWindow', { count: n, seconds: n });
+    expect(c(30)).toBe('يمكنك الإلغاء أو التعديل خلال 30 ثانية');
+    expect(c(7)).toBe('يمكنك الإلغاء أو التعديل خلال 7 ثوانٍ');
+    expect(c(1)).toBe('يمكنك الإلغاء أو التعديل خلال ثانية واحدة');
+  });
+
+  it('the visits that reach the middle rung', () => {
+    const v = (n: number) => ar.t('rewards.statusSubPlus', { count: n, visits: n });
+    expect(v(4)).toBe('4 زيارات خلال آخر 3 أشهر');
+    expect(v(2)).toBe('زيارتان خلال آخر 3 أشهر');
+    expect(v(12)).toBe('12 زيارة خلال آخر 3 أشهر');
   });
 });

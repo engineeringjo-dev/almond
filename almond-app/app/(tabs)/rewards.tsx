@@ -156,7 +156,7 @@ export default function RewardsScreen() {
     // this button never redeemed anything.
     confirmAction({
       title: t('rewards.confirmTitle'),
-      body: t('rewards.confirmBody', { jod, points: o.points }),
+      body: t('rewards.confirmBody', { jod, points: formatNumber(o.points, lang) }),
       confirm: t('rewards.redeemCta'),
       cancel: t('common.cancel'),
       onConfirm: () =>
@@ -300,7 +300,7 @@ export default function RewardsScreen() {
                 accessibilityRole="button"
                 accessibilityLabel={t('rewards.redeemA11y', {
                   jod: formatJOD(o.jod, lang),
-                  points: o.points,
+                  points: formatNumber(o.points, lang),
                 })}
               >
                 <Text variant="bodyBold" color={colors.primary} center>
@@ -309,7 +309,7 @@ export default function RewardsScreen() {
                 <Text variant="caption" color={colors.warmGray} center>
                   {o.full
                     ? t('rewards.wholeBalance')
-                    : t('rewards.costsPoints', { points: o.points })}
+                    : t('rewards.costsPoints', { points: formatNumber(o.points, lang) })}
                 </Text>
               </Pressable>
             ))}
@@ -347,7 +347,7 @@ export default function RewardsScreen() {
           const sub = tr.id === 'base'
             ? t('rewards.statusSubBase')
             : tr.id === 'plus'
-              ? t('rewards.statusSubPlus', { visits: config.TIER2_VISITS_ALTERNATIVE })
+              ? t('rewards.statusSubPlus', { count: config.TIER2_VISITS_ALTERNATIVE, visits: config.TIER2_VISITS_ALTERNATIVE })
               : t('rewards.statusSubTop');
           return (
             <View style={[styles.statusCard, { backgroundColor: TIER_COLOR[tr.id] }]}>

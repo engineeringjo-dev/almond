@@ -73,7 +73,7 @@ test.describe('App cart', () => {
     await seedApp(page, { signedIn: true });
     await addLatte(page);
     await page.goto(appUrl('/cart'));
-    await expect(page.getByRole('button', { name: `حذف ${LATTE} من السلة` })).toBeVisible();
+    await expect(page.getByRole('button', { name: `إزالة ${LATTE} من السلة` })).toBeVisible();
     await expect(page.getByRole('button', { name: `زيادة كمية ${LATTE}` })).toBeVisible();
     await expect(page.getByRole('switch', { name: 'استلام من السيارة' })).toBeVisible();
     const payment = page.getByRole('radiogroup', { name: 'طريقة الدفع' });

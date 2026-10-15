@@ -111,7 +111,7 @@ export function createMemoryBackend(): Backend {
       m.lots = back.lots;
       log(m.id, {
         deltaPoints: row.points,
-        reasonAr: 'انتهت صلاحية الاستبدال',
+        reasonAr: 'إرجاع نقاط استبدال لم يُستخدم',
         reasonEn: 'Redemption expired',
         createdAt: at.toISOString(),
         kind: 'return',
@@ -619,7 +619,7 @@ export function createMemoryBackend(): Backend {
         // could be paid twice on retry; an over-stamped one is merely unpaid,
         // and that is the failure a human can see and fix. Fail closed.
         m.profileBonusAt = new Date().toISOString();
-        pointsBalance = await this.addPoints(id, bonus, 'إكمال الملف الشخصي', 'Profile completed');
+        pointsBalance = await this.addPoints(id, bonus, 'إكمال بياناتك', 'Profile completed');
       }
       return { profile: { name, birthday: m.birthday, gender: m.gender }, bonusGranted: bonus, pointsBalance };
     },

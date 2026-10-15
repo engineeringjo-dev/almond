@@ -5,7 +5,7 @@ import { Text } from '@/components/ui/Text';
 import { Icon, type IconName } from '@/components/ui/Icon';
 import { colors, spacing, radius } from '@/constants/theme';
 import { useI18n } from '@/hooks/useI18n';
-import { formatDayKey } from '@/lib/format';
+import { formatDayKey, formatNumber } from '@/lib/format';
 import { daysUntilDayKey } from '@almond/shared/loyalty/lots';
 import { useLoyaltyBalance } from '@/hooks/useLoyalty';
 import { activeDoubleDay, upcomingDoubleDay } from '@almond/shared/loyalty/earn';
@@ -58,7 +58,7 @@ export function HomeNudge() {
         <Nudge
           icon="bean"
           text={t('home.nudgeExpiry', {
-            points: balance.nextExpiry.amount,
+            points: formatNumber(balance.nextExpiry.amount, lang),
             date: formatDayKey(balance.nextExpiry.on, lang),
           })}
           onPress={() => router.push('/(tabs)/rewards')}

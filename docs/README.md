@@ -13,7 +13,7 @@
 
 </div>
 
-**Counts.** Top-level `docs/*.md`: 37 — **8 Current**, **15 Reference**, **14 Historical**. 19 of them carry a "⚠️ Historical" banner (20 with `ishbek/README.md`) (some Current and Reference documents carry one for specific outdated passages). Plus two non-Markdown files and seven sub-folders, classified below.
+**Counts.** Top-level `docs/*.md`: 38 — **9 Current**, **15 Reference**, **14 Historical**. 19 of them carry a "⚠️ Historical" banner (20 with `ishbek/README.md`) (some Current and Reference documents carry one for specific outdated passages). Plus two non-Markdown files and seven sub-folders, classified below.
 
 ## Current
 
@@ -27,6 +27,7 @@
 | [`DELIVERY-INTEGRATION.md`](DELIVERY-INTEGRATION.md) | Delivery via Ishbek → Careem/Talabat: architecture, the `+03:00` timestamp rule, server-only key. | yes — auth-variable and "via Odoo" passages |
 | [`PUBLIC-MENU-FEED.md`](PUBLIC-MENU-FEED.md) | The read-only public menu feed the website and the app share: the same items, prices, choices and photos, pulled from Odoo daily. | — |
 | [`MENU-PHOTOS.ar.md`](MENU-PHOTOS.ar.md) | Menu photo coverage (308 of 375 items), the items with no photo by category and orders, the 33 untranslated names, and where a new photo goes. | — |
+| [`ARABIC-COPY-REVIEW-2026-10.ar.md`](ARABIC-COPY-REVIEW-2026-10.ar.md) | The Arabic language expert's review (2026-10-15): what was changed and why, the **style guide every new string follows**, the guards that hold it (C21–C26, N6–N7, BD1–BD2), and the Odoo menu names to fix in Odoo. | — |
 
 ## Reference
 
@@ -81,7 +82,7 @@
 | [`ishbek/`](ishbek/README.md) | Almond-side sample contract for Ishbek delivery: `README.md`, `0.README.json` plus seven JSON request/response samples (`1.`–`7.`), `sample.ts`. Field names are to be fixed from Ishbek's official docs. | Reference — `README.md` has a banner (16 % tax in the samples) |
 | [`meps-integration/`](meps-integration/HANDOFF.md) | `HANDOFF.md`, `apex_ecr_claude_brief.md` and a terminal mapping spreadsheet for card-present MEPS terminals (`integrations/pos_meps_apex`, paused on the Apex ECR spec). | Reference |
 | [`odoo/`](odoo/branch-filter-design.md) | `branch-filter-design.md`, `branch-dashboard-wiring.md` (the `almond_branch` addon), `perf-audit-runbook.md` and `collector.sql` (read-only Odoo performance audit). | Reference |
-| [`competitors/`](competitors/DUNKIN-2026-10.ar.md) | Competitor app studies against Almond, each with what was built from it and the owner's open questions: `AL-AMEED-2026-10.ar.md` (Al Ameed, 19 screenshots), `DUNKIN-2026-10.ar.md` (Dunkin' Rewards UAE, 14 screenshots, a three-expert panel) and `DUNKIN-VS-STARBUCKS-2026-10.ar.md` (a sourced comparison of the Dunkin', Starbucks and Almond programmes). | Reference |
+| [`competitors/`](competitors/DUNKIN-2026-10.ar.md) | Competitor app studies against Almond, each with what was built from it and the owner's open questions: `AL-AMEED-2026-10.ar.md` (Al Ameed, 19 screenshots), `DUNKIN-2026-10.ar.md` (Dunkin' Rewards UAE, 14 screenshots, a three-expert panel), `DUNKIN-VS-STARBUCKS-2026-10.ar.md` (a sourced comparison of the Dunkin', Starbucks and Almond programmes) and `AL-AMEED-PAGE-DIVISION-2026-10.ar.md` (a two-expert panel on splitting the long Rewards tab the way Al Ameed does, with a ready-to-paste implementation prompt). | Reference |
 | [`gift-cards/`](gift-cards/README.md) | The gift-card design pack: `README.md`, `CLAUDE_CODE_PLAN.md` and the print files. | Reference |
 | [`reference/`](reference/starbucks) | Reference screenshots (`starbucks/`) for `STARBUCKS-REVERSE-ENGINEERING.md`. | Reference |
 | [`maintenance/`](maintenance/صيانات-تطبيق-شهر-8.md) | August 2026 operations logs for production Odoo and the `production-almond` app: `2026-08-02/` (handoff, reports, Python scripts), `2026-08-16/RUNBOOK.md`, `2026-08-17/VARIANCE-SHRINKAGE.md`, `صيانات-تطبيق-شهر-8.md`. | Reference (other system; historical operations record) |

@@ -33,7 +33,7 @@ function seedInbox(userId: string): AppNotification[] {
       // (config.COMBO_BONUS_POINTS), never «وفّر 1.000 د.أ» — that discount was
       // withdrawn on 2026-09-04 and the old line kept promising it.
       { id: genId('ntf'), category: 'promo', titleAr: 'مشروب مع طعام', titleEn: 'A drink with food', bodyAr: 'اطلب مشروباً وطعاماً معاً واكسب نقاطاً إضافية', bodyEn: 'Order a drink and food together and earn extra points', read: false, createdAt: new Date(Date.now() - 3600000).toISOString(), deepLink: '/(tabs)/order' },
-      { id: genId('ntf'), category: 'points', titleAr: 'ربحت نقاط!', titleEn: 'You earned points!', bodyAr: 'حصلت على 15 نقطة من طلبك الأخير', bodyEn: 'You earned 15 points on your last order', read: true, createdAt: new Date(Date.now() - 86400000).toISOString(), deepLink: '/(tabs)/rewards' },
+      { id: genId('ntf'), category: 'points', titleAr: 'كسبت نقاطاً!', titleEn: 'You earned points!', bodyAr: 'حصلت على 15 نقطة من طلبك الأخير', bodyEn: 'You earned 15 points on your last order', read: true, createdAt: new Date(Date.now() - 86400000).toISOString(), deepLink: '/(tabs)/rewards' },
     ];
     inbox.set(userId, list);
   }

@@ -407,6 +407,18 @@ describe('C15 no single-language display string outside the locale files', () =>
   });
 });
 
+describe('C15b the error screen speaks the member\'s language', () => {
+  // It said «إعادة المحاولة / Retry» on one button (Arabic expert, 2026-10-15).
+  // Both languages are allowed only for the case where i18n never started.
+  it('reads the locale files once i18n is up', () => {
+    const src = readFileSync(join(__dirname, '..', 'components/ui/ErrorBoundary.tsx'), 'utf8');
+    expect(src).toMatch(/const ready = i18n\.isInitialized;/);
+    for (const key of ['common.errorTitle', 'common.errorBody', 'common.retry']) {
+      expect(src).toMatch(new RegExp(String.raw`ready \? i18n\.t\('${key.replace('.', '\\.')}'\)`));
+    }
+  });
+});
+
 // ---------------------------------------------------------------------------
 // C16 — the onboarding ladder: one challenge, in order.
 // ---------------------------------------------------------------------------

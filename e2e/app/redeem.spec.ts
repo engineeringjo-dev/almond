@@ -10,7 +10,7 @@ import { appUrl, seedApp } from './helpers';
  * that saying no leaves the balance alone. The mock seeds 1,240 points
  * (12.400 د.أ); 1.000 د.أ costs 100.
  */
-const ONE_JOD = 'اخصم 1.000 د.أ من فاتورتك مقابل 100 نقطة';
+const ONE_JOD = 'اخصم 1.000 د.أ من فاتورتك مقابل 100 من نقاطك';
 
 test.describe('App: redeeming on the web', () => {
   test('asks first, then takes 100 points and says so', async ({ page }) => {
@@ -25,8 +25,8 @@ test.describe('App: redeeming on the web', () => {
 
     await page.getByRole('button', { name: ONE_JOD }).click();
     await expect.poll(() => seen.length).toBe(2);
-    expect(seen[0]).toBe('confirm: تأكيد الاستبدال\n\nنخصم 1.000 د.أ من فاتورتك مقابل 100 نقطة؟');
-    expect(seen[1]).toMatch(/^alert: تمّ\n\nخصمنا 1\.000 د\.أ/);
+    expect(seen[0]).toBe('confirm: تأكيد الاستبدال\n\nنخصم 1.000 د.أ من فاتورتك مقابل 100 من نقاطك؟');
+    expect(seen[1]).toMatch(/^alert: تمّ\n\nحوّلنا 1\.000 د\.أ من نقاطك إلى خصم/);
     await expect(page.getByText('11.400 د.أ', { exact: true }).first()).toBeVisible();
   });
 

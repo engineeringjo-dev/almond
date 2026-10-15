@@ -2,6 +2,7 @@
 
 import { useEffect, useId, useState } from 'react';
 import { useTranslations } from 'next-intl';
+import { ltrIsolate } from '@almond/shared/lib/phone';
 import { useAuthStore } from '@/store/authStore';
 import { useRouter } from '@/i18n/navigation';
 import { Button } from '@/components/ui/Button';
@@ -88,7 +89,7 @@ export function LoginView() {
           </form>
         ) : (
           <form onSubmit={submitOtp} className="mt-5 space-y-3">
-            <p className="text-sm text-text-secondary">{t('otpSentTo', { phone: pendingPhone })}</p>
+            <p className="text-sm text-text-secondary">{t('otpSentTo', { phone: ltrIsolate(pendingPhone) })}</p>
             <div>
               <label className={labelClass} htmlFor={`${uid}-2`}>{t('otpTitle')}</label>
               <input id={`${uid}-2`}

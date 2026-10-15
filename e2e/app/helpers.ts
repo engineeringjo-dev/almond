@@ -43,7 +43,7 @@ export async function seedApp(
 /** The Arabic menu's iced latte: a drink with sizes, milk, add-ons and pairings. */
 export const LATTE = 'لاتيه مثلج';
 
-/** Open the item sheet for `name` from the Order › القائمة tab. */
+/** Open the item sheet for `name` from the Order › المنيو tab. */
 export async function openItem(page: Page, name: string): Promise<void> {
   await page.goto(appUrl('/order'));
   const search = page.getByRole('textbox', { name: 'ابحث عن مشروب أو طبق' });

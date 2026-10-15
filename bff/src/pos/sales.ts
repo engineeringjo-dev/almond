@@ -103,6 +103,9 @@ export function syntheticFullRefund(sale: TillSale): TillRefund {
 /** The ledger wording for a refund, full or partial. */
 export function refundReasons(partial: boolean): { reasonAr: string; reasonEn: string } {
   return partial
-    ? { reasonAr: 'استرجاع نقاط جزء مُسترد', reasonEn: 'Partially refunded purchase points' }
-    : { reasonAr: 'استرجاع نقاط طلب مُسترد', reasonEn: 'Refunded purchase points' };
+    // «استرجاع» read as points coming BACK to the member on a line that takes
+    // them away (Arabic expert, 2026-10-15). reasonEn is unchanged: migration
+    // 20261015_point_history_detail.sql labels old rows by it.
+    ? { reasonAr: 'خصم نقاط جزء مُسترَد من الطلب', reasonEn: 'Partially refunded purchase points' }
+    : { reasonAr: 'خصم نقاط طلب مُسترَد', reasonEn: 'Refunded purchase points' };
 }

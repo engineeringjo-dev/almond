@@ -1,6 +1,6 @@
 import { View, StyleSheet, Linking } from 'react-native';
 import { Stack } from 'expo-router';
-import { contactLinks } from '@almond/shared/lib/phone';
+import { contactLinks, ltrIsolate } from '@almond/shared/lib/phone';
 
 import { Screen } from '@/components/ui/Screen';
 import { Text } from '@/components/ui/Text';
@@ -10,10 +10,6 @@ import { ListRow } from '@/components/ui/ListRow';
 import { colors, spacing } from '@/constants/theme';
 import { config } from '@/constants/config';
 import { useI18n } from '@/hooks/useI18n';
-
-// U+2066 … U+2069: isolate the number as left-to-right inside Arabic text, or
-// the leading "+" is laid out at the far end of it.
-const ltr = (s: string): string => `⁦${s}⁩`;
 
 /**
  * Help: the unified call centre and WhatsApp line, read from
@@ -41,13 +37,13 @@ export default function HelpScreen() {
           <ListRow
             icon="whatsapp"
             label={t('help.whatsapp')}
-            value={ltr(contact.display)}
+            value={ltrIsolate(contact.display)}
             onPress={() => Linking.openURL(contact.whatsapp)}
           />
           <ListRow
             icon="phone"
             label={t('help.call')}
-            value={ltr(contact.display)}
+            value={ltrIsolate(contact.display)}
             onPress={() => Linking.openURL(contact.tel)}
           />
           <ListRow

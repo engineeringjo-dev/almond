@@ -187,7 +187,7 @@ describe('H6 the membership card carries the wallet and names its own button', (
     expect(card).toMatch(/router\.push\('\/profile\/wallet'\)/);
   });
 
-  it('«اعرض رمزك» is the button\'s accessible name (WCAG 2.5.3, label in name)', () => {
+  it('«اعرض الباركود» is the button\'s accessible name (WCAG 2.5.3, label in name)', () => {
     // From the button's onPress to its icon: the button's own props. (Up to
     // the first `>` would stop inside the style's arrow function.)
     const btn = /onPress=\{\(\) => openEarnSheet\(\)\}([\s\S]*?)<Icon name="qr"/.exec(card)?.[1] ?? '';

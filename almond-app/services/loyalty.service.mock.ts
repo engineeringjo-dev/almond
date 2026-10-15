@@ -515,7 +515,7 @@ export const mockLoyaltyService: LoyaltyService = {
       u.lots = grant.lots;
       u.history.unshift({
         id: genId('log'), deltaPoints: bonus,
-        reasonAr: 'إكمال الملف الشخصي',
+        reasonAr: 'إكمال بياناتك',
         reasonEn: 'Profile completed',
         createdAt: new Date().toISOString(),
         kind: 'bonus', expiresOn: grant.lot?.expiresOn ?? null,

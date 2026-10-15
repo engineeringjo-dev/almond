@@ -88,7 +88,7 @@ export default function OrderConfirm() {
             <View style={styles.cancelNote}>
               <Icon name="clock" size={14} color={colors.warmGray} />
               <Text variant="caption" color={colors.warmGray}>
-                {t('confirm.cancelWindow', { seconds: secondsLeft })}
+                {t('confirm.cancelWindow', { count: secondsLeft, seconds: secondsLeft })}
               </Text>
             </View>
             <View style={styles.cancelRow}>

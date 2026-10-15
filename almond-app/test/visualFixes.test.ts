@@ -83,9 +83,12 @@ describe('VF4 what the balance buys now', () => {
   it('nothing below the price of one — never «ينقصك…», which is a threshold by another name', () => {
     expect(balanceBuys(priceFils / 10 - 1)).toBeNull();
     expect(balanceBuys(0)).toBeNull();
-    for (const lang of ['ar', 'en']) {
+    // Arabic says «ثمن 3 لاتيه»: «3×» read against «×2» and «×1.5» on the same
+    // screen (Arabic expert, 2026-10-15). English keeps "3× Latte".
+    const shape = { ar: /ثمن \{\{times\}\} \{\{name\}\}/, en: /\{\{times\}\}× \{\{name\}\}/ };
+    for (const lang of ['ar', 'en'] as const) {
       const v = JSON.parse(src(`locales/${lang}.json`)).rewards.balanceBuys as string;
-      expect(v).toMatch(/\{\{times\}\}× \{\{name\}\}/);
+      expect(v).toMatch(shape[lang]);
       expect(v).not.toMatch(/ينقص|بقي|تحتاج|more|need|left/i);
     }
   });

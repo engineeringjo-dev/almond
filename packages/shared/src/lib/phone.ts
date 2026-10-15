@@ -48,6 +48,17 @@ export function normalizeJordanPhone(raw: string | null | undefined): string | n
 }
 
 /**
+ * A left-to-right run set inside right-to-left text, isolated (U+2066 LRI …
+ * U+2069 PDI). Without it «أرسلنا رمزاً إلى +962791234567» is laid out with the
+ * "+" at the far end of the number (the Arabic expert saw «962791234567+» in a
+ * real render, 2026-10-15). Every phone number, and anything else a sentence
+ * must not reorder, goes through this before it is interpolated.
+ */
+export function ltrIsolate(s: string): string {
+  return `\u2066${s}\u2069`;
+}
+
+/**
  * The links and the printed form of ONE number — the unified call centre and
  * WhatsApp line in config.CONTACT_PHONE_E164 — so the app's help screen and the
  * website's footer derive the same three things from the same dial.

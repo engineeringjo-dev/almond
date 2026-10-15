@@ -28,10 +28,22 @@ describe('DA1 the mock keeps the server\'s rule', () => {
 });
 
 describe('DA2 what the screen promises is what the server does', () => {
-  it('says the balance stays with the number and expires only on its own dates, and names what goes', () => {
+  it('says the balance stays with the number, only the POINTS expire, and names what goes', () => {
     expect(ar.deleteAccount.staysBody).toMatch(/نقاطك ورصيد محفظتك/);
-    expect(ar.deleteAccount.staysBody).toMatch(/وتنتهي في مواعيدها فقط/);
     expect(ar.deleteAccount.staysBody).toMatch(/طلباتك وفواتيرك السابقة/);
+    // It said «رقم هاتفك، ونقاطك ورصيد محفظتك: … وتنتهي في مواعيدها»: the
+    // phone number and the wallet «expiring». Money in the wallet has no expiry
+    // (WALLET_LIFE_MONTHS is null); only points run out, each on its own date
+    // (Arabic expert, 2026-10-15). Every clause that says «تنتهي» names points.
+    expect(config.WALLET_LIFE_MONTHS).toBeNull();
+    expect(ar.deleteAccount.staysBody).toMatch(/والنقاط تنتهي في مواعيدها المعتادة فقط/);
+    for (const clause of ar.deleteAccount.staysBody.split(/[،.]/)) {
+      if (/تنتهي/.test(clause)) expect(clause).not.toMatch(/محفظت|هاتف/);
+    }
+    expect(en.deleteAccount.staysBody).toMatch(/points expire only on their usual dates/);
+    for (const clause of en.deleteAccount.staysBody.split(/[,.]/)) {
+      if (/expire/.test(clause)) expect(clause).not.toMatch(/wallet|phone/i);
+    }
     expect(ar.deleteAccount.goesBody).toMatch(/اسمك وتاريخ ميلادك وجنسك/);
     // The grace period is config's, never a number typed into the copy.
     for (const s of [ar.deleteAccount.whenBody, en.deleteAccount.whenBody]) {
