@@ -7,8 +7,9 @@ import { Text } from '@/components/ui/Text';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Gradient } from '@/components/ui/Gradient';
+import { Icon } from '@/components/ui/Icon';
 import { StatusTimeline } from '@/components/order/StatusTimeline';
-import { RatingSheet } from '@/components/order/RatingSheet';
+import { VisitRatingSheet } from '@/components/loyalty/VisitRatingSheet';
 import { colors, spacing, radius, shadow } from '@/constants/theme';
 import { useI18n } from '@/hooks/useI18n';
 import { useOrder, useAdvanceOrder } from '@/hooks/useOrder';
@@ -99,20 +100,20 @@ export default function OrderTracking() {
           <View style={styles.completedActions}>
             <Button title={t('track.reorder')} onPress={reorder} leadingIcon="reorder" />
             <Pressable onPress={() => setRatingOpen(true)} hitSlop={8} style={styles.rateLink}>
+              <Icon name="star" size={18} color={colors.brown} />
               <Text variant="bodyBold" color={colors.brown}>
-                ⭐ {t('track.rateTitle', { branch: branchName })}
+                {t('track.rateTitle', { branch: branchName })}
               </Text>
             </Pressable>
           </View>
         ) : null}
       </Screen>
 
-      <RatingSheet
+      <VisitRatingSheet
         visible={ratingOpen}
         onClose={() => setRatingOpen(false)}
         branchName={branchName}
-        branchId={order.branchId}
-        orderId={order.id}
+        visitRef={`order:${order.id}`}
       />
     </>
   );
@@ -127,5 +128,5 @@ const styles = StyleSheet.create({
   timelineCard: { marginTop: spacing.lg },
   cancelledCard: { marginTop: spacing.lg, paddingVertical: spacing.xl },
   completedActions: { marginTop: spacing.lg, gap: spacing.md },
-  rateLink: { alignSelf: 'center', padding: spacing.sm },
+  rateLink: { alignSelf: 'center', flexDirection: 'row', alignItems: 'center', gap: spacing.xs, padding: spacing.sm },
 });

@@ -14,3 +14,4 @@ export * from './tillRefund';
 export * from './referral';
 export * from './transfer';
 export * from './history';
+export * from './visitRating';

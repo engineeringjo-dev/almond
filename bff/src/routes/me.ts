@@ -126,4 +126,36 @@ export function registerMeRoutes(app: FastifyInstance, backend: Backend): void {
   app.get('/v1/me/history', { preHandler: [requireMember] }, async (req) => {
     return backend.getHistory(memberId(req));
   });
+
+  /**
+   * The thank-you after a visit (owner, 2026-10-15, after Al Ameed): the one
+   * purchase to ask the member about now, or null. The app shows the points
+   * it added and a 1-5 rating of its branch (loyalty/visitRating.ts).
+   */
+  app.get('/v1/me/visit-rating', { preHandler: [requireMember] }, async (req) => {
+    return { visit: await backend.getPendingVisit(memberId(req), new Date()) };
+  });
+
+  /**
+   * Keep the member's rating of one of their visits. The body names the visit
+   * and the stars; it carries no branch (the server takes it from the
+   * member's own purchase line) and earns nothing. Once per visit: a repeat
+   * is 409 visit_already_rated, which the app treats as done.
+   */
+  app.post('/v1/me/visit-rating', { preHandler: [requireMember] }, async (req) => {
+    const body = parse(
+      z.object({
+        ref: z.string().regex(/^(order|pos):.+$/).max(128),
+        stars: z.number().int().min(1).max(5),
+        // Bounded far above the kept length, which normalizeComment cuts to:
+        // a long paste is trimmed and kept, a payload that was never a
+        // comment is refused.
+        comment: z.string().max(4096).nullable().default(null),
+      }),
+      req.body,
+    );
+    return {
+      rating: await backend.rateVisit(memberId(req), { ...body, comment: body.comment ?? null }, new Date()),
+    };
+  });
 }

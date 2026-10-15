@@ -340,8 +340,15 @@
     "rateComment": "أضف تعليقاً (اختياري)",
     "rateSubmit": "إرسال التقييم",
     "rateThanks": "شكراً لتقييمك!",
-    "rateRewarded": "🎉 حصلت على 50 نقطة!",
     "nowLive": "الآن • مباشر"
+  },
+  "visit": {
+    "thanksTitle": "شكراً لزيارتك!",
+    "pointsAdded": "أُضيفت نقاط هذه الزيارة إلى رصيدك: {{points}}",
+    "starsGroup": "تقييمك",
+    "starsLabel": "{{n}} من 5",
+    "rateError": "تعذّر إرسال التقييم. حاول مجدداً.",
+    "rateGeneric": "كيف كانت زيارتك؟"
   },
   "loyalty": {
     "title": "المكافآت",

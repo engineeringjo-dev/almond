@@ -517,13 +517,52 @@ describe.each(BACKENDS)('T37 backend contract — %s', (_name, make) => {
     expect(h[4]).toMatchObject({ reasonEn: 'Order points', branchId: 'b1', expiresOn: lotExpiresOn(today) });
     expect(h[3]).toMatchObject({ reasonEn: 'In-store purchase points', branchId: 'b7', expiresOn: lotExpiresOn(today) });
     expect(h[2]).toMatchObject({ deltaPoints: -30, expiresOn: null });
-    expect(h[0]).toMatchObject({ branchId: 'b7' });   // the refund names the sale's branch
+    expect(h[0]).toMatchObject({ branchId: 'b7', sourceRef: `pos:${till.posOrderRef}` });   // the refund names the sale
+    expect(h[3].sourceRef).toBe(`pos:${till.posOrderRef}`);
+    expect(h[4].sourceRef).toMatch(/^order:/);
+    expect(h[2].sourceRef).toBeNull();
     // Every line has its own id, so a screen can key its rows.
     expect(new Set(h.map((e) => e.id)).size).toBe(h.length);
     expect(h.every((e) => typeof e.id === 'string' && e.id.length > 0)).toBe(true);
     // The counters the screen shows: a cancelled code was not a redemption,
     // and a refunded purchase was still a visit.
     expect(pointsSummary(h)).toEqual({ redeemed: 0, visits: 2, expired: 0 });
+  });
+
+  it('🔴 a visit is rated once, by its own member, for nothing — and the newest one is the one asked about', async () => {
+    const id = await newMember();
+    const other = await newMember('+962797777777');
+    const at = new Date();
+    expect(await backend.getPendingVisit(id, at)).toBeNull();
+
+    const first = sale(id, { branchId: 'b2' });
+    await backend.tillEarn(first);
+    const second = sale(id, { branchId: 'b7' });
+    await backend.tillEarn(second);
+    const pending = await backend.getPendingVisit(id, new Date());
+    expect(pending).toMatchObject({ ref: `pos:${second.posOrderRef}`, branchId: 'b7', points: 25 });
+    const before = await points(id);
+
+    const r = await backend.rateVisit(id, { ref: pending!.ref, stars: 4, comment: '  ' }, new Date());
+    expect(r).toMatchObject({ ref: pending!.ref, branchId: 'b7', stars: 4, comment: null });
+    expect(await points(id)).toBe(before);                         // a rating pays nothing
+    expect(await backend.getPendingVisit(id, new Date())).toBeNull();   // the older visit is not dug up
+    await expect(backend.rateVisit(id, { ref: pending!.ref, stars: 5, comment: null }, new Date()))
+      .rejects.toMatchObject({ statusCode: 409 });
+    // The order screen may still rate an older visit of the member's own.
+    expect(await backend.rateVisit(id, { ref: `pos:${first.posOrderRef}`, stars: 2, comment: 'بطيء' }, new Date()))
+      .toMatchObject({ branchId: 'b2', stars: 2, comment: 'بطيء' });
+    // Not someone else's, and not a ref that is not a purchase.
+    await expect(backend.rateVisit(other, { ref: `pos:${first.posOrderRef}`, stars: 5, comment: null }, new Date()))
+      .rejects.toMatchObject({ statusCode: 404 });
+    await expect(backend.rateVisit(id, { ref: 'pos:never', stars: 5, comment: null }, new Date()))
+      .rejects.toMatchObject({ statusCode: 404 });
+    // Past the window, nothing is asked.
+    const third = sale(id, { branchId: 'b1' });
+    await backend.tillEarn(third);
+    const late = new Date(Date.now() + (loyalty.VISIT_RATING_PROMPT_DAYS + 1) * 86_400_000);
+    expect(await backend.getPendingVisit(id, late)).toBeNull();
+    expect((await backend.getPendingVisit(id, new Date()))?.ref).toBe(`pos:${third.posOrderRef}`);
   });
 
   it('🔴 a reversal never drives the balance negative: what was already spent is the shortfall', async () => {

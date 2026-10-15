@@ -28,6 +28,9 @@ import {
 import type { TierId } from '@almond/shared/types';
 import { referralAttachError, referralRewardFor } from '@almond/shared/loyalty/referral';
 import { transferRefusal } from '@almond/shared/loyalty/transfer';
+import {
+  isRateableVisit, normalizeComment, pendingVisit, type VisitRating,
+} from '@almond/shared/loyalty/visitRating';
 import { conflict, notFound } from '../http-error';
 import { toFils } from '../money';
 import type { HoldoutStamp } from '@almond/shared/loyalty/holdout';
@@ -128,6 +131,8 @@ export function createMemoryBackend(): Backend {
   const members = new Map<string, Member>();
   const byPhone = new Map<string, string>();
   const history = new Map<string, HistoryEntry[]>();
+  /** memberId → visit ref → rating (visit_ratings). */
+  const visitRatings = new Map<string, Map<string, VisitRating>>();
   const orders: OrderRecord[] = [];
   /** ONE ROW PER MEMBER, EVER — the key IS the "once per member" constraint,
    *  which is why the storage model and config.SECOND_VISIT_VOUCHER
@@ -232,7 +237,7 @@ export function createMemoryBackend(): Backend {
   const log = (id: string, e: HistoryEntry) => {
     const h = history.get(id) ?? [];
     historySeq += 1;
-    h.unshift({ branchId: null, expiresOn: null, ...e, id: String(historySeq) });
+    h.unshift({ branchId: null, expiresOn: null, sourceRef: null, ...e, id: String(historySeq) });
     history.set(id, h);
   };
 
@@ -617,6 +622,25 @@ export function createMemoryBackend(): Backend {
       rec.pointsEarned = breakdown.points;
     },
     async getHistory(id) { must(id); return history.get(id) ?? []; },
+    async getPendingVisit(id, at) {
+      must(id);
+      const rated = new Set((visitRatings.get(id) ?? new Map()).keys());
+      return pendingVisit(history.get(id) ?? [], rated, at);
+    },
+    async rateVisit(id, input, at) {
+      must(id);
+      const line = (history.get(id) ?? []).find((h) => isRateableVisit(h) && h.sourceRef === input.ref);
+      if (!line || !line.branchId) throw notFound('visit not found');
+      const mine = visitRatings.get(id) ?? new Map<string, VisitRating>();
+      if (mine.has(input.ref)) throw conflict('visit_already_rated', 'This visit has already been rated');
+      const row: VisitRating = {
+        ref: input.ref, branchId: line.branchId, stars: input.stars,
+        comment: normalizeComment(input.comment), createdAt: at.toISOString(),
+      };
+      mine.set(input.ref, row);
+      visitRatings.set(id, mine);
+      return { ...row };
+    },
 
     async evaluateSecondVisitVoucher(input) {
       return decideVoucher(must(input.memberId), input);
@@ -723,7 +747,7 @@ export function createMemoryBackend(): Backend {
         log(id, {
           deltaPoints: input.pointsEarned, reasonAr: input.pointsReasonAr,
           reasonEn: input.pointsReasonEn, createdAt: at.toISOString(),
-          kind: 'purchase', branchId: input.order.branchId,
+          kind: 'purchase', branchId: input.order.branchId, sourceRef: `order:${order.id}`,
           expiresOn: grant.lot?.expiresOn ?? null,
         });
         if (input.spendJod !== null) applySpend(m, input.spendJod, at);
@@ -781,7 +805,7 @@ export function createMemoryBackend(): Backend {
         log(m.id, {
           deltaPoints: input.pointsEarned, reasonAr: input.reasonAr,
           reasonEn: input.reasonEn, createdAt: at.toISOString(),
-          kind: 'purchase', branchId: input.branchId,
+          kind: 'purchase', branchId: input.branchId, sourceRef: `pos:${input.posOrderRef}`,
           expiresOn: grant.lot?.expiresOn ?? null,
         });
         // The day the spend is dated on is STORED, so a reversal can find it.
@@ -832,7 +856,7 @@ export function createMemoryBackend(): Backend {
         const { reasonAr, reasonEn } = refundReasons(!!refund);
         log(m.id, {
           deltaPoints: -back.reversedPoints, reasonAr, reasonEn, createdAt: at.toISOString(),
-          kind: 'refund', branchId: sale.branchId,
+          kind: 'refund', branchId: sale.branchId, sourceRef: `pos:${sale.posOrderRef}`,
         });
         const balanceAfter = liveBalance(m.lots, at);
         const row: TillRefund = {

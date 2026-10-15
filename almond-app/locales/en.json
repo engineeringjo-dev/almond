@@ -340,8 +340,15 @@
     "rateComment": "Add a comment (optional)",
     "rateSubmit": "Submit rating",
     "rateThanks": "Thanks for your feedback!",
-    "rateRewarded": "🎉 You earned 50 points!",
     "nowLive": "Now • live"
+  },
+  "visit": {
+    "thanksTitle": "Thank you for your visit!",
+    "pointsAdded": "Points added from this visit: {{points}}",
+    "starsGroup": "Your rating",
+    "starsLabel": "{{n}} of 5",
+    "rateError": "Couldn't send your rating. Try again.",
+    "rateGeneric": "How was your visit?"
   },
   "loyalty": {
     "title": "Rewards",

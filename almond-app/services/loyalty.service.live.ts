@@ -1,3 +1,4 @@
+import type { PendingVisit, VisitRating } from '@almond/shared/loyalty/visitRating';
 import type {
   LoyaltyBalance,
   Voucher,
@@ -138,5 +139,9 @@ export const liveLoyaltyService: LoyaltyService = {
   // same confirmation must replay, not move the money twice.
   sendTransfer: (_userId, { idempotencyKey, ...body }) =>
     post<TransferReceipt>('/v1/me/transfers', body, { 'Idempotency-Key': idempotencyKey }),
-  rateBranch: (input) => post<{ rewarded: boolean }>(`/loyalty/rate-branch`, input),
+  // The thank-you after a visit. `/loyalty/rate-branch` (where ratings used to
+  // go) never existed on the server; these do (bff/src/routes/me.ts).
+  getPendingVisit: async () => (await get<{ visit: PendingVisit | null }>('/v1/me/visit-rating')).visit,
+  rateVisit: async ({ ref, stars, comment }) =>
+    (await post<{ rating: VisitRating }>('/v1/me/visit-rating', { ref, stars, comment: comment ?? null })).rating,
 };

@@ -32,6 +32,9 @@ import { ammanDayKey, ammanWeekday } from '@almond/shared/lib/ammanWeekday';
 // The earn multiplier is computeEarn's business only; this is the tier itself.
 // earn-arith-exempt: tier lookup for the balance payload. §7 T7.
 import { branches, tiers } from './seed';
+import {
+  isRateableVisit, isValidStars, normalizeComment, pendingVisit, type VisitRating,
+} from '@almond/shared/loyalty/visitRating';
 import { delay, genId } from './util';
 import { defaultSpinConfig, pickWeightedPrize } from './spinDefaults';
 
@@ -90,7 +93,9 @@ export interface LoyaltyUser {
    *  many of that day's grants were already banked (D9). */
   grantDay: string;
   grantDayCount: number;
-  hasRatedBranchEver: boolean;
+  /** This member's visit ratings by visit ref — the twin of the BFF's
+   *  `visit_ratings` (one per visit, paying nothing). */
+  visitRatings: Record<string, VisitRating>;
   /** This member's own code — the shared alphabet and length, like the BFF's. */
   referralCode: string;
   /** The referral this member attached as someone's FRIEND, and whether the
@@ -226,7 +231,7 @@ function ensureUser(userId: string): LoyaltyUser {
       visits: 4,
       spinsAvailable: 1,
       grantDay: '', grantDayCount: 0,
-      hasRatedBranchEver: false,
+      visitRatings: {},
       referralCode: newReferralCode(),
       referredBy: null,
       firstPaidAt: null,
@@ -485,7 +490,7 @@ export const mockLoyaltyService: LoyaltyService = {
 
   // Mirror of section 8.2 earn calculation.
   earn: ({
-    userId, invoiceAmount, paidFromBalance, at, bonusDayActivated, combo, pointsRedeemed, branchId,
+    userId, invoiceAmount, paidFromBalance, at, bonusDayActivated, combo, pointsRedeemed, branchId, orderId,
   }: EarnInput) => {
     const u = ensureUser(userId);
     // Book any expiry that has come due into the history BEFORE the grant, so
@@ -549,6 +554,7 @@ export const mockLoyaltyService: LoyaltyService = {
       kind: 'purchase',
       branchId: branchId ?? null,
       expiresOn: grant.lot?.expiresOn ?? null,
+      sourceRef: orderId ? `order:${orderId}` : null,
     });
 
     // This IS a paid order in the mock (cart.tsx calls earn after the order is
@@ -825,18 +831,25 @@ export const mockLoyaltyService: LoyaltyService = {
     });
   },
 
-  // Branch rating: 50 pts once per account lifetime, but always save rating (section 8.1.1).
-  rateBranch: ({ userId }) => {
+  // The thank-you after a visit — the BFF's rule, by the same shared function
+  // (bff/src/backend/memory.ts getPendingVisit / rateVisit). The 50 points a
+  // rating used to pay here are gone: the server never paid them, and the
+  // owner struck every promise the programme does not keep («لا تعد بشيء»).
+  getPendingVisit: (userId) => {
     const u = ensureUser(userId);
-    if (u.hasRatedBranchEver) return delay({ rewarded: false });
-    u.hasRatedBranchEver = true;
-    settleExpiry(u);
-    u.lots = grantLot(u.lots, 50, 'bonus', new Date(), LOTS).lots;
-    u.history.unshift({
-      id: genId('log'), deltaPoints: 50,
-      reasonAr: 'مكافأة تقييم الفرع', reasonEn: 'Branch rating reward', createdAt: new Date().toISOString(),
-    });
-    return delay({ rewarded: true });
+    return delay(pendingVisit(u.history, new Set(Object.keys(u.visitRatings)), new Date()));
+  },
+  rateVisit: ({ userId, ref, stars, comment }) => {
+    const u = ensureUser(userId);
+    const line = u.history.find((h) => isRateableVisit(h) && h.sourceRef === ref);
+    if (!line || !line.branchId) return refuse(404, 'visit_not_found');
+    if (u.visitRatings[ref]) return refuse(409, 'visit_already_rated');
+    if (!isValidStars(stars)) return refuse(400, 'invalid_request');
+    const row: VisitRating = {
+      ref, branchId: line.branchId, stars, comment: normalizeComment(comment), createdAt: new Date().toISOString(),
+    };
+    u.visitRatings[ref] = row;
+    return delay({ ...row });
   },
 };
 

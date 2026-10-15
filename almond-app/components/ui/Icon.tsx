@@ -184,9 +184,11 @@ interface Props {
   size?: number;
   color?: string;
   strokeWidth?: number;
+  /** A solid shape — a chosen star in a rating. Outline when unset. */
+  fill?: string;
 }
 
-export function Icon({ name, size = 22, color = colors.dark, strokeWidth = 2 }: Props) {
+export function Icon({ name, size = 22, color = colors.dark, strokeWidth = 2, fill }: Props) {
   const Cmp = REGISTRY[name] ?? Coffee;
-  return <Cmp size={size} color={color} strokeWidth={strokeWidth} />;
+  return <Cmp size={size} color={color} strokeWidth={strokeWidth} {...(fill ? { fill } : {})} />;
 }

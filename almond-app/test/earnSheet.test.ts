@@ -57,8 +57,8 @@ describe('Q3 the wiring', () => {
   const src = (rel: string) => readFileSync(join(__dirname, '..', rel), 'utf8');
 
   it('Home runs the launch check, the header opens the sheet, the root mounts it once', () => {
-    expect(src('app/(tabs)/index.tsx')).toMatch(/useAutoOpenEarnSheet\(\)/);
-    expect(src('hooks/useAutoOpenEarnSheet.ts')).toMatch(/shouldAutoOpenEarnSheet\(/);
+    expect(src('app/(tabs)/index.tsx')).toMatch(/useLaunchSheets\(\)/);
+    expect(src('hooks/useLaunchSheets.ts')).toMatch(/shouldAutoOpenEarnSheet\(/);
     expect(src('components/home/HomeTopBar.tsx')).toMatch(/openEarnSheet\(\)/);
     expect(src('components/home/HomeTopBar.tsx')).toMatch(/accessibilityLabel=\{t\('earnSheet\.open'\)\}/);
     expect(src('app/_layout.tsx').match(/<EarnQrSheet \/>/g)).toHaveLength(1);

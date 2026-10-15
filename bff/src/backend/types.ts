@@ -9,6 +9,7 @@ import type { SecondVisitVoucher } from '@almond/shared/loyalty/secondVisit';
 import type { Gender, MemberProfile } from '@almond/shared/loyalty/profile';
 import type { TransferKind } from '@almond/shared/loyalty/transfer';
 import type { PointsKind } from '@almond/shared/loyalty/history';
+import type { PendingVisit, VisitRating } from '@almond/shared/loyalty/visitRating';
 import type { PointLot, SpentSlice, WalletLot } from '@almond/shared/loyalty/lots';
 import type { SpendEntry, TierStanding, Evaluation } from '@almond/shared/loyalty/window';
 
@@ -141,6 +142,9 @@ export interface HistoryEntry {
   branchId?: string | null;
   /** The granted lot's own stored `expiresOn` (lots.ts) — never re-derived. */
   expiresOn?: string | null;
+  /** "order:<id>" | "pos:<ref>" on purchase and refund lines; the visit a
+   *  rating names (loyalty/visitRating.ts). */
+  sourceRef?: string | null;
   /** The store's id for the line, set when it is read back. */
   id?: string;
 }
@@ -627,6 +631,17 @@ export interface Backend {
    *  writes down observes nothing. See LOYALTY-EARN-PATCH.md §3.5 row 2 / §5b. */
   recordEarnBreakdown(orderId: string, breakdown: EarnBreakdown): Promise<void>;
   getHistory(id: string): Promise<HistoryEntry[]>;
+  /** The ONE visit to ask the member to rate now, or null — the shared rule
+   *  (loyalty/visitRating.ts pendingVisit) over the member's purchase lines. */
+  getPendingVisit(id: string, at: Date): Promise<PendingVisit | null>;
+  /**
+   * Keep the member's rating of one of their own visits. ONCE per visit: a
+   * second is conflict('visit_already_rated'); a ref that is not one of this
+   * member's purchase lines is notFound. Pays nothing («لا تعد بشيء»).
+   */
+  rateVisit(
+    id: string, input: { ref: string; stars: number; comment: string | null }, at: Date,
+  ): Promise<VisitRating>;
   // ---- The second-visit voucher (BRIEF §3 W2) ----
   /**
    * Evaluate the second-visit voucher for one transaction and persist whatever

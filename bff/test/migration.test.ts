@@ -38,6 +38,7 @@ const REFERRALS_MIGRATION = readMigration('20261001_referrals.sql');
 const TRANSFERS_MIGRATION = readMigration('20261002_member_transfers.sql');
 const PROFILE_FIELDS_MIGRATION = readMigration('20261003_member_profile_fields.sql');
 const HISTORY_DETAIL_MIGRATION = readMigration('20261015_point_history_detail.sql');
+const VISIT_RATINGS_MIGRATION = readMigration('20261016_visit_ratings.sql');
 /** The whole loyalty schema, as a deploy leaves it (minus the Supabase-only RLS file). */
 const SCHEMA = loyaltySchemaSql();
 const POSTGRES_TS = readFileSync(join(HERE, '..', 'src', 'backend', 'postgres.ts'), 'utf8');
@@ -54,6 +55,8 @@ const ALL_TABLES = [
   ...TABLES, 'idempotency_keys', 'pos_sales', 'payment_intents', 'pos_point_spends', 'pos_sale_refunds',
   // 20261001 the referral rail, 20261002 transfers to a friend.
   'referral_codes', 'referrals', 'member_transfers',
+  // 20261016 the member's rating of a visit.
+  'visit_ratings',
 ];
 
 async function fresh(): Promise<PGlite> {
@@ -283,6 +286,10 @@ describe('R3 migration 20260909_loyalty_backend.sql', () => {
     await pg.exec(REFERRALS_MIGRATION);
     await pg.exec(TRANSFERS_MIGRATION);
     await pg.exec(PROFILE_FIELDS_MIGRATION);
+    // 20261015 adds columns only; 20261016 closes its own table the same way:
+    // a rating carries a member's own words about a branch.
+    await pg.exec(HISTORY_DETAIL_MIGRATION);
+    await pg.exec(VISIT_RATINGS_MIGRATION);
     const tables = await rows<{ t: string }>(pg,
       `select table_name as t from information_schema.tables where table_schema = 'public' order by 1`);
     expect(tables.map((x) => x.t)).toEqual([...ALL_TABLES].sort());
@@ -944,5 +951,45 @@ describe('R3.17 migration 20261015_point_history_detail.sql', () => {
     expect(await insert(null, null)).toBe('ok');
     expect(await insert('cashback', null)).toBe('23514');        // not a shared kind
     expect(await insert('purchase', '15/10/2027')).toBe('23514'); // not a day key
+  });
+});
+
+/**
+ * R3.18 — 20261016_visit_ratings.sql: one rating per visit, 1-5 stars.
+ */
+describe('R3.18 migration 20261016_visit_ratings.sql', () => {
+  it('R3.18 keeps one rating per visit, refuses what the wire refuses, holds the member, and re-applies unchanged', async () => {
+    const pg = await fresh();
+    await pg.exec(SCHEMA);
+    const shape = async () => ({
+      cols: await rows(pg, `select column_name, data_type, is_nullable from information_schema.columns
+        where table_name = 'visit_ratings' order by 1`),
+      cons: await rows(pg, `select conname, pg_get_constraintdef(oid) as def from pg_constraint
+        where conrelid = 'visit_ratings'::regclass order by 1`),
+    });
+    const before = await shape();
+    await pg.exec(VISIT_RATINGS_MIGRATION);
+    expect(await shape()).toEqual(before);
+
+    await pg.query(`insert into members (id, phone, held_tier_id) values ('m1', '+962791111111', 'base')`);
+    const put = async (ref: string, stars: number, comment: string | null = null, member = 'm1') => {
+      try {
+        await pg.query(`insert into visit_ratings (member_id, visit_ref, branch_id, stars, comment)
+          values ($1, $2, 'rabyeh', $3, $4)`, [member, ref, stars, comment]);
+        return 'ok';
+      } catch (e) { return (e as { code?: string }).code ?? 'err'; }
+    };
+    expect(await put('pos:Shop/1', 5)).toBe('ok');
+    expect(await put('pos:Shop/1', 3)).toBe('23505');            // once per visit
+    expect(await put('order:o1', 1, 'بطيء')).toBe('ok');
+    expect(await put('order:o2', 0)).toBe('23514');
+    expect(await put('order:o2', 6)).toBe('23514');
+    expect(await put('wallet:1', 4)).toBe('23514');               // not a visit ref
+    expect(await put('order:o2', 4, '')).toBe('23514');           // empty is stored as NULL, never ''
+    expect(await put('order:o2', 4, 'ق'.repeat(501))).toBe('23514');
+    expect(await put('order:o2', 4, null, 'nobody')).toBe('23503');
+    let del = 'ok';
+    try { await pg.query(`delete from members where id = 'm1'`); } catch (e) { del = (e as { code?: string }).code ?? 'err'; }
+    expect(del).toBe('23001');                                    // RESTRICT, as every member-owned table
   });
 });

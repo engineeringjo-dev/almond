@@ -26,6 +26,7 @@ import type { TierId } from '@almond/shared/types';
 import type { Gender } from '@almond/shared/loyalty/profile';
 import { referralAttachError, referralRewardFor } from '@almond/shared/loyalty/referral';
 import { transferRefusal, type TransferKind } from '@almond/shared/loyalty/transfer';
+import { normalizeComment, pendingVisit } from '@almond/shared/loyalty/visitRating';
 import { conflict, notFound } from '../http-error';
 import type { Db } from './db';
 import type { HoldoutStamp } from '@almond/shared/loyalty/holdout';
@@ -249,10 +250,10 @@ export function createPostgresBackend(db: Db): Backend {
   async function insertHistory(t: Db, memberId: string, e: HistoryEntry): Promise<void> {
     await t.query(
       `insert into point_history
-         (member_id, delta_points, reason_ar, reason_en, created_at, kind, branch_id, expires_on)
-       values ($1,$2,$3,$4,$5,$6,$7,$8)`,
+         (member_id, delta_points, reason_ar, reason_en, created_at, kind, branch_id, expires_on, source_ref)
+       values ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
       [memberId, e.deltaPoints, e.reasonAr, e.reasonEn, e.createdAt,
-        e.kind, e.branchId ?? null, e.expiresOn ?? null],
+        e.kind, e.branchId ?? null, e.expiresOn ?? null, e.sourceRef ?? null],
     );
   }
 
@@ -666,7 +667,7 @@ export function createPostgresBackend(db: Db): Backend {
     async getHistory(id) {
       await api.getMember(id);           // notFound for an unknown member, as memory does
       const rows = await db.query(
-        `select id, delta_points, reason_ar, reason_en, created_at, kind, branch_id, expires_on
+        `select id, delta_points, reason_ar, reason_en, created_at, kind, branch_id, expires_on, source_ref
          from point_history where member_id = $1 order by id desc`,
         [id],
       );
@@ -679,7 +680,54 @@ export function createPostgresBackend(db: Db): Backend {
         kind: (r.kind ?? null) as HistoryEntry['kind'],
         branchId: (r.branch_id ?? null) as string | null,
         expiresOn: (r.expires_on ?? null) as string | null,
+        sourceRef: (r.source_ref ?? null) as string | null,
       }));
+    },
+
+    async getPendingVisit(id, at) {
+      await api.getMember(id);
+      // The shared rule looks at the NEWEST rateable purchase only, so that is
+      // all this reads; whether it is rated is one more indexed lookup.
+      const lines = await db.query(
+        `select kind, source_ref, branch_id, delta_points, created_at from point_history
+         where member_id = $1 and kind = $2 and source_ref is not null and branch_id is not null
+         order by created_at desc, id desc limit 1`,
+        [id, 'purchase'],
+      );
+      if (!lines[0]) return null;
+      const line = {
+        kind: 'purchase' as const, sourceRef: lines[0].source_ref as string,
+        branchId: lines[0].branch_id as string, deltaPoints: Number(lines[0].delta_points),
+        createdAt: iso(lines[0].created_at)!,
+      };
+      const done = await db.query('select 1 from visit_ratings where member_id = $1 and visit_ref = $2', [id, line.sourceRef]);
+      return pendingVisit([line], new Set(done[0] ? [line.sourceRef] : []), at);
+    },
+
+    async rateVisit(id, input, at) {
+      await api.getMember(id);
+      const line = await db.query(
+        `select branch_id from point_history
+         where member_id = $1 and kind = $2 and source_ref = $3 and branch_id is not null
+         order by id limit 1`,
+        [id, 'purchase', input.ref],
+      );
+      if (!line[0]) throw notFound('visit not found');
+      // Insert-only, and the unique key is the once-per-visit guard: two taps
+      // racing each other cannot both land, and nothing needs a lock.
+      const inserted = await db.query(
+        `insert into visit_ratings (member_id, visit_ref, branch_id, stars, comment, created_at)
+         values ($1,$2,$3,$4,$5,$6)
+         on conflict (member_id, visit_ref) do nothing
+         returning visit_ref, branch_id, stars, comment, created_at`,
+        [id, input.ref, line[0].branch_id, input.stars, normalizeComment(input.comment), at.toISOString()],
+      );
+      if (!inserted[0]) throw conflict('visit_already_rated', 'This visit has already been rated');
+      const r = inserted[0];
+      return {
+        ref: r.visit_ref as string, branchId: r.branch_id as string, stars: Number(r.stars),
+        comment: (r.comment ?? null) as string | null, createdAt: iso(r.created_at)!,
+      };
     },
 
     // ---- second-visit voucher ----
@@ -992,7 +1040,7 @@ export function createPostgresBackend(db: Db): Backend {
         log({
           deltaPoints: input.pointsEarned, reasonAr: input.pointsReasonAr,
           reasonEn: input.pointsReasonEn, createdAt: at.toISOString(),
-          kind: 'purchase', branchId: input.order.branchId,
+          kind: 'purchase', branchId: input.order.branchId, sourceRef: `order:${order.id}`,
           expiresOn: grant.lot?.expiresOn ?? null,
         });
         if (input.spendJod !== null) applySpend(m, input.spendJod, at, log);
@@ -1042,7 +1090,7 @@ export function createPostgresBackend(db: Db): Backend {
         log({
           deltaPoints: input.pointsEarned, reasonAr: input.reasonAr,
           reasonEn: input.reasonEn, createdAt: at.toISOString(),
-          kind: 'purchase', branchId: input.branchId,
+          kind: 'purchase', branchId: input.branchId, sourceRef: `pos:${input.posOrderRef}`,
           expiresOn: grant.lot?.expiresOn ?? null,
         });
         // The day the spend is dated on is STORED, so a reversal can find it.
@@ -1110,7 +1158,7 @@ export function createPostgresBackend(db: Db): Backend {
         const { reasonAr, reasonEn } = refundReasons(!!refund);
         log({
           deltaPoints: -back.reversedPoints, reasonAr, reasonEn, createdAt: at.toISOString(),
-          kind: 'refund', branchId: sale.branchId,
+          kind: 'refund', branchId: sale.branchId, sourceRef: `pos:${sale.posOrderRef}`,
         });
         const balanceAfter = liveBalance(m.lots, at);
         const row: TillRefund = {

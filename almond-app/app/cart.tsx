@@ -199,6 +199,7 @@ export default function CartScreen() {
         paidFromBalance: paymentMethod === 'wallet',
         bonusDayActivated: usePromoStore.getState().isActivatedToday(),
         branchId: branch.id,
+        orderId: order.id,
         // The priced drink+food lines: the pair earns the combo INSTEAD of its
         // regular points (owner, 2026-09-24) — the shared engine decides which.
         combo: comboBasket(items, totals.total),

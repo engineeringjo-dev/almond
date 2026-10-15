@@ -21,6 +21,7 @@ import { useReducedMotion } from '@/hooks/useReducedMotion';
 import { ErrorBoundary } from '@/components/ui/ErrorBoundary';
 import { CartToast } from '@/components/ui/CartToast';
 import { EarnQrSheet } from '@/components/pay/EarnQrSheet';
+import { PostVisitSheet } from '@/components/loyalty/PostVisitSheet';
 import { colors, layout } from '@/constants/theme';
 import { hydrateMenuFromCache, refreshMenu } from '@/services/menuSync';
 
@@ -167,6 +168,9 @@ export default function RootLayout() {
           {/* «اجمع نقاطك» — one sheet over every screen, opened on launch and
               from Home's header (components/pay/EarnQrSheet.tsx). */}
           <EarnQrSheet />
+          {/* The thank-you after a visit — points added and a rating of the
+              branch (components/loyalty/PostVisitSheet.tsx). */}
+          <PostVisitSheet />
           </ErrorBoundary>
         </QueryClientProvider>
       </SafeAreaProvider>

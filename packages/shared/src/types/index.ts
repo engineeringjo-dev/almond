@@ -281,6 +281,10 @@ export interface PointsLogEntry {
    *  granted can be spent — the lot's own stored date. Null when the line
    *  granted nothing, or granted points that never expire. */
   expiresOn?: string | null;
+  /** What the line is about: "order:<id>" for an app order, "pos:<ref>" for
+   *  a till sale (its refund carries the same ref). Null otherwise. Names the
+   *  visit a rating is for (loyalty/visitRating.ts). */
+  sourceRef?: string | null;
 }
 
 export interface EarnResult {

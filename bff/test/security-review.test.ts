@@ -402,6 +402,8 @@ const ROUTES: Record<string, Guard> = {
   'GET /v1/me/balance': 'member',
   'GET /v1/me/wallet': 'member',
   'GET /v1/me/history': 'member',
+  'GET /v1/me/visit-rating': 'member',
+  'POST /v1/me/visit-rating': 'member',
   'GET /v1/me/referral': 'member',
   'POST /v1/me/referral/attach': 'member',
   'POST /v1/me/transfers/preview': 'member',

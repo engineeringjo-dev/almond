@@ -191,6 +191,21 @@ export const config = {
   // bff/test/doubleDays.test.ts exercises the shipped list explicitly.
   DOUBLE_POINTS_DAYS: SHIPPED_DOUBLE_POINTS_DAYS as readonly DoublePointsDay[],
   DOUBLE_POINTS_MULTIPLIER: 2,
+  // THE THANK-YOU AFTER A VISIT (owner, 2026-10-15, after Al Ameed): the next
+  // time the app opens after a purchase that went through the loyalty account,
+  // it says how many points were added and asks for a 1-5 rating of that
+  // branch. Offered for this many days after the purchase; older visits are
+  // not asked about. Rating pays NOTHING — «لا تعد بشيء».
+  VISIT_RATING_PROMPT_DAYS: 3,
+  // An APP order is asked about only this long after it was placed: the
+  // member has not had the coffee yet when the order goes in (pickup is
+  // usually ready in 7-15 minutes). A till purchase is asked about at once —
+  // paying at the till IS the visit. Precedent: Careem asks after the
+  // delivery, not after the order.
+  VISIT_RATING_ORDER_DELAY_MINUTES: 30,
+  // The longest comment kept with a rating. Bounded on the wire and in the
+  // table (visit_ratings.comment).
+  VISIT_RATING_COMMENT_MAX: 500,
   // RETIRED 2026-09-06. Was enabled with a Tuesday ×2.
   //
   // Zero rows in 171,291 live transactions. And it was never safe to run as

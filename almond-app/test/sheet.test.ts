@@ -65,7 +65,7 @@ describe('S2 the sheet names itself and can be closed', () => {
 
   it('every sheet without a title passes a label', () => {
     expect(src('components/menu/ItemModal.tsx')).toMatch(/<BottomSheet[\s\S]*?label=\{/);
-    expect(src('components/order/RatingSheet.tsx')).toMatch(/label=\{t\('track\.rateTitle'/);
+    expect(src('components/loyalty/VisitRatingSheet.tsx')).toMatch(/label=\{pointsAdded !== undefined \? t\('visit\.thanksTitle'\) : question\}/);
   });
 });
 

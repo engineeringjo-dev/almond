@@ -1,3 +1,4 @@
+import type { PendingVisit, VisitRating } from '@almond/shared/loyalty/visitRating';
 import type { MemberProfile } from '@almond/shared/loyalty/profile';
 import type {
   LoyaltyBalance,
@@ -41,6 +42,9 @@ export interface EarnInput {
   bonusDayActivated?: boolean;
   /** The order's branch, for the history line (loyalty/history.ts). */
   branchId?: string;
+  /** The order this earn is for — the visit a rating names
+   *  ("order:<id>", loyalty/visitRating.ts). */
+  orderId?: string;
   /** Decision clock (tests / deterministic estimates). */
   at?: Date;
 }
@@ -220,13 +224,12 @@ export interface LoyaltyService {
   // REGISTERED member found by phone, within a daily cap.
   previewTransfer(userId: string, phone: string): Promise<TransferPreview>;
   sendTransfer(userId: string, input: SendTransferInput): Promise<TransferReceipt>;
-  rateBranch(input: {
-    userId: string;
-    branchId: string;
-    orderId: string;
-    rating: number;
-    comment?: string;
-  }): Promise<{ rewarded: boolean }>;
+  /** The one visit to ask the member about now, or null
+   *  (@almond/shared/loyalty/visitRating pendingVisit). */
+  getPendingVisit(userId: string): Promise<PendingVisit | null>;
+  /** Rate one of the member's visits — "order:<id>" or "pos:<ref>". Once per
+   *  visit (a repeat is 409 visit_already_rated). Pays nothing. */
+  rateVisit(input: { userId: string; ref: string; stars: number; comment?: string | null }): Promise<VisitRating>;
 }
 
 // The app talks to a separate loyalty server (section 8). When DATA_SOURCE is

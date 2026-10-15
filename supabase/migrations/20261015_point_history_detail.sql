@@ -19,12 +19,16 @@
 --               members.expiry_settled_through: a `date` comes back from the
 --               driver as a JS Date at local midnight, which is exactly the
 --               day-shift lib/format.ts formatDayKey exists to avoid.
+--   source_ref  what the line is about: 'order:<id>' for an app order,
+--               'pos:<the till's order ref>' for a till sale (its refund
+--               carries the same). Names the visit a rating is for
+--               (20261016_visit_ratings.sql). Null otherwise.
 --
 -- EXISTING ROWS. `kind` is backfilled from the exact English reason each
 -- writer has used (they are fixed strings in the code; the ones with an amount
 -- in them are matched on their fixed prefix). A row that matches none stays
 -- NULL and counts toward nothing — better a missing count than a wrong one.
--- branch_id and expires_on stay NULL on old rows: the branch was never stored
+-- branch_id, expires_on and source_ref stay NULL on old rows: they were never stored
 -- with the line, and an expiry RE-DERIVED from today's config is exactly what
 -- lots.ts forbids (a lot's date is the promise made when it was granted).
 --
@@ -34,6 +38,7 @@
 alter table point_history add column if not exists kind text;
 alter table point_history add column if not exists branch_id text;
 alter table point_history add column if not exists expires_on text;
+alter table point_history add column if not exists source_ref text;
 
 alter table point_history drop constraint if exists point_history_expires_on_day;
 alter table point_history add constraint point_history_expires_on_day
