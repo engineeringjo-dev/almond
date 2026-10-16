@@ -1,11 +1,12 @@
 import { useMemo, useState } from 'react';
-import { StyleSheet } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { router } from 'expo-router';
 
 import { PeekCarousel } from '@/components/ui/PeekCarousel';
 import { ItemModal } from '@/components/menu/ItemModal';
 import { ComboOfferCard, comboOffer } from '@/components/home/ComboOfferCard';
 import { PhotoTile } from '@/components/home/PhotoTile';
+import { Text } from '@/components/ui/Text';
 import { spacing } from '@/constants/theme';
 import { useI18n } from '@/hooks/useI18n';
 import { useMenuState } from '@/hooks/useMenuState';
@@ -74,11 +75,16 @@ export function PromoCarousel() {
 
   return (
     <>
+      <View style={styles.heading}>
+        <Text variant="title" accessibilityRole="header">{t('home.promotions')}</Text>
+      </View>
       <PeekCarousel
         count={count}
         label={t('home.promotions')}
         pickLabel={(n, total) => t('home.slidePick', { n, total })}
         bleed={spacing.lg}
+        peek={spacing.sm}
+        gap={spacing.sm}
         renderSlide={(i, ctx) => {
           if (hasCombo && i === 0) return <ComboOfferCard onFocus={ctx.onFocus} press={ctx.press} />;
           const s = slides[hasCombo ? i - 1 : i]!;
@@ -102,6 +108,7 @@ export function PromoCarousel() {
 }
 
 const styles = StyleSheet.create({
+  heading: { marginBottom: spacing.sm },
   // Every slide as tall as the tallest, so the row does not step.
   fill: { flex: 1 },
 });

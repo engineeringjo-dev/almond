@@ -1,16 +1,17 @@
-import { memo } from 'react';
+import { memo, useState } from 'react';
 import { Pressable, StyleSheet, View, Image, useWindowDimensions } from 'react-native';
 import { Text } from '@/components/ui/Text';
 import { menuImage } from '@/lib/menuImage';
 import { PhotoDim } from '@/components/ui/PhotoDim';
 import { Icon } from '@/components/ui/Icon';
-import { colors, radius, spacing, shadow } from '@/constants/theme';
+import { colors, radius, spacing } from '@/constants/theme';
 import { useI18n } from '@/hooks/useI18n';
 import { formatJOD } from '@/lib/format';
 import { iconForCategory } from '@/lib/productIcon';
 import { secondaryName } from '@/lib/itemName';
 import type { MenuItem } from '@/types';
 import { itemFromPrice } from '@almond/shared/menu';
+import { menuPhotoHeight, menuPhotoPlacement } from '@/lib/menuList';
 
 interface Props {
   item: MenuItem;
@@ -23,11 +24,15 @@ function MenuItemCardBase({ item, onPress }: Props) {
   const minPrice = itemFromPrice(item);
   const soldOut = item.inStock === false;
   const other = secondaryName(item, lang);
+  const [failedImage, setFailedImage] = useState<string | null>(null);
+  const hasPhoto = !!item.imageUrl && failedImage !== item.imageUrl;
   // Every tile the same height, so a menu row is a known height and a section
   // can be jumped to exactly (order.tsx): the name keeps room for its two
   // lines, and an English tile keeps its line for the Arabic name. Scaled
   // with the reader's text size, as the lines themselves are.
-  const { fontScale } = useWindowDimensions();
+  const { width, fontScale } = useWindowDimensions();
+  const photoHeight = menuPhotoHeight(width);
+  const photo = menuPhotoPlacement(item.imageUrl, photoHeight);
 
   return (
     <Pressable
@@ -35,14 +40,33 @@ function MenuItemCardBase({ item, onPress }: Props) {
       onPress={onPress}
       disabled={soldOut}
       accessibilityRole="button"
+      accessibilityState={{ disabled: soldOut }}
+      accessibilityLabel={t('common.withPrice', {
+        name: lang === 'ar' ? item.nameAr : item.nameEn,
+        price: item.sizes.length > 1
+          ? t('menu.fromPrice', { price: formatJOD(minPrice, lang) })
+          : formatJOD(minPrice, lang),
+      })}
     >
-      <View style={styles.thumb}>
-        {item.imageUrl ? (
-          <Image source={{ uri: menuImage(item.imageUrl, 320) }} style={styles.photo} resizeMode="contain" />
+      <View style={[styles.thumb, { height: photoHeight }, !hasPhoto && styles.thumbFallback]}>
+        {hasPhoto ? (
+          <View style={[styles.photoFrame, { width: photoHeight, height: photoHeight }]}>
+            <Image
+              source={{ uri: menuImage(item.imageUrl, 400) }}
+              style={[styles.photo, {
+                width: photo.size,
+                height: photo.size,
+                transform: [{ translateX: photo.translateX }, { translateY: photo.translateY }],
+              }]}
+              resizeMode="contain"
+              accessibilityIgnoresInvertColors
+              onError={() => setFailedImage(item.imageUrl ?? null)}
+            />
+          </View>
         ) : (
           <Icon name={iconForCategory(item.categoryId)} size={44} color={colors.brown} strokeWidth={1.6} />
         )}
-        <PhotoDim />
+        {hasPhoto ? <PhotoDim /> : null}
         {item.isBrunch ? (
           <View style={styles.brBadge}>
             <Text variant="caption" color={colors.dark} style={styles.brText}>
@@ -58,13 +82,11 @@ function MenuItemCardBase({ item, onPress }: Props) {
           </View>
         ) : null}
       </View>
-      {/* Two lines: «بايغل مع أومليت وجبنة شيدر» was «بايغل مع أومل…» on one. */}
+      {/* A measured name block keeps section jumps exact. The full name is
+          also the button's spoken label and opens without truncation. */}
       <Text variant="bodyBold" numberOfLines={2} style={{ minHeight: NAME_LINE * 2 * fontScale }}>
         {lang === 'ar' ? item.nameAr : item.nameEn}
       </Text>
-      {/* The other language's name, only when Odoo has a translation —
-          untranslated items printed the same name twice. The line is kept
-          empty rather than dropped, so English tiles stay one height. */}
       {lang !== 'ar' ? (
         <Text variant="caption" color={colors.warmGray} numberOfLines={1}>
           {other ?? ' '}
@@ -90,23 +112,23 @@ const NAME_LINE = 24;
 const styles = StyleSheet.create({
   card: {
     flex: 1,
-    backgroundColor: colors.cardBg,
-    borderRadius: radius.lg,
-    padding: spacing.md,
-    gap: 2,
-    ...shadow.card,
+    // Daylight Counter: the owned photograph is the plane; copy sits on the
+    // page. No outer card padding stealing width from the two-column photos.
+    paddingBottom: spacing.sm,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: colors.neutralWarm,
   },
   pressed: { opacity: 0.85 },
   thumb: {
-    aspectRatio: 1,
-    borderRadius: radius.md,
     backgroundColor: colors.white,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: spacing.sm,
     overflow: 'hidden',
   },
-  photo: { width: '100%', height: '100%' },
+  thumbFallback: { backgroundColor: colors.neutralWarm },
+  photoFrame: { alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
+  photo: { flexShrink: 0 },
   brBadge: {
     position: 'absolute',
     top: spacing.sm,

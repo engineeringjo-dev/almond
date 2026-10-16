@@ -5,7 +5,7 @@ import { router } from 'expo-router';
 import { Text } from '@/components/ui/Text';
 import { Icon } from '@/components/ui/Icon';
 import { HeroCard } from '@/components/ui/HeroCard';
-import { colors, spacing, radius, shadow } from '@/constants/theme';
+import { colors, spacing, radius } from '@/constants/theme';
 import { useI18n } from '@/hooks/useI18n';
 import { useLoyaltyBalance } from '@/hooks/useLoyalty';
 import { useUserId } from '@/stores/authStore';
@@ -96,7 +96,7 @@ const styles = StyleSheet.create({
   // The banner owns its own bottom margin because Home mounts it unwrapped —
   // a <View style={section}> around it would hold a gap open on every launch
   // with nothing to celebrate.
-  shadow: { borderRadius: radius.lg, marginBottom: spacing.xl, ...shadow.card },
+  shadow: { borderRadius: radius.lg, marginBottom: spacing.lg },
   card: {
     borderRadius: radius.lg,
     padding: spacing.lg,

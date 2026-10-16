@@ -6,13 +6,14 @@
  * logo is a black outline square holding four line drawings and «ALMOND COFFEE
  * HOUSE.» in a heavy grotesk; the shops are industrial, black facades and
  * black ceilings. So the identity is ink and paper — near-black, near-white
- * and the greys between them — and nothing else carries the brand. The violet
+ * and the greys between them — with product colour and the approved reward accent below. The violet
  * theme (#6C5CB4) and the espresso-and-gold one that was never switched on are
  * both deleted, with every gradient (the rainbow, the purple, the gold).
  *
- * Colour is left only where it MEANS something: red for an error or a closed
- * branch, green for success. A seasonal campaign may add a colour of its own
- * inside its own artwork; the interface does not.
+ * Owner-approved direction A, 2026-10-16: keep the ink-and-paper identity and
+ * add one toasted-almond hue for points and rewards. Ordering controls,
+ * navigation and prices remain neutral. Red means an error or a closed
+ * branch; green means success. Product photography supplies the other colour.
  *
  * TWO PALETTES, ONE SET OF NAMES. `lightTheme` and `darkTheme` fill the same
  * roles, so a screen written against `colors.dark` (the ink) and `colors.cream`
@@ -36,10 +37,14 @@ export interface AppTheme {
   primaryDark: string;
   /** Text and icons ON an ink fill — white in light mode, near-black in dark. */
   onInk: string;
-  /** Prices, highlights, links — the ink again: there is no second hue. */
+  /** Ordering prices and links stay ink; rewards use their scoped role. */
   accent: string;
   /** A selected control's fill, under ink text and an ink edge. */
   accentLight: string;
+  /** Toasted almond: points worth, cashback and selected redemption only. */
+  reward: string;
+  /** Text on a filled reward control. */
+  onReward: string;
   /** Captions on a card: the secondary grey. */
   secondary: string;
   /** Quiet fills: icon chips, thumbnails, dividers. */
@@ -79,6 +84,8 @@ export const lightTheme: AppTheme = {
   onInk: '#FFFFFF',
   accent: '#111111',
   accentLight: '#E6E6E2', // ink 15.1:1 on it
+  reward: '#975725', // white 5.67:1; AA on page, card and resting control
+  onReward: '#FFFFFF',
   secondary: '#5C5C58',
   neutralWarm: '#EFEFEC',
   cream: '#FFFFFF',
@@ -100,6 +107,8 @@ export const darkTheme: AppTheme = {
   onInk: '#0F0F0F',
   accent: '#F2F2F0',
   accentLight: '#33332F', // ink 11.3:1 on it
+  reward: '#E0AD70', // 9.48:1 on the page; AA on card and resting control
+  onReward: '#0F0F0F',
   secondary: '#A3A39E',
   neutralWarm: '#2A2A28',
   cream: '#0F0F0F',
@@ -126,8 +135,10 @@ export function paletteFor(scheme: ColorScheme) {
     dark: t.primaryDark, // the ink: primary text and filled controls
     onInk: t.onInk, // text and icons on an ink fill
     brown: t.secondary, // secondary grey for captions
-    gold: t.accent, // the accent — the ink again
+    gold: t.accent, // legacy name: neutral ordering ink, not the rewards hue
     lightGold: t.accentLight, // a selected control's fill
+    reward: t.reward,
+    onReward: t.onReward,
     cream: t.cream, // the page
     cardBg: t.cardBg, // a card
     surface: t.surface, // resting control fill (chips, fields)
@@ -169,6 +180,8 @@ export function paletteFor(scheme: ColorScheme) {
     heroEdge: scheme === 'dark' ? '#3A3A37' : '#111111',
     onHero: scheme === 'dark' ? '#F2F2F0' : '#FFFFFF',
     onHeroMuted: scheme === 'dark' ? '#A3A39E' : '#BDBDB8',
+    // The light reward tone reads on both black membership-card grounds.
+    onHeroReward: darkTheme.reward,
   } as const;
 }
 

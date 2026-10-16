@@ -1,5 +1,5 @@
 import { Text } from '@/components/ui/Text';
-import { colors } from '@/constants/theme';
+import { colors, fontSize } from '@/constants/theme';
 import { useI18n } from '@/hooks/useI18n';
 import { formatJOD } from '@/lib/format';
 import { jodFromPoints } from '@almond/shared/loyalty/earn';
@@ -19,7 +19,12 @@ export function BalanceWorth({ points, tone = 'hero' }: { points: number; tone?:
   const jod = formatJOD(jodFromPoints(points), lang);
   const buys = balanceBuys(points);
   return (
-    <Text variant="bodyBold" color={tone === 'hero' ? colors.onHeroMuted : colors.warmGray} center>
+    <Text
+      variant="bodyBold"
+      color={tone === 'hero' ? colors.onHeroReward : colors.warmGray}
+      center
+      style={tone === 'hero' ? { fontSize: fontSize.sm, lineHeight: 20 } : undefined}
+    >
       {buys
         ? t('rewards.balanceBuys', { jod, times: buys.times, name: lang === 'ar' ? buys.item.nameAr : buys.item.nameEn })
         : t('home.pointsWorth', { jod })}

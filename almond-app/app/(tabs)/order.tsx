@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState } from 'react';
-import { View, StyleSheet, FlatList, ScrollView, Pressable, Image, type LayoutChangeEvent, type ViewToken } from 'react-native';
+import { View, StyleSheet, FlatList, ScrollView, Pressable, Image, useWindowDimensions, type LayoutChangeEvent, type ViewToken } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 
@@ -32,6 +32,7 @@ import { useToastStore } from '@/stores/toastStore';
 import type { Category, MenuItem, Order, CartItem } from '@/types';
 import { bestSellers } from '@almond/shared/lib/recommendations';
 import { matchesMenuQuery } from '@almond/shared/menu/browse';
+import { shouldWrapOrderTabs } from '@/lib/menuList';
 
 type SubTab = 'menu' | 'featured' | 'previous' | 'favourites';
 
@@ -48,7 +49,9 @@ const SEASONAL_KW = /seasonal|new|autumn|spring|mother|ramadan|gift/i;
 const HIGHLIGHT_KW = /croissant|sandwich|manaqeesh|bagel|pizza|cake|dessert/i;
 
 export default function OrderScreen() {
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
+  const { width, fontScale } = useWindowDimensions();
+  const wrapTabs = shouldWrapOrderTabs(width, fontScale, lang);
   const [tab, setTab] = useState<SubTab>('menu');
   const [selectedItem, setSelectedItem] = useState<MenuItem | null>(null);
 
@@ -98,17 +101,17 @@ export default function OrderScreen() {
 
       {/* Top sub-tabs: a tablist, so the open one is announced — the old
           accessibilityState never reached the web build. */}
-      <View style={styles.subTabs} role="tablist" aria-label={t('tabs.order')}>
+      <View style={[styles.subTabs, wrapTabs && styles.subTabsWrapped]} role="tablist" aria-label={t('tabs.order')}>
         {SUB_TABS.map((s) => {
           const active = s.id === tab;
           return (
             <Pressable
               key={s.id}
               onPress={() => setTab(s.id)}
-              style={styles.subTab}
+              style={[styles.subTab, wrapTabs && styles.subTabWrapped]}
               {...tabA11y(active, t(s.label))}
             >
-              <Text variant="bodyBold" color={active ? colors.primary : colors.warmGray}>
+              <Text variant="bodyBold" color={active ? colors.primary : colors.warmGray} center>
                 {t(s.label)}
               </Text>
               <View style={[styles.subTabUnderline, active && styles.subTabUnderlineActive]} />
@@ -297,6 +300,7 @@ function MenuTab({
       onViewableItemsChanged={onViewableItemsChanged}
       viewabilityConfig={viewabilityConfig}
       getItemLayout={getItemLayout}
+      keyboardShouldPersistTaps="handled"
       renderItem={({ item: row, index }) => {
         switch (row.type) {
           case 'top':
@@ -581,14 +585,16 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     paddingHorizontal: spacing.lg,
     marginTop: spacing.md,
-    gap: spacing.lg,
+    gap: spacing.xs,
     borderBottomWidth: 1,
     borderBottomColor: colors.neutralWarm,
   },
-  subTab: { alignItems: 'center', justifyContent: 'flex-end', minHeight: MIN_TOUCH_TARGET, paddingBottom: spacing.sm },
+  subTab: { flex: 1, alignItems: 'center', justifyContent: 'flex-end', minHeight: MIN_TOUCH_TARGET, paddingBottom: spacing.sm },
+  subTabsWrapped: { flexWrap: 'wrap' },
+  subTabWrapped: { flexBasis: '45%', flexGrow: 1 },
   subTabUnderline: {
     height: 3,
-    width: '100%',
+    width: spacing.xl,
     borderRadius: 2,
     marginTop: spacing.sm,
     backgroundColor: 'transparent',
@@ -632,7 +638,7 @@ const styles = StyleSheet.create({
   scrollList: { padding: spacing.lg, paddingBottom: spacing.xxl * 4 },
   cardWrap: { flex: 1 },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.md },
-  gridCell: { width: '47.5%', flexGrow: 1 },
+  gridCell: { flexBasis: '45%', flexGrow: 1 },
   skeletonWrap: { padding: spacing.lg, gap: spacing.lg },
   skelChips: { flexDirection: 'row', gap: spacing.sm },
 

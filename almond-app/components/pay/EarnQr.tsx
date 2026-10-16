@@ -4,7 +4,7 @@ import QRCode from 'react-native-qrcode-svg';
 
 import { Text } from '@/components/ui/Text';
 import { Icon } from '@/components/ui/Icon';
-import { colors, spacing, radius, shadow } from '@/constants/theme';
+import { colors, spacing, radius } from '@/constants/theme';
 import { useI18n } from '@/hooks/useI18n';
 import { useReducedMotion } from '@/hooks/useReducedMotion';
 import { posQrExpiresAt, posQrMsUntilExpiry, posQrStatus } from '@/lib/posQr';
@@ -95,7 +95,7 @@ export function EarnQr({ active, size }: { active: boolean; size: number }) {
           ) : null}
         </Animated.View>
       ) : (
-        <View style={[styles.qrCard, styles.qrFallback, { width: size, height: size }]}>
+        <View style={[styles.qrCard, styles.qrFallback, { width: size + spacing.xl * 2, minHeight: size + spacing.xl * 2 }]}>
           {qrStatus === 'pending' ? (
             <Text variant="body" color={colors.warmGray} center>
               {t('pay.codeLoading')}
@@ -151,9 +151,9 @@ const styles = StyleSheet.create({
   // cannot read. The message that stands in for it sits on the scheme's card.
   qrCard: {
     backgroundColor: colors.white,
-    borderRadius: radius.lg,
+    borderRadius: radius.xl,
+    borderCurve: 'continuous',
     padding: spacing.xl,
-    ...shadow.raised,
   },
   qrFallback: {
     backgroundColor: colors.cardBg,
