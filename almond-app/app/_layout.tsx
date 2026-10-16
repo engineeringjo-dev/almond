@@ -190,6 +190,8 @@ export default function RootLayout() {
             />
             <Stack.Screen name="order/[id]" />
             <Stack.Screen name="loyalty" />
+            <Stack.Screen name="tiers" />
+            <Stack.Screen name="vouchers" />
             <Stack.Screen
               name="notifications"
               options={{ presentation: 'modal' }}

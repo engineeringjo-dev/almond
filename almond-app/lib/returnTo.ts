@@ -17,9 +17,14 @@ import type { CheckoutBlock } from '@/lib/cartBranch';
 /** Where the cart's checkout gate asks to come back to: the cart, review open. */
 export const CHECKOUT_RETURN = '/cart?review=1';
 
-/** In-app paths a sign-in may return to, and the parameters each may carry. */
+/** In-app paths a sign-in may return to, and the parameters each may carry.
+ *  The Rewards tab and /tiers ask a guest to sign in at the top of the page
+ *  (app/(tabs)/rewards.tsx); after the code the member is back where they
+ *  asked, now seeing their own balance and rung, not dropped on Home. */
 const RETURN_ROUTES: Record<string, readonly string[]> = {
   '/cart': ['review'],
+  '/rewards': [],
+  '/tiers': [],
 };
 
 /**

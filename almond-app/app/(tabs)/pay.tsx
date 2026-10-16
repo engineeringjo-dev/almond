@@ -116,18 +116,9 @@ export default function PayScreen() {
           {t('pay.seeRewards')}
         </Text>
       </Pressable>
-
-      {/* Secondary, uncluttered */}
-      <Pressable
-        style={styles.historyLink}
-        onPress={() => router.push('/(tabs)/rewards')}
-        hitSlop={8}
-      >
-        <Icon name="history" size={18} color={colors.brown} />
-        <Text variant="bodyBold" color={colors.brown}>
-          {t('pay.history')}
-        </Text>
-      </Pressable>
+      {/* No «سجل النقاط» link under the card any more: it opened the Rewards
+          tab, not the history, and sat under the tab bar (730–784 pt). The
+          history is a tile on the Rewards tab, which this card opens. */}
     </Screen>
   );
 }
@@ -147,12 +138,5 @@ const styles = StyleSheet.create({
     gap: spacing.xs,
     marginTop: spacing.xl,
     ...shadow.card,
-  },
-  historyLink: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-    padding: spacing.lg,
-    marginTop: spacing.sm,
   },
 });

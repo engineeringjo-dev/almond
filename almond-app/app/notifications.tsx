@@ -74,6 +74,47 @@ export default function NotificationsScreen() {
         error={inboxQ.isError}
         onRetry={inboxQ.refetch}
       >
+        {/* The inbox first, then its settings: the messages are what the
+            screen is opened for (Material 3 / iOS Notification Center put the
+            list first and the controls behind it). The settings used to fill
+            the first 300 pt, with the first message below them at 385 pt. */}
+        <Text variant="title" style={styles.sectionTitle}>
+          {t('notifications.inbox')}
+        </Text>
+        {inboxQ.data && inboxQ.data.length > 0 ? (
+          <View style={[styles.list, styles.inbox]}>
+            {inboxQ.data.map((n: AppNotification) => (
+              <Pressable
+                key={n.id}
+                onPress={() => {
+                  markRead.mutate(n.id);
+                  if (n.deepLink) router.push(n.deepLink as never);
+                }}
+              >
+                <Card style={[styles.notif, !n.read && styles.notifUnread]}>
+                  <View style={styles.notifIcon}>
+                    <Icon name={CATEGORY_ICON[n.category] ?? 'bell'} size={22} color={colors.dark} strokeWidth={1.75} />
+                  </View>
+                  <View style={styles.notifBody}>
+                    <Text variant="bodyBold">{lang === 'ar' ? n.titleAr : n.titleEn}</Text>
+                    <Text variant="caption" color={colors.warmGray}>
+                      {lang === 'ar' ? n.bodyAr : n.bodyEn}
+                    </Text>
+                    <Text variant="caption" color={colors.warmGray}>
+                      {formatDate(n.createdAt, lang)}
+                    </Text>
+                  </View>
+                  {!n.read ? <View style={styles.unreadDot} /> : null}
+                </Card>
+              </Pressable>
+            ))}
+          </View>
+        ) : (
+          <View style={styles.inbox}>
+            <EmptyState icon="bell" title={t('notifications.empty')} />
+          </View>
+        )}
+
         {/* Settings */}
         <Text variant="title" style={styles.sectionTitle}>
           {t('notifications.settings')}
@@ -104,42 +145,6 @@ export default function NotificationsScreen() {
             bordered
           />
         </Card>
-
-        {/* Inbox */}
-        <Text variant="title" style={styles.sectionTitle}>
-          {t('notifications.inbox')}
-        </Text>
-        {inboxQ.data && inboxQ.data.length > 0 ? (
-          <View style={styles.list}>
-            {inboxQ.data.map((n: AppNotification) => (
-              <Pressable
-                key={n.id}
-                onPress={() => {
-                  markRead.mutate(n.id);
-                  if (n.deepLink) router.push(n.deepLink as never);
-                }}
-              >
-                <Card style={[styles.notif, !n.read && styles.notifUnread]}>
-                  <View style={styles.notifIcon}>
-                    <Icon name={CATEGORY_ICON[n.category] ?? 'bell'} size={22} color={colors.dark} strokeWidth={1.75} />
-                  </View>
-                  <View style={styles.notifBody}>
-                    <Text variant="bodyBold">{lang === 'ar' ? n.titleAr : n.titleEn}</Text>
-                    <Text variant="caption" color={colors.warmGray}>
-                      {lang === 'ar' ? n.bodyAr : n.bodyEn}
-                    </Text>
-                    <Text variant="caption" color={colors.warmGray}>
-                      {formatDate(n.createdAt, lang)}
-                    </Text>
-                  </View>
-                  {!n.read ? <View style={styles.unreadDot} /> : null}
-                </Card>
-              </Pressable>
-            ))}
-          </View>
-        ) : (
-          <EmptyState icon="bell" title={t('notifications.empty')} />
-        )}
       </Screen>
 
       {/* Pre-permission explainer for background location (section 14.2) */}
@@ -202,7 +207,8 @@ function SettingRow({
 
 const styles = StyleSheet.create({
   sectionTitle: { marginBottom: spacing.md, marginTop: spacing.sm },
-  settingsCard: { padding: spacing.xs, marginBottom: spacing.xl },
+  settingsCard: { padding: spacing.xs },
+  inbox: { marginBottom: spacing.xl },
   settingRow: {
     flexDirection: 'row',
     alignItems: 'center',

@@ -13,6 +13,8 @@ import type { Href } from 'expo-router';
  */
 const PARENT: Record<string, Href> = {
   loyalty: '/(tabs)/rewards',
+  tiers: '/(tabs)/rewards',
+  vouchers: '/(tabs)/rewards',
   referral: '/(tabs)/profile',
   transfer: '/(tabs)/profile',
   profile: '/(tabs)/profile',

@@ -46,3 +46,19 @@ describe('BD2 every phone a sentence carries is isolated', () => {
     expect(readFileSync(join(APP, 'app/profile/help.tsx'), 'utf8').match(/ltrIsolate\(contact\.display\)/g)).toHaveLength(2);
   });
 });
+
+describe('BD3 a phone printed on its own is isolated too', () => {
+  it('no screen renders `{user.phone}` raw', () => {
+    // «المزيد» printed the member's number under their name as `{user.phone}`
+    // and showed «962790000000+» (page-division pass, 2026-10-16).
+    const raw = /(^|>)\s*\{\s*[\w$]+\??\.phone\s*\}\s*($|<)/;
+    const offenders: string[] = [];
+    for (const file of [...files(join(APP, 'app')), ...files(join(APP, 'components'))]) {
+      readFileSync(file, 'utf8').split('\n').forEach((l, i) => {
+        if (raw.test(l)) offenders.push(`${file}:${i + 1}: ${l.trim()}`);
+      });
+    }
+    expect(offenders).toEqual([]);
+    expect(readFileSync(join(APP, 'app/(tabs)/profile.tsx'), 'utf8')).toMatch(/\{ltrIsolate\(user\.phone\)\}/);
+  });
+});

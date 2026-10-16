@@ -17,6 +17,7 @@ import { layoutFollowsLanguage } from '@/lib/direction';
 import { formatJOD } from '@/lib/format';
 import { config } from '@/constants/config';
 import { isProfileComplete } from '@almond/shared/loyalty/profile';
+import { ltrIsolate } from '@almond/shared/lib/phone';
 import { useAuthStore } from '@/stores/authStore';
 import { useLoyaltyBalance, useWallet } from '@/hooks/useLoyalty';
 
@@ -64,8 +65,10 @@ export default function ProfileScreen() {
               {isGuest || !user?.name?.trim() ? t('home.guest') : user.name}
             </Text>
             {!isGuest && user?.phone ? (
+              // Left to right inside an Arabic line, or the "+" lands at the
+              // far end: «962790000000+» (BD, lib/phone.ts).
               <Text variant="caption" color={colors.onHero}>
-                {user.phone}
+                {ltrIsolate(user.phone)}
               </Text>
             ) : null}
             {/* Tier badge sits directly under the name */}
@@ -77,7 +80,10 @@ export default function ProfileScreen() {
           </View>
         </HeroCard>
 
-        {/* Menu */}
+        {/* Three groups, no headings: the account, the money, the app. One
+            card of twelve rows read as a settings dump (page-division prompt,
+            §8). «قسائمي» is not here any more: it is a door off the Rewards
+            tab, where the coupon is made. */}
         <Card padded={false} style={styles.menu}>
           {/* First row on purpose: it is the only one that pays, and a member
               who has not filled it in is the one we most want to reach. */}
@@ -95,24 +101,29 @@ export default function ProfileScreen() {
             }
             onPress={() => router.push('/profile/details')}
           />
+          <ListRow
+            icon="users"
+            label={t('profile.referral')}
+            value={t('profile.referralReward', { points: config.REFERRAL_REWARD_POINTS })}
+            onPress={() => router.push('/referral')}
+          />
           <ListRow icon="history" label={t('profile.orders')} onPress={() => router.push('/profile/orders')} />
-          <ListRow icon="ticket" label={t('profile.vouchers')} onPress={() => router.push('/profile/vouchers')} />
-          <ListRow icon="gift" label={t('profile.giftCards')} onPress={() => router.push('/profile/gift-cards')} />
           <ListRow icon="map-pin" label={t('profile.addresses')} onPress={() => router.push('/profile/addresses')} />
-          <ListRow icon="card" label={t('profile.payments')} onPress={() => router.push('/profile/payments')} />
+        </Card>
+
+        <Card padded={false} style={styles.menu}>
           <ListRow
             icon="wallet"
             label={t('profile.wallet')}
             value={wallet != null ? formatJOD(wallet, lang) : undefined}
             onPress={() => router.push('/profile/wallet')}
           />
-          <ListRow
-            icon="user"
-            label={t('profile.referral')}
-            value={t('profile.referralReward', { points: config.REFERRAL_REWARD_POINTS })}
-            onPress={() => router.push('/referral')}
-          />
+          <ListRow icon="gift" label={t('profile.giftCards')} onPress={() => router.push('/profile/gift-cards')} />
           <ListRow icon="share" label={t('profile.transfer')} onPress={() => router.push('/transfer')} />
+          <ListRow icon="card" label={t('profile.payments')} onPress={() => router.push('/profile/payments')} />
+        </Card>
+
+        <Card padded={false} style={styles.menu}>
           <ListRow icon="bell" label={t('profile.notifications')} onPress={() => router.push('/notifications')} />
           <ListRow
             icon="globe"

@@ -95,6 +95,8 @@ describe('VF4 what the balance buys now', () => {
 
   it('the rewards and loyalty screens say it under the balance', () => {
     expect(src('app/(tabs)/rewards.tsx')).toMatch(/<BalanceWorth points=\{points\} \/>/);
-    expect(src('app/loyalty.tsx')).toMatch(/<BalanceWorth points=\{balance\.points\} \/>/);
+    // The history's summary sits on the page's fill, not the black card, so
+    // it takes the page tone — the card's muted caption is near-invisible there.
+    expect(src('app/loyalty.tsx')).toMatch(/<BalanceWorth points=\{balance\.points\} tone="page" \/>/);
   });
 });

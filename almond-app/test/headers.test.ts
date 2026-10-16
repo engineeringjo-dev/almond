@@ -50,6 +50,9 @@ describe('U2 every stack screen has a way back, even opened cold', () => {
 
   it('a cold link goes to the screen\'s parent, and anything else to Home', () => {
     expect(backFallback('loyalty')).toBe('/(tabs)/rewards');
+    // The Rewards tab's other doors (page-division prompt, 2026-10-16).
+    expect(backFallback('tiers')).toBe('/(tabs)/rewards');
+    expect(backFallback('vouchers')).toBe('/(tabs)/rewards');
     expect(backFallback('profile')).toBe('/(tabs)/profile');
     expect(backFallback('order/[id]')).toBe('/(tabs)/track');
     expect(backFallback('something-new')).toBe('/(tabs)');

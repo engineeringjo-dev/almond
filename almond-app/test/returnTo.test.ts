@@ -26,6 +26,18 @@ describe('R1 the checkout round-trip', () => {
   });
 });
 
+describe('R1b back to the Rewards tab, or the tiers', () => {
+  it('a guest who signs in from either lands back on it', () => {
+    expect(safeReturnTo('/rewards')).toBe('/rewards');
+    expect(safeReturnTo('/tiers')).toBe('/tiers');
+  });
+
+  it('and no parameter rides along: neither page takes one', () => {
+    expect(safeReturnTo('/rewards?review=1')).toBe('/rewards');
+    expect(safeReturnTo('/tiers?next=https://evil')).toBe('/tiers');
+  });
+});
+
 describe('R2 never an open redirect', () => {
   const hostile = [
     'https://evil.example/cart',
