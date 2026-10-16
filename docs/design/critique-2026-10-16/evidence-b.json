@@ -1,0 +1,7417 @@
+{
+ "generated": "2026-10-16T11:40:30.298Z",
+ "method": "Playwright (Chromium) DOM + computed-style measurement; see collector.js / measure.mjs / analyze.mjs",
+ "viewport": "390x844 @2x, ar-JO, Asia/Amman",
+ "screens": {
+  "home-light": {
+   "name": "home-light",
+   "route": "/",
+   "scheme": "light",
+   "sheet": false,
+   "mainScroller": {
+    "sh": 1130,
+    "ch": 750,
+    "sw": 390
+   },
+   "scrollerCount": 2,
+   "fonts": [
+    "HelveticaNeueArabic-Light|normal|normal|unloaded",
+    "HelveticaNeueArabic-Roman|normal|normal|loaded",
+    "HelveticaNeueArabic-Bold|normal|normal|loaded"
+   ],
+   "htmlBg": "rgba(0, 0, 0, 0)",
+   "colorScheme": "normal",
+   "blockedRequests": [
+    "https://almond-gules.vercel.app/api/menu/app"
+   ],
+   "consoleErrors": [
+    "Failed to load resource: net::ERR_FAILED"
+   ],
+   "recordsMeasured": 256,
+   "scrollSteps": 1,
+   "palette": {
+    "distinct": 7,
+    "chromaticCount": 0,
+    "neutralCount": 7,
+    "list": [
+     {
+      "color": "rgb(17,17,17)",
+      "hex": "#111111",
+      "total": 58,
+      "roles": {
+       "svgStroke": 32,
+       "text": 14,
+       "bg": 11,
+       "border": 1
+      },
+      "examples": [
+       "svgStroke: svg in شارع مكة",
+       "text: شارع مكة",
+       "svgStroke: svg in اجمع نقاطك",
+       "svgStroke: svg in الإشعارات"
+      ],
+      "hsl": [
+       0,
+       0,
+       6.7
+      ],
+      "chromatic": false
+     },
+     {
+      "color": "rgb(255,255,255)",
+      "hex": "#ffffff",
+      "total": 35,
+      "roles": {
+       "bg": 12,
+       "border": 2,
+       "svgStroke": 9,
+       "text": 12
+      },
+      "examples": [
+       "bg: شارع مكة مساء الخير، سارة نقاطك 2% 1,240",
+       "border: 2%",
+       "svgStroke: svg in نقاطك 1,240، تساوي 12.400 د.أ. اف",
+       "text: 2%"
+      ],
+      "hsl": [
+       0,
+       0,
+       100
+      ],
+      "chromatic": false
+     },
+     {
+      "color": "rgb(92,92,88)",
+      "hex": "#5c5c58",
+      "total": 16,
+      "roles": {
+       "svgStroke": 4,
+       "text": 12
+      },
+      "examples": [
+       "svgStroke: svg in شارع مكة",
+       "text: استلام من شارع مكة",
+       "text: مثلاً: امريكانو ساخن + بلوبيري مفن",
+       "text: من الأكثر طلباً"
+      ],
+      "hsl": [
+       60,
+       2.2,
+       35.3
+      ],
+      "chromatic": false
+     },
+     {
+      "color": "rgb(244,244,242)",
+      "hex": "#f4f4f2",
+      "total": 9,
+      "roles": {
+       "bg": 9
+      },
+      "examples": [
+       "bg: شارع مكة",
+       "bg: اطلب الآن استلام من شارع مكة",
+       "bg: أي مشروب + أي طعام = 50 نقطة مثلاً: امري",
+       "bg: ايس سبانيش لاتيه من الأكثر طلباً من 3.75"
+      ],
+      "hsl": [
+       60,
+       8.3,
+       95.3
+      ],
+      "chromatic": false
+     },
+     {
+      "color": "rgb(189,189,184)",
+      "hex": "#bdbdb8",
+      "total": 7,
+      "roles": {
+       "text": 4,
+       "border": 1,
+       "svgStroke": 2
+      },
+      "examples": [
+       "text: نقاطك",
+       "text: تساوي 12.400 د.أ",
+       "text: اصرف 8.000 د.أ إضافية لتصبح نقاطك ×2 على",
+       "border: رصيد محفظتك 12.500 د.أ اشحن"
+      ],
+      "hsl": [
+       60,
+       3.6,
+       73.1
+      ],
+      "chromatic": false
+     },
+     {
+      "color": "rgb(239,239,236)",
+      "hex": "#efefec",
+      "total": 7,
+      "roles": {
+       "bg": 6,
+       "border": 1
+      },
+      "examples": [
+       "bg: (in) العروض",
+       "bg: div:nth-child(1) > div:nth-child(1) > bu",
+       "bg: أكمل بياناتك واكسب 50 نقطة",
+       "bg: تنتهي 1,000 من نقاطك في 26 تشرين الأول، "
+      ],
+      "hsl": [
+       60,
+       8.6,
+       93.1
+      ],
+      "chromatic": false
+     },
+     {
+      "color": "rgb(138,138,133)",
+      "hex": "#8a8a85",
+      "total": 5,
+      "roles": {
+       "bg": 5
+      },
+      "examples": [
+       "bg: (in) العرض 2 من 6",
+       "bg: (in) العرض 3 من 6",
+       "bg: (in) العرض 4 من 6",
+       "bg: (in) العرض 5 من 6"
+      ],
+      "hsl": [
+       60,
+       2.1,
+       53.1
+      ],
+      "chromatic": false
+     }
+    ]
+   },
+   "imagery": {
+    "firstViewport": {
+     "region": [
+      0,
+      0,
+      390,
+      750
+     ],
+     "hitTestPhotoCoverPct": 9.8,
+     "hitTestImagesSeen": 4,
+     "imgVisible": 4,
+     "boxCoverPct": 9.7,
+     "paintedCoverPct": 9.1,
+     "list": [
+      {
+       "src": "almond-badge-dark.e04effd646ea111a78095d163698b34d.png",
+       "box": [
+        34,
+        34
+       ],
+       "visible": [
+        338,
+        21,
+        372,
+        55
+       ],
+       "bgSize": "contain",
+       "natural": [
+        1024,
+        1024
+       ]
+      },
+      {
+       "src": "p-10352.webp",
+       "box": [
+        145.6,
+        145.6
+       ],
+       "visible": [
+        16,
+        408,
+        128,
+        520
+       ],
+       "bgSize": "contain",
+       "natural": [
+        512,
+        512
+       ]
+      },
+      {
+       "src": "p-10334.webp",
+       "box": [
+        105,
+        105
+       ],
+       "visible": [
+        102,
+        564,
+        172,
+        669
+       ],
+       "bgSize": "contain",
+       "natural": [
+        512,
+        512
+       ]
+      },
+      {
+       "src": "p-10267.webp",
+       "box": [
+        105,
+        105
+       ],
+       "visible": [
+        32,
+        564,
+        102,
+        669
+       ],
+       "bgSize": "contain",
+       "natural": [
+        512,
+        384
+       ]
+      }
+     ]
+    },
+    "fullPage": {
+     "fullArea": 440700,
+     "imgInContent": 6,
+     "imgWithVisibleArea": 4,
+     "boxCoverPct": 6.4,
+     "paintedCoverPct": 6,
+     "distinctSrc": 6,
+     "boxSizes": [
+      [
+       "105x105",
+       2
+      ],
+      [
+       "182x208",
+       2
+      ],
+      [
+       "34x34",
+       1
+      ],
+      [
+       "146x146",
+       1
+      ]
+     ]
+    },
+    "cssBackgroundPhotosWithoutImg": 0,
+    "gradients": [],
+    "pixel": {
+     "outsidePhotos": {
+      "px": 1056400,
+      "chromaticPct": 0,
+      "nearWhitePct": 66.5,
+      "nearBlackPct": 30.9,
+      "greyPct": 2.6,
+      "meanLightnessPct": 68.7
+     },
+     "insidePhotos": {
+      "px": 113600,
+      "chromaticPct": 17.3,
+      "nearWhitePct": 67,
+      "nearBlackPct": 3.6,
+      "greyPct": 12.2,
+      "meanLightnessPct": 81.4
+     },
+     "photoSharePct": 9.7,
+     "topChromaticOutsidePhotos": []
+    }
+   },
+   "iconography": {
+    "svgTotal": 21,
+    "icons": 17,
+    "iconsInChrome": 5,
+    "iconsInContent": 12,
+    "iconsFirstViewport": 8,
+    "largeSvgGraphics": [
+     {
+      "w": 59,
+      "h": 59,
+      "shapes": 2,
+      "ctx": "ادفع من رصيدك ويرجع لك 3% بدل 2% اشحن محفظتك"
+     },
+     {
+      "w": 59,
+      "h": 59,
+      "shapes": 4,
+      "ctx": "بطاقات الهدايا أهدِ قهوة لمن تحب أرسل بطاقة هدية"
+     },
+     {
+      "w": 59,
+      "h": 59,
+      "shapes": 4,
+      "ctx": "كاش باك لغاية 9% يرجع لك من 2% إلى 6% من كل طلب، و"
+     },
+     {
+      "w": 50,
+      "h": 50,
+      "shapes": 4,
+      "ctx": "طلبك المعتاد شاي احمد أضف للسلة · 0.500 د.أ"
+     }
+    ],
+    "iconSizes": [
+     [
+      "24x24",
+      4
+     ],
+     [
+      "22x22",
+      3
+     ],
+     [
+      "18x18",
+      3
+     ],
+     [
+      "20x20",
+      3
+     ],
+     [
+      "15x15",
+      1
+     ],
+     [
+      "16x16",
+      1
+     ],
+     [
+      "13x13",
+      1
+     ],
+     [
+      "26x26",
+      1
+     ]
+    ],
+    "iconsToPhotos": "17:6 (2.83)",
+    "iconsToPhotosFirstViewport": "8:4",
+    "iconContexts": [
+     "شارع مكة",
+     "شارع مكة",
+     "اجمع نقاطك",
+     "الإشعارات",
+     "نقاطك 1,240، تساوي 12.400 د.أ. افتح المكافآت",
+     "نقاطك 1,240، تساوي 12.400 د.أ. افتح المكافآت",
+     "رصيد محفظتك 12.500 د.أ اشحن",
+     "اعرض الباركود",
+     "أكمل بياناتك واكسب 50 نقطة",
+     "أكمل بياناتك واكسب 50 نقطة",
+     "تنتهي 1,000 من نقاطك في 26 تشرين الأول، فاستخدمها ",
+     "تنتهي 1,000 من نقاطك في 26 تشرين الأول، فاستخدمها ",
+     "الرئيسية",
+     "اطلب",
+     "الباركود",
+     "المكافآت",
+     "المزيد"
+    ]
+   },
+   "typography": {
+    "syntheticBold": {
+     "textNodes": 9,
+     "texts": [
+      "2% (HelveticaNeueArabic-Roman 14px w700)",
+      "اشحن (HelveticaNeueArabic-Roman 14px w700)",
+      "أضف الاثنين (HelveticaNeueArabic-Roman 14px w700)",
+      "من 3.750 د.أ (HelveticaNeueArabic-Roman 14px w700)",
+      "1.000 د.أ (HelveticaNeueArabic-Roman 14px w700)",
+      "اشحن محفظتك (HelveticaNeueArabic-Roman 14px w700)",
+      "أرسل بطاقة هدية (HelveticaNeueArabic-Roman 14px w700)",
+      "كيف تعمل المكافآت؟ (HelveticaNeueArabic-Roman 14px w700)",
+      "أضف للسلة · 0.500 د.أ (HelveticaNeueArabic-Roman 14px w700)"
+     ],
+     "inkTest": {
+      "HelveticaNeueArabic-Roman": {
+       "w400": {
+        "inkAlphaSum": 237898,
+        "width": 176.8
+       },
+       "w500": {
+        "inkAlphaSum": 237898,
+        "width": 176.8
+       },
+       "w600": {
+        "inkAlphaSum": 346903,
+        "width": 176.8
+       },
+       "w700": {
+        "inkAlphaSum": 346903,
+        "width": 176.8
+       }
+      },
+      "HelveticaNeueArabic-Bold": {
+       "w400": {
+        "inkAlphaSum": 357571,
+        "width": 177.5
+       },
+       "w500": {
+        "inkAlphaSum": 357571,
+        "width": 177.5
+       },
+       "w600": {
+        "inkAlphaSum": 357571,
+        "width": 177.5
+       },
+       "w700": {
+        "inkAlphaSum": 357571,
+        "width": 177.5
+       }
+      }
+     }
+    },
+    "combos": [
+     {
+      "combo": "HelveticaNeueArabic-Roman | 14px | 400",
+      "textNodes": 13
+     },
+     {
+      "combo": "HelveticaNeueArabic-Bold | 16px | 400",
+      "textNodes": 12
+     },
+     {
+      "combo": "HelveticaNeueArabic-Roman | 14px | 700",
+      "textNodes": 9
+     },
+     {
+      "combo": "HelveticaNeueArabic-Bold | 11px | 500",
+      "textNodes": 4
+     },
+     {
+      "combo": "HelveticaNeueArabic-Bold | 22px | 400",
+      "textNodes": 2
+     },
+     {
+      "combo": "HelveticaNeueArabic-Bold | 36px | 400",
+      "textNodes": 1
+     },
+     {
+      "combo": "HelveticaNeueArabic-Bold | 11px | 400",
+      "textNodes": 1
+     }
+    ],
+    "distinctCombos": 7,
+    "families": [
+     [
+      "HelveticaNeueArabic-Roman",
+      22
+     ],
+     [
+      "HelveticaNeueArabic-Bold",
+      20
+     ]
+    ],
+    "sizesByTextNodes": [
+     {
+      "px": 36,
+      "textNodes": 1,
+      "chars": 5
+     },
+     {
+      "px": 22,
+      "textNodes": 2,
+      "chars": 25
+     },
+     {
+      "px": 16,
+      "textNodes": 12,
+      "chars": 247
+     },
+     {
+      "px": 14,
+      "textNodes": 22,
+      "chars": 431
+     },
+     {
+      "px": 11,
+      "textNodes": 5,
+      "chars": 34
+     }
+    ],
+    "largestPx": 36,
+    "largestText": [
+     "1,240"
+    ],
+    "bodyPxByChars": 14,
+    "bodyPxByNodes": 14,
+    "largestToBody": 2.57,
+    "weights": [
+     [
+      "400",
+      29
+     ],
+     [
+      "700",
+      9
+     ],
+     [
+      "500",
+      4
+     ]
+    ]
+   },
+   "repetition": {
+    "pageWideStyledGroups": [
+     {
+      "n": 6,
+      "sig": "326x160|r=16px|bg=rgb(244,244,242)|p=0 0 0 0",
+      "shadow": null,
+      "border": null,
+      "example": "أضف الاثنين / مثلاً: امريكانو ساخن + بلوبيري مفن / أي مشروب + أي طعام = 50 نقطة",
+      "example2": "كيف تعمل المكافآت؟ / يرجع لك من 2% إلى 6% من كل طلب، ونقاطك ×1.5 حين تدفع من رصي"
+     },
+     {
+      "n": 3,
+      "sig": "140x160|r=0px|bg=rgb(255,255,255)|p=0 0 0 0",
+      "shadow": null,
+      "border": null,
+      "example": "(in) العروض",
+      "example2": "(in) العروض"
+     },
+     {
+      "n": 3,
+      "sig": "140x160|r=0px|bg=rgb(239,239,236)|p=0 0 0 0",
+      "shadow": null,
+      "border": null,
+      "example": "(in) العروض",
+      "example2": "(in) العروض"
+     },
+     {
+      "n": 2,
+      "sig": "105x105|r=0px|bg=rgba(0,0,0,0)|p=0 0 0 0",
+      "shadow": null,
+      "border": null,
+      "example": "(in) العروض",
+      "example2": "(in) العروض"
+     },
+     {
+      "n": 2,
+      "sig": "182x208|r=0px|bg=rgba(0,0,0,0)|p=0 0 0 0",
+      "shadow": null,
+      "border": null,
+      "example": "(in) العروض",
+      "example2": "(in) العروض"
+     }
+    ],
+    "siblingGroupsStyled": [],
+    "siblingGroupsUnstyledTop": [
+     {
+      "n": 6,
+      "sig": "326x160|r=0px|bg=rgba(0,0,0,0)|p=0 0 0 0",
+      "styled": false,
+      "shadow": null,
+      "example": "أضف الاثنين / مثلاً: امريكانو ساخن + بلوبيري مفن / أي مشروب + أي طعام = 50 نقطة",
+      "example2": "كيف تعمل المكافآت؟ / يرجع لك من 2% إلى 6% من كل طلب، ونقاطك ×1.5 حين تدفع من رصي"
+     },
+     {
+      "n": 6,
+      "sig": "24x24|r=0px|bg=rgba(0,0,0,0)|p=0 0 0 0",
+      "styled": false,
+      "shadow": null,
+      "example": "العرض 1 من 6",
+      "example2": "العرض 6 من 6"
+     },
+     {
+      "n": 5,
+      "sig": "78x67|r=0px|bg=rgba(0,0,0,0)|p=0 0 0 0",
+      "styled": false,
+      "shadow": null,
+      "example": "الرئيسية",
+      "example2": "المزيد"
+     },
+     {
+      "n": 2,
+      "sig": "44x44|r=0px|bg=rgba(0,0,0,0)|p=0 0 0 0",
+      "styled": false,
+      "shadow": null,
+      "example": "اجمع نقاطك",
+      "example2": "الإشعارات"
+     },
+     {
+      "n": 2,
+      "sig": "70x160|r=0px|bg=rgba(0,0,0,0)|p=0 0 0 0",
+      "styled": false,
+      "shadow": null,
+      "example": "(in) العروض",
+      "example2": "(in) العروض"
+     }
+    ],
+    "nSiblingGroups": 5,
+    "nStyledSiblingGroups": 0,
+    "distinctRadiiPainted": 9,
+    "radiiPainted": [
+     [
+      "16px",
+      10
+     ],
+     [
+      "999px",
+      9
+     ],
+     [
+      "4px",
+      6
+     ],
+     [
+      "24px",
+      2
+     ],
+     [
+      "12px",
+      1
+     ],
+     [
+      "20px",
+      1
+     ],
+     [
+      "17px",
+      1
+     ],
+     [
+      "3px",
+      1
+     ],
+     [
+      "28px",
+      1
+     ]
+    ],
+    "distinctRadiiAll": 9,
+    "distinctShadows": 1,
+    "shadows": [
+     [
+      "rgba(0, 0, 0, 0.14) 0px 6px 16px 0px",
+      2
+     ]
+    ]
+   },
+   "alignment": {
+    "textBlocks": 42,
+    "textAlignComputed": [
+     [
+      "right",
+      38
+     ],
+     [
+      "center",
+      4
+     ]
+    ],
+    "visual": [
+     [
+      "right",
+      19
+     ],
+     [
+      "other",
+      16
+     ],
+     [
+      "center",
+      5
+     ],
+     [
+      "left",
+      2
+     ]
+    ],
+    "visualCenteredExamples": [
+     "الرئيسية",
+     "اطلب",
+     "الباركود",
+     "المكافآت",
+     "المزيد"
+    ],
+    "textAlignCenterExamples": [
+     "الرئيسية",
+     "اطلب",
+     "المكافآت",
+     "المزيد"
+    ]
+   },
+   "motion": {
+    "cssTransitionElements": 0,
+    "cssTransitionExamples": [],
+    "cssAnimationElements": 0,
+    "cssAnimationExamples": [],
+    "elementsWithNonNoneTransform": 9,
+    "transformExamples": [
+     [
+      "matrix(1, 0, 0, 1, 0, 0)",
+      4
+     ],
+     [
+      "matrix(1.3, 0, 0, 1.3, 0, 0)",
+      3
+     ],
+     [
+      "matrix(1.5, 0, 0, 1.5, 0, 0)",
+      2
+     ]
+    ],
+    "samples": {
+     "earlyAB": {
+      "twoSample": {
+       "added": 20,
+       "removed": 0,
+       "nChanged": 0,
+       "changed": []
+      },
+      "dense": {
+       "nSnaps": 11,
+       "nChanged": 0,
+       "changed": []
+      }
+     },
+     "settledCD": {
+      "twoSample": {
+       "added": 0,
+       "removed": 0,
+       "nChanged": 0,
+       "changed": []
+      },
+      "dense": {
+       "nSnaps": 11,
+       "nChanged": 0,
+       "changed": []
+      }
+     }
+    },
+    "reducedMotionRun": {
+     "earlyAB": {
+      "twoSample": {
+       "added": 19,
+       "removed": 0,
+       "nChanged": 0,
+       "changed": []
+      },
+      "dense": {
+       "nSnaps": 11,
+       "nChanged": 0,
+       "changed": []
+      }
+     },
+     "settledCD": {
+      "twoSample": {
+       "added": 0,
+       "removed": 0,
+       "nChanged": 0,
+       "changed": []
+      },
+      "dense": {
+       "nSnaps": 11,
+       "nChanged": 0,
+       "changed": []
+      }
+     }
+    }
+   },
+   "contrast": {
+    "textElementsChecked": 42,
+    "fails": 0,
+    "failList": [],
+    "placeholders": [],
+    "minRatio": {
+     "ratio": 5.83,
+     "text": "الاسم وتاريخ الميلاد والجنس، وبعدها نناديك باسمك"
+    },
+    "ratioDistribution": [
+     [
+      ">=7",
+      30
+     ],
+     [
+      "4.5-7",
+      12
+     ]
+    ]
+   },
+   "touch": {
+    "interactive": 27,
+    "under44": 7,
+    "under24": 0,
+    "list": [
+     {
+      "label": "شارع مكة",
+      "w": 216,
+      "h": 40,
+      "tag": "button",
+      "role": "button",
+      "tabindex": "0",
+      "visible": true,
+      "under24": false,
+      "sel": "div:nth-child(1) > div:nth-child(1) > div:nth-child(1) > button[role=button]:nth-child(2)"
+     },
+     {
+      "label": "العرض 1 من 6",
+      "w": 24,
+      "h": 24,
+      "tag": "div",
+      "role": "tab",
+      "tabindex": "0",
+      "visible": true,
+      "under24": false,
+      "sel": "div[role=tab][aria-label=\"العرض 1 من 6\"]:nth-child(1)"
+     },
+     {
+      "label": "العرض 2 من 6",
+      "w": 24,
+      "h": 24,
+      "tag": "div",
+      "role": "tab",
+      "tabindex": "0",
+      "visible": true,
+      "under24": false,
+      "sel": "div[role=tab][aria-label=\"العرض 2 من 6\"]:nth-child(2)"
+     },
+     {
+      "label": "العرض 3 من 6",
+      "w": 24,
+      "h": 24,
+      "tag": "div",
+      "role": "tab",
+      "tabindex": "0",
+      "visible": true,
+      "under24": false,
+      "sel": "div[role=tab][aria-label=\"العرض 3 من 6\"]:nth-child(3)"
+     },
+     {
+      "label": "العرض 4 من 6",
+      "w": 24,
+      "h": 24,
+      "tag": "div",
+      "role": "tab",
+      "tabindex": "0",
+      "visible": true,
+      "under24": false,
+      "sel": "div[role=tab][aria-label=\"العرض 4 من 6\"]:nth-child(4)"
+     },
+     {
+      "label": "العرض 5 من 6",
+      "w": 24,
+      "h": 24,
+      "tag": "div",
+      "role": "tab",
+      "tabindex": "0",
+      "visible": true,
+      "under24": false,
+      "sel": "div[role=tab][aria-label=\"العرض 5 من 6\"]:nth-child(5)"
+     },
+     {
+      "label": "العرض 6 من 6",
+      "w": 24,
+      "h": 24,
+      "tag": "div",
+      "role": "tab",
+      "tabindex": "0",
+      "visible": true,
+      "under24": false,
+      "sel": "div[role=tab][aria-label=\"العرض 6 من 6\"]:nth-child(6)"
+     }
+    ]
+   },
+   "copy": {
+    "textBlocks": 42,
+    "distinctStrings": 41,
+    "repeated": [
+     {
+      "s": "من الأكثر طلباً",
+      "n": 2
+     }
+    ],
+    "placeholders": []
+   },
+   "tells": {
+    "a_iconTitleSubtitleTileGroups": [],
+    "b_bgWhiteOrGreyShare": {
+     "painted": 43,
+     "whiteOrGrey": 43,
+     "sharePct": 100,
+     "breakdown": {
+      "nearWhiteL90": 27,
+      "nearBlack": 11,
+      "grey": 5,
+      "lowSatTint": 0,
+      "chromatic": 0
+     },
+     "distinctBgColors": [
+      [
+       "#ffffff",
+       12
+      ],
+      [
+       "#111111",
+       11
+      ],
+      [
+       "#f4f4f2",
+       9
+      ],
+      [
+       "#efefec",
+       6
+      ],
+      [
+       "#8a8a85",
+       5
+      ]
+     ]
+    },
+    "c_anyAccentColour": false,
+    "accentColours": [],
+    "d_distinctRadii": 9,
+    "e_cardStyleMax": [
+     "r=16px | shadow=none | bg=rgb(244,244,242)",
+     8
+    ],
+    "e_cardStyleOver5": true,
+    "cardStyles": [
+     [
+      "r=16px | shadow=none | bg=rgb(244,244,242)",
+      8
+     ],
+     [
+      "r=16px | shadow=none | bg=rgb(239,239,236)",
+      2
+     ],
+     [
+      "r=999px | shadow=none | bg=rgb(244,244,242)",
+      1
+     ],
+     [
+      "r=24px | shadow=rgba(0, 0, 0, 0.14) 0px 6px 16px 0px | bg=rgba(0,0,0,0)",
+      1
+     ],
+     [
+      "r=24px | shadow=none | bg=rgb(17,17,17)",
+      1
+     ],
+     [
+      "r=12px | shadow=none | bg=rgb(255,255,255)",
+      1
+     ]
+    ]
+   }
+  },
+  "order-light": {
+   "name": "order-light",
+   "route": "/order",
+   "scheme": "light",
+   "sheet": false,
+   "mainScroller": {
+    "sh": 55774,
+    "ch": 647,
+    "sw": 390
+   },
+   "scrollerCount": 1,
+   "fonts": [
+    "HelveticaNeueArabic-Light|normal|normal|unloaded",
+    "HelveticaNeueArabic-Roman|normal|normal|loaded",
+    "HelveticaNeueArabic-Bold|normal|normal|loaded"
+   ],
+   "htmlBg": "rgba(0, 0, 0, 0)",
+   "colorScheme": "normal",
+   "blockedRequests": [
+    "https://almond-gules.vercel.app/api/menu/app"
+   ],
+   "consoleErrors": [
+    "Failed to load resource: net::ERR_FAILED"
+   ],
+   "recordsMeasured": 3945,
+   "scrollSteps": 94,
+   "palette": {
+    "distinct": 6,
+    "chromaticCount": 0,
+    "neutralCount": 6,
+    "list": [
+     {
+      "color": "rgb(17,17,17)",
+      "hex": "#111111",
+      "total": 808,
+      "roles": {
+       "text": 799,
+       "bg": 5,
+       "border": 1,
+       "svgStroke": 3
+      },
+      "examples": [
+       "text: اطلب",
+       "text: المنيو",
+       "bg: (in) المنيو",
+       "text: الأكثر طلباً"
+      ],
+      "hsl": [
+       0,
+       0,
+       6.7
+      ],
+      "chromatic": false
+     },
+     {
+      "color": "rgb(255,255,255)",
+      "hex": "#ffffff",
+      "total": 783,
+      "roles": {
+       "bg": 769,
+       "svgStroke": 11,
+       "text": 2,
+       "border": 1
+      },
+      "examples": [
+       "bg: اطلب المنيو المميّز السابقة المفضّلة الأ",
+       "bg: div:nth-child(2) > div:nth-child(1) > bu",
+       "bg: مشروبات موسمية قهوة مختصة ساخنة قهوة مخت",
+       "svgStroke: svg in مشروبات موسمية"
+      ],
+      "hsl": [
+       0,
+       0,
+       100
+      ],
+      "chromatic": false
+     },
+     {
+      "color": "rgb(92,92,88)",
+      "hex": "#5c5c58",
+      "total": 238,
+      "roles": {
+       "text": 39,
+       "svgStroke": 198,
+       "placeholder": 1
+      },
+      "examples": [
+       "text: المميّز",
+       "text: السابقة",
+       "text: المفضّلة",
+       "svgStroke: div:nth-child(1) > div:nth-child(1) > sv"
+      ],
+      "hsl": [
+       60,
+       2.2,
+       35.3
+      ],
+      "chromatic": false
+     },
+     {
+      "color": "rgb(244,244,242)",
+      "hex": "#f4f4f2",
+      "total": 32,
+      "roles": {
+       "bg": 32
+      },
+      "examples": [
+       "bg: div:nth-child(1) > div:nth-child(1) > di",
+       "bg: قهوة مختصة ساخنة",
+       "bg: قهوة مختصة مثلجة",
+       "bg: شاي مثلج وعصائر طازجة"
+      ],
+      "hsl": [
+       60,
+       8.3,
+       95.3
+      ],
+      "chromatic": false
+     },
+     {
+      "color": "rgb(138,138,133)",
+      "hex": "#8a8a85",
+      "total": 32,
+      "roles": {
+       "border": 32
+      },
+      "examples": [
+       "border: div:nth-child(1) > div:nth-child(1) > di",
+       "border: قهوة مختصة ساخنة",
+       "border: قهوة مختصة مثلجة",
+       "border: شاي مثلج وعصائر طازجة"
+      ],
+      "hsl": [
+       60,
+       2.1,
+       53.1
+      ],
+      "chromatic": false
+     },
+     {
+      "color": "rgb(239,239,236)",
+      "hex": "#efefec",
+      "total": 4,
+      "roles": {
+       "border": 3,
+       "bg": 1
+      },
+      "examples": [
+       "border: اطلب",
+       "border: مشروبات موسمية قهوة مختصة ساخنة قهوة مخت",
+       "bg: div:nth-child(1) > div:nth-child(4) > bu",
+       "border: الرئيسية اطلب الباركود المكافآت المزيد"
+      ],
+      "hsl": [
+       60,
+       8.6,
+       93.1
+      ],
+      "chromatic": false
+     }
+    ]
+   },
+   "imagery": {
+    "firstViewport": {
+     "region": [
+      0,
+      0,
+      390,
+      750
+     ],
+     "hitTestPhotoCoverPct": 22.4,
+     "hitTestImagesSeen": 9,
+     "imgVisible": 9,
+     "boxCoverPct": 23.9,
+     "paintedCoverPct": 16.3,
+     "list": [
+      {
+       "src": "p-10357.webp",
+       "box": [
+        64,
+        64
+       ],
+       "visible": [
+        306,
+        221,
+        370,
+        285
+       ],
+       "bgSize": "cover",
+       "natural": [
+        512,
+        512
+       ]
+      },
+      {
+       "src": "p-10352.webp",
+       "box": [
+        64,
+        64
+       ],
+       "visible": [
+        222,
+        221,
+        286,
+        285
+       ],
+       "bgSize": "cover",
+       "natural": [
+        512,
+        512
+       ]
+      },
+      {
+       "src": "p-10353.webp",
+       "box": [
+        64,
+        64
+       ],
+       "visible": [
+        138,
+        221,
+        202,
+        285
+       ],
+       "bgSize": "cover",
+       "natural": [
+        512,
+        512
+       ]
+      },
+      {
+       "src": "p-10344.webp",
+       "box": [
+        64,
+        64
+       ],
+       "visible": [
+        54,
+        221,
+        118,
+        285
+       ],
+       "bgSize": "cover",
+       "natural": [
+        512,
+        512
+       ]
+      },
+      {
+       "src": "p-10334.webp",
+       "box": [
+        64,
+        64
+       ],
+       "visible": [
+        16,
+        221,
+        34,
+        285
+       ],
+       "bgSize": "cover",
+       "natural": [
+        512,
+        512
+       ]
+      },
+      {
+       "src": "p-12188.webp",
+       "box": [
+        149,
+        149
+       ],
+       "visible": [
+        213,
+        452,
+        362,
+        601
+       ],
+       "bgSize": "contain",
+       "natural": [
+        512,
+        341
+       ]
+      },
+      {
+       "src": "p-12182.webp",
+       "box": [
+        149,
+        149
+       ],
+       "visible": [
+        28,
+        452,
+        177,
+        601
+       ],
+       "bgSize": "contain",
+       "natural": [
+        512,
+        341
+       ]
+      },
+      {
+       "src": "p-12185.webp",
+       "box": [
+        149,
+        149
+       ],
+       "visible": [
+        213,
+        723,
+        362,
+        750
+       ],
+       "bgSize": "contain",
+       "natural": [
+        512,
+        341
+       ]
+      },
+      {
+       "src": "p-11927.webp",
+       "box": [
+        149,
+        149
+       ],
+       "visible": [
+        28,
+        723,
+        177,
+        750
+       ],
+       "bgSize": "contain",
+       "natural": [
+        512,
+        341
+       ]
+      }
+     ]
+    },
+    "fullPage": {
+     "fullArea": 21792030,
+     "imgInContent": 320,
+     "imgWithVisibleArea": 313,
+     "boxCoverPct": 31.5,
+     "paintedCoverPct": 27.9,
+     "distinctSrc": 308,
+     "boxSizes": [
+      [
+       "149x149",
+       308
+      ],
+      [
+       "64x64",
+       12
+      ]
+     ]
+    },
+    "cssBackgroundPhotosWithoutImg": 0,
+    "gradients": [],
+    "pixel": {
+     "outsidePhotos": {
+      "px": 890064,
+      "chromaticPct": 0,
+      "nearWhitePct": 92,
+      "nearBlackPct": 5.4,
+      "greyPct": 2.6,
+      "meanLightnessPct": 93
+     },
+     "insidePhotos": {
+      "px": 279936,
+      "chromaticPct": 6.4,
+      "nearWhitePct": 88.8,
+      "nearBlackPct": 1.7,
+      "greyPct": 3.2,
+      "meanLightnessPct": 93.9
+     },
+     "photoSharePct": 23.9,
+     "topChromaticOutsidePhotos": []
+    }
+   },
+   "iconography": {
+    "svgTotal": 108,
+    "icons": 108,
+    "iconsInChrome": 8,
+    "iconsInContent": 100,
+    "iconsFirstViewport": 6,
+    "largeSvgGraphics": [],
+    "iconSizes": [
+     [
+      "44x44",
+      67
+     ],
+     [
+      "16x16",
+      33
+     ],
+     [
+      "24x24",
+      4
+     ],
+     [
+      "18x18",
+      2
+     ],
+     [
+      "20x20",
+      1
+     ],
+     [
+      "26x26",
+      1
+     ]
+    ],
+    "iconsToPhotos": "108:320 (0.34)",
+    "iconsToPhotosFirstViewport": "6:9",
+    "iconContexts": [
+     "مشروبات موسمية",
+     "قهوة مختصة ساخنة",
+     "قهوة مختصة مثلجة",
+     "شاي مثلج وعصائر طازجة",
+     "فرابيه قهوة",
+     "فرابيه كريمة",
+     "موهيتو",
+     "شاي",
+     "شوكولاتة ساخنة",
+     "بايغل",
+     "ساندويشات",
+     "كرواسون",
+     "سلطات",
+     "مناقيش",
+     "بيتزا",
+     "خبز الكيتو",
+     "باستا",
+     "ساوردو",
+     "قطع كيك وحلويات",
+     "كيكات كاملة",
+     "كوكيز ومافن",
+     "حلويات خالية من الجلوتين",
+     "علب حلويات",
+     "كاسات جرانولا",
+     "ألواح",
+     "ميني بايتس",
+     "كيك كامل خالٍ من الجلوتين",
+     "بينتو كيك",
+     "معمول",
+     "أكياس قهوة",
+     "أدوات القهوة المختصة",
+     "طلب جانبي",
+     "استلام من شارع مكة",
+     "استلام من شارع مكة",
+     "عرض السلة",
+     "الرئيسية",
+     "اطلب",
+     "الباركود",
+     "المكافآت",
+     "المزيد",
+     "Iced Americano Cold Foam من 3.000 د.أ",
+     "Iced Cappuccino Cold Foam من 3.750 د.أ",
+     "شاي احمد 0.500 د.أ",
+     "ساوردو مع أومليت و3 أنواع جبن 4.900 د.أ",
+     "ساوردو مع أفوكادو وشرائح بيض 4.500 د.أ",
+     "ساوردو مع جبنة الشيدر 2.500 د.أ",
+     "Cream Cheese Sourdough 2.500 د.أ",
+     "Egg Cheese Sourdough 2.500 د.أ",
+     "Omelette Cheese Sourdough 2.900 د.أ",
+     "Salmon Cheese Sourdough 3.900 د.أ",
+     "Fruit Salad Cup 2.000 د.أ",
+     "ميني الفريدو ساندوش 1.500 د.أ",
+     "ميني الموند كرواسان 1.250 د.أ",
+     "ميني بلوبيري تشيز كيك 0.750 د.أ",
+     "ميني بلوبيري مفن 0.500 د.أ",
+     "ميني بلوبيري تارت 0.750 د.أ",
+     "ميني بلوبيري مفن كاسة 1.500 د.أ",
+     "ميني براونيز 0.950 د.أ",
+     "ميني بافلو ساندويش 1.500 د.أ"
+    ]
+   },
+   "typography": {
+    "syntheticBold": {
+     "textNodes": 0,
+     "texts": [],
+     "inkTest": {
+      "HelveticaNeueArabic-Roman": {
+       "w400": {
+        "inkAlphaSum": 237898,
+        "width": 176.8
+       },
+       "w500": {
+        "inkAlphaSum": 237898,
+        "width": 176.8
+       },
+       "w600": {
+        "inkAlphaSum": 346903,
+        "width": 176.8
+       },
+       "w700": {
+        "inkAlphaSum": 346903,
+        "width": 176.8
+       }
+      },
+      "HelveticaNeueArabic-Bold": {
+       "w400": {
+        "inkAlphaSum": 357571,
+        "width": 177.5
+       },
+       "w500": {
+        "inkAlphaSum": 357571,
+        "width": 177.5
+       },
+       "w600": {
+        "inkAlphaSum": 357571,
+        "width": 177.5
+       },
+       "w700": {
+        "inkAlphaSum": 357571,
+        "width": 177.5
+       }
+      }
+     }
+    },
+    "combos": [
+     {
+      "combo": "HelveticaNeueArabic-Bold | 16px | 400",
+      "textNodes": 788
+     },
+     {
+      "combo": "HelveticaNeueArabic-Bold | 18px | 400",
+      "textNodes": 33
+     },
+     {
+      "combo": "HelveticaNeueArabic-Roman | 14px | 400",
+      "textNodes": 13
+     },
+     {
+      "combo": "HelveticaNeueArabic-Bold | 11px | 500",
+      "textNodes": 4
+     },
+     {
+      "combo": "HelveticaNeueArabic-Bold | 28px | 400",
+      "textNodes": 1
+     },
+     {
+      "combo": "HelveticaNeueArabic-Bold | 11px | 400",
+      "textNodes": 1
+     }
+    ],
+    "distinctCombos": 6,
+    "families": [
+     [
+      "HelveticaNeueArabic-Bold",
+      827
+     ],
+     [
+      "HelveticaNeueArabic-Roman",
+      13
+     ]
+    ],
+    "sizesByTextNodes": [
+     {
+      "px": 28,
+      "textNodes": 1,
+      "chars": 4
+     },
+     {
+      "px": 18,
+      "textNodes": 33,
+      "chars": 360
+     },
+     {
+      "px": 16,
+      "textNodes": 788,
+      "chars": 11385
+     },
+     {
+      "px": 14,
+      "textNodes": 13,
+      "chars": 166
+     },
+     {
+      "px": 11,
+      "textNodes": 5,
+      "chars": 34
+     }
+    ],
+    "largestPx": 28,
+    "largestText": [
+     "اطلب"
+    ],
+    "bodyPxByChars": 16,
+    "bodyPxByNodes": 16,
+    "largestToBody": 1.75,
+    "weights": [
+     [
+      "400",
+      836
+     ],
+     [
+      "500",
+      4
+     ]
+    ]
+   },
+   "repetition": {
+    "pageWideStyledGroups": [
+     {
+      "n": 375,
+      "sig": "173x259|r=16px|bg=rgb(255,255,255)|p=12 12 12 12",
+      "shadow": "rgba(0, 0, 0, 0.08) 0px 2px 8px 0px",
+      "border": null,
+      "example": "من 3.950 د.أ / بانوفي فرابيه",
+      "example2": "0.750 د.أ / مياه 500 مل"
+     },
+     {
+      "n": 375,
+      "sig": "149x149|r=12px|bg=rgb(255,255,255)|p=0 0 0 0",
+      "shadow": null,
+      "border": null,
+      "example": "",
+      "example2": ""
+     },
+     {
+      "n": 308,
+      "sig": "149x149|r=0px|bg=rgba(0,0,0,0)|p=0 0 0 0",
+      "shadow": null,
+      "border": null,
+      "example": "",
+      "example2": ""
+     },
+     {
+      "n": 12,
+      "sig": "64x64|r=32px|bg=rgb(255,255,255)|p=0 0 0 0",
+      "shadow": "rgba(0, 0, 0, 0.08) 0px 2px 8px 0px",
+      "border": null,
+      "example": "",
+      "example2": ""
+     },
+     {
+      "n": 12,
+      "sig": "64x64|r=0px|bg=rgba(0,0,0,0)|p=0 0 0 0",
+      "shadow": null,
+      "border": null,
+      "example": "",
+      "example2": ""
+     },
+     {
+      "n": 2,
+      "sig": "129x44|r=999px|bg=rgb(244,244,242)|p=8 16 8 16",
+      "shadow": null,
+      "border": {
+       "side": "Top",
+       "w": 1,
+       "c": "rgb(138,138,133)"
+      },
+      "example": "فرابيه كريمة",
+      "example2": "ساندويشات"
+     },
+     {
+      "n": 2,
+      "sig": "99x44|r=999px|bg=rgb(244,244,242)|p=8 16 8 16",
+      "shadow": null,
+      "border": {
+       "side": "Top",
+       "w": 1,
+       "c": "rgb(138,138,133)"
+      },
+      "example": "ساوردو",
+      "example2": "معمول"
+     },
+     {
+      "n": 2,
+      "sig": "131x44|r=999px|bg=rgb(244,244,242)|p=8 16 8 16",
+      "shadow": null,
+      "border": {
+       "side": "Top",
+       "w": 1,
+       "c": "rgb(138,138,133)"
+      },
+      "example": "كيكات كاملة",
+      "example2": "علب حلويات"
+     }
+    ],
+    "siblingGroupsStyled": [
+     {
+      "n": 2,
+      "sig": "129x44|r=999px|bg=rgb(244,244,242)|p=8 16 8 16",
+      "styled": true,
+      "shadow": null,
+      "example": "فرابيه كريمة",
+      "example2": "ساندويشات"
+     },
+     {
+      "n": 2,
+      "sig": "99x44|r=999px|bg=rgb(244,244,242)|p=8 16 8 16",
+      "styled": true,
+      "shadow": null,
+      "example": "ساوردو",
+      "example2": "معمول"
+     },
+     {
+      "n": 2,
+      "sig": "131x44|r=999px|bg=rgb(244,244,242)|p=8 16 8 16",
+      "styled": true,
+      "shadow": null,
+      "example": "كيكات كاملة",
+      "example2": "علب حلويات"
+     }
+    ],
+    "siblingGroupsUnstyledTop": [
+     {
+      "n": 197,
+      "sig": "358x271|r=0px|bg=rgba(0,0,0,0)|p=0 0 0 0",
+      "styled": false,
+      "shadow": null,
+      "example": "من 3.500 د.أ / ماكاديميا لاتيه ساخن / من 3.950 د.أ",
+      "example2": "0.750 د.أ / مياه 500 مل / 1.000 د.أ"
+     },
+     {
+      "n": 32,
+      "sig": "358x62|r=0px|bg=rgba(0,0,0,0)|p=0 0 0 0",
+      "styled": false,
+      "shadow": null,
+      "example": "مشروبات موسمية",
+      "example2": "طلب جانبي"
+     },
+     {
+      "n": 12,
+      "sig": "72x88|r=0px|bg=rgba(0,0,0,0)|p=0 0 0 0",
+      "styled": false,
+      "shadow": null,
+      "example": "ايس سبانيش لاتيه",
+      "example2": "فلات وايت ساخن"
+     },
+     {
+      "n": 5,
+      "sig": "78x67|r=0px|bg=rgba(0,0,0,0)|p=0 0 0 0",
+      "styled": false,
+      "shadow": null,
+      "example": "الرئيسية",
+      "example2": "المزيد"
+     },
+     {
+      "n": 2,
+      "sig": "173x259|r=0px|bg=rgba(0,0,0,0)|p=0 0 0 0",
+      "styled": false,
+      "shadow": null,
+      "example": "من 3.950 د.أ / بانوفي فرابيه",
+      "example2": "من 3.500 د.أ / ماكاديميا لاتيه ساخن"
+     }
+    ],
+    "nSiblingGroups": 205,
+    "nStyledSiblingGroups": 3,
+    "distinctRadiiPainted": 8,
+    "radiiPainted": [
+     [
+      "16px",
+      376
+     ],
+     [
+      "12px",
+      375
+     ],
+     [
+      "999px",
+      34
+     ],
+     [
+      "32px",
+      12
+     ],
+     [
+      "2px",
+      1
+     ],
+     [
+      "17px",
+      1
+     ],
+     [
+      "3px",
+      1
+     ],
+     [
+      "28px",
+      1
+     ]
+    ],
+    "distinctRadiiAll": 8,
+    "distinctShadows": 2,
+    "shadows": [
+     [
+      "rgba(0, 0, 0, 0.08) 0px 2px 8px 0px",
+      387
+     ],
+     [
+      "rgba(0, 0, 0, 0.14) 0px 6px 16px 0px",
+      2
+     ]
+    ]
+   },
+   "alignment": {
+    "textBlocks": 840,
+    "textAlignComputed": [
+     [
+      "right",
+      824
+     ],
+     [
+      "center",
+      16
+     ]
+    ],
+    "visual": [
+     [
+      "right",
+      693
+     ],
+     [
+      "other",
+      97
+     ],
+     [
+      "left",
+      34
+     ],
+     [
+      "center",
+      16
+     ]
+    ],
+    "visualCenteredExamples": [
+     "لاتيه مثلج",
+     "كيك بوب",
+     "الرئيسية",
+     "اطلب",
+     "الباركود",
+     "المكافآت",
+     "المزيد",
+     "بايغل مع أفوكادو وجبنة نابلسية",
+     "ساندويش فوكاشيا ساوردو بالحلّو",
+     "قطعة كيكة الليمون مع بذور الخش",
+     "بانا كوتا خالية من السكر وخالي",
+     "ميني بلوبيري تشيز كيك",
+     "قالب تشيزكيك سان سيباستيان جلو",
+     "قالب شوكولاتة بالبندق كيتو",
+     "نصف كيلو معمول جوز خالي جلوتين",
+     "V60 Filters / Size 02"
+    ],
+    "textAlignCenterExamples": [
+     "ايس سبانيش لاتيه",
+     "لاتيه مثلج",
+     "امريكانو مثلج",
+     "قهوة مفلترة مختصة ساخن",
+     "امريكانو ساخن",
+     "لاتيه ساخن",
+     "اسبريسو فرابيه",
+     "كيك بوب",
+     "TURKISH COFFEE",
+     "كابتشينو ساخن",
+     "عصير برتقال",
+     "فلات وايت ساخن",
+     "الرئيسية",
+     "اطلب",
+     "المكافآت",
+     "المزيد"
+    ]
+   },
+   "motion": {
+    "cssTransitionElements": 0,
+    "cssTransitionExamples": [],
+    "cssAnimationElements": 0,
+    "cssAnimationExamples": [],
+    "elementsWithNonNoneTransform": 7,
+    "transformExamples": [
+     [
+      "matrix(1, 0, 0, 1, 0, 0)",
+      7
+     ]
+    ],
+    "samples": {
+     "earlyAB": {
+      "twoSample": {
+       "added": 650,
+       "removed": 0,
+       "nChanged": 0,
+       "changed": []
+      },
+      "dense": {
+       "nSnaps": 11,
+       "nChanged": 3,
+       "changed": [
+        {
+         "id": 346,
+         "t": [
+          "matrix(1, 0, 0, 1, 0, 8)",
+          "matrix(1, 0, 0, 1, 0, 4.3076)",
+          "matrix(1, 0, 0, 1, 0, 0.0115757)",
+          "matrix(1, 0, 0, 1, 0, 0)"
+         ],
+         "o": [
+          "0",
+          "0.46155",
+          "0.998044",
+          "1"
+         ],
+         "sl": [
+          0
+         ],
+         "samples": 10,
+         "desc": "بانوفي فرابيه من 3.950 د.أ ماكاديميا لاتيه ساخن من",
+         "sel": "div:nth-child(3) > div:nth-child(1) > div:nth-child(4) > div:nth-child(1)",
+         "tag": "div",
+         "rect": [
+          16,
+          440,
+          358,
+          271
+         ],
+         "inlineStyle": "opacity: 1; transform: translateY(0px);"
+        },
+        {
+         "id": 363,
+         "t": [
+          "matrix(1, 0, 0, 1, 0, 8)",
+          "matrix(1, 0, 0, 1, 0, 5.49428)",
+          "matrix(1, 0, 0, 1, 0, 0.347271)",
+          "matrix(1, 0, 0, 1, 0, 0)"
+         ],
+         "o": [
+          "0",
+          "0.313214",
+          "0.956591",
+          "1"
+         ],
+         "sl": [
+          0
+         ],
+         "samples": 10,
+         "desc": "بمكن باي لاتيه ساخن من 3.500 د.أ صيف لاتيه الساخن ",
+         "sel": "div:nth-child(3) > div:nth-child(1) > div:nth-child(5) > div:nth-child(1)",
+         "tag": "div",
+         "rect": [
+          16,
+          711,
+          358,
+          271
+         ],
+         "inlineStyle": "opacity: 1; transform: translateY(0px);"
+        },
+        {
+         "id": 380,
+         "t": [
+          "matrix(1, 0, 0, 1, 0, 8)",
+          "matrix(1, 0, 0, 1, 0, 6.44073)",
+          "matrix(1, 0, 0, 1, 0, 0.961061)",
+          "matrix(1, 0, 0, 1, 0, 0)"
+         ],
+         "o": [
+          "0",
+          "0.194909",
+          "0.879867",
+          "1"
+         ],
+         "sl": [
+          0
+         ],
+         "samples": 10,
+         "desc": "ماتشا جوز الهند المثلجة من 4.350 د.أ ماكاديميا لات",
+         "sel": "div:nth-child(3) > div:nth-child(1) > div:nth-child(6) > div:nth-child(1)",
+         "tag": "div",
+         "rect": [
+          16,
+          982,
+          358,
+          271
+         ],
+         "inlineStyle": "opacity: 1; transform: translateY(0px);"
+        }
+       ]
+      }
+     },
+     "settledCD": {
+      "twoSample": {
+       "added": 0,
+       "removed": 0,
+       "nChanged": 0,
+       "changed": []
+      },
+      "dense": {
+       "nSnaps": 11,
+       "nChanged": 0,
+       "changed": []
+      }
+     }
+    },
+    "reducedMotionRun": {
+     "earlyAB": {
+      "twoSample": {
+       "added": 649,
+       "removed": 0,
+       "nChanged": 0,
+       "changed": []
+      },
+      "dense": {
+       "nSnaps": 11,
+       "nChanged": 0,
+       "changed": []
+      }
+     },
+     "settledCD": {
+      "twoSample": {
+       "added": 0,
+       "removed": 0,
+       "nChanged": 0,
+       "changed": []
+      },
+      "dense": {
+       "nSnaps": 11,
+       "nChanged": 0,
+       "changed": []
+      }
+     }
+    }
+   },
+   "contrast": {
+    "textElementsChecked": 840,
+    "fails": 0,
+    "failList": [],
+    "placeholders": [
+     {
+      "text": "ابحث عن مشروب أو طبق",
+      "color": "rgb(92,92,88)",
+      "bg": "rgb(244,244,242)",
+      "ratio": 6.1,
+      "fs": 16,
+      "value": "",
+      "need": 4.5,
+      "fail": false
+     }
+    ],
+    "minRatio": {
+     "ratio": 6.1,
+     "text": "قهوة مختصة ساخنة"
+    },
+    "ratioDistribution": [
+     [
+      ">=7",
+      801
+     ],
+     [
+      "4.5-7",
+      39
+     ]
+    ]
+   },
+   "touch": {
+    "interactive": 431,
+    "under44": 3,
+    "under24": 0,
+    "list": [
+     {
+      "label": "المنيو",
+      "w": 37.4,
+      "h": 44,
+      "tag": "div",
+      "role": "tab",
+      "tabindex": "0",
+      "visible": true,
+      "under24": false,
+      "sel": "div[role=tab][aria-label=\"المنيو\"]:nth-child(1)"
+     },
+     {
+      "label": "المميّز",
+      "w": 39.1,
+      "h": 44,
+      "tag": "div",
+      "role": "tab",
+      "tabindex": "0",
+      "visible": true,
+      "under24": false,
+      "sel": "div[role=tab][aria-label=\"المميّز\"]:nth-child(2)"
+     },
+     {
+      "label": "عرض السلة",
+      "w": 94.7,
+      "h": 40,
+      "tag": "button",
+      "role": "button",
+      "tabindex": "0",
+      "visible": true,
+      "under24": false,
+      "sel": "button[role=button][aria-label=\"عرض السلة\"]:nth-child(2)"
+     }
+    ]
+   },
+   "copy": {
+    "textBlocks": 840,
+    "distinctStrings": 503,
+    "repeated": [
+     {
+      "s": "من 3.950 د.أ",
+      "n": 27
+     },
+     {
+      "s": "3.900 د.أ",
+      "n": 26
+     },
+     {
+      "s": "2.900 د.أ",
+      "n": 24
+     },
+     {
+      "s": "2.500 د.أ",
+      "n": 22
+     },
+     {
+      "s": "1.900 د.أ",
+      "n": 19
+     },
+     {
+      "s": "4.500 د.أ",
+      "n": 19
+     },
+     {
+      "s": "0.750 د.أ",
+      "n": 18
+     },
+     {
+      "s": "3.500 د.أ",
+      "n": 17
+     },
+     {
+      "s": "4.900 د.أ",
+      "n": 14
+     },
+     {
+      "s": "1.500 د.أ",
+      "n": 14
+     },
+     {
+      "s": "من 16.000 د.أ",
+      "n": 9
+     },
+     {
+      "s": "من 3.750 د.أ",
+      "n": 8
+     },
+     {
+      "s": "1.250 د.أ",
+      "n": 8
+     },
+     {
+      "s": "2.000 د.أ",
+      "n": 7
+     },
+     {
+      "s": "30.000 د.أ",
+      "n": 7
+     },
+     {
+      "s": "من 3.500 د.أ",
+      "n": 6
+     },
+     {
+      "s": "من 5.500 د.أ",
+      "n": 6
+     },
+     {
+      "s": "3.000 د.أ",
+      "n": 5
+     },
+     {
+      "s": "3.400 د.أ",
+      "n": 5
+     },
+     {
+      "s": "2.250 د.أ",
+      "n": 5
+     },
+     {
+      "s": "1.000 د.أ",
+      "n": 5
+     },
+     {
+      "s": "0.950 د.أ",
+      "n": 5
+     },
+     {
+      "s": "من 4.350 د.أ",
+      "n": 4
+     },
+     {
+      "s": "0.500 د.أ",
+      "n": 4
+     },
+     {
+      "s": "3.750 د.أ",
+      "n": 4
+     },
+     {
+      "s": "5.500 د.أ",
+      "n": 4
+     },
+     {
+      "s": "8.000 د.أ",
+      "n": 4
+     },
+     {
+      "s": "من 3.200 د.أ",
+      "n": 3
+     },
+     {
+      "s": "من 3.450 د.أ",
+      "n": 3
+     },
+     {
+      "s": "من 2.500 د.أ",
+      "n": 3
+     },
+     {
+      "s": "2.750 د.أ",
+      "n": 3
+     },
+     {
+      "s": "10.000 د.أ",
+      "n": 3
+     },
+     {
+      "s": "16.000 د.أ",
+      "n": 3
+     },
+     {
+      "s": "25.000 د.أ",
+      "n": 3
+     },
+     {
+      "s": "20.000 د.أ",
+      "n": 3
+     },
+     {
+      "s": "7.250 د.أ",
+      "n": 3
+     },
+     {
+      "s": "اطلب",
+      "n": 2
+     },
+     {
+      "s": "ايس سبانيش لاتيه",
+      "n": 2
+     },
+     {
+      "s": "لاتيه مثلج",
+      "n": 2
+     },
+     {
+      "s": "امريكانو مثلج",
+      "n": 2
+     },
+     {
+      "s": "قهوة مفلترة مختصة ساخن",
+      "n": 2
+     },
+     {
+      "s": "امريكانو ساخن",
+      "n": 2
+     },
+     {
+      "s": "لاتيه ساخن",
+      "n": 2
+     },
+     {
+      "s": "اسبريسو فرابيه",
+      "n": 2
+     },
+     {
+      "s": "كيك بوب",
+      "n": 2
+     },
+     {
+      "s": "TURKISH COFFEE",
+      "n": 2
+     },
+     {
+      "s": "كابتشينو ساخن",
+      "n": 2
+     },
+     {
+      "s": "عصير برتقال",
+      "n": 2
+     },
+     {
+      "s": "فلات وايت ساخن",
+      "n": 2
+     },
+     {
+      "s": "مشروبات موسمية",
+      "n": 2
+     },
+     {
+      "s": "قهوة مختصة ساخنة",
+      "n": 2
+     },
+     {
+      "s": "قهوة مختصة مثلجة",
+      "n": 2
+     },
+     {
+      "s": "شاي مثلج وعصائر طازجة",
+      "n": 2
+     },
+     {
+      "s": "فرابيه قهوة",
+      "n": 2
+     },
+     {
+      "s": "فرابيه كريمة",
+      "n": 2
+     },
+     {
+      "s": "موهيتو",
+      "n": 2
+     },
+     {
+      "s": "شاي",
+      "n": 2
+     },
+     {
+      "s": "شوكولاتة ساخنة",
+      "n": 2
+     },
+     {
+      "s": "بايغل",
+      "n": 2
+     },
+     {
+      "s": "ساندويشات",
+      "n": 2
+     },
+     {
+      "s": "كرواسون",
+      "n": 2
+     },
+     {
+      "s": "سلطات",
+      "n": 2
+     },
+     {
+      "s": "مناقيش",
+      "n": 2
+     },
+     {
+      "s": "بيتزا",
+      "n": 2
+     },
+     {
+      "s": "خبز الكيتو",
+      "n": 2
+     },
+     {
+      "s": "باستا",
+      "n": 2
+     },
+     {
+      "s": "ساوردو",
+      "n": 2
+     },
+     {
+      "s": "قطع كيك وحلويات",
+      "n": 2
+     },
+     {
+      "s": "كيكات كاملة",
+      "n": 2
+     },
+     {
+      "s": "كوكيز ومافن",
+      "n": 2
+     },
+     {
+      "s": "حلويات خالية من الجلوتين",
+      "n": 2
+     },
+     {
+      "s": "علب حلويات",
+      "n": 2
+     },
+     {
+      "s": "كاسات جرانولا",
+      "n": 2
+     },
+     {
+      "s": "ألواح",
+      "n": 2
+     },
+     {
+      "s": "ميني بايتس",
+      "n": 2
+     },
+     {
+      "s": "كيك كامل خالٍ من الجلوتين",
+      "n": 2
+     },
+     {
+      "s": "بينتو كيك",
+      "n": 2
+     },
+     {
+      "s": "معمول",
+      "n": 2
+     },
+     {
+      "s": "أكياس قهوة",
+      "n": 2
+     },
+     {
+      "s": "أدوات القهوة المختصة",
+      "n": 2
+     },
+     {
+      "s": "طلب جانبي",
+      "n": 2
+     },
+     {
+      "s": "2.800 د.أ",
+      "n": 2
+     },
+     {
+      "s": "من 3.000 د.أ",
+      "n": 2
+     },
+     {
+      "s": "3.100 د.أ",
+      "n": 2
+     },
+     {
+      "s": "5.900 د.أ",
+      "n": 2
+     },
+     {
+      "s": "7.000 د.أ",
+      "n": 2
+     }
+    ],
+    "placeholders": [
+     "ابحث عن مشروب أو طبق"
+    ]
+   },
+   "tells": {
+    "a_iconTitleSubtitleTileGroups": [],
+    "b_bgWhiteOrGreyShare": {
+     "painted": 807,
+     "whiteOrGrey": 807,
+     "sharePct": 100,
+     "breakdown": {
+      "nearWhiteL90": 802,
+      "nearBlack": 5,
+      "grey": 0,
+      "lowSatTint": 0,
+      "chromatic": 0
+     },
+     "distinctBgColors": [
+      [
+       "#ffffff",
+       769
+      ],
+      [
+       "#f4f4f2",
+       32
+      ],
+      [
+       "#111111",
+       5
+      ],
+      [
+       "#efefec",
+       1
+      ]
+     ]
+    },
+    "c_anyAccentColour": false,
+    "accentColours": [],
+    "d_distinctRadii": 8,
+    "e_cardStyleMax": [
+     "r=16px | shadow=rgba(0, 0, 0, 0.08) 0px 2px 8px 0px | bg=rgb(255,255,255)",
+     375
+    ],
+    "e_cardStyleOver5": true,
+    "cardStyles": [
+     [
+      "r=16px | shadow=rgba(0, 0, 0, 0.08) 0px 2px 8px 0px | bg=rgb(255,255,255)",
+      375
+     ],
+     [
+      "r=12px | shadow=none | bg=rgb(255,255,255)",
+      375
+     ],
+     [
+      "r=999px | shadow=none | bg=rgb(244,244,242)",
+      32
+     ],
+     [
+      "r=32px | shadow=rgba(0, 0, 0, 0.08) 0px 2px 8px 0px | bg=rgb(255,255,255)",
+      12
+     ],
+     [
+      "r=999px | shadow=none | bg=rgb(17,17,17)",
+      2
+     ],
+     [
+      "r=16px | shadow=rgba(0, 0, 0, 0.14) 0px 6px 16px 0px | bg=rgb(255,255,255)",
+      1
+     ]
+    ]
+   }
+  },
+  "sheet-light": {
+   "name": "sheet-light",
+   "route": "/order",
+   "scheme": "light",
+   "sheet": true,
+   "mainScroller": {
+    "sh": 1774,
+    "ch": 610,
+    "sw": 358
+   },
+   "scrollerCount": 1,
+   "fonts": [
+    "HelveticaNeueArabic-Light|normal|normal|unloaded",
+    "HelveticaNeueArabic-Roman|normal|normal|loaded",
+    "HelveticaNeueArabic-Bold|normal|normal|loaded"
+   ],
+   "htmlBg": "rgba(0, 0, 0, 0)",
+   "colorScheme": "normal",
+   "blockedRequests": [
+    "https://almond-gules.vercel.app/api/menu/app"
+   ],
+   "consoleErrors": [
+    "Failed to load resource: net::ERR_FAILED"
+   ],
+   "recordsMeasured": 152,
+   "scrollSteps": 3,
+   "palette": {
+    "distinct": 8,
+    "chromaticCount": 0,
+    "neutralCount": 8,
+    "list": [
+     {
+      "color": "rgb(17,17,17)",
+      "hex": "#111111",
+      "total": 45,
+      "roles": {
+       "svgStroke": 17,
+       "text": 24,
+       "border": 3,
+       "bg": 1
+      },
+      "examples": [
+       "svgStroke: svg in إغلاق",
+       "text: لاتيه مثلج",
+       "text: الحجم",
+       "border: صغير، 3.500 د.أ"
+      ],
+      "hsl": [
+       0,
+       0,
+       6.7
+      ],
+      "chromatic": false
+     },
+     {
+      "color": "rgb(244,244,242)",
+      "hex": "#f4f4f2",
+      "total": 32,
+      "roles": {
+       "bg": 32
+      },
+      "examples": [
+       "bg: وسط، 4.100 د.أ",
+       "bg: حليب كامل الدسم",
+       "bg: حليب خالي الدسم",
+       "bg: حليب شوفان، +0.400 د.أ"
+      ],
+      "hsl": [
+       60,
+       8.3,
+       95.3
+      ],
+      "chromatic": false
+     },
+     {
+      "color": "rgb(138,138,133)",
+      "hex": "#8a8a85",
+      "total": 32,
+      "roles": {
+       "border": 32
+      },
+      "examples": [
+       "border: وسط، 4.100 د.أ",
+       "border: حليب كامل الدسم",
+       "border: حليب خالي الدسم",
+       "border: حليب شوفان، +0.400 د.أ"
+      ],
+      "hsl": [
+       60,
+       2.1,
+       53.1
+      ],
+      "chromatic": false
+     },
+     {
+      "color": "rgb(92,92,88)",
+      "hex": "#5c5c58",
+      "total": 31,
+      "roles": {
+       "bg": 1,
+       "svgStroke": 1,
+       "text": 29
+      },
+      "examples": [
+       "bg: (in) لاتيه مثلج",
+       "svgStroke: svg in أضف للمفضّلة",
+       "text: وسط",
+       "text: 4.100 د.أ"
+      ],
+      "hsl": [
+       60,
+       2.2,
+       35.3
+      ],
+      "chromatic": false
+     },
+     {
+      "color": "rgb(230,230,226)",
+      "hex": "#e6e6e2",
+      "total": 6,
+      "roles": {
+       "bg": 4,
+       "border": 2
+      },
+      "examples": [
+       "bg: صغير، 3.500 د.أ",
+       "bg: كبّر الحجم إلى وسط بزيادة 0.600 د.أ",
+       "bg: حليب بقري طازج",
+       "bg: بدون نكهة"
+      ],
+      "hsl": [
+       60,
+       7.4,
+       89.4
+      ],
+      "chromatic": false
+     },
+     {
+      "color": "rgb(239,239,236)",
+      "hex": "#efefec",
+      "total": 5,
+      "roles": {
+       "bg": 4,
+       "border": 1
+      },
+      "examples": [
+       "bg: إغلاق",
+       "bg: أضف للمفضّلة",
+       "bg: إنقاص الكمية",
+       "bg: زيادة الكمية"
+      ],
+      "hsl": [
+       60,
+       8.6,
+       93.1
+      ],
+      "chromatic": false
+     },
+     {
+      "color": "rgb(255,255,255)",
+      "hex": "#ffffff",
+      "total": 3,
+      "roles": {
+       "bg": 2,
+       "text": 1
+      },
+      "examples": [
+       "bg: لاتيه مثلج الحجم صغير 3.500 د.أ وسط 4.10",
+       "bg: (in) لاتيه مثلج",
+       "text: أضف للسلة · 3.500 د.أ"
+      ],
+      "hsl": [
+       0,
+       0,
+       100
+      ],
+      "chromatic": false
+     },
+     {
+      "color": "rgba(17,17,17,0.45)",
+      "hex": "#111111@0.45",
+      "total": 1,
+      "roles": {
+       "bg": 1
+      },
+      "examples": [
+       "bg: (in) لاتيه مثلج"
+      ],
+      "hsl": [
+       0,
+       0,
+       6.7
+      ],
+      "chromatic": false
+     }
+    ]
+   },
+   "imagery": {
+    "firstViewport": {
+     "region": [
+      0,
+      0,
+      390,
+      844
+     ],
+     "hitTestPhotoCoverPct": 26.2,
+     "hitTestImagesSeen": 1,
+     "imgVisible": 1,
+     "boxCoverPct": 26.1,
+     "paintedCoverPct": 22.7,
+     "list": [
+      {
+       "src": "p-10352.webp",
+       "box": [
+        465.4,
+        312
+       ],
+       "visible": [
+        16,
+        149,
+        374,
+        389
+       ],
+       "bgSize": "contain",
+       "natural": [
+        512,
+        512
+       ]
+      }
+     ]
+    },
+    "fullPage": {
+     "fullArea": 783120,
+     "imgInContent": 1,
+     "imgWithVisibleArea": 1,
+     "boxCoverPct": 11,
+     "paintedCoverPct": 9.6,
+     "distinctSrc": 1,
+     "boxSizes": [
+      [
+       "465x312",
+       1
+      ]
+     ]
+    },
+    "cssBackgroundPhotosWithoutImg": 0,
+    "gradients": [],
+    "pixel": {
+     "outsidePhotos": {
+      "px": 972960,
+      "chromaticPct": 0,
+      "nearWhitePct": 63.3,
+      "nearBlackPct": 8.6,
+      "greyPct": 28.1,
+      "meanLightnessPct": 83.4
+     },
+     "insidePhotos": {
+      "px": 343680,
+      "chromaticPct": 10.1,
+      "nearWhitePct": 81.4,
+      "nearBlackPct": 0,
+      "greyPct": 8.5,
+      "meanLightnessPct": 91.7
+     },
+     "photoSharePct": 26.1,
+     "topChromaticOutsidePhotos": []
+    }
+   },
+   "iconography": {
+    "svgTotal": 7,
+    "icons": 7,
+    "iconsInChrome": 1,
+    "iconsInContent": 6,
+    "iconsFirstViewport": 3,
+    "largeSvgGraphics": [],
+    "iconSizes": [
+     [
+      "18x18",
+      5
+     ],
+     [
+      "20x20",
+      1
+     ],
+     [
+      "22x22",
+      1
+     ]
+    ],
+    "iconsToPhotos": "7:1 (7.00)",
+    "iconsToPhotosFirstViewport": "3:1",
+    "iconContexts": [
+     "إغلاق",
+     "أضف للمفضّلة",
+     "كبّر الحجم إلى وسط بزيادة 0.600 د.أ",
+     "كرواسون مع أومليت و3 أنواع جبن، +4.900 د.أ",
+     "كرواسون باللوز، +2.750 د.أ",
+     "قطعة لينزار التفاح، +2.900 د.أ",
+     "كرواسون مع أفوكادو ولبنة، +4.500 د.أ"
+    ]
+   },
+   "typography": {
+    "syntheticBold": {
+     "textNodes": 0,
+     "texts": [],
+     "inkTest": {
+      "HelveticaNeueArabic-Roman": {
+       "w400": {
+        "inkAlphaSum": 237898,
+        "width": 176.8
+       },
+       "w500": {
+        "inkAlphaSum": 237898,
+        "width": 176.8
+       },
+       "w600": {
+        "inkAlphaSum": 346903,
+        "width": 176.8
+       },
+       "w700": {
+        "inkAlphaSum": 346903,
+        "width": 176.8
+       }
+      },
+      "HelveticaNeueArabic-Bold": {
+       "w400": {
+        "inkAlphaSum": 357571,
+        "width": 177.5
+       },
+       "w500": {
+        "inkAlphaSum": 357571,
+        "width": 177.5
+       },
+       "w600": {
+        "inkAlphaSum": 357571,
+        "width": 177.5
+       },
+       "w700": {
+        "inkAlphaSum": 357571,
+        "width": 177.5
+       }
+      }
+     }
+    },
+    "combos": [
+     {
+      "combo": "HelveticaNeueArabic-Roman | 14px | 400",
+      "textNodes": 49
+     },
+     {
+      "combo": "HelveticaNeueArabic-Bold | 16px | 400",
+      "textNodes": 12
+     },
+     {
+      "combo": "HelveticaNeueArabic-Bold | 22px | 400",
+      "textNodes": 3
+     }
+    ],
+    "distinctCombos": 3,
+    "families": [
+     [
+      "HelveticaNeueArabic-Roman",
+      39
+     ],
+     [
+      "HelveticaNeueArabic-Bold",
+      15
+     ]
+    ],
+    "sizesByTextNodes": [
+     {
+      "px": 22,
+      "textNodes": 3,
+      "chars": 12
+     },
+     {
+      "px": 16,
+      "textNodes": 12,
+      "chars": 130
+     },
+     {
+      "px": 14,
+      "textNodes": 49,
+      "chars": 577
+     }
+    ],
+    "largestPx": 22,
+    "largestText": [
+     "لاتيه مثلج",
+     "−",
+     "+"
+    ],
+    "bodyPxByChars": 14,
+    "bodyPxByNodes": 14,
+    "largestToBody": 1.57,
+    "weights": [
+     [
+      "400",
+      54
+     ]
+    ]
+   },
+   "repetition": {
+    "pageWideStyledGroups": [
+     {
+      "n": 2,
+      "sig": "192x44|r=999px|bg=rgb(244,244,242)|p=8 12 8 12",
+      "shadow": null,
+      "border": {
+       "side": "Top",
+       "w": 1,
+       "c": "rgb(138,138,133)"
+      },
+      "example": "حليب خالي اللاكتوز +0.400 د.أ",
+      "example2": "+2.750 د.أ / كرواسون باللوز"
+     },
+     {
+      "n": 2,
+      "sig": "52x44|r=999px|bg=rgb(244,244,242)|p=8 12 8 12",
+      "shadow": null,
+      "border": {
+       "side": "Top",
+       "w": 1,
+       "c": "rgb(138,138,133)"
+      },
+      "example": "بندق",
+      "example2": "قرفة"
+     },
+     {
+      "n": 2,
+      "sig": "44x44|r=8px|bg=rgb(239,239,236)|p=0 0 0 0",
+      "shadow": null,
+      "border": {
+       "side": "Top",
+       "w": 1,
+       "c": "rgb(230,230,226)"
+      },
+      "example": "−",
+      "example2": "+"
+     }
+    ],
+    "siblingGroupsStyled": [
+     {
+      "n": 2,
+      "sig": "52x44|r=999px|bg=rgb(244,244,242)|p=8 12 8 12",
+      "styled": true,
+      "shadow": null,
+      "example": "بندق",
+      "example2": "قرفة"
+     },
+     {
+      "n": 2,
+      "sig": "44x44|r=8px|bg=rgb(239,239,236)|p=0 0 0 0",
+      "styled": true,
+      "shadow": null,
+      "example": "−",
+      "example2": "+"
+     }
+    ],
+    "siblingGroupsUnstyledTop": [
+     {
+      "n": 3,
+      "sig": "358x284|r=0px|bg=rgba(0,0,0,0)|p=0 0 0 0",
+      "styled": false,
+      "shadow": null,
+      "example": "لاتيه مثلج",
+      "example2": "موكا غامقة / نعنع / ايرش"
+     },
+     {
+      "n": 2,
+      "sig": "358x232|r=0px|bg=rgba(0,0,0,0)|p=0 0 0 0",
+      "styled": false,
+      "shadow": null,
+      "example": "مكسرات إضافية +0.400 د.أ / كريمة مخفوقة إضافية +0.400 د.أ / منزوع الكافيين +0.40",
+      "example2": "+4.500 د.أ / كرواسون مع أفوكادو ولبنة / +2.900 د.أ"
+     },
+     {
+      "n": 2,
+      "sig": "358x76|r=0px|bg=rgba(0,0,0,0)|p=0 0 0 0",
+      "styled": false,
+      "shadow": null,
+      "example": "كولد فوم إضافي +0.600 د.أ / إضافات",
+      "example2": "+ / 1 / −"
+     }
+    ],
+    "nSiblingGroups": 5,
+    "nStyledSiblingGroups": 2,
+    "distinctRadiiPainted": 8,
+    "radiiPainted": [
+     [
+      "999px",
+      33
+     ],
+     [
+      "12px",
+      4
+     ],
+     [
+      "8px",
+      2
+     ],
+     [
+      "24px 24px 0px 0px",
+      1
+     ],
+     [
+      "3px",
+      1
+     ],
+     [
+      "22px",
+      1
+     ],
+     [
+      "20px",
+      1
+     ],
+     [
+      "16px",
+      1
+     ]
+    ],
+    "distinctRadiiAll": 8,
+    "distinctShadows": 0,
+    "shadows": []
+   },
+   "alignment": {
+    "textBlocks": 54,
+    "textAlignComputed": [
+     [
+      "right",
+      52
+     ],
+     [
+      "center",
+      2
+     ]
+    ],
+    "visual": [
+     [
+      "other",
+      34
+     ],
+     [
+      "center",
+      8
+     ],
+     [
+      "right",
+      8
+     ],
+     [
+      "left",
+      4
+     ]
+    ],
+    "visualCenteredExamples": [
+     "لاتيه مثلج",
+     "صغير",
+     "3.500 د.أ",
+     "وسط",
+     "4.100 د.أ",
+     "−",
+     "+",
+     "أضف للسلة · 3.500 د.أ"
+    ],
+    "textAlignCenterExamples": [
+     "لاتيه مثلج",
+     "1"
+    ]
+   },
+   "motion": {
+    "cssTransitionElements": 0,
+    "cssTransitionExamples": [],
+    "cssAnimationElements": 0,
+    "cssAnimationExamples": [],
+    "elementsWithNonNoneTransform": 3,
+    "transformExamples": [
+     [
+      "matrix(1, 0, 0, 1, 0, 0)",
+      2
+     ],
+     [
+      "matrix(1.3, 0, 0, 1.3, 0, 0)",
+      1
+     ]
+    ],
+    "samples": {
+     "earlyAB": {
+      "twoSample": {
+       "added": 0,
+       "removed": 0,
+       "nChanged": 2,
+       "changed": [
+        {
+         "id": 226,
+         "props": [
+          [
+           "o",
+           "0.928758",
+           null
+          ]
+         ],
+         "desc": "لاتيه مثلج الحجم صغير 3.500 د.أ وسط 4.100 د.أ كبّر",
+         "sel": "div:nth-child(8) > div:nth-child(1)",
+         "tag": "div",
+         "rect": [
+          0,
+          0,
+          390,
+          844
+         ],
+         "inlineStyle": ""
+        },
+        {
+         "id": 233,
+         "props": [
+          [
+           "t",
+           "matrix(1, 0, 0, 1, 0, 124.429)",
+           "matrix(1, 0, 0, 1, 0, 0)"
+          ]
+         ],
+         "desc": "لاتيه مثلج الحجم صغير 3.500 د.أ وسط 4.100 د.أ كبّر",
+         "sel": "div[role=dialog][aria-label=\"لاتيه مثلج\"]:nth-child(1) > div:nth-child(1) > div:nth-child(2) > div:nth-child(1)",
+         "tag": "div",
+         "rect": [
+          0,
+          84,
+          390,
+          760
+         ],
+         "inlineStyle": "max-height: 759.6px; transform: translateY(0px);"
+        }
+       ]
+      },
+      "dense": {
+       "nSnaps": 11,
+       "nChanged": 2,
+       "changed": [
+        {
+         "id": 226,
+         "t": [
+          "none"
+         ],
+         "o": [
+          "0.928758",
+          "1"
+         ],
+         "sl": [
+          0
+         ],
+         "samples": 11,
+         "desc": "لاتيه مثلج الحجم صغير 3.500 د.أ وسط 4.100 د.أ كبّر",
+         "sel": "div:nth-child(8) > div:nth-child(1)",
+         "tag": "div",
+         "rect": [
+          0,
+          0,
+          390,
+          844
+         ],
+         "inlineStyle": ""
+        },
+        {
+         "id": 233,
+         "t": [
+          "matrix(1, 0, 0, 1, 0, 124.429)",
+          "matrix(1, 0, 0, 1, 0, 4.63261)",
+          "matrix(1, 0, 0, 1, 0, -0.404016)",
+          "matrix(1, 0, 0, 1, 0, -0.0591684)"
+         ],
+         "o": [
+          "1"
+         ],
+         "sl": [
+          0
+         ],
+         "samples": 11,
+         "desc": "لاتيه مثلج الحجم صغير 3.500 د.أ وسط 4.100 د.أ كبّر",
+         "sel": "div[role=dialog][aria-label=\"لاتيه مثلج\"]:nth-child(1) > div:nth-child(1) > div:nth-child(2) > div:nth-child(1)",
+         "tag": "div",
+         "rect": [
+          0,
+          84,
+          390,
+          760
+         ],
+         "inlineStyle": "max-height: 759.6px; transform: translateY(0px);"
+        }
+       ]
+      }
+     },
+     "settledCD": {
+      "twoSample": {
+       "added": 0,
+       "removed": 0,
+       "nChanged": 0,
+       "changed": []
+      },
+      "dense": {
+       "nSnaps": 11,
+       "nChanged": 0,
+       "changed": []
+      }
+     }
+    },
+    "reducedMotionRun": {
+     "earlyAB": {
+      "twoSample": {
+       "added": 0,
+       "removed": 0,
+       "nChanged": 1,
+       "changed": [
+        {
+         "id": 226,
+         "props": [
+          [
+           "o",
+           "0.953808",
+           null
+          ]
+         ],
+         "desc": "لاتيه مثلج الحجم صغير 3.500 د.أ وسط 4.100 د.أ كبّر",
+         "sel": "div:nth-child(8) > div:nth-child(1)",
+         "tag": "div",
+         "rect": [
+          0,
+          0,
+          390,
+          844
+         ],
+         "inlineStyle": ""
+        }
+       ]
+      },
+      "dense": {
+       "nSnaps": 11,
+       "nChanged": 1,
+       "changed": [
+        {
+         "id": 226,
+         "t": [
+          "none"
+         ],
+         "o": [
+          "0.953808",
+          "1"
+         ],
+         "sl": [
+          0
+         ],
+         "samples": 11,
+         "desc": "لاتيه مثلج الحجم صغير 3.500 د.أ وسط 4.100 د.أ كبّر",
+         "sel": "div:nth-child(8) > div:nth-child(1)",
+         "tag": "div",
+         "rect": [
+          0,
+          0,
+          390,
+          844
+         ],
+         "inlineStyle": ""
+        }
+       ]
+      }
+     },
+     "settledCD": {
+      "twoSample": {
+       "added": 0,
+       "removed": 0,
+       "nChanged": 0,
+       "changed": []
+      },
+      "dense": {
+       "nSnaps": 11,
+       "nChanged": 0,
+       "changed": []
+      }
+     }
+    }
+   },
+   "contrast": {
+    "textElementsChecked": 54,
+    "fails": 0,
+    "failList": [],
+    "placeholders": [],
+    "minRatio": {
+     "ratio": 6.1,
+     "text": "وسط"
+    },
+    "ratioDistribution": [
+     [
+      "4.5-7",
+      29
+     ],
+     [
+      ">=7",
+      25
+     ]
+    ]
+   },
+   "touch": {
+    "interactive": 42,
+    "under44": 1,
+    "under24": 0,
+    "list": [
+     {
+      "label": "أضف للمفضّلة",
+      "w": 40,
+      "h": 40,
+      "tag": "button",
+      "role": "button",
+      "tabindex": "0",
+      "visible": true,
+      "under24": false,
+      "sel": "button[role=button][aria-label=\"أضف للمفضّلة\"]:nth-child(1)"
+     }
+    ]
+   },
+   "copy": {
+    "textBlocks": 54,
+    "distinctStrings": 54,
+    "repeated": [],
+    "placeholders": []
+   },
+   "tells": {
+    "a_iconTitleSubtitleTileGroups": [],
+    "b_bgWhiteOrGreyShare": {
+     "painted": 45,
+     "whiteOrGrey": 41,
+     "sharePct": 91.1,
+     "breakdown": {
+      "nearWhiteL90": 38,
+      "nearBlack": 2,
+      "grey": 1,
+      "lowSatTint": 4,
+      "chromatic": 0
+     },
+     "distinctBgColors": [
+      [
+       "#f4f4f2",
+       32
+      ],
+      [
+       "#efefec",
+       4
+      ],
+      [
+       "#e6e6e2",
+       4
+      ],
+      [
+       "#ffffff",
+       2
+      ],
+      [
+       "#111111@0.45",
+       1
+      ],
+      [
+       "#5c5c58",
+       1
+      ],
+      [
+       "#111111",
+       1
+      ]
+     ]
+    },
+    "c_anyAccentColour": false,
+    "accentColours": [],
+    "d_distinctRadii": 8,
+    "e_cardStyleMax": [
+     "r=999px | shadow=none | bg=rgb(244,244,242)",
+     31
+    ],
+    "e_cardStyleOver5": true,
+    "cardStyles": [
+     [
+      "r=999px | shadow=none | bg=rgb(244,244,242)",
+      31
+     ],
+     [
+      "r=12px | shadow=none | bg=rgb(230,230,226)",
+      2
+     ],
+     [
+      "r=999px | shadow=none | bg=rgb(230,230,226)",
+      2
+     ],
+     [
+      "r=8px | shadow=none | bg=rgb(239,239,236)",
+      2
+     ],
+     [
+      "r=24px 24px 0px 0px | shadow=none | bg=rgb(255,255,255)",
+      1
+     ],
+     [
+      "r=22px | shadow=none | bg=rgb(239,239,236)",
+      1
+     ]
+    ]
+   }
+  },
+  "rewards-light": {
+   "name": "rewards-light",
+   "route": "/rewards",
+   "scheme": "light",
+   "sheet": false,
+   "mainScroller": {
+    "sh": 750,
+    "ch": 750,
+    "sw": 390
+   },
+   "scrollerCount": 2,
+   "fonts": [
+    "HelveticaNeueArabic-Light|normal|normal|unloaded",
+    "HelveticaNeueArabic-Roman|normal|normal|loaded",
+    "HelveticaNeueArabic-Bold|normal|normal|loaded"
+   ],
+   "htmlBg": "rgba(0, 0, 0, 0)",
+   "colorScheme": "normal",
+   "blockedRequests": [
+    "https://almond-gules.vercel.app/api/menu/app"
+   ],
+   "consoleErrors": [
+    "Failed to load resource: net::ERR_FAILED"
+   ],
+   "recordsMeasured": 125,
+   "scrollSteps": 0,
+   "palette": {
+    "distinct": 7,
+    "chromaticCount": 0,
+    "neutralCount": 7,
+    "list": [
+     {
+      "color": "rgb(17,17,17)",
+      "hex": "#111111",
+      "total": 25,
+      "roles": {
+       "text": 12,
+       "bg": 3,
+       "border": 1,
+       "svgStroke": 9
+      },
+      "examples": [
+       "text: المكافآت",
+       "bg: رصيد نقاطك 1,240 تساوي 12.400 د.أ، وتكفي",
+       "border: رصيد نقاطك 1,240 تساوي 12.400 د.أ، وتكفي",
+       "text: استبدل نقاطك"
+      ],
+      "hsl": [
+       0,
+       0,
+       6.7
+      ],
+      "chromatic": false
+     },
+     {
+      "color": "rgb(255,255,255)",
+      "hex": "#ffffff",
+      "total": 23,
+      "roles": {
+       "bg": 9,
+       "text": 3,
+       "border": 2,
+       "svgStroke": 9
+      },
+      "examples": [
+       "bg: المكافآت رصيد نقاطك 1,240 تساوي 12.400 د",
+       "text: 1,240",
+       "border: 2%",
+       "svgStroke: svg in 2%"
+      ],
+      "hsl": [
+       0,
+       0,
+       100
+      ],
+      "chromatic": false
+     },
+     {
+      "color": "rgb(92,92,88)",
+      "hex": "#5c5c58",
+      "total": 12,
+      "roles": {
+       "text": 9,
+       "svgStroke": 3
+      },
+      "examples": [
+       "text: يرجع لك من 2% إلى 6% من كل طلب، ونقاطك ×",
+       "text: آخر حركة: 9 تشرين الأول",
+       "text: لا توجد قسائم نشطة",
+       "text: الآن 2%، والتالية 4%"
+      ],
+      "hsl": [
+       60,
+       2.2,
+       35.3
+      ],
+      "chromatic": false
+     },
+     {
+      "color": "rgb(138,138,133)",
+      "hex": "#8a8a85",
+      "total": 4,
+      "roles": {
+       "border": 4
+      },
+      "examples": [
+       "border: اخصم 1.000 د.أ من فاتورتك مقابل 100 من ن",
+       "border: اخصم 2.000 د.أ من فاتورتك مقابل 200 من ن",
+       "border: اخصم 5.000 د.أ من فاتورتك مقابل 500 من ن",
+       "border: كل نقاطك: اخصم 12.400 د.أ من فاتورتك مقا"
+      ],
+      "hsl": [
+       60,
+       2.1,
+       53.1
+      ],
+      "chromatic": false
+     },
+     {
+      "color": "rgb(244,244,242)",
+      "hex": "#f4f4f2",
+      "total": 4,
+      "roles": {
+       "bg": 4
+      },
+      "examples": [
+       "bg: سجل النقاط آخر حركة: 9 تشرين الأول",
+       "bg: قسائمي لا توجد قسائم نشطة",
+       "bg: فئتك الآن 2%، والتالية 4%",
+       "bg: كيف تعمل؟ 100 نقطة = 1 دينار"
+      ],
+      "hsl": [
+       60,
+       8.3,
+       95.3
+      ],
+      "chromatic": false
+     },
+     {
+      "color": "rgb(189,189,184)",
+      "hex": "#bdbdb8",
+      "total": 3,
+      "roles": {
+       "text": 3
+      },
+      "examples": [
+       "text: رصيد نقاطك",
+       "text: تساوي 12.400 د.أ، وتكفي ثمن 3 ايس سبانيش",
+       "text: تنتهي 1,000 من نقاطك في 26 تشرين الأول"
+      ],
+      "hsl": [
+       60,
+       3.6,
+       73.1
+      ],
+      "chromatic": false
+     },
+     {
+      "color": "rgb(239,239,236)",
+      "hex": "#efefec",
+      "total": 1,
+      "roles": {
+       "border": 1
+      },
+      "examples": [
+       "border: الرئيسية اطلب الباركود المكافآت المزيد"
+      ],
+      "hsl": [
+       60,
+       8.6,
+       93.1
+      ],
+      "chromatic": false
+     }
+    ]
+   },
+   "imagery": {
+    "firstViewport": {
+     "region": [
+      0,
+      0,
+      390,
+      750
+     ],
+     "hitTestPhotoCoverPct": 0,
+     "hitTestImagesSeen": 0,
+     "imgVisible": 0,
+     "boxCoverPct": 0,
+     "paintedCoverPct": 0,
+     "list": []
+    },
+    "fullPage": {
+     "fullArea": 292500,
+     "imgInContent": 0,
+     "imgWithVisibleArea": 0,
+     "boxCoverPct": 0,
+     "paintedCoverPct": 0,
+     "distinctSrc": 0,
+     "boxSizes": []
+    },
+    "cssBackgroundPhotosWithoutImg": 0,
+    "gradients": [],
+    "pixel": {
+     "outsidePhotos": {
+      "px": 1170000,
+      "chromaticPct": 0,
+      "nearWhitePct": 67.3,
+      "nearBlackPct": 29.4,
+      "greyPct": 3.3,
+      "meanLightnessPct": 70.3
+     },
+     "insidePhotos": {
+      "px": 0,
+      "chromaticPct": 0,
+      "nearWhitePct": 0,
+      "nearBlackPct": 0,
+      "greyPct": 0,
+      "meanLightnessPct": null
+     },
+     "photoSharePct": 0,
+     "topChromaticOutsidePhotos": []
+    }
+   },
+   "iconography": {
+    "svgTotal": 11,
+    "icons": 11,
+    "iconsInChrome": 5,
+    "iconsInContent": 6,
+    "iconsFirstViewport": 6,
+    "largeSvgGraphics": [],
+    "iconSizes": [
+     [
+      "20x20",
+      4
+     ],
+     [
+      "24x24",
+      4
+     ],
+     [
+      "13x13",
+      1
+     ],
+     [
+      "18x18",
+      1
+     ],
+     [
+      "26x26",
+      1
+     ]
+    ],
+    "iconsToPhotos": "11:0",
+    "iconsToPhotosFirstViewport": "6:0",
+    "iconContexts": [
+     "2%",
+     "هدية ترحيب: 200 نقطة تُضاف مع أول شراء",
+     "سجل النقاط آخر حركة: 9 تشرين الأول",
+     "قسائمي لا توجد قسائم نشطة",
+     "فئتك الآن 2%، والتالية 4%",
+     "كيف تعمل؟ 100 نقطة = 1 دينار",
+     "الرئيسية",
+     "اطلب",
+     "الباركود",
+     "المكافآت",
+     "المزيد"
+    ]
+   },
+   "typography": {
+    "syntheticBold": {
+     "textNodes": 1,
+     "texts": [
+      "2% (HelveticaNeueArabic-Roman 14px w700)"
+     ],
+     "inkTest": {
+      "HelveticaNeueArabic-Roman": {
+       "w400": {
+        "inkAlphaSum": 237898,
+        "width": 176.8
+       },
+       "w500": {
+        "inkAlphaSum": 237898,
+        "width": 176.8
+       },
+       "w600": {
+        "inkAlphaSum": 346903,
+        "width": 176.8
+       },
+       "w700": {
+        "inkAlphaSum": 346903,
+        "width": 176.8
+       }
+      },
+      "HelveticaNeueArabic-Bold": {
+       "w400": {
+        "inkAlphaSum": 357571,
+        "width": 177.5
+       },
+       "w500": {
+        "inkAlphaSum": 357571,
+        "width": 177.5
+       },
+       "w600": {
+        "inkAlphaSum": 357571,
+        "width": 177.5
+       },
+       "w700": {
+        "inkAlphaSum": 357571,
+        "width": 177.5
+       }
+      }
+     }
+    },
+    "combos": [
+     {
+      "combo": "HelveticaNeueArabic-Bold | 16px | 400",
+      "textNodes": 9
+     },
+     {
+      "combo": "HelveticaNeueArabic-Roman | 14px | 400",
+      "textNodes": 7
+     },
+     {
+      "combo": "HelveticaNeueArabic-Bold | 11px | 500",
+      "textNodes": 4
+     },
+     {
+      "combo": "HelveticaNeueArabic-Bold | 28px | 400",
+      "textNodes": 1
+     },
+     {
+      "combo": "HelveticaNeueArabic-Bold | 36px | 400",
+      "textNodes": 1
+     },
+     {
+      "combo": "HelveticaNeueArabic-Roman | 14px | 700",
+      "textNodes": 1
+     },
+     {
+      "combo": "HelveticaNeueArabic-Bold | 18px | 400",
+      "textNodes": 1
+     },
+     {
+      "combo": "HelveticaNeueArabic-Bold | 22px | 400",
+      "textNodes": 1
+     },
+     {
+      "combo": "HelveticaNeueArabic-Roman | 16px | 400",
+      "textNodes": 1
+     },
+     {
+      "combo": "HelveticaNeueArabic-Bold | 11px | 400",
+      "textNodes": 1
+     }
+    ],
+    "distinctCombos": 10,
+    "families": [
+     [
+      "HelveticaNeueArabic-Bold",
+      18
+     ],
+     [
+      "HelveticaNeueArabic-Roman",
+      9
+     ]
+    ],
+    "sizesByTextNodes": [
+     {
+      "px": 36,
+      "textNodes": 1,
+      "chars": 5
+     },
+     {
+      "px": 28,
+      "textNodes": 1,
+      "chars": 8
+     },
+     {
+      "px": 22,
+      "textNodes": 1,
+      "chars": 16
+     },
+     {
+      "px": 18,
+      "textNodes": 1,
+      "chars": 12
+     },
+     {
+      "px": 16,
+      "textNodes": 10,
+      "chars": 171
+     },
+     {
+      "px": 14,
+      "textNodes": 8,
+      "chars": 170
+     },
+     {
+      "px": 11,
+      "textNodes": 5,
+      "chars": 34
+     }
+    ],
+    "largestPx": 36,
+    "largestText": [
+     "1,240"
+    ],
+    "bodyPxByChars": 16,
+    "bodyPxByNodes": 16,
+    "largestToBody": 2.25,
+    "weights": [
+     [
+      "400",
+      22
+     ],
+     [
+      "500",
+      4
+     ],
+     [
+      "700",
+      1
+     ]
+    ]
+   },
+   "repetition": {
+    "pageWideStyledGroups": [
+     {
+      "n": 4,
+      "sig": "84x48|r=12px|bg=rgb(255,255,255)|p=0 4 0 4",
+      "shadow": null,
+      "border": {
+       "side": "Top",
+       "w": 1,
+       "c": "rgb(138,138,133)"
+      },
+      "example": "1.000 د.أ",
+      "example2": "كل نقاطك"
+     },
+     {
+      "n": 4,
+      "sig": "173x72|r=16px|bg=rgb(244,244,242)|p=12 12 12 12",
+      "shadow": null,
+      "border": null,
+      "example": "آخر حركة: 9 تشرين الأول / سجل النقاط",
+      "example2": "100 نقطة = 1 دينار / كيف تعمل؟"
+     }
+    ],
+    "siblingGroupsStyled": [
+     {
+      "n": 4,
+      "sig": "84x48|r=12px|bg=rgb(255,255,255)|p=0 4 0 4",
+      "styled": true,
+      "shadow": null,
+      "example": "1.000 د.أ",
+      "example2": "كل نقاطك"
+     },
+     {
+      "n": 4,
+      "sig": "173x72|r=16px|bg=rgb(244,244,242)|p=12 12 12 12",
+      "styled": true,
+      "shadow": null,
+      "example": "آخر حركة: 9 تشرين الأول / سجل النقاط",
+      "example2": "100 نقطة = 1 دينار / كيف تعمل؟"
+     }
+    ],
+    "siblingGroupsUnstyledTop": [
+     {
+      "n": 5,
+      "sig": "78x67|r=0px|bg=rgba(0,0,0,0)|p=0 0 0 0",
+      "styled": false,
+      "shadow": null,
+      "example": "الرئيسية",
+      "example2": "المزيد"
+     },
+     {
+      "n": 2,
+      "sig": "358x48|r=0px|bg=rgba(0,0,0,0)|p=0 0 0 0",
+      "styled": false,
+      "shadow": null,
+      "example": "كل نقاطك / 5.000 د.أ / 2.000 د.أ",
+      "example2": "يرجع لك من 2% إلى 6% من كل طلب، ونقاطك ×1.5 حين تدفع من رصيد"
+     }
+    ],
+    "nSiblingGroups": 4,
+    "nStyledSiblingGroups": 2,
+    "distinctRadiiPainted": 5,
+    "radiiPainted": [
+     [
+      "16px",
+      5
+     ],
+     [
+      "12px",
+      4
+     ],
+     [
+      "999px",
+      1
+     ],
+     [
+      "28px",
+      1
+     ],
+     [
+      "3px",
+      1
+     ]
+    ],
+    "distinctRadiiAll": 5,
+    "distinctShadows": 2,
+    "shadows": [
+     [
+      "rgba(0, 0, 0, 0.08) 0px 2px 8px 0px",
+      1
+     ],
+     [
+      "rgba(0, 0, 0, 0.14) 0px 6px 16px 0px",
+      1
+     ]
+    ]
+   },
+   "alignment": {
+    "textBlocks": 27,
+    "textAlignComputed": [
+     [
+      "right",
+      16
+     ],
+     [
+      "center",
+      11
+     ]
+    ],
+    "visual": [
+     [
+      "right",
+      10
+     ],
+     [
+      "center",
+      9
+     ],
+     [
+      "other",
+      6
+     ],
+     [
+      "left",
+      2
+     ]
+    ],
+    "visualCenteredExamples": [
+     "رصيد نقاطك",
+     "1,240",
+     "تنتهي 1,000 من نقاطك في 26 تشر",
+     "كاش باك لغاية 9%",
+     "الرئيسية",
+     "اطلب",
+     "الباركود",
+     "المكافآت",
+     "المزيد"
+    ],
+    "textAlignCenterExamples": [
+     "تساوي 12.400 د.أ، وتكفي ثمن 3 ",
+     "1.000 د.أ",
+     "2.000 د.أ",
+     "5.000 د.أ",
+     "كل نقاطك",
+     "كاش باك لغاية 9%",
+     "يرجع لك من 2% إلى 6% من كل طلب",
+     "الرئيسية",
+     "اطلب",
+     "المكافآت",
+     "المزيد"
+    ]
+   },
+   "motion": {
+    "cssTransitionElements": 0,
+    "cssTransitionExamples": [],
+    "cssAnimationElements": 0,
+    "cssAnimationExamples": [],
+    "elementsWithNonNoneTransform": 3,
+    "transformExamples": [
+     [
+      "matrix(1, 0, 0, 1, 0, 0)",
+      3
+     ]
+    ],
+    "samples": {
+     "earlyAB": {
+      "twoSample": {
+       "added": 180,
+       "removed": 0,
+       "nChanged": 0,
+       "changed": []
+      },
+      "dense": {
+       "nSnaps": 11,
+       "nChanged": 0,
+       "changed": []
+      }
+     },
+     "settledCD": {
+      "twoSample": {
+       "added": 0,
+       "removed": 0,
+       "nChanged": 0,
+       "changed": []
+      },
+      "dense": {
+       "nSnaps": 11,
+       "nChanged": 0,
+       "changed": []
+      }
+     }
+    },
+    "reducedMotionRun": {
+     "earlyAB": {
+      "twoSample": {
+       "added": 180,
+       "removed": 0,
+       "nChanged": 0,
+       "changed": []
+      },
+      "dense": {
+       "nSnaps": 11,
+       "nChanged": 0,
+       "changed": []
+      }
+     },
+     "settledCD": {
+      "twoSample": {
+       "added": 0,
+       "removed": 0,
+       "nChanged": 0,
+       "changed": []
+      },
+      "dense": {
+       "nSnaps": 11,
+       "nChanged": 0,
+       "changed": []
+      }
+     }
+    }
+   },
+   "contrast": {
+    "textElementsChecked": 27,
+    "fails": 0,
+    "failList": [],
+    "placeholders": [],
+    "minRatio": {
+     "ratio": 6.1,
+     "text": "آخر حركة: 9 تشرين الأول"
+    },
+    "ratioDistribution": [
+     [
+      ">=7",
+      18
+     ],
+     [
+      "4.5-7",
+      9
+     ]
+    ]
+   },
+   "touch": {
+    "interactive": 13,
+    "under44": 0,
+    "under24": 0,
+    "list": []
+   },
+   "copy": {
+    "textBlocks": 27,
+    "distinctStrings": 26,
+    "repeated": [
+     {
+      "s": "المكافآت",
+      "n": 2
+     }
+    ],
+    "placeholders": []
+   },
+   "tells": {
+    "a_iconTitleSubtitleTileGroups": [
+     {
+      "sig": "173x72|r=16px|bg=rgb(244,244,242)|p=12 12 12 12",
+      "members": 4,
+      "of": 4,
+      "cols": 2,
+      "rows": 2,
+      "grid2D": true,
+      "examples": [
+       "آخر حركة: 9 تشرين الأول / سجل النقاط",
+       "لا توجد قسائم نشطة / قسائمي",
+       "الآن 2%، والتالية 4% / فئتك",
+       "100 نقطة = 1 دينار / كيف تعمل؟"
+      ]
+     }
+    ],
+    "b_bgWhiteOrGreyShare": {
+     "painted": 16,
+     "whiteOrGrey": 16,
+     "sharePct": 100,
+     "breakdown": {
+      "nearWhiteL90": 13,
+      "nearBlack": 3,
+      "grey": 0,
+      "lowSatTint": 0,
+      "chromatic": 0
+     },
+     "distinctBgColors": [
+      [
+       "#ffffff",
+       9
+      ],
+      [
+       "#f4f4f2",
+       4
+      ],
+      [
+       "#111111",
+       3
+      ]
+     ]
+    },
+    "c_anyAccentColour": false,
+    "accentColours": [],
+    "d_distinctRadii": 5,
+    "e_cardStyleMax": [
+     "r=12px | shadow=none | bg=rgb(255,255,255)",
+     4
+    ],
+    "e_cardStyleOver5": false,
+    "cardStyles": [
+     [
+      "r=12px | shadow=none | bg=rgb(255,255,255)",
+      4
+     ],
+     [
+      "r=16px | shadow=none | bg=rgb(244,244,242)",
+      4
+     ],
+     [
+      "r=16px | shadow=rgba(0, 0, 0, 0.08) 0px 2px 8px 0px | bg=rgb(17,17,17)",
+      1
+     ],
+     [
+      "r=28px | shadow=rgba(0, 0, 0, 0.14) 0px 6px 16px 0px | bg=rgb(17,17,17)",
+      1
+     ]
+    ]
+   }
+  },
+  "pay-light": {
+   "name": "pay-light",
+   "route": "/pay",
+   "scheme": "light",
+   "sheet": false,
+   "mainScroller": {
+    "sh": 786,
+    "ch": 750,
+    "sw": 390
+   },
+   "scrollerCount": 1,
+   "fonts": [
+    "HelveticaNeueArabic-Light|normal|normal|unloaded",
+    "HelveticaNeueArabic-Roman|normal|normal|loaded",
+    "HelveticaNeueArabic-Bold|normal|normal|loaded"
+   ],
+   "htmlBg": "rgba(0, 0, 0, 0)",
+   "colorScheme": "normal",
+   "blockedRequests": [
+    "https://almond-gules.vercel.app/api/menu/app"
+   ],
+   "consoleErrors": [
+    "Failed to load resource: net::ERR_FAILED"
+   ],
+   "recordsMeasured": 89,
+   "scrollSteps": 1,
+   "palette": {
+    "distinct": 5,
+    "chromaticCount": 0,
+    "neutralCount": 5,
+    "list": [
+     {
+      "color": "rgb(255,255,255)",
+      "hex": "#ffffff",
+      "total": 14,
+      "roles": {
+       "bg": 7,
+       "svgFill": 1,
+       "border": 1,
+       "svgStroke": 5
+      },
+      "examples": [
+       "bg: ادفع واجمع نقاطك اعرض هذا الباركود عند ا",
+       "bg: div:nth-child(1) > div:nth-child(1) > di",
+       "svgFill: div:nth-child(1) > svg:nth-child(1) > g:",
+       "bg: رصيد نقاطك 1,240 استبدل نقاطك من شاشة ال"
+      ],
+      "hsl": [
+       0,
+       0,
+       100
+      ],
+      "chromatic": false
+     },
+     {
+      "color": "rgb(92,92,88)",
+      "hex": "#5c5c58",
+      "total": 14,
+      "roles": {
+       "text": 9,
+       "svgStroke": 5
+      },
+      "examples": [
+       "text: اعرض هذا الباركود عند الدفع لتجمع نقاطك ",
+       "text: يتجدّد الباركود تلقائياً ما دامت هذه الش",
+       "text: رقم العضوية: E2E-USER",
+       "text: رصيد نقاطك"
+      ],
+      "hsl": [
+       60,
+       2.2,
+       35.3
+      ],
+      "chromatic": false
+     },
+     {
+      "color": "rgb(17,17,17)",
+      "hex": "#111111",
+      "total": 9,
+      "roles": {
+       "text": 5,
+       "bg": 2,
+       "svgStroke": 2
+      },
+      "examples": [
+       "text: ادفع واجمع نقاطك",
+       "bg: div:nth-child(1) > div:nth-child(3) > di",
+       "text: جاهز للمسح",
+       "svgStroke: svg in يرجع لك 2% من كل طلب"
+      ],
+      "hsl": [
+       0,
+       0,
+       6.7
+      ],
+      "chromatic": false
+     },
+     {
+      "color": "rgb(0,0,0)",
+      "hex": "#000000",
+      "total": 2,
+      "roles": {
+       "svgFill": 1,
+       "svgStroke": 1
+      },
+      "examples": [
+       "svgFill: div:nth-child(1) > svg:nth-child(1) > g:",
+       "svgStroke: div:nth-child(1) > svg:nth-child(1) > g:"
+      ],
+      "hsl": [
+       0,
+       0,
+       0
+      ],
+      "chromatic": false
+     },
+     {
+      "color": "rgb(239,239,236)",
+      "hex": "#efefec",
+      "total": 1,
+      "roles": {
+       "border": 1
+      },
+      "examples": [
+       "border: الرئيسية اطلب الباركود المكافآت المزيد"
+      ],
+      "hsl": [
+       60,
+       8.6,
+       93.1
+      ],
+      "chromatic": false
+     }
+    ]
+   },
+   "imagery": {
+    "firstViewport": {
+     "region": [
+      0,
+      0,
+      390,
+      750
+     ],
+     "hitTestPhotoCoverPct": 0,
+     "hitTestImagesSeen": 0,
+     "imgVisible": 0,
+     "boxCoverPct": 0,
+     "paintedCoverPct": 0,
+     "list": []
+    },
+    "fullPage": {
+     "fullArea": 306540,
+     "imgInContent": 0,
+     "imgWithVisibleArea": 0,
+     "boxCoverPct": 0,
+     "paintedCoverPct": 0,
+     "distinctSrc": 0,
+     "boxSizes": []
+    },
+    "cssBackgroundPhotosWithoutImg": 0,
+    "gradients": [],
+    "pixel": {
+     "outsidePhotos": {
+      "px": 1170000,
+      "chromaticPct": 0,
+      "nearWhitePct": 80.6,
+      "nearBlackPct": 16.3,
+      "greyPct": 3.1,
+      "meanLightnessPct": 82
+     },
+     "insidePhotos": {
+      "px": 0,
+      "chromaticPct": 0,
+      "nearWhitePct": 0,
+      "nearBlackPct": 0,
+      "greyPct": 0,
+      "meanLightnessPct": null
+     },
+     "photoSharePct": 0,
+     "topChromaticOutsidePhotos": []
+    }
+   },
+   "iconography": {
+    "svgTotal": 7,
+    "icons": 6,
+    "iconsInChrome": 5,
+    "iconsInContent": 1,
+    "iconsFirstViewport": 1,
+    "largeSvgGraphics": [
+     {
+      "w": 301.3,
+      "h": 301.3,
+      "shapes": 2,
+      "ctx": ""
+     }
+    ],
+    "iconSizes": [
+     [
+      "24x24",
+      4
+     ],
+     [
+      "14x14",
+      1
+     ],
+     [
+      "26x26",
+      1
+     ]
+    ],
+    "iconsToPhotos": "6:0",
+    "iconsToPhotosFirstViewport": "1:0",
+    "iconContexts": [
+     "يرجع لك 2% من كل طلب",
+     "الرئيسية",
+     "اطلب",
+     "الباركود",
+     "المكافآت",
+     "المزيد"
+    ]
+   },
+   "typography": {
+    "syntheticBold": {
+     "textNodes": 0,
+     "texts": [],
+     "inkTest": {
+      "HelveticaNeueArabic-Roman": {
+       "w400": {
+        "inkAlphaSum": 237898,
+        "width": 176.8
+       },
+       "w500": {
+        "inkAlphaSum": 237898,
+        "width": 176.8
+       },
+       "w600": {
+        "inkAlphaSum": 346903,
+        "width": 176.8
+       },
+       "w700": {
+        "inkAlphaSum": 346903,
+        "width": 176.8
+       }
+      },
+      "HelveticaNeueArabic-Bold": {
+       "w400": {
+        "inkAlphaSum": 357571,
+        "width": 177.5
+       },
+       "w500": {
+        "inkAlphaSum": 357571,
+        "width": 177.5
+       },
+       "w600": {
+        "inkAlphaSum": 357571,
+        "width": 177.5
+       },
+       "w700": {
+        "inkAlphaSum": 357571,
+        "width": 177.5
+       }
+      }
+     }
+    },
+    "combos": [
+     {
+      "combo": "HelveticaNeueArabic-Roman | 14px | 400",
+      "textNodes": 8
+     },
+     {
+      "combo": "HelveticaNeueArabic-Bold | 11px | 500",
+      "textNodes": 4
+     },
+     {
+      "combo": "HelveticaNeueArabic-Bold | 28px | 400",
+      "textNodes": 1
+     },
+     {
+      "combo": "HelveticaNeueArabic-Roman | 16px | 400",
+      "textNodes": 1
+     },
+     {
+      "combo": "HelveticaNeueArabic-Bold | 36px | 400",
+      "textNodes": 1
+     },
+     {
+      "combo": "HelveticaNeueArabic-Bold | 11px | 400",
+      "textNodes": 1
+     }
+    ],
+    "distinctCombos": 6,
+    "families": [
+     [
+      "HelveticaNeueArabic-Bold",
+      7
+     ],
+     [
+      "HelveticaNeueArabic-Roman",
+      7
+     ]
+    ],
+    "sizesByTextNodes": [
+     {
+      "px": 36,
+      "textNodes": 1,
+      "chars": 5
+     },
+     {
+      "px": 28,
+      "textNodes": 1,
+      "chars": 16
+     },
+     {
+      "px": 16,
+      "textNodes": 1,
+      "chars": 51
+     },
+     {
+      "px": 14,
+      "textNodes": 8,
+      "chars": 139
+     },
+     {
+      "px": 11,
+      "textNodes": 5,
+      "chars": 34
+     }
+    ],
+    "largestPx": 36,
+    "largestText": [
+     "1,240"
+    ],
+    "bodyPxByChars": 14,
+    "bodyPxByNodes": 14,
+    "largestToBody": 2.57,
+    "weights": [
+     [
+      "400",
+      10
+     ],
+     [
+      "500",
+      4
+     ]
+    ]
+   },
+   "repetition": {
+    "pageWideStyledGroups": [],
+    "siblingGroupsStyled": [],
+    "siblingGroupsUnstyledTop": [
+     {
+      "n": 5,
+      "sig": "78x67|r=0px|bg=rgba(0,0,0,0)|p=0 0 0 0",
+      "styled": false,
+      "shadow": null,
+      "example": "الرئيسية",
+      "example2": "المزيد"
+     }
+    ],
+    "nSiblingGroups": 1,
+    "nStyledSiblingGroups": 0,
+    "distinctRadiiPainted": 3,
+    "radiiPainted": [
+     [
+      "16px",
+      2
+     ],
+     [
+      "4px",
+      1
+     ],
+     [
+      "28px",
+      1
+     ]
+    ],
+    "distinctRadiiAll": 3,
+    "distinctShadows": 2,
+    "shadows": [
+     [
+      "rgba(0, 0, 0, 0.14) 0px 6px 16px 0px",
+      2
+     ],
+     [
+      "rgba(0, 0, 0, 0.08) 0px 2px 8px 0px",
+      1
+     ]
+    ]
+   },
+   "alignment": {
+    "textBlocks": 14,
+    "textAlignComputed": [
+     [
+      "right",
+      7
+     ],
+     [
+      "center",
+      7
+     ]
+    ],
+    "visual": [
+     [
+      "center",
+      11
+     ],
+     [
+      "other",
+      2
+     ],
+     [
+      "left",
+      1
+     ]
+    ],
+    "visualCenteredExamples": [
+     "ادفع واجمع نقاطك",
+     "يتجدّد الباركود تلقائياً ما دا",
+     "رقم العضوية: E2E-USER",
+     "رصيد نقاطك",
+     "1,240",
+     "استبدل نقاطك من شاشة المكافآت",
+     "الرئيسية",
+     "اطلب",
+     "الباركود",
+     "المكافآت",
+     "المزيد"
+    ],
+    "textAlignCenterExamples": [
+     "اعرض هذا الباركود عند الدفع لت",
+     "يتجدّد الباركود تلقائياً ما دا",
+     "رقم العضوية: E2E-USER",
+     "الرئيسية",
+     "اطلب",
+     "المكافآت",
+     "المزيد"
+    ]
+   },
+   "motion": {
+    "cssTransitionElements": 0,
+    "cssTransitionExamples": [],
+    "cssAnimationElements": 0,
+    "cssAnimationExamples": [],
+    "elementsWithNonNoneTransform": 3,
+    "transformExamples": [
+     [
+      "matrix(1, 0, 0, 1, 0, 0)",
+      2
+     ],
+     [
+      "matrix(1.0042, 0, 0, 1.0042, 0, 0)",
+      1
+     ]
+    ],
+    "samples": {
+     "earlyAB": {
+      "twoSample": {
+       "added": 138,
+       "removed": 0,
+       "nChanged": 0,
+       "changed": []
+      },
+      "dense": {
+       "nSnaps": 11,
+       "nChanged": 1,
+       "changed": [
+        {
+         "id": 144,
+         "t": [
+          "matrix(1.00178, 0, 0, 1.00178, 0, 0)",
+          "matrix(1.006, 0, 0, 1.006, 0, 0)",
+          "matrix(1.01347, 0, 0, 1.01347, 0, 0)",
+          "matrix(1.02103, 0, 0, 1.02103, 0, 0)"
+         ],
+         "o": [
+          "1"
+         ],
+         "sl": [
+          0
+         ],
+         "samples": 9,
+         "desc": "",
+         "sel": "div:nth-child(1) > div:nth-child(1) > div:nth-child(3) > div:nth-child(1)",
+         "tag": "div",
+         "rect": [
+          20,
+          121,
+          349,
+          349
+         ],
+         "inlineStyle": "transform: scale(1.0042);"
+        }
+       ]
+      }
+     },
+     "settledCD": {
+      "twoSample": {
+       "added": 0,
+       "removed": 0,
+       "nChanged": 1,
+       "changed": [
+        {
+         "id": 144,
+         "props": [
+          [
+           "t",
+           "matrix(1.01612, 0, 0, 1.01612, 0, 0)",
+           "matrix(1.0042, 0, 0, 1.0042, 0, 0)"
+          ]
+         ],
+         "desc": "",
+         "sel": "div:nth-child(1) > div:nth-child(1) > div:nth-child(3) > div:nth-child(1)",
+         "tag": "div",
+         "rect": [
+          20,
+          121,
+          349,
+          349
+         ],
+         "inlineStyle": "transform: scale(1.0042);"
+        }
+       ]
+      },
+      "dense": {
+       "nSnaps": 11,
+       "nChanged": 1,
+       "changed": [
+        {
+         "id": 144,
+         "t": [
+          "matrix(1.01612, 0, 0, 1.01612, 0, 0)",
+          "matrix(1.02388, 0, 0, 1.02388, 0, 0)",
+          "matrix(1.03198, 0, 0, 1.03198, 0, 0)",
+          "matrix(1.03735, 0, 0, 1.03735, 0, 0)"
+         ],
+         "o": [
+          "1"
+         ],
+         "sl": [
+          0
+         ],
+         "samples": 11,
+         "desc": "",
+         "sel": "div:nth-child(1) > div:nth-child(1) > div:nth-child(3) > div:nth-child(1)",
+         "tag": "div",
+         "rect": [
+          20,
+          121,
+          349,
+          349
+         ],
+         "inlineStyle": "transform: scale(1.0042);"
+        }
+       ]
+      }
+     }
+    },
+    "reducedMotionRun": {
+     "earlyAB": {
+      "twoSample": {
+       "added": 138,
+       "removed": 0,
+       "nChanged": 0,
+       "changed": []
+      },
+      "dense": {
+       "nSnaps": 11,
+       "nChanged": 0,
+       "changed": []
+      }
+     },
+     "settledCD": {
+      "twoSample": {
+       "added": 0,
+       "removed": 0,
+       "nChanged": 0,
+       "changed": []
+      },
+      "dense": {
+       "nSnaps": 11,
+       "nChanged": 0,
+       "changed": []
+      }
+     }
+    }
+   },
+   "contrast": {
+    "textElementsChecked": 14,
+    "fails": 0,
+    "failList": [],
+    "placeholders": [],
+    "minRatio": {
+     "ratio": 6.72,
+     "text": "اعرض هذا الباركود عند الدفع لتجمع نقاطك أو تدفع بها"
+    },
+    "ratioDistribution": [
+     [
+      "4.5-7",
+      9
+     ],
+     [
+      ">=7",
+      5
+     ]
+    ]
+   },
+   "touch": {
+    "interactive": 6,
+    "under44": 0,
+    "under24": 0,
+    "list": []
+   },
+   "copy": {
+    "textBlocks": 14,
+    "distinctStrings": 14,
+    "repeated": [],
+    "placeholders": []
+   },
+   "tells": {
+    "a_iconTitleSubtitleTileGroups": [],
+    "b_bgWhiteOrGreyShare": {
+     "painted": 9,
+     "whiteOrGrey": 9,
+     "sharePct": 100,
+     "breakdown": {
+      "nearWhiteL90": 7,
+      "nearBlack": 2,
+      "grey": 0,
+      "lowSatTint": 0,
+      "chromatic": 0
+     },
+     "distinctBgColors": [
+      [
+       "#ffffff",
+       7
+      ],
+      [
+       "#111111",
+       2
+      ]
+     ]
+    },
+    "c_anyAccentColour": false,
+    "accentColours": [],
+    "d_distinctRadii": 3,
+    "e_cardStyleMax": [
+     "r=16px | shadow=rgba(0, 0, 0, 0.14) 0px 6px 16px 0px | bg=rgb(255,255,255)",
+     1
+    ],
+    "e_cardStyleOver5": false,
+    "cardStyles": [
+     [
+      "r=16px | shadow=rgba(0, 0, 0, 0.14) 0px 6px 16px 0px | bg=rgb(255,255,255)",
+      1
+     ],
+     [
+      "r=16px | shadow=rgba(0, 0, 0, 0.08) 0px 2px 8px 0px | bg=rgb(255,255,255)",
+      1
+     ],
+     [
+      "r=28px | shadow=rgba(0, 0, 0, 0.14) 0px 6px 16px 0px | bg=rgb(17,17,17)",
+      1
+     ]
+    ]
+   }
+  },
+  "home-dark": {
+   "name": "home-dark",
+   "route": "/",
+   "scheme": "dark",
+   "sheet": false,
+   "mainScroller": {
+    "sh": 1130,
+    "ch": 750,
+    "sw": 390
+   },
+   "scrollerCount": 2,
+   "fonts": [
+    "HelveticaNeueArabic-Light|normal|normal|unloaded",
+    "HelveticaNeueArabic-Roman|normal|normal|loaded",
+    "HelveticaNeueArabic-Bold|normal|normal|loaded"
+   ],
+   "htmlBg": "rgba(0, 0, 0, 0)",
+   "colorScheme": "normal",
+   "blockedRequests": [
+    "https://almond-gules.vercel.app/api/menu/app"
+   ],
+   "consoleErrors": [
+    "Failed to load resource: net::ERR_FAILED"
+   ],
+   "recordsMeasured": 260,
+   "scrollSteps": 1,
+   "palette": {
+    "distinct": 10,
+    "chromaticCount": 0,
+    "neutralCount": 10,
+    "list": [
+     {
+      "color": "rgb(242,242,240)",
+      "hex": "#f2f2f0",
+      "total": 61,
+      "roles": {
+       "svgStroke": 31,
+       "text": 18,
+       "border": 1,
+       "bg": 11
+      },
+      "examples": [
+       "svgStroke: svg in شارع مكة",
+       "text: شارع مكة",
+       "svgStroke: svg in اجمع نقاطك",
+       "svgStroke: svg in الإشعارات"
+      ],
+      "hsl": [
+       60,
+       7.1,
+       94.5
+      ],
+      "chromatic": false
+     },
+     {
+      "color": "rgb(163,163,158)",
+      "hex": "#a3a39e",
+      "total": 23,
+      "roles": {
+       "svgStroke": 6,
+       "text": 16,
+       "border": 1
+      },
+      "examples": [
+       "svgStroke: svg in شارع مكة",
+       "text: نقاطك",
+       "text: تساوي 12.400 د.أ",
+       "text: اصرف 8.000 د.أ إضافية لتصبح نقاطك ×2 على"
+      ],
+      "hsl": [
+       60,
+       2.6,
+       62.9
+      ],
+      "chromatic": false
+     },
+     {
+      "color": "rgb(15,15,15)",
+      "hex": "#0f0f0f",
+      "total": 16,
+      "roles": {
+       "bg": 4,
+       "text": 7,
+       "svgStroke": 5
+      },
+      "examples": [
+       "bg: شارع مكة مساء الخير، سارة نقاطك 2% 1,240",
+       "text: أضف الاثنين",
+       "text: من 3.750 د.أ",
+       "text: 1.000 د.أ"
+      ],
+      "hsl": [
+       0,
+       0,
+       5.9
+      ],
+      "chromatic": false
+     },
+     {
+      "color": "rgb(26,26,25)",
+      "hex": "#1a1a19",
+      "total": 11,
+      "roles": {
+       "bg": 4,
+       "svgStroke": 5,
+       "text": 1,
+       "border": 1
+      },
+      "examples": [
+       "bg: نقاطك 2% 1,240 تساوي 12.400 د.أ اصرف 8.0",
+       "svgStroke: svg in اعرض الباركود",
+       "text: اعرض الباركود",
+       "bg: (in) أكمل بياناتك واكسب 50 نقطة"
+      ],
+      "hsl": [
+       60,
+       2,
+       10
+      ],
+      "chromatic": false
+     },
+     {
+      "color": "rgb(36,36,35)",
+      "hex": "#242423",
+      "total": 9,
+      "roles": {
+       "bg": 9
+      },
+      "examples": [
+       "bg: شارع مكة",
+       "bg: اطلب الآن استلام من شارع مكة",
+       "bg: أي مشروب + أي طعام = 50 نقطة مثلاً: امري",
+       "bg: ايس سبانيش لاتيه من الأكثر طلباً من 3.75"
+      ],
+      "hsl": [
+       60,
+       1.4,
+       13.9
+      ],
+      "chromatic": false
+     },
+     {
+      "color": "rgb(42,42,40)",
+      "hex": "#2a2a28",
+      "total": 7,
+      "roles": {
+       "bg": 6,
+       "border": 1
+      },
+      "examples": [
+       "bg: (in) العروض",
+       "bg: div:nth-child(1) > div:nth-child(1) > bu",
+       "bg: أكمل بياناتك واكسب 50 نقطة",
+       "bg: تنتهي 1,000 من نقاطك في 26 تشرين الأول، "
+      ],
+      "hsl": [
+       60,
+       2.4,
+       16.1
+      ],
+      "chromatic": false
+     },
+     {
+      "color": "rgb(117,117,111)",
+      "hex": "#75756f",
+      "total": 5,
+      "roles": {
+       "bg": 5
+      },
+      "examples": [
+       "bg: (in) العرض 2 من 6",
+       "bg: (in) العرض 3 من 6",
+       "bg: (in) العرض 4 من 6",
+       "bg: (in) العرض 5 من 6"
+      ],
+      "hsl": [
+       60,
+       2.6,
+       44.7
+      ],
+      "chromatic": false
+     },
+     {
+      "color": "rgb(255,255,255)",
+      "hex": "#ffffff",
+      "total": 4,
+      "roles": {
+       "bg": 4
+      },
+      "examples": [
+       "bg: div:nth-child(1) > div:nth-child(4) > bu",
+       "bg: (in) العروض"
+      ],
+      "hsl": [
+       0,
+       0,
+       100
+      ],
+      "chromatic": false
+     },
+     {
+      "color": "rgba(15,15,15,0.12)",
+      "hex": "#0f0f0f@0.12",
+      "total": 4,
+      "roles": {
+       "bg": 4
+      },
+      "examples": [
+       "bg: div:nth-child(4) > button[role=button]:n",
+       "bg: (in) العروض"
+      ],
+      "hsl": [
+       0,
+       0,
+       5.9
+      ],
+      "chromatic": false
+     },
+     {
+      "color": "rgb(58,58,55)",
+      "hex": "#3a3a37",
+      "total": 1,
+      "roles": {
+       "border": 1
+      },
+      "examples": [
+       "border: نقاطك 2% 1,240 تساوي 12.400 د.أ اصرف 8.0"
+      ],
+      "hsl": [
+       60,
+       2.7,
+       22.2
+      ],
+      "chromatic": false
+     }
+    ]
+   },
+   "imagery": {
+    "firstViewport": {
+     "region": [
+      0,
+      0,
+      390,
+      750
+     ],
+     "hitTestPhotoCoverPct": 9.8,
+     "hitTestImagesSeen": 4,
+     "imgVisible": 4,
+     "boxCoverPct": 9.7,
+     "paintedCoverPct": 9.1,
+     "list": [
+      {
+       "src": "almond-badge-light.d1a6a81761d5a77a19a8080527d09166.png",
+       "box": [
+        34,
+        34
+       ],
+       "visible": [
+        338,
+        21,
+        372,
+        55
+       ],
+       "bgSize": "contain",
+       "natural": [
+        1024,
+        1024
+       ]
+      },
+      {
+       "src": "p-10352.webp",
+       "box": [
+        145.6,
+        145.6
+       ],
+       "visible": [
+        16,
+        408,
+        128,
+        520
+       ],
+       "bgSize": "contain",
+       "natural": [
+        512,
+        512
+       ]
+      },
+      {
+       "src": "p-10334.webp",
+       "box": [
+        105,
+        105
+       ],
+       "visible": [
+        102,
+        564,
+        172,
+        669
+       ],
+       "bgSize": "contain",
+       "natural": [
+        512,
+        512
+       ]
+      },
+      {
+       "src": "p-10267.webp",
+       "box": [
+        105,
+        105
+       ],
+       "visible": [
+        32,
+        564,
+        102,
+        669
+       ],
+       "bgSize": "contain",
+       "natural": [
+        512,
+        384
+       ]
+      }
+     ]
+    },
+    "fullPage": {
+     "fullArea": 440700,
+     "imgInContent": 6,
+     "imgWithVisibleArea": 4,
+     "boxCoverPct": 6.4,
+     "paintedCoverPct": 6,
+     "distinctSrc": 6,
+     "boxSizes": [
+      [
+       "105x105",
+       2
+      ],
+      [
+       "182x208",
+       2
+      ],
+      [
+       "34x34",
+       1
+      ],
+      [
+       "146x146",
+       1
+      ]
+     ]
+    },
+    "cssBackgroundPhotosWithoutImg": 0,
+    "gradients": [],
+    "pixel": {
+     "outsidePhotos": {
+      "px": 1056400,
+      "chromaticPct": 0,
+      "nearWhitePct": 8.6,
+      "nearBlackPct": 61.1,
+      "greyPct": 30.4,
+      "meanLightnessPct": 20.2
+     },
+     "insidePhotos": {
+      "px": 113600,
+      "chromaticPct": 16.2,
+      "nearWhitePct": 0,
+      "nearBlackPct": 7.1,
+      "greyPct": 76.6,
+      "meanLightnessPct": 70.4
+     },
+     "photoSharePct": 9.7,
+     "topChromaticOutsidePhotos": []
+    }
+   },
+   "iconography": {
+    "svgTotal": 21,
+    "icons": 17,
+    "iconsInChrome": 5,
+    "iconsInContent": 12,
+    "iconsFirstViewport": 8,
+    "largeSvgGraphics": [
+     {
+      "w": 59,
+      "h": 59,
+      "shapes": 2,
+      "ctx": "ادفع من رصيدك ويرجع لك 3% بدل 2% اشحن محفظتك"
+     },
+     {
+      "w": 59,
+      "h": 59,
+      "shapes": 4,
+      "ctx": "بطاقات الهدايا أهدِ قهوة لمن تحب أرسل بطاقة هدية"
+     },
+     {
+      "w": 59,
+      "h": 59,
+      "shapes": 4,
+      "ctx": "كاش باك لغاية 9% يرجع لك من 2% إلى 6% من كل طلب، و"
+     },
+     {
+      "w": 50,
+      "h": 50,
+      "shapes": 4,
+      "ctx": "طلبك المعتاد شاي احمد أضف للسلة · 0.500 د.أ"
+     }
+    ],
+    "iconSizes": [
+     [
+      "24x24",
+      4
+     ],
+     [
+      "22x22",
+      3
+     ],
+     [
+      "18x18",
+      3
+     ],
+     [
+      "20x20",
+      3
+     ],
+     [
+      "15x15",
+      1
+     ],
+     [
+      "16x16",
+      1
+     ],
+     [
+      "13x13",
+      1
+     ],
+     [
+      "26x26",
+      1
+     ]
+    ],
+    "iconsToPhotos": "17:6 (2.83)",
+    "iconsToPhotosFirstViewport": "8:4",
+    "iconContexts": [
+     "شارع مكة",
+     "شارع مكة",
+     "اجمع نقاطك",
+     "الإشعارات",
+     "نقاطك 1,240، تساوي 12.400 د.أ. افتح المكافآت",
+     "نقاطك 1,240، تساوي 12.400 د.أ. افتح المكافآت",
+     "رصيد محفظتك 12.500 د.أ اشحن",
+     "اعرض الباركود",
+     "أكمل بياناتك واكسب 50 نقطة",
+     "أكمل بياناتك واكسب 50 نقطة",
+     "تنتهي 1,000 من نقاطك في 26 تشرين الأول، فاستخدمها ",
+     "تنتهي 1,000 من نقاطك في 26 تشرين الأول، فاستخدمها ",
+     "الرئيسية",
+     "اطلب",
+     "الباركود",
+     "المكافآت",
+     "المزيد"
+    ]
+   },
+   "typography": {
+    "syntheticBold": {
+     "textNodes": 9,
+     "texts": [
+      "2% (HelveticaNeueArabic-Roman 14px w700)",
+      "اشحن (HelveticaNeueArabic-Roman 14px w700)",
+      "أضف الاثنين (HelveticaNeueArabic-Roman 14px w700)",
+      "من 3.750 د.أ (HelveticaNeueArabic-Roman 14px w700)",
+      "1.000 د.أ (HelveticaNeueArabic-Roman 14px w700)",
+      "اشحن محفظتك (HelveticaNeueArabic-Roman 14px w700)",
+      "أرسل بطاقة هدية (HelveticaNeueArabic-Roman 14px w700)",
+      "كيف تعمل المكافآت؟ (HelveticaNeueArabic-Roman 14px w700)",
+      "أضف للسلة · 0.500 د.أ (HelveticaNeueArabic-Roman 14px w700)"
+     ],
+     "inkTest": {
+      "HelveticaNeueArabic-Roman": {
+       "w400": {
+        "inkAlphaSum": 237898,
+        "width": 176.8
+       },
+       "w500": {
+        "inkAlphaSum": 237898,
+        "width": 176.8
+       },
+       "w600": {
+        "inkAlphaSum": 346903,
+        "width": 176.8
+       },
+       "w700": {
+        "inkAlphaSum": 346903,
+        "width": 176.8
+       }
+      },
+      "HelveticaNeueArabic-Bold": {
+       "w400": {
+        "inkAlphaSum": 357571,
+        "width": 177.5
+       },
+       "w500": {
+        "inkAlphaSum": 357571,
+        "width": 177.5
+       },
+       "w600": {
+        "inkAlphaSum": 357571,
+        "width": 177.5
+       },
+       "w700": {
+        "inkAlphaSum": 357571,
+        "width": 177.5
+       }
+      }
+     }
+    },
+    "combos": [
+     {
+      "combo": "HelveticaNeueArabic-Roman | 14px | 400",
+      "textNodes": 13
+     },
+     {
+      "combo": "HelveticaNeueArabic-Bold | 16px | 400",
+      "textNodes": 12
+     },
+     {
+      "combo": "HelveticaNeueArabic-Roman | 14px | 700",
+      "textNodes": 9
+     },
+     {
+      "combo": "HelveticaNeueArabic-Bold | 11px | 500",
+      "textNodes": 4
+     },
+     {
+      "combo": "HelveticaNeueArabic-Bold | 22px | 400",
+      "textNodes": 2
+     },
+     {
+      "combo": "HelveticaNeueArabic-Bold | 36px | 400",
+      "textNodes": 1
+     },
+     {
+      "combo": "HelveticaNeueArabic-Bold | 11px | 400",
+      "textNodes": 1
+     }
+    ],
+    "distinctCombos": 7,
+    "families": [
+     [
+      "HelveticaNeueArabic-Roman",
+      22
+     ],
+     [
+      "HelveticaNeueArabic-Bold",
+      20
+     ]
+    ],
+    "sizesByTextNodes": [
+     {
+      "px": 36,
+      "textNodes": 1,
+      "chars": 5
+     },
+     {
+      "px": 22,
+      "textNodes": 2,
+      "chars": 25
+     },
+     {
+      "px": 16,
+      "textNodes": 12,
+      "chars": 247
+     },
+     {
+      "px": 14,
+      "textNodes": 22,
+      "chars": 431
+     },
+     {
+      "px": 11,
+      "textNodes": 5,
+      "chars": 34
+     }
+    ],
+    "largestPx": 36,
+    "largestText": [
+     "1,240"
+    ],
+    "bodyPxByChars": 14,
+    "bodyPxByNodes": 14,
+    "largestToBody": 2.57,
+    "weights": [
+     [
+      "400",
+      29
+     ],
+     [
+      "700",
+      9
+     ],
+     [
+      "500",
+      4
+     ]
+    ]
+   },
+   "repetition": {
+    "pageWideStyledGroups": [
+     {
+      "n": 6,
+      "sig": "326x160|r=16px|bg=rgb(36,36,35)|p=0 0 0 0",
+      "shadow": null,
+      "border": null,
+      "example": "أضف الاثنين / مثلاً: امريكانو ساخن + بلوبيري مفن / أي مشروب + أي طعام = 50 نقطة",
+      "example2": "كيف تعمل المكافآت؟ / يرجع لك من 2% إلى 6% من كل طلب، ونقاطك ×1.5 حين تدفع من رصي"
+     },
+     {
+      "n": 3,
+      "sig": "140x160|r=0px|bg=rgb(255,255,255)|p=0 0 0 0",
+      "shadow": null,
+      "border": null,
+      "example": "(in) العروض",
+      "example2": "(in) العروض"
+     },
+     {
+      "n": 3,
+      "sig": "140x160|r=0px|bg=rgba(15,15,15,0.12)|p=0 0 0 0",
+      "shadow": null,
+      "border": null,
+      "example": "(in) العروض",
+      "example2": "(in) العروض"
+     },
+     {
+      "n": 3,
+      "sig": "140x160|r=0px|bg=rgb(42,42,40)|p=0 0 0 0",
+      "shadow": null,
+      "border": null,
+      "example": "(in) العروض",
+      "example2": "(in) العروض"
+     },
+     {
+      "n": 2,
+      "sig": "105x105|r=0px|bg=rgba(0,0,0,0)|p=0 0 0 0",
+      "shadow": null,
+      "border": null,
+      "example": "(in) العروض",
+      "example2": "(in) العروض"
+     },
+     {
+      "n": 2,
+      "sig": "182x208|r=0px|bg=rgba(0,0,0,0)|p=0 0 0 0",
+      "shadow": null,
+      "border": null,
+      "example": "(in) العروض",
+      "example2": "(in) العروض"
+     }
+    ],
+    "siblingGroupsStyled": [],
+    "siblingGroupsUnstyledTop": [
+     {
+      "n": 6,
+      "sig": "326x160|r=0px|bg=rgba(0,0,0,0)|p=0 0 0 0",
+      "styled": false,
+      "shadow": null,
+      "example": "أضف الاثنين / مثلاً: امريكانو ساخن + بلوبيري مفن / أي مشروب + أي طعام = 50 نقطة",
+      "example2": "كيف تعمل المكافآت؟ / يرجع لك من 2% إلى 6% من كل طلب، ونقاطك ×1.5 حين تدفع من رصي"
+     },
+     {
+      "n": 6,
+      "sig": "24x24|r=0px|bg=rgba(0,0,0,0)|p=0 0 0 0",
+      "styled": false,
+      "shadow": null,
+      "example": "العرض 1 من 6",
+      "example2": "العرض 6 من 6"
+     },
+     {
+      "n": 5,
+      "sig": "78x67|r=0px|bg=rgba(0,0,0,0)|p=0 0 0 0",
+      "styled": false,
+      "shadow": null,
+      "example": "الرئيسية",
+      "example2": "المزيد"
+     },
+     {
+      "n": 2,
+      "sig": "44x44|r=0px|bg=rgba(0,0,0,0)|p=0 0 0 0",
+      "styled": false,
+      "shadow": null,
+      "example": "اجمع نقاطك",
+      "example2": "الإشعارات"
+     },
+     {
+      "n": 2,
+      "sig": "70x160|r=0px|bg=rgba(0,0,0,0)|p=0 0 0 0",
+      "styled": false,
+      "shadow": null,
+      "example": "(in) العروض",
+      "example2": "(in) العروض"
+     }
+    ],
+    "nSiblingGroups": 5,
+    "nStyledSiblingGroups": 0,
+    "distinctRadiiPainted": 9,
+    "radiiPainted": [
+     [
+      "16px",
+      10
+     ],
+     [
+      "999px",
+      9
+     ],
+     [
+      "4px",
+      6
+     ],
+     [
+      "24px",
+      2
+     ],
+     [
+      "12px",
+      1
+     ],
+     [
+      "20px",
+      1
+     ],
+     [
+      "17px",
+      1
+     ],
+     [
+      "3px",
+      1
+     ],
+     [
+      "28px",
+      1
+     ]
+    ],
+    "distinctRadiiAll": 9,
+    "distinctShadows": 1,
+    "shadows": [
+     [
+      "rgba(0, 0, 0, 0.07) 0px 6px 16px 0px",
+      2
+     ]
+    ]
+   },
+   "alignment": {
+    "textBlocks": 42,
+    "textAlignComputed": [
+     [
+      "right",
+      38
+     ],
+     [
+      "center",
+      4
+     ]
+    ],
+    "visual": [
+     [
+      "right",
+      19
+     ],
+     [
+      "other",
+      16
+     ],
+     [
+      "center",
+      5
+     ],
+     [
+      "left",
+      2
+     ]
+    ],
+    "visualCenteredExamples": [
+     "الرئيسية",
+     "اطلب",
+     "الباركود",
+     "المكافآت",
+     "المزيد"
+    ],
+    "textAlignCenterExamples": [
+     "الرئيسية",
+     "اطلب",
+     "المكافآت",
+     "المزيد"
+    ]
+   },
+   "motion": {
+    "cssTransitionElements": 0,
+    "cssTransitionExamples": [],
+    "cssAnimationElements": 0,
+    "cssAnimationExamples": [],
+    "elementsWithNonNoneTransform": 9,
+    "transformExamples": [
+     [
+      "matrix(1, 0, 0, 1, 0, 0)",
+      4
+     ],
+     [
+      "matrix(1.3, 0, 0, 1.3, 0, 0)",
+      3
+     ],
+     [
+      "matrix(1.5, 0, 0, 1.5, 0, 0)",
+      2
+     ]
+    ],
+    "samples": {
+     "earlyAB": {
+      "twoSample": {
+       "added": 19,
+       "removed": 0,
+       "nChanged": 0,
+       "changed": []
+      },
+      "dense": {
+       "nSnaps": 11,
+       "nChanged": 0,
+       "changed": []
+      }
+     },
+     "settledCD": {
+      "twoSample": {
+       "added": 0,
+       "removed": 0,
+       "nChanged": 0,
+       "changed": []
+      },
+      "dense": {
+       "nSnaps": 11,
+       "nChanged": 0,
+       "changed": []
+      }
+     }
+    },
+    "reducedMotionRun": {
+     "earlyAB": {
+      "twoSample": {
+       "added": 19,
+       "removed": 0,
+       "nChanged": 0,
+       "changed": []
+      },
+      "dense": {
+       "nSnaps": 11,
+       "nChanged": 0,
+       "changed": []
+      }
+     },
+     "settledCD": {
+      "twoSample": {
+       "added": 0,
+       "removed": 0,
+       "nChanged": 0,
+       "changed": []
+      },
+      "dense": {
+       "nSnaps": 11,
+       "nChanged": 0,
+       "changed": []
+      }
+     }
+    }
+   },
+   "contrast": {
+    "textElementsChecked": 42,
+    "fails": 0,
+    "failList": [],
+    "placeholders": [],
+    "minRatio": {
+     "ratio": 5.68,
+     "text": "الاسم وتاريخ الميلاد والجنس، وبعدها نناديك باسمك"
+    },
+    "ratioDistribution": [
+     [
+      ">=7",
+      26
+     ],
+     [
+      "4.5-7",
+      16
+     ]
+    ]
+   },
+   "touch": {
+    "interactive": 27,
+    "under44": 7,
+    "under24": 0,
+    "list": [
+     {
+      "label": "شارع مكة",
+      "w": 216,
+      "h": 40,
+      "tag": "button",
+      "role": "button",
+      "tabindex": "0",
+      "visible": true,
+      "under24": false,
+      "sel": "div:nth-child(1) > div:nth-child(1) > div:nth-child(1) > button[role=button]:nth-child(2)"
+     },
+     {
+      "label": "العرض 1 من 6",
+      "w": 24,
+      "h": 24,
+      "tag": "div",
+      "role": "tab",
+      "tabindex": "0",
+      "visible": true,
+      "under24": false,
+      "sel": "div[role=tab][aria-label=\"العرض 1 من 6\"]:nth-child(1)"
+     },
+     {
+      "label": "العرض 2 من 6",
+      "w": 24,
+      "h": 24,
+      "tag": "div",
+      "role": "tab",
+      "tabindex": "0",
+      "visible": true,
+      "under24": false,
+      "sel": "div[role=tab][aria-label=\"العرض 2 من 6\"]:nth-child(2)"
+     },
+     {
+      "label": "العرض 3 من 6",
+      "w": 24,
+      "h": 24,
+      "tag": "div",
+      "role": "tab",
+      "tabindex": "0",
+      "visible": true,
+      "under24": false,
+      "sel": "div[role=tab][aria-label=\"العرض 3 من 6\"]:nth-child(3)"
+     },
+     {
+      "label": "العرض 4 من 6",
+      "w": 24,
+      "h": 24,
+      "tag": "div",
+      "role": "tab",
+      "tabindex": "0",
+      "visible": true,
+      "under24": false,
+      "sel": "div[role=tab][aria-label=\"العرض 4 من 6\"]:nth-child(4)"
+     },
+     {
+      "label": "العرض 5 من 6",
+      "w": 24,
+      "h": 24,
+      "tag": "div",
+      "role": "tab",
+      "tabindex": "0",
+      "visible": true,
+      "under24": false,
+      "sel": "div[role=tab][aria-label=\"العرض 5 من 6\"]:nth-child(5)"
+     },
+     {
+      "label": "العرض 6 من 6",
+      "w": 24,
+      "h": 24,
+      "tag": "div",
+      "role": "tab",
+      "tabindex": "0",
+      "visible": true,
+      "under24": false,
+      "sel": "div[role=tab][aria-label=\"العرض 6 من 6\"]:nth-child(6)"
+     }
+    ]
+   },
+   "copy": {
+    "textBlocks": 42,
+    "distinctStrings": 41,
+    "repeated": [
+     {
+      "s": "من الأكثر طلباً",
+      "n": 2
+     }
+    ],
+    "placeholders": []
+   },
+   "tells": {
+    "a_iconTitleSubtitleTileGroups": [],
+    "b_bgWhiteOrGreyShare": {
+     "painted": 47,
+     "whiteOrGrey": 47,
+     "sharePct": 100,
+     "breakdown": {
+      "nearWhiteL90": 15,
+      "nearBlack": 12,
+      "grey": 20,
+      "lowSatTint": 0,
+      "chromatic": 0
+     },
+     "distinctBgColors": [
+      [
+       "#f2f2f0",
+       11
+      ],
+      [
+       "#242423",
+       9
+      ],
+      [
+       "#2a2a28",
+       6
+      ],
+      [
+       "#75756f",
+       5
+      ],
+      [
+       "#0f0f0f",
+       4
+      ],
+      [
+       "#1a1a19",
+       4
+      ],
+      [
+       "#ffffff",
+       4
+      ],
+      [
+       "#0f0f0f@0.12",
+       4
+      ]
+     ]
+    },
+    "c_anyAccentColour": false,
+    "accentColours": [],
+    "d_distinctRadii": 9,
+    "e_cardStyleMax": [
+     "r=16px | shadow=none | bg=rgb(36,36,35)",
+     8
+    ],
+    "e_cardStyleOver5": true,
+    "cardStyles": [
+     [
+      "r=16px | shadow=none | bg=rgb(36,36,35)",
+      8
+     ],
+     [
+      "r=16px | shadow=none | bg=rgb(42,42,40)",
+      2
+     ],
+     [
+      "r=999px | shadow=none | bg=rgb(36,36,35)",
+      1
+     ],
+     [
+      "r=24px | shadow=rgba(0, 0, 0, 0.07) 0px 6px 16px 0px | bg=rgba(0,0,0,0)",
+      1
+     ],
+     [
+      "r=24px | shadow=none | bg=rgb(26,26,25)",
+      1
+     ],
+     [
+      "r=12px | shadow=none | bg=rgb(242,242,240)",
+      1
+     ]
+    ]
+   }
+  },
+  "rewards-dark": {
+   "name": "rewards-dark",
+   "route": "/rewards",
+   "scheme": "dark",
+   "sheet": false,
+   "mainScroller": {
+    "sh": 750,
+    "ch": 750,
+    "sw": 390
+   },
+   "scrollerCount": 2,
+   "fonts": [
+    "HelveticaNeueArabic-Light|normal|normal|unloaded",
+    "HelveticaNeueArabic-Roman|normal|normal|loaded",
+    "HelveticaNeueArabic-Bold|normal|normal|loaded"
+   ],
+   "htmlBg": "rgba(0, 0, 0, 0)",
+   "colorScheme": "normal",
+   "blockedRequests": [
+    "https://almond-gules.vercel.app/api/menu/app"
+   ],
+   "consoleErrors": [
+    "Failed to load resource: net::ERR_FAILED"
+   ],
+   "recordsMeasured": 125,
+   "scrollSteps": 0,
+   "palette": {
+    "distinct": 8,
+    "chromaticCount": 0,
+    "neutralCount": 8,
+    "list": [
+     {
+      "color": "rgb(242,242,240)",
+      "hex": "#f2f2f0",
+      "total": 31,
+      "roles": {
+       "text": 15,
+       "border": 1,
+       "svgStroke": 13,
+       "bg": 2
+      },
+      "examples": [
+       "text: المكافآت",
+       "text: 1,240",
+       "border: 2%",
+       "svgStroke: svg in 2%"
+      ],
+      "hsl": [
+       60,
+       7.1,
+       94.5
+      ],
+      "chromatic": false
+     },
+     {
+      "color": "rgb(163,163,158)",
+      "hex": "#a3a39e",
+      "total": 15,
+      "roles": {
+       "text": 12,
+       "svgStroke": 3
+      },
+      "examples": [
+       "text: رصيد نقاطك",
+       "text: تساوي 12.400 د.أ، وتكفي ثمن 3 ايس سبانيش",
+       "text: تنتهي 1,000 من نقاطك في 26 تشرين الأول",
+       "text: يرجع لك من 2% إلى 6% من كل طلب، ونقاطك ×"
+      ],
+      "hsl": [
+       60,
+       2.6,
+       62.9
+      ],
+      "chromatic": false
+     },
+     {
+      "color": "rgb(15,15,15)",
+      "hex": "#0f0f0f",
+      "total": 9,
+      "roles": {
+       "bg": 4,
+       "svgStroke": 5
+      },
+      "examples": [
+       "bg: المكافآت رصيد نقاطك 1,240 تساوي 12.400 د",
+       "svgStroke: svg in الباركود"
+      ],
+      "hsl": [
+       0,
+       0,
+       5.9
+      ],
+      "chromatic": false
+     },
+     {
+      "color": "rgb(26,26,25)",
+      "hex": "#1a1a19",
+      "total": 7,
+      "roles": {
+       "bg": 6,
+       "border": 1
+      },
+      "examples": [
+       "bg: رصيد نقاطك 1,240 تساوي 12.400 د.أ، وتكفي",
+       "bg: اخصم 1.000 د.أ من فاتورتك مقابل 100 من ن",
+       "bg: اخصم 2.000 د.أ من فاتورتك مقابل 200 من ن",
+       "bg: اخصم 5.000 د.أ من فاتورتك مقابل 500 من ن"
+      ],
+      "hsl": [
+       60,
+       2,
+       10
+      ],
+      "chromatic": false
+     },
+     {
+      "color": "rgb(117,117,111)",
+      "hex": "#75756f",
+      "total": 4,
+      "roles": {
+       "border": 4
+      },
+      "examples": [
+       "border: اخصم 1.000 د.أ من فاتورتك مقابل 100 من ن",
+       "border: اخصم 2.000 د.أ من فاتورتك مقابل 200 من ن",
+       "border: اخصم 5.000 د.أ من فاتورتك مقابل 500 من ن",
+       "border: كل نقاطك: اخصم 12.400 د.أ من فاتورتك مقا"
+      ],
+      "hsl": [
+       60,
+       2.6,
+       44.7
+      ],
+      "chromatic": false
+     },
+     {
+      "color": "rgb(36,36,35)",
+      "hex": "#242423",
+      "total": 4,
+      "roles": {
+       "bg": 4
+      },
+      "examples": [
+       "bg: سجل النقاط آخر حركة: 9 تشرين الأول",
+       "bg: قسائمي لا توجد قسائم نشطة",
+       "bg: فئتك الآن 2%، والتالية 4%",
+       "bg: كيف تعمل؟ 100 نقطة = 1 دينار"
+      ],
+      "hsl": [
+       60,
+       1.4,
+       13.9
+      ],
+      "chromatic": false
+     },
+     {
+      "color": "rgb(58,58,55)",
+      "hex": "#3a3a37",
+      "total": 1,
+      "roles": {
+       "border": 1
+      },
+      "examples": [
+       "border: رصيد نقاطك 1,240 تساوي 12.400 د.أ، وتكفي"
+      ],
+      "hsl": [
+       60,
+       2.7,
+       22.2
+      ],
+      "chromatic": false
+     },
+     {
+      "color": "rgb(42,42,40)",
+      "hex": "#2a2a28",
+      "total": 1,
+      "roles": {
+       "border": 1
+      },
+      "examples": [
+       "border: الرئيسية اطلب الباركود المكافآت المزيد"
+      ],
+      "hsl": [
+       60,
+       2.4,
+       16.1
+      ],
+      "chromatic": false
+     }
+    ]
+   },
+   "imagery": {
+    "firstViewport": {
+     "region": [
+      0,
+      0,
+      390,
+      750
+     ],
+     "hitTestPhotoCoverPct": 0,
+     "hitTestImagesSeen": 0,
+     "imgVisible": 0,
+     "boxCoverPct": 0,
+     "paintedCoverPct": 0,
+     "list": []
+    },
+    "fullPage": {
+     "fullArea": 292500,
+     "imgInContent": 0,
+     "imgWithVisibleArea": 0,
+     "boxCoverPct": 0,
+     "paintedCoverPct": 0,
+     "distinctSrc": 0,
+     "boxSizes": []
+    },
+    "cssBackgroundPhotosWithoutImg": 0,
+    "gradients": [],
+    "pixel": {
+     "outsidePhotos": {
+      "px": 1170000,
+      "chromaticPct": 0,
+      "nearWhitePct": 1.9,
+      "nearBlackPct": 78.7,
+      "greyPct": 19.4,
+      "meanLightnessPct": 11.8
+     },
+     "insidePhotos": {
+      "px": 0,
+      "chromaticPct": 0,
+      "nearWhitePct": 0,
+      "nearBlackPct": 0,
+      "greyPct": 0,
+      "meanLightnessPct": null
+     },
+     "photoSharePct": 0,
+     "topChromaticOutsidePhotos": []
+    }
+   },
+   "iconography": {
+    "svgTotal": 11,
+    "icons": 11,
+    "iconsInChrome": 5,
+    "iconsInContent": 6,
+    "iconsFirstViewport": 6,
+    "largeSvgGraphics": [],
+    "iconSizes": [
+     [
+      "20x20",
+      4
+     ],
+     [
+      "24x24",
+      4
+     ],
+     [
+      "13x13",
+      1
+     ],
+     [
+      "18x18",
+      1
+     ],
+     [
+      "26x26",
+      1
+     ]
+    ],
+    "iconsToPhotos": "11:0",
+    "iconsToPhotosFirstViewport": "6:0",
+    "iconContexts": [
+     "2%",
+     "هدية ترحيب: 200 نقطة تُضاف مع أول شراء",
+     "سجل النقاط آخر حركة: 9 تشرين الأول",
+     "قسائمي لا توجد قسائم نشطة",
+     "فئتك الآن 2%، والتالية 4%",
+     "كيف تعمل؟ 100 نقطة = 1 دينار",
+     "الرئيسية",
+     "اطلب",
+     "الباركود",
+     "المكافآت",
+     "المزيد"
+    ]
+   },
+   "typography": {
+    "syntheticBold": {
+     "textNodes": 1,
+     "texts": [
+      "2% (HelveticaNeueArabic-Roman 14px w700)"
+     ],
+     "inkTest": {
+      "HelveticaNeueArabic-Roman": {
+       "w400": {
+        "inkAlphaSum": 237898,
+        "width": 176.8
+       },
+       "w500": {
+        "inkAlphaSum": 237898,
+        "width": 176.8
+       },
+       "w600": {
+        "inkAlphaSum": 346903,
+        "width": 176.8
+       },
+       "w700": {
+        "inkAlphaSum": 346903,
+        "width": 176.8
+       }
+      },
+      "HelveticaNeueArabic-Bold": {
+       "w400": {
+        "inkAlphaSum": 357571,
+        "width": 177.5
+       },
+       "w500": {
+        "inkAlphaSum": 357571,
+        "width": 177.5
+       },
+       "w600": {
+        "inkAlphaSum": 357571,
+        "width": 177.5
+       },
+       "w700": {
+        "inkAlphaSum": 357571,
+        "width": 177.5
+       }
+      }
+     }
+    },
+    "combos": [
+     {
+      "combo": "HelveticaNeueArabic-Bold | 16px | 400",
+      "textNodes": 9
+     },
+     {
+      "combo": "HelveticaNeueArabic-Roman | 14px | 400",
+      "textNodes": 7
+     },
+     {
+      "combo": "HelveticaNeueArabic-Bold | 11px | 500",
+      "textNodes": 4
+     },
+     {
+      "combo": "HelveticaNeueArabic-Bold | 28px | 400",
+      "textNodes": 1
+     },
+     {
+      "combo": "HelveticaNeueArabic-Bold | 36px | 400",
+      "textNodes": 1
+     },
+     {
+      "combo": "HelveticaNeueArabic-Roman | 14px | 700",
+      "textNodes": 1
+     },
+     {
+      "combo": "HelveticaNeueArabic-Bold | 18px | 400",
+      "textNodes": 1
+     },
+     {
+      "combo": "HelveticaNeueArabic-Bold | 22px | 400",
+      "textNodes": 1
+     },
+     {
+      "combo": "HelveticaNeueArabic-Roman | 16px | 400",
+      "textNodes": 1
+     },
+     {
+      "combo": "HelveticaNeueArabic-Bold | 11px | 400",
+      "textNodes": 1
+     }
+    ],
+    "distinctCombos": 10,
+    "families": [
+     [
+      "HelveticaNeueArabic-Bold",
+      18
+     ],
+     [
+      "HelveticaNeueArabic-Roman",
+      9
+     ]
+    ],
+    "sizesByTextNodes": [
+     {
+      "px": 36,
+      "textNodes": 1,
+      "chars": 5
+     },
+     {
+      "px": 28,
+      "textNodes": 1,
+      "chars": 8
+     },
+     {
+      "px": 22,
+      "textNodes": 1,
+      "chars": 16
+     },
+     {
+      "px": 18,
+      "textNodes": 1,
+      "chars": 12
+     },
+     {
+      "px": 16,
+      "textNodes": 10,
+      "chars": 171
+     },
+     {
+      "px": 14,
+      "textNodes": 8,
+      "chars": 170
+     },
+     {
+      "px": 11,
+      "textNodes": 5,
+      "chars": 34
+     }
+    ],
+    "largestPx": 36,
+    "largestText": [
+     "1,240"
+    ],
+    "bodyPxByChars": 16,
+    "bodyPxByNodes": 16,
+    "largestToBody": 2.25,
+    "weights": [
+     [
+      "400",
+      22
+     ],
+     [
+      "500",
+      4
+     ],
+     [
+      "700",
+      1
+     ]
+    ]
+   },
+   "repetition": {
+    "pageWideStyledGroups": [
+     {
+      "n": 4,
+      "sig": "84x48|r=12px|bg=rgb(26,26,25)|p=0 4 0 4",
+      "shadow": null,
+      "border": {
+       "side": "Top",
+       "w": 1,
+       "c": "rgb(117,117,111)"
+      },
+      "example": "1.000 د.أ",
+      "example2": "كل نقاطك"
+     },
+     {
+      "n": 4,
+      "sig": "173x72|r=16px|bg=rgb(36,36,35)|p=12 12 12 12",
+      "shadow": null,
+      "border": null,
+      "example": "آخر حركة: 9 تشرين الأول / سجل النقاط",
+      "example2": "100 نقطة = 1 دينار / كيف تعمل؟"
+     }
+    ],
+    "siblingGroupsStyled": [
+     {
+      "n": 4,
+      "sig": "84x48|r=12px|bg=rgb(26,26,25)|p=0 4 0 4",
+      "styled": true,
+      "shadow": null,
+      "example": "1.000 د.أ",
+      "example2": "كل نقاطك"
+     },
+     {
+      "n": 4,
+      "sig": "173x72|r=16px|bg=rgb(36,36,35)|p=12 12 12 12",
+      "styled": true,
+      "shadow": null,
+      "example": "آخر حركة: 9 تشرين الأول / سجل النقاط",
+      "example2": "100 نقطة = 1 دينار / كيف تعمل؟"
+     }
+    ],
+    "siblingGroupsUnstyledTop": [
+     {
+      "n": 5,
+      "sig": "78x67|r=0px|bg=rgba(0,0,0,0)|p=0 0 0 0",
+      "styled": false,
+      "shadow": null,
+      "example": "الرئيسية",
+      "example2": "المزيد"
+     },
+     {
+      "n": 2,
+      "sig": "358x48|r=0px|bg=rgba(0,0,0,0)|p=0 0 0 0",
+      "styled": false,
+      "shadow": null,
+      "example": "كل نقاطك / 5.000 د.أ / 2.000 د.أ",
+      "example2": "يرجع لك من 2% إلى 6% من كل طلب، ونقاطك ×1.5 حين تدفع من رصيد"
+     }
+    ],
+    "nSiblingGroups": 4,
+    "nStyledSiblingGroups": 2,
+    "distinctRadiiPainted": 5,
+    "radiiPainted": [
+     [
+      "16px",
+      5
+     ],
+     [
+      "12px",
+      4
+     ],
+     [
+      "999px",
+      1
+     ],
+     [
+      "28px",
+      1
+     ],
+     [
+      "3px",
+      1
+     ]
+    ],
+    "distinctRadiiAll": 5,
+    "distinctShadows": 2,
+    "shadows": [
+     [
+      "rgba(0, 0, 0, 0.04) 0px 2px 8px 0px",
+      1
+     ],
+     [
+      "rgba(0, 0, 0, 0.07) 0px 6px 16px 0px",
+      1
+     ]
+    ]
+   },
+   "alignment": {
+    "textBlocks": 27,
+    "textAlignComputed": [
+     [
+      "right",
+      16
+     ],
+     [
+      "center",
+      11
+     ]
+    ],
+    "visual": [
+     [
+      "right",
+      10
+     ],
+     [
+      "center",
+      9
+     ],
+     [
+      "other",
+      6
+     ],
+     [
+      "left",
+      2
+     ]
+    ],
+    "visualCenteredExamples": [
+     "رصيد نقاطك",
+     "1,240",
+     "تنتهي 1,000 من نقاطك في 26 تشر",
+     "كاش باك لغاية 9%",
+     "الرئيسية",
+     "اطلب",
+     "الباركود",
+     "المكافآت",
+     "المزيد"
+    ],
+    "textAlignCenterExamples": [
+     "تساوي 12.400 د.أ، وتكفي ثمن 3 ",
+     "1.000 د.أ",
+     "2.000 د.أ",
+     "5.000 د.أ",
+     "كل نقاطك",
+     "كاش باك لغاية 9%",
+     "يرجع لك من 2% إلى 6% من كل طلب",
+     "الرئيسية",
+     "اطلب",
+     "المكافآت",
+     "المزيد"
+    ]
+   },
+   "motion": {
+    "cssTransitionElements": 0,
+    "cssTransitionExamples": [],
+    "cssAnimationElements": 0,
+    "cssAnimationExamples": [],
+    "elementsWithNonNoneTransform": 3,
+    "transformExamples": [
+     [
+      "matrix(1, 0, 0, 1, 0, 0)",
+      3
+     ]
+    ],
+    "samples": {
+     "earlyAB": {
+      "twoSample": {
+       "added": 180,
+       "removed": 0,
+       "nChanged": 0,
+       "changed": []
+      },
+      "dense": {
+       "nSnaps": 11,
+       "nChanged": 0,
+       "changed": []
+      }
+     },
+     "settledCD": {
+      "twoSample": {
+       "added": 0,
+       "removed": 0,
+       "nChanged": 0,
+       "changed": []
+      },
+      "dense": {
+       "nSnaps": 11,
+       "nChanged": 0,
+       "changed": []
+      }
+     }
+    },
+    "reducedMotionRun": {
+     "earlyAB": {
+      "twoSample": {
+       "added": 180,
+       "removed": 0,
+       "nChanged": 0,
+       "changed": []
+      },
+      "dense": {
+       "nSnaps": 11,
+       "nChanged": 0,
+       "changed": []
+      }
+     },
+     "settledCD": {
+      "twoSample": {
+       "added": 0,
+       "removed": 0,
+       "nChanged": 0,
+       "changed": []
+      },
+      "dense": {
+       "nSnaps": 11,
+       "nChanged": 0,
+       "changed": []
+      }
+     }
+    }
+   },
+   "contrast": {
+    "textElementsChecked": 27,
+    "fails": 0,
+    "failList": [],
+    "placeholders": [],
+    "minRatio": {
+     "ratio": 6.13,
+     "text": "آخر حركة: 9 تشرين الأول"
+    },
+    "ratioDistribution": [
+     [
+      ">=7",
+      16
+     ],
+     [
+      "4.5-7",
+      11
+     ]
+    ]
+   },
+   "touch": {
+    "interactive": 13,
+    "under44": 0,
+    "under24": 0,
+    "list": []
+   },
+   "copy": {
+    "textBlocks": 27,
+    "distinctStrings": 26,
+    "repeated": [
+     {
+      "s": "المكافآت",
+      "n": 2
+     }
+    ],
+    "placeholders": []
+   },
+   "tells": {
+    "a_iconTitleSubtitleTileGroups": [
+     {
+      "sig": "173x72|r=16px|bg=rgb(36,36,35)|p=12 12 12 12",
+      "members": 4,
+      "of": 4,
+      "cols": 2,
+      "rows": 2,
+      "grid2D": true,
+      "examples": [
+       "آخر حركة: 9 تشرين الأول / سجل النقاط",
+       "لا توجد قسائم نشطة / قسائمي",
+       "الآن 2%، والتالية 4% / فئتك",
+       "100 نقطة = 1 دينار / كيف تعمل؟"
+      ]
+     }
+    ],
+    "b_bgWhiteOrGreyShare": {
+     "painted": 16,
+     "whiteOrGrey": 16,
+     "sharePct": 100,
+     "breakdown": {
+      "nearWhiteL90": 2,
+      "nearBlack": 10,
+      "grey": 4,
+      "lowSatTint": 0,
+      "chromatic": 0
+     },
+     "distinctBgColors": [
+      [
+       "#1a1a19",
+       6
+      ],
+      [
+       "#0f0f0f",
+       4
+      ],
+      [
+       "#242423",
+       4
+      ],
+      [
+       "#f2f2f0",
+       2
+      ]
+     ]
+    },
+    "c_anyAccentColour": false,
+    "accentColours": [],
+    "d_distinctRadii": 5,
+    "e_cardStyleMax": [
+     "r=12px | shadow=none | bg=rgb(26,26,25)",
+     4
+    ],
+    "e_cardStyleOver5": false,
+    "cardStyles": [
+     [
+      "r=12px | shadow=none | bg=rgb(26,26,25)",
+      4
+     ],
+     [
+      "r=16px | shadow=none | bg=rgb(36,36,35)",
+      4
+     ],
+     [
+      "r=16px | shadow=rgba(0, 0, 0, 0.04) 0px 2px 8px 0px | bg=rgb(26,26,25)",
+      1
+     ],
+     [
+      "r=28px | shadow=rgba(0, 0, 0, 0.07) 0px 6px 16px 0px | bg=rgb(242,242,240)",
+      1
+     ]
+    ]
+   }
+  }
+ },
+ "motionDetail": {
+  "pay-no-preference": {
+   "min": 1.00003,
+   "max": 1.04,
+   "maximaAt": [
+    3901,
+    6091,
+    8277
+   ],
+   "distinctTransforms": [
+    "354x354",
+    "356x356",
+    "358x358",
+    "360x360",
+    "361x361",
+    "362x362",
+    "359x359",
+    "357x357",
+    "355x355",
+    "353x353",
+    "351x351",
+    "350x350",
+    "349x349",
+    "348x348",
+    "352x352"
+   ]
+  },
+  "sheet-no-preference": {
+   "elapsedMs": 1300,
+   "samples": [
+    null,
+    null,
+    null,
+    null,
+    null,
+    "y=12.2275 op=1/1",
+    "y=1.57543 op=1/1",
+    "y=-0.182833 op=1/1",
+    "y=-0.434467 op=1/1",
+    "y=-0.318225 op=1/1",
+    "y=-0.175791 op=1/1",
+    "y=-0.0623154 op=1/1",
+    "y=-0.0247346 op=1/1",
+    "y=-0.0084573 op=1/1",
+    "y=-0.0022655 op=1/1",
+    "y=-0.0002534 op=1/1",
+    "matrix(1.3, 0, 0, 1.3, 0, 0) op=1/1",
+    "matrix(1.3, 0, 0, 1.3, 0, 0) op=1/1",
+    "matrix(1.3, 0, 0, 1.3, 0, 0) op=1/1",
+    "matrix(1.3, 0, 0, 1.3, 0, 0) op=1/1",
+    "matrix(1.3, 0, 0, 1.3, 0, 0) op=1/1",
+    "matrix(1.3, 0, 0, 1.3, 0, 0) op=1/1",
+    "matrix(1.3, 0, 0, 1.3, 0, 0) op=1/1",
+    "matrix(1.3, 0, 0, 1.3, 0, 0) op=1/1"
+   ]
+  },
+  "order-no-preference": {
+   "windowMs": 2297,
+   "nAnimated": 3,
+   "items": [
+    {
+     "desc": "بانوفي فرابيه من 3.950 د.أ ماكاديميا لاتيه ساخن من",
+     "rect": [
+      16,
+      440,
+      358,
+      271
+     ],
+     "values": [
+      "matrix(1, 0, 0, 1, 0, 8)|0",
+      "matrix(1, 0, 0, 1, 0, 7.89344)|0.0133205",
+      "matrix(1, 0, 0, 1, 0, 5.88493)|0.264384",
+      "matrix(1, 0, 0, 1, 0, 2.57927)|0.677591",
+      "matrix(1, 0, 0, 1, 0, 0.602772)|0.924653"
+     ]
+    },
+    {
+     "desc": "بمكن باي لاتيه ساخن من 3.500 د.أ صيف لاتيه الساخن ",
+     "rect": [
+      16,
+      711,
+      358,
+      271
+     ],
+     "values": [
+      "matrix(1, 0, 0, 1, 0, 8)|0",
+      "matrix(1, 0, 0, 1, 0, 6.59248)|0.17594",
+      "matrix(1, 0, 0, 1, 0, 3.44001)|0.569998",
+      "matrix(1, 0, 0, 1, 0, 1.14877)|0.856404",
+      "matrix(1, 0, 0, 1, 0, 0)|1"
+     ]
+    },
+    {
+     "desc": "ماتشا جوز الهند المثلجة من 4.350 د.أ ماكاديميا لات",
+     "rect": [
+      16,
+      982,
+      358,
+      271
+     ],
+     "values": [
+      "matrix(1, 0, 0, 1, 0, 8)|0",
+      "matrix(1, 0, 0, 1, 0, 7.35316)|0.0808549",
+      "matrix(1, 0, 0, 1, 0, 4.68312)|0.41461",
+      "matrix(1, 0, 0, 1, 0, 2.01267)|0.748416",
+      "matrix(1, 0, 0, 1, 0, 0.076998)|0.990375"
+     ]
+    }
+   ]
+  },
+  "pay-reduce": {
+   "min": 1,
+   "max": 1,
+   "maximaAt": [],
+   "distinctTransforms": []
+  },
+  "sheet-reduce": {
+   "elapsedMs": 1284,
+   "samples": [
+    null,
+    null,
+    null,
+    null,
+    null,
+    "matrix(1.3, 0, 0, 1.3, 0, 0) op=1/1",
+    "matrix(1.3, 0, 0, 1.3, 0, 0) op=1/1",
+    "matrix(1.3, 0, 0, 1.3, 0, 0) op=1/1",
+    "matrix(1.3, 0, 0, 1.3, 0, 0) op=1/1",
+    "matrix(1.3, 0, 0, 1.3, 0, 0) op=1/1",
+    "matrix(1.3, 0, 0, 1.3, 0, 0) op=1/1",
+    "matrix(1.3, 0, 0, 1.3, 0, 0) op=1/1",
+    "matrix(1.3, 0, 0, 1.3, 0, 0) op=1/1",
+    "matrix(1.3, 0, 0, 1.3, 0, 0) op=1/1",
+    "matrix(1.3, 0, 0, 1.3, 0, 0) op=1/1",
+    "matrix(1.3, 0, 0, 1.3, 0, 0) op=1/1",
+    "matrix(1.3, 0, 0, 1.3, 0, 0) op=1/1",
+    "matrix(1.3, 0, 0, 1.3, 0, 0) op=1/1",
+    "matrix(1.3, 0, 0, 1.3, 0, 0) op=1/1",
+    "matrix(1.3, 0, 0, 1.3, 0, 0) op=1/1",
+    "matrix(1.3, 0, 0, 1.3, 0, 0) op=1/1",
+    "matrix(1.3, 0, 0, 1.3, 0, 0) op=1/1",
+    "matrix(1.3, 0, 0, 1.3, 0, 0) op=1/1",
+    "matrix(1.3, 0, 0, 1.3, 0, 0) op=1/1"
+   ]
+  },
+  "order-reduce": {
+   "windowMs": 2306,
+   "nAnimated": 0,
+   "items": []
+  }
+ },
+ "transientCssAnimations": {
+  "/|no-preference": {
+   "maxConcurrent": 2,
+   "distinct": [
+    {
+     "an": "none",
+     "adur": "0s",
+     "td": "0.05s",
+     "tp": "padding",
+     "rect": [
+      0,
+      0,
+      0,
+      0
+     ],
+     "text": "",
+     "anims": []
+    }
+   ],
+   "docAnimations": []
+  },
+  "/order|no-preference": {
+   "maxConcurrent": 2,
+   "distinct": [
+    {
+     "an": "none",
+     "adur": "0s",
+     "td": "0.05s",
+     "tp": "padding",
+     "rect": [
+      0,
+      0,
+      0,
+      0
+     ],
+     "text": "",
+     "anims": []
+    }
+   ],
+   "docAnimations": []
+  },
+  "sheet|no-preference": {
+   "maxConcurrent": 3,
+   "distinct": [
+    {
+     "an": "none",
+     "adur": "0s",
+     "td": "0.05s",
+     "tp": "padding",
+     "rect": [
+      0,
+      0,
+      0,
+      0
+     ],
+     "text": "",
+     "anims": []
+    },
+    {
+     "an": "r-imtty0",
+     "adur": "0.25s",
+     "td": "0s",
+     "tp": "all",
+     "rect": [
+      0,
+      0,
+      390,
+      844
+     ],
+     "text": "لاتيه مثلج الحجم صغير 3.500 د.",
+     "anims": []
+    }
+   ],
+   "docAnimations": [
+    "CSSAnimation:r-imtty0:running:250"
+   ]
+  },
+  "/rewards|no-preference": {
+   "maxConcurrent": 2,
+   "distinct": [
+    {
+     "an": "none",
+     "adur": "0s",
+     "td": "0.05s",
+     "tp": "padding",
+     "rect": [
+      0,
+      0,
+      0,
+      0
+     ],
+     "text": "",
+     "anims": []
+    }
+   ],
+   "docAnimations": []
+  },
+  "/pay|no-preference": {
+   "maxConcurrent": 2,
+   "distinct": [
+    {
+     "an": "none",
+     "adur": "0s",
+     "td": "0.05s",
+     "tp": "padding",
+     "rect": [
+      0,
+      0,
+      0,
+      0
+     ],
+     "text": "",
+     "anims": []
+    }
+   ],
+   "docAnimations": []
+  },
+  "/|reduce": {
+   "maxConcurrent": 2,
+   "distinct": [
+    {
+     "an": "none",
+     "adur": "0s",
+     "td": "0.05s",
+     "tp": "padding",
+     "rect": [
+      0,
+      0,
+      0,
+      0
+     ],
+     "text": "",
+     "anims": []
+    }
+   ],
+   "docAnimations": []
+  },
+  "/order|reduce": {
+   "maxConcurrent": 2,
+   "distinct": [
+    {
+     "an": "none",
+     "adur": "0s",
+     "td": "0.05s",
+     "tp": "padding",
+     "rect": [
+      0,
+      0,
+      0,
+      0
+     ],
+     "text": "",
+     "anims": []
+    }
+   ],
+   "docAnimations": []
+  },
+  "sheet|reduce": {
+   "maxConcurrent": 3,
+   "distinct": [
+    {
+     "an": "none",
+     "adur": "0s",
+     "td": "0.05s",
+     "tp": "padding",
+     "rect": [
+      0,
+      0,
+      0,
+      0
+     ],
+     "text": "",
+     "anims": []
+    },
+    {
+     "an": "r-imtty0",
+     "adur": "0.25s",
+     "td": "0s",
+     "tp": "all",
+     "rect": [
+      0,
+      0,
+      390,
+      844
+     ],
+     "text": "لاتيه مثلج الحجم صغير 3.500 د.",
+     "anims": []
+    }
+   ],
+   "docAnimations": [
+    "CSSAnimation:r-imtty0:running:250"
+   ]
+  },
+  "/rewards|reduce": {
+   "maxConcurrent": 2,
+   "distinct": [
+    {
+     "an": "none",
+     "adur": "0s",
+     "td": "0.05s",
+     "tp": "padding",
+     "rect": [
+      0,
+      0,
+      0,
+      0
+     ],
+     "text": "",
+     "anims": []
+    }
+   ],
+   "docAnimations": []
+  },
+  "/pay|reduce": {
+   "maxConcurrent": 2,
+   "distinct": [
+    {
+     "an": "none",
+     "adur": "0s",
+     "td": "0.05s",
+     "tp": "padding",
+     "rect": [
+      0,
+      0,
+      0,
+      0
+     ],
+     "text": "",
+     "anims": []
+    }
+   ],
+   "docAnimations": []
+  }
+ },
+ "summary": {
+  "firstLine": "Deterministic scan unavailable (impeccable detect not shipped in advisory mode); manual Playwright measurement used.",
+  "paletteUnionLight": [
+   {
+    "hex": "#111111",
+    "hsl": [
+     0,
+     0,
+     6.7
+    ],
+    "chromatic": false,
+    "total": 945,
+    "screens": [
+     "home-light",
+     "order-light",
+     "sheet-light",
+     "rewards-light",
+     "pay-light"
+    ]
+   },
+   {
+    "hex": "#ffffff",
+    "hsl": [
+     0,
+     0,
+     100
+    ],
+    "chromatic": false,
+    "total": 858,
+    "screens": [
+     "home-light",
+     "order-light",
+     "sheet-light",
+     "rewards-light",
+     "pay-light"
+    ]
+   },
+   {
+    "hex": "#5c5c58",
+    "hsl": [
+     60,
+     2.2,
+     35.3
+    ],
+    "chromatic": false,
+    "total": 311,
+    "screens": [
+     "home-light",
+     "order-light",
+     "sheet-light",
+     "rewards-light",
+     "pay-light"
+    ]
+   },
+   {
+    "hex": "#f4f4f2",
+    "hsl": [
+     60,
+     8.3,
+     95.3
+    ],
+    "chromatic": false,
+    "total": 77,
+    "screens": [
+     "home-light",
+     "order-light",
+     "sheet-light",
+     "rewards-light"
+    ]
+   },
+   {
+    "hex": "#8a8a85",
+    "hsl": [
+     60,
+     2.1,
+     53.1
+    ],
+    "chromatic": false,
+    "total": 73,
+    "screens": [
+     "home-light",
+     "order-light",
+     "sheet-light",
+     "rewards-light"
+    ]
+   },
+   {
+    "hex": "#efefec",
+    "hsl": [
+     60,
+     8.6,
+     93.1
+    ],
+    "chromatic": false,
+    "total": 18,
+    "screens": [
+     "home-light",
+     "order-light",
+     "sheet-light",
+     "rewards-light",
+     "pay-light"
+    ]
+   },
+   {
+    "hex": "#bdbdb8",
+    "hsl": [
+     60,
+     3.6,
+     73.1
+    ],
+    "chromatic": false,
+    "total": 10,
+    "screens": [
+     "home-light",
+     "rewards-light"
+    ]
+   },
+   {
+    "hex": "#e6e6e2",
+    "hsl": [
+     60,
+     7.4,
+     89.4
+    ],
+    "chromatic": false,
+    "total": 6,
+    "screens": [
+     "sheet-light"
+    ]
+   },
+   {
+    "hex": "#000000",
+    "hsl": [
+     0,
+     0,
+     0
+    ],
+    "chromatic": false,
+    "total": 2,
+    "screens": [
+     "pay-light"
+    ]
+   },
+   {
+    "hex": "#111111@0.45",
+    "hsl": [
+     0,
+     0,
+     6.7
+    ],
+    "chromatic": false,
+    "total": 1,
+    "screens": [
+     "sheet-light"
+    ]
+   }
+  ],
+  "paletteUnionDark": [
+   {
+    "hex": "#f2f2f0",
+    "hsl": [
+     60,
+     7.1,
+     94.5
+    ],
+    "chromatic": false,
+    "total": 92,
+    "screens": [
+     "home-dark",
+     "rewards-dark"
+    ]
+   },
+   {
+    "hex": "#a3a39e",
+    "hsl": [
+     60,
+     2.6,
+     62.9
+    ],
+    "chromatic": false,
+    "total": 38,
+    "screens": [
+     "home-dark",
+     "rewards-dark"
+    ]
+   },
+   {
+    "hex": "#0f0f0f",
+    "hsl": [
+     0,
+     0,
+     5.9
+    ],
+    "chromatic": false,
+    "total": 25,
+    "screens": [
+     "home-dark",
+     "rewards-dark"
+    ]
+   },
+   {
+    "hex": "#1a1a19",
+    "hsl": [
+     60,
+     2,
+     10
+    ],
+    "chromatic": false,
+    "total": 18,
+    "screens": [
+     "home-dark",
+     "rewards-dark"
+    ]
+   },
+   {
+    "hex": "#242423",
+    "hsl": [
+     60,
+     1.4,
+     13.9
+    ],
+    "chromatic": false,
+    "total": 13,
+    "screens": [
+     "home-dark",
+     "rewards-dark"
+    ]
+   },
+   {
+    "hex": "#75756f",
+    "hsl": [
+     60,
+     2.6,
+     44.7
+    ],
+    "chromatic": false,
+    "total": 9,
+    "screens": [
+     "home-dark",
+     "rewards-dark"
+    ]
+   },
+   {
+    "hex": "#2a2a28",
+    "hsl": [
+     60,
+     2.4,
+     16.1
+    ],
+    "chromatic": false,
+    "total": 8,
+    "screens": [
+     "home-dark",
+     "rewards-dark"
+    ]
+   },
+   {
+    "hex": "#ffffff",
+    "hsl": [
+     0,
+     0,
+     100
+    ],
+    "chromatic": false,
+    "total": 4,
+    "screens": [
+     "home-dark"
+    ]
+   },
+   {
+    "hex": "#0f0f0f@0.12",
+    "hsl": [
+     0,
+     0,
+     5.9
+    ],
+    "chromatic": false,
+    "total": 4,
+    "screens": [
+     "home-dark"
+    ]
+   },
+   {
+    "hex": "#3a3a37",
+    "hsl": [
+     60,
+     2.7,
+     22.2
+    ],
+    "chromatic": false,
+    "total": 2,
+    "screens": [
+     "home-dark",
+     "rewards-dark"
+    ]
+   }
+  ],
+  "radiiUnionLight": [
+   "16px",
+   "999px",
+   "4px",
+   "24px",
+   "12px",
+   "20px",
+   "17px",
+   "3px",
+   "28px",
+   "32px",
+   "2px",
+   "8px",
+   "24px 24px 0px 0px",
+   "22px"
+  ],
+  "textSizesUnionLight": [
+   11,
+   14,
+   16,
+   18,
+   22,
+   28,
+   36
+  ],
+  "textElementsCheckedLight": 977,
+  "nonTextContrast": {
+   "#8a8a85 border on #ffffff": 3.47,
+   "#8a8a85 border on #f4f4f2": 3.15,
+   "selected chip bg #e6e6e2 vs unselected #f4f4f2": 1.14,
+   "#f4f4f2 card on #ffffff page": 1.1,
+   "dark: #242423 card on #0f0f0f page": 1.23,
+   "dark: #1a1a19 on #0f0f0f": 1.1,
+   "dark: #3a3a37 card border on #0f0f0f": 1.68
+  },
+  "productCardText": "Order: 375/375 product cards render name AND price as HelveticaNeueArabic-Bold 16px #111111 (identical style).",
+  "orderPlaceholders": "Order: 67 of 375 product cards have no photo; each shows a 44x44 SVG pictogram stroked #5c5c58.",
+  "sheetHero": "Item sheet hero <img>: 512x512 photo, background-size contain, element transform scale(1.3) -> 465.4x312 box clipped by an overflow:hidden 358x240 container.",
+  "latinStrings": "Order: 34 text blocks contain Latin-script product names (e.g. \"TURKISH COFFEE\", \"Iced Americano Cold Foam\"); Pay shows \"E2E-USER\" (seeded test id).",
+  "imgAlt": "All 327 <img> elements measured carry alt=\"\" (RN-web accessibility image).",
+  "syntheticBold": "Fonts are separate @font-face families per weight, all declared weight \"normal\". 10 text nodes (Home 9, Rewards 1) request font-weight 700 from HelveticaNeueArabic-Roman; canvas ink test: +45.8% ink at 600/700 vs 400, identical advance width (176.8px) => browser-synthesised bold. -Bold family shows no change across weights.",
+  "limitations": [
+   "impeccable detect / detect.js not shipped (advisory mode) — not downloaded or run.",
+   "Live menu request https://almond-gules.vercel.app/api/menu/app was blocked (no network beyond localhost); the app rendered its bundled menu (local /almond/menu/*.webp). Order counts reflect that snapshot.",
+   "Web build only (react-native-web); native iOS/Android rendering, hitSlop and native shadows not measurable here.",
+   "Visual alignment is a heuristic (text ink box vs first wider ancestor content box).",
+   "Contrast uses ancestor background walk (first opaque bg, translucent layers composited, ancestor opacity applied); no text overlaps a photo (checked with clipped rects)."
+  ]
+ }
+}
