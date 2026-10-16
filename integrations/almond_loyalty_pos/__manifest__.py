@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 {
     "name": "Almond Loyalty — POS connector",
-    "version": "19.0.1.0.0",
+    "version": "19.0.1.1.0",
     "summary": "Connect the POS tills to the Almond loyalty API: member QR, corporate discount, "
                "redemptions, points after payment (outbox + retry)",
     "description": """
@@ -13,7 +13,7 @@ Connects every Almond till (Odoo 19 Point of Sale) to the Almond loyalty API
 * «ألموند» button + barcode scanner: resolve the member's QR (single-use, 60 s)
   and attach the member to the order.
 * Corporate members: their percentage off, no points.
-* Redemptions: settle the member's code (QR or typed) and take its value off
+* Redemptions: settle the member's 120-second QR or its same-deadline scan receipt and take its value off
   the bill as a payment line on a dedicated "Almond redemption" method.
 * Points: earned SERVER-SIDE only after the order is paid, through an outbox
   with retry/backoff. A loyalty API failure never blocks or fails a sale.

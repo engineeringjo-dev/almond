@@ -35,9 +35,13 @@ class AlmondLoyaltyScan(models.Model):
     earn_ticket = fields.Char(readonly=True, groups="base.group_system")
     corporate_name = fields.Char(readonly=True)
     corporate_percent = fields.Float(readonly=True, digits=(5, 2))
-    # A redeem scan reveals the member's live code; kept to settle it
-    # server-side without the till ever holding it (system-only).
+    # Historical field only; never used as an authorization by current code.
     redemption_code = fields.Char(readonly=True, groups="base.group_system")
+    # Signed scan receipt; expires at the ORIGINAL QR deadline, not 120 seconds
+    # after the scan. Never returned to or persisted by the POS browser.
+    redemption_settlement_token = fields.Char(readonly=True, groups="base.group_system")
+    redemption_id = fields.Char(readonly=True, index=True)
+    redemption_presentation_expires_at = fields.Char(readonly=True)
     redemption_value = fields.Float(readonly=True, digits=(16, 3))
 
 
@@ -51,6 +55,9 @@ class AlmondLoyaltyRedemption(models.Model):
     config_id = fields.Many2one("pos.config", readonly=True)
     user_id = fields.Many2one("res.users", readonly=True, default=lambda self: self.env.user)
     member_id = fields.Char(readonly=True, index=True)
+    redemption_id = fields.Char(readonly=True, index=True,
+                                 help="BFF identity: a redemption can tender only one POS order.")
+    settlement_key = fields.Char(readonly=True, groups="base.group_system")
     code = fields.Char(readonly=True, help="Spent code (single use), kept for reconciliation with the BFF.")
     method = fields.Selection([("scan", "From the member scan"), ("code", "Code typed"),
                                ("token", "Redeem QR")], readonly=True)
@@ -58,3 +65,7 @@ class AlmondLoyaltyRedemption(models.Model):
     points = fields.Float(readonly=True)
     pos_order_id = fields.Many2one("pos.order", readonly=True, index="btree_not_null",
                                    help="Filled when the order is paid.")
+    _uniq_redemption_id = models.Constraint(
+        "UNIQUE(redemption_id)",
+        "This Almond redemption is already attached to a POS order.",
+    )

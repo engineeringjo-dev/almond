@@ -7,6 +7,7 @@ import { Card } from '@/components/ui/Card';
 import { Icon } from '@/components/ui/Icon';
 import { HeroCard } from '@/components/ui/HeroCard';
 import { Skeleton } from '@/components/ui/Skeleton';
+import { GiftClaimForm } from '@/components/gift/GiftClaimForm';
 import { colors, spacing, radius, shadow } from '@/constants/theme';
 import { useI18n } from '@/hooks/useI18n';
 import { formatDate, formatJOD, formatSignedJOD } from '@/lib/format';
@@ -48,7 +49,7 @@ export default function WalletScreen() {
           <Text variant="caption" color={colors.onHeroMuted}>
             {t('profile.walletBalance')}
           </Text>
-          <Text variant="display" color={colors.onHero}>
+          <Text variant="display" color={colors.onHero} testID="wallet-balance">
             {formatJOD(balance ?? 0, lang)}
           </Text>
           {/* The wallet's bonus is for SPENDING it (owner, 2026-10-15: «لا يوجد
@@ -86,6 +87,10 @@ export default function WalletScreen() {
             {t('profile.topUpFailed')}
           </Text>
         ) : null}
+
+        <View style={styles.giftClaim}>
+          <GiftClaimForm />
+        </View>
 
         <Text variant="title" style={styles.heading}>
           {t('profile.walletStatement')}
@@ -172,6 +177,7 @@ const styles = StyleSheet.create({
   },
   pressed: { opacity: 0.6 },
   error: { marginTop: spacing.sm },
+  giftClaim: { marginTop: spacing.xl },
   empty: { alignItems: 'center', gap: spacing.xs, paddingVertical: spacing.xl },
   list: { overflow: 'hidden' },
   row: {

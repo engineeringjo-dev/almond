@@ -462,6 +462,7 @@ describe('L — per-lot expiry, through the mock the app really runs on', () => 
     const before = { ...newest };
 
     const res = await mockLoyaltyService.redeemReward(id, {
+      idempotencyKey: `fifo-${id}`,
       beans: 100, titleAr: 'مكافأة', titleEn: 'Reward', type: 'free-item',
     });
     expect(res.points).toBe(20);
@@ -481,6 +482,7 @@ describe('L — per-lot expiry, through the mock the app really runs on', () => 
     const { id, u } = memberWithLots([{ points: 100, ageDays: 400 }, { points: 40, ageDays: 1 }]);
     const snapshot = JSON.parse(JSON.stringify(u.lots));
     await expect(mockLoyaltyService.redeemReward(id, {
+      idempotencyKey: `shortfall-${id}`,
       beans: 60, titleAr: 'مكافأة', titleEn: 'Reward', type: 'free-item',
     })).rejects.toThrow('Not enough beans');
     // 100 of the 140 points are dead, so 60 is short — and the refusal is

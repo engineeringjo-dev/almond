@@ -50,7 +50,7 @@ interface Claimed { memberId: string; key: string; hash: string }
 const CLAIM = Symbol('idempotency-claim');
 type WithClaim = FastifyRequest & { [CLAIM]?: Claimed };
 
-export function idempotency(backend: Backend) {
+export function idempotency(backend: Backend, verifiedIdentity?: (req: FastifyRequest) => string) {
   async function preHandler(req: FastifyRequest, reply: FastifyReply): Promise<void> {
     const key = req.headers['idempotency-key'];
     if (!key || typeof key !== 'string' || key.length > MAX_KEY_LENGTH) {
@@ -60,7 +60,9 @@ export function idempotency(backend: Backend) {
     let who: string;
     // Every keyed route runs requireMember first; a request that reaches here
     // without a member is refused rather than keyed under a shared "anon".
-    try { who = memberId(req); } catch { throw unauthorized(); }
+    // POS redemption supplies an identity only AFTER its key and the exact
+    // signed credential were verified. All member routes keep their old path.
+    try { who = verifiedIdentity ? verifiedIdentity(req) : memberId(req); } catch { throw unauthorized(); }
     const hash = requestHash(req);
     const claim = await backend.claimIdempotencyKey(who, key, hash, new Date());
     switch (claim.state) {

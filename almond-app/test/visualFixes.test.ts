@@ -2,9 +2,6 @@ import { describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { paletteFor } from '@almond/shared/theme';
-import { balanceBuys } from '@almond/shared/loyalty/balanceBuys';
-import { bestSellers } from '@almond/shared/lib/recommendations';
-import { itemFromPrice } from '@almond/shared/menu';
 
 /**
  * VF — THE VISUAL EXPERT'S FIXES (Dunkin' panel, 2026-10-15), each measured
@@ -71,25 +68,13 @@ describe('VF3 the photograph leads the Home tile', () => {
   });
 });
 
-describe('VF4 what the balance buys now', () => {
-  const top = bestSellers(1, { kind: 'drink' })[0]!;
-  const priceFils = Math.round(itemFromPrice(top) * 1000);
-  it('the most-ordered drink, as many times as the balance pays for it in full', () => {
-    expect(balanceBuys(1240)).toEqual({ item: top, times: Math.floor(12400 / priceFils) });
-    // Exactly two drinks' worth says two (counted in fils, not floats).
-    expect(balanceBuys((priceFils * 2) / 10)?.times).toBe(2);
-  });
-
-  it('nothing below the price of one — never «ينقصك…», which is a threshold by another name', () => {
-    expect(balanceBuys(priceFils / 10 - 1)).toBeNull();
-    expect(balanceBuys(0)).toBeNull();
-    // Arabic says «ثمن 3 لاتيه»: «3×» read against «×2» and «×1.5» on the same
-    // screen (Arabic expert, 2026-10-15). English keeps "3× Latte".
-    const shape = { ar: /ثمن \{\{times\}\} \{\{name\}\}/, en: /\{\{times\}\}× \{\{name\}\}/ };
+describe('VF4 the balance states money without a product purchasing example', () => {
+  it('the retired product-example copy cannot be rendered in either language', () => {
+    const worth = src('components/loyalty/BalanceWorth.tsx');
+    expect(worth).not.toContain('balanceBuys');
+    expect(worth).toContain("t('home.pointsWorth', { jod })");
     for (const lang of ['ar', 'en'] as const) {
-      const v = JSON.parse(src(`locales/${lang}.json`)).rewards.balanceBuys as string;
-      expect(v).toMatch(shape[lang]);
-      expect(v).not.toMatch(/ينقص|بقي|تحتاج|more|need|left/i);
+      expect(JSON.parse(src(`locales/${lang}.json`)).rewards.balanceBuys).toBeUndefined();
     }
   });
 

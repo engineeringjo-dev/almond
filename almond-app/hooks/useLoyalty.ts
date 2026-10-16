@@ -15,11 +15,11 @@ export function useLoyaltyBalance() {
   });
 }
 
-export function useVouchers() {
+export function useVouchers(redemptionId?: string) {
   const userId = useUserId();
   return useQuery({
-    queryKey: ['loyalty', 'vouchers', userId],
-    queryFn: () => loyaltyService.getVouchers(userId),
+    queryKey: ['loyalty', 'vouchers', userId, redemptionId ?? null],
+    queryFn: () => loyaltyService.getVouchers(userId, redemptionId),
   });
 }
 

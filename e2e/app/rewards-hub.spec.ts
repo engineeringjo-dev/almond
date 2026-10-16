@@ -114,17 +114,19 @@ test.describe('App: the Rewards tab is one screen', () => {
   });
 });
 
-test.describe('App: «فئتك ومزاياك» is one screen', () => {
-  test('the ladder, the three rungs and the double days, without scrolling', async ({ page }) => {
+test.describe('App: «فئتك ومزاياك» explains the live progress', () => {
+  test('the ladder, the three rungs and double days remain reachable with the new qualifying details', async ({ page }) => {
     await seedApp(page, { signedIn: true, lang: 'ar' });
     await page.goto(appUrl('/tiers'));
     await expect(page.getByText('فئتك الحالية')).toBeVisible({ timeout: 20_000 });
     for (const line of ['من هنا يبدأ الجميع', '4 زيارات خلال آخر 3 أشهر', 'أعلى فئة لدينا']) {
+      await page.getByText(line, { exact: true }).scrollIntoViewIfNeeded();
       await expect(page.getByText(line, { exact: true })).toBeInViewport();
     }
     const doubleDays = page.getByText('نقاط مضاعفة في رمضان والأعياد والعطل الرسمية');
+    await doubleDays.scrollIntoViewIfNeeded();
     expect(await bottom(page, doubleDays)).toBeLessThanOrEqual(SCREEN);
-    expect(await scrollHeight(page)).toBeLessThanOrEqual(SCREEN);
+    await expect(doubleDays).toBeInViewport();
 
     const { blocking } = await blockingViolations(page);
     expect(blocking, '/tiers must pass axe').toEqual([]);

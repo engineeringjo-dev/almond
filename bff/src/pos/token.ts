@@ -103,6 +103,52 @@ export function issueRedemptionToken(
   };
 }
 
+const REDEMPTION_SETTLEMENT_DOMAIN = 'almond.pos.redemption-settlement.v1\n';
+const signRedemptionSettlement = (body: string): string =>
+  createHmac('sha256', config.POS_TOKEN_SECRET).update(REDEMPTION_SETTLEMENT_DOMAIN + body).digest('base64url');
+
+export interface RedemptionAuthorizationClaim {
+  memberId: string;
+  redemptionId: string;
+  jti: string;
+  iat: number;
+  exp: number;
+  expired: boolean;
+}
+
+/** Signature/purpose first, even for an expired financial retry. Expiry is
+ * reported so ONLY an already-committed same-key/body POS retry can recover
+ * its recorded response. A new settlement must refuse expired authorization. */
+export function readRedemptionAuthorization(token: string, kind: 'presentation' | 'settlement'): RedemptionAuthorizationClaim {
+  const [body, signature, extra] = (token ?? '').split('.');
+  if (!body || !signature || extra !== undefined) throw tokenInvalid('malformed redemption authorization');
+  const expected = kind === 'presentation' ? signRedemptionQr(body) : signRedemptionSettlement(body);
+  if (!sigMatches(signature, expected)) throw tokenInvalid('bad redemption authorization signature');
+  let value: Partial<RedemptionQrPayload>;
+  try { value = JSON.parse(Buffer.from(body, 'base64url').toString()); } catch { throw tokenInvalid('bad redemption authorization'); }
+  const purpose = kind === 'presentation' ? 'redemption' : 'redemption-settlement';
+  const now = Math.floor(Date.now() / 1000);
+  if (!value || value.mode !== 'redeem' || value.purpose !== purpose
+    || typeof value.sub !== 'string' || !value.sub
+    || typeof value.redemptionId !== 'string' || !value.redemptionId
+    || typeof value.jti !== 'string' || !value.jti
+    || !Number.isSafeInteger(value.iat) || !Number.isSafeInteger(value.exp)
+    || value.iat! > now || value.exp! <= value.iat!) throw tokenInvalid('bad redemption authorization claims');
+  return { memberId: value.sub, redemptionId: value.redemptionId, jti: value.jti, iat: value.iat!, exp: value.exp!, expired: now >= value.exp! };
+}
+
+/** Scan is not settlement. The receipt lets the same till apply what it
+ * scanned, with the ORIGINAL presentation expiry, never a new 120s window. */
+export function issueRedemptionSettlementToken(presentation: string): { settlementToken: string; presentationExpiresAt: string } {
+  const claim = readRedemptionAuthorization(presentation, 'presentation');
+  if (claim.expired) throw new HttpError(401, 'token_expired', 'redemption presentation expired');
+  const body = b64u(JSON.stringify({
+    sub: claim.memberId, mode: 'redeem', purpose: 'redemption-settlement',
+    redemptionId: claim.redemptionId, jti: randomUUID(), iat: claim.iat, exp: claim.exp,
+  }));
+  return { settlementToken: `${body}.${signRedemptionSettlement(body)}`, presentationExpiresAt: new Date(claim.exp * 1000).toISOString() };
+}
+
 /**
  * Spent token ids, each held only until the token it belongs to would have
  * expired anyway — after that the `exp` check rejects it and remembering the

@@ -54,7 +54,7 @@ patch(PosStore.prototype, {
                 };
             }
             // Never let a loyalty problem break the sale screen.
-            console.warn("Almond loyalty call failed", route, error);
+            console.warn("Almond loyalty call failed", route);
             return { ok: false, error: "error", message: _t("Almond loyalty error.") };
         }
     },
@@ -175,7 +175,7 @@ patch(PosStore.prototype, {
     /**
      * Settle a redemption and take its value off the bill as a payment line on
      * the Almond redemption payment method. `source` is one of
-     *   { fromScan: true } | { code: "AB2C-D3EF" } | { token: "<redeem QR>" }
+     *   { fromScan: true } | { token: "<fresh redeem QR>" }
      * Settling CONSUMES the member's redemption at the API, so every check that
      * can refuse happens BEFORE the call.
      */
@@ -183,6 +183,14 @@ patch(PosStore.prototype, {
         const order = this.getOrder();
         if (!order || !this.almondLoyaltyIsEnabled()) {
             return { ok: false };
+        }
+        if (source.code !== undefined) {
+            return { ok: false, message: _t("Scan the member's current redemption QR. Typed points codes are not accepted.") };
+        }
+        // A pre-upgrade/reconstructed Almond tender without an identity is
+        // uncertain: never create another authorization or line beside it.
+        if (order.payment_ids.some((line) => line.payment_method_id?.almond_is_redemption && !line.almond_redemption_id)) {
+            return { ok: false, message: _t("An Almond payment has no redemption identity. Ask the manager to reconcile this order.") };
         }
         const method = this.almondRedemptionMethod();
         if (!method) {
@@ -213,20 +221,35 @@ patch(PosStore.prototype, {
             }
         }
         const res = await this._almondCall("/almond_loyalty/settle", {
+            order_uuid: order.uuid,
             from_scan: Boolean(source.fromScan),
-            code: source.code || null,
             token: source.token || null,
         });
         if (!res.ok) {
             this._almondNotify(res.message);
             return res;
         }
-        // Settled at the API: record it locally even if adding the line fails.
-        const info = this.almondLoyaltyInfo(order) || {};
-        info.settled = [...(info.settled || []), { valueJod: res.valueJod }];
-        if (source.fromScan) {
-            info.redemption = null;
+        if (typeof res.redemptionId !== "string" || !res.redemptionId) {
+            return { ok: false, message: _t("The settlement has no identity. Ask the manager to check this order.") };
         }
+        // A recovered response must not add the same tender twice. The server
+        // also binds the redemption to this order and original credential.
+        const info = this.almondLoyaltyInfo(order) || {};
+        const prior = info.settled?.find((entry) => entry.redemptionId === res.redemptionId);
+        const matching = order.payment_ids.filter((line) => line.almond_redemption_id === res.redemptionId);
+        if (matching.length) {
+            if (matching.length !== 1 || !matching[0].payment_method_id?.almond_is_redemption ||
+                !(matching[0].amount > 0) || matching[0].amount > res.valueJod) {
+                return { ok: false, message: _t("The existing Almond payment does not match this redemption. Ask the manager.") };
+            }
+            // The real payment line, not uiState, is the reload/replay guard.
+            return res;
+        }
+        if (prior?.applied) {
+            return { ok: false, message: _t("The recorded Almond payment is missing. Ask the manager to check this order.") };
+        }
+        const entry = prior || { redemptionId: res.redemptionId, valueJod: res.valueJod, applied: false };
+        if (!prior) info.settled = [...(info.settled || []), entry];
         order.uiState.almondLoyalty = info;
 
         const amount = roundJod(Math.min(res.valueJod, order.remainingDue));
@@ -235,13 +258,16 @@ patch(PosStore.prototype, {
             this.dialog.add(AlertDialog, {
                 title: _t("Almond redemption"),
                 body: _t(
-                    "The redemption of %(value)s JOD was settled but could not be added to the bill: %(reason)s. Add it on the payment screen with the Almond method.",
+                    "The redemption of %(value)s JOD was settled but could not be added to the bill: %(reason)s. Retry the same QR or ask the manager to check this order.",
                     { value: roundJod(res.valueJod), reason: added.data }
                 ),
             });
-            return res;
+            return { ...res, ok: false, message: _t("Retry the same QR or ask the manager to check this order.") };
         }
+        added.data.update({ almond_redemption_id: res.redemptionId });
         added.data.setAmount(amount);
+        entry.applied = true;
+        if (source.fromScan) info.redemption = null;
         this._almondNotify(_t("Redemption applied: %(value)s JOD.", { value: amount }), "success");
         if (res.valueJod > amount) {
             this._almondNotify(

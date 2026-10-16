@@ -10,13 +10,16 @@ import { spacing } from '@/constants/theme';
 import { useI18n } from '@/hooks/useI18n';
 import { useLoyaltyBalance } from '@/hooks/useLoyalty';
 import { useUser } from '@/stores/authStore';
+import { tiers } from '@/services/seed';
 
 /**
  * «فئتك ومزاياك» — where the member stands, and the three rungs side by side.
  *
  * Off the Rewards tab, which it used to sit at the bottom of as a carousel the
  * member had to swipe through. Precedent: Dunkin' UAE's Tier Benefits page —
- * one screen, no scrolling, in all three of the owner's screenshots. A guest
+ * a compact comparison. The live progress now also explains the two genuine
+ * qualifying routes and the kept tier; allow scrolling at narrow/large text.
+ * A guest
  * who reaches it by a link gets sign-in first, as Dunkin' puts «Sign up to
  * unlock» at the top of theirs.
  */
@@ -59,6 +62,11 @@ export default function TiersScreen() {
       <Screen onRefresh={balanceQ.refetch}>
         <Card style={styles.ladder}>
           <TierProgress tier={balance.tier} windowSpend={balance.windowSpend} nextTier={balance.nextTier} />
+          {balance.tier !== tiers[tiers.length - 1].id && !balance.nextTier ? (
+            <Button title={t('common.retry')} variant="outline" onPress={() => { void balanceQ.refetch(); }} style={styles.nextVisit} />
+          ) : (
+            <Button title={t('loyalty.nextVisitCta')} variant="outline" onPress={() => router.push('/(tabs)/order')} style={styles.nextVisit} />
+          )}
         </Card>
         <TierCards current={balance.tier} />
       </Screen>
@@ -69,4 +77,5 @@ export default function TiersScreen() {
 const styles = StyleSheet.create({
   loginCta: { marginBottom: spacing.lg },
   ladder: { marginBottom: spacing.lg },
+  nextVisit: { marginTop: spacing.md },
 });

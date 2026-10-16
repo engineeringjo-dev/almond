@@ -13,7 +13,7 @@ introspect → review → gate → dev → prod with `APPROVE PROD`).
 
 - زر **«ألموند»** في شاشة المنتجات + قارئ الباركود: يقرأ QR العضو (صالح لمرة واحدة، 60 ثانية)، ويربط العضو بالطلب.
 - **أعضاء الشركات:** نسبة الخصم الخاصة بهم، **ولا نقاط**.
-- **الاستبدال (redemption):** تسوية كود العضو (QR أو كتابة الكود `AB2C-D3EF`) ثم خصم قيمته من الفاتورة كسطر دفع على طريقة دفع مخصّصة «Almond redemption».
+- **الاستبدال (redemption):** QR خاص بالاستبدال مدته 120 ثانية؛ المسح يحفظ إيصالاً موقّعاً على الخادم ينتهي في موعد QR الأصلي نفسه. لا تُقبل أكواد النقاط المكتوبة ولا التسوية دون اتصال. بطاقات الإهداء منفصلة ولا تتغير.
 - **النقاط تُكسب على الخادم فقط وبعد تأكيد الدفع**، عبر طابور (outbox) مع إعادة محاولة. **فشل الـ API لا يوقف البيع أبداً.**
 - **المرتجع:** يعكس نقاط الطلب الأصلي (عكس كامل — قرار المالك).
 - **تصنيف الأخطاء حسب رمز الـ API:** مفتاح خاطئ (`pos_key_invalid`) = مشكلة إعداد تُسجَّل وتظهر للعمليات ولا يُعاد إرسالها تلقائياً (يُعاد يدوياً بعد إصلاح المفتاح)؛ تذكرة/QR منتهية أو مستخدمة، تعارض الطلب، دفع خارج نافذة الصلاحية = فشل نهائي بسبب مسجَّل؛ ضغط (`rate_limited`) أو انقطاع = إعادة محاولة تدريجية.
@@ -36,11 +36,11 @@ TILL (browser, OWL)                ODOO (server)                                
 «ألموند» / scanner ── rpc ──> /almond_loyalty/scan ── x-pos-key ─> POST /v1/pos/scan {token}
    shows member,     <─ display ── stores almond.loyalty.scan    <── {memberId, mode, earnsPoints,
    corporate %,          only       (earn ticket, member id,          earnTicket|null, earnTicketExpiresIn,
-   redemption value                  redemption code: SERVER only)    corporate|null, redemption|null}
+   redemption value                  signed receipt: SERVER only)     corporate|null, redemption|null}
    applies corporate
    % as line discount
 
-"Use it" / code ──── rpc ──> /almond_loyalty/settle ── x-pos-key ─> POST /v1/pos/redemption/settle
+"Use it" / QR ────── rpc ──> /almond_loyalty/settle ── x-pos-key ─> POST /v1/pos/redemption/settle
    adds payment line <── valueJod ── stores almond.loyalty.redemption <── 201 {valueJod, points, ...}
    on "Almond redemption"            (value comes from the API, not the till)
    method (≤ amount due)
@@ -72,7 +72,7 @@ of a *different* member replaces the earlier ones. The till says so ("scan the p
 
 ---
 
-## API contract (final — BFF commit e9f6c15, `bff/src/routes/pos.ts`, `bff/src/pos/*.ts`)
+## API contract (`bff/src/routes/pos.ts`, `bff/src/pos/*.ts`; redemption revised 2026-10-16)
 
 Every till route: header `x-pos-key`, checked first, fail-closed. Errors are always
 `{error: <machine code>, message}`; the client maps the **machine code** to a typed exception
@@ -83,7 +83,44 @@ Every till route: header `x-pos-key`, checked first, fail-closed. Errors are alw
 | `POST /v1/pos/scan {token}` | 200 `{memberId, mode, redemption, corporate, earnsPoints, earnTicket, earnTicketExpiresIn}` | `earnTicket` only for a `pay`/`earn` QR of a member who earns (never corporate, never `redeem`) |
 | `POST /v1/pos/earn {earnTicket, posOrderRef, branchId, paidTotal, paidAt}` | 201 grant · **200 `replay:true`** (same ref + member + amount + branch — even after the ticket expired, even after a reversal) | limits checked by the client too: ticket ≤1024, ref ≤64, branch ≤64, 0 ≤ paidTotal ≤ 100000 (3 decimals), paidAt ISO-8601 **with offset** |
 | `POST /v1/pos/earn/reverse {posOrderRef, reason}` | 201 · 200 `replay:true` → `{posOrderRef, reversedPoints, shortfall, pointsBalance, replay}` | reason 1–200 (the client trims/truncates); 404 unknown ref |
-| `POST /v1/pos/redemption/settle {token}\|{code}` | 201 `{settled, memberId, valueJod, points, redemption}` | one 404 for every refusal; rate-limited per till and per key |
+| `POST /v1/pos/redemption/settle {posOrderRef, token}` or `{posOrderRef, settlementToken}` | 201 `{settled, posOrderRef, memberId, valueJod, points, redemption}` | `Idempotency-Key` required; typed `{code}` fails closed; signature, purpose and original QR deadline checked by BFF |
+
+### Short-lived redemption handoff
+
+`/scan` returns redemption metadata without a code, plus `settlementToken` and
+`presentationExpiresAt`. Odoo stores the receipt as a system-only field; the
+browser receives only display metadata. At 119 seconds a scan leaves one
+second to authorize settlement, rather than starting another 120 seconds.
+The separate reservation expiry does not extend the QR or receipt.
+
+The stable draft `order_uuid` is `posOrderRef` for settlement. Odoo derives the
+idempotency key from that order, credential kind and **original** receipt/QR.
+An exact completed retry can recover the BFF's cached reply after expiry;
+a new order, credential or attempt cannot reuse that authorization. A local
+unique `redemption_id` ledger permits recovery only for the same order and
+attempt. A normal persisted `pos.payment.almond_redemption_id` field and unique
+constraint also bind the actual tender, independently of `order.uiState`.
+The till checks that payment identity after draft reload and adds its payment once; a
+failed local line keeps the original attempt available for retry. No
+credentials or RPC error objects are logged.
+
+An existing identityless Almond line, mismatched tender or missing line behind
+an applied UI hint fails closed for manager reconciliation. It never creates
+another authorization beside an uncertain old line. Official Odoo19 sources
+checked: `pos_payment.js` (f5fffea18aabc976af4f1c7c85626ad5f14117a7),
+`related_models/base.js` (48a8e77f88a377b7a75a301f0ee729df1e861dd3),
+`related_models/serialization.js` (c2c7d255a203bf580bcdb5da92113e30cada7082)
+and `models/pos_load_mixin.py` (456baed64d828fa04e4a501b99a8ed14801a3276)
+in https://github.com/odoo/odoo/tree/19.0/addons/point_of_sale.
+The normal Python field is included in ORM serialization; `Base.update`
+changes registered fields, while the empty field-loading list means all
+fields. The new loader preserves that sentinel. Dev Odoo must still prove
+actual IndexedDB/database hydration and the live uniqueness constraint.
+
+Upgrade the addon to `19.0.1.1.0` on dev Odoo to create the receipt/identity
+fields and uniqueness constraint before running the new assets. No database
+upgrade, production installation or deployment was performed here. Historical
+code columns remain for reconciliation and are never settlement credentials.
 
 Earn ticket: lives **7 days**, but the sale must be **paid within [scan − 30 min, scan + 6 h]**
 however late it is delivered. So the module **always** sends `paidAt` = the order's payment time
@@ -128,7 +165,7 @@ configured, ask the manager" (and an ERROR log line).
 
 - `models/almond_loyalty_client.py` — dependency-free client (only `requests`); **every BFF machine code mapped to a typed error**, status fallback for unknown codes; 200 replay and 201 both success; client-side limits (lengths, paidTotal range, offset-qualified `paidAt`); HTTPS enforced; no secret/token/code/ticket in logs, errors or `repr`; no internal retries.
 - `models/almond_loyalty_policy.py` — `classify` (decision + operator-visible reason), backoff, `paid_total`, redemption mismatch, `payment_time` + `iso_utc`.
-- **40 unit tests green** against the mock (`tests/test_client.py`): each machine code → the right error class **and** outbox outcome; replay 200 = success (also after ticket expiry and after a reversal); sale window (7 h late refused; late delivery with the real payment time accepted; 31 min before scan refused, 29 min fine); future `paidAt` = 400 validation; `paidAt` sent and offset-qualified; naive/missing `paidAt` never leaves Odoo; reverse 201 → 200 replay; settle once; secrets never logged.
+- **55 Python tests and 7 Node frontend tests green**: existing client/policy coverage plus receipt expiry at the original deadline, exact row/credential/order identity, retry recovery, typed-code refusal, purpose separation, missing-receipt refusal, controller ORM doubles, payment field/loader semantics, once-only tender and payment hydration independent of UI hints. The Python gate runs the Node checks too. Controller doubles and VM tests do not establish real Odoo/PostgreSQL or scanner behavior.
 - Guards proven by **deliberate mutation** (each made the tests fail, then reverted). Round 1: logging the key, retrying a 409, counting the redemption in `paidTotal`, printing the redemption in `repr`, plain http to a remote host. Round 2 (final contract): retrying `pos_key_invalid`; retrying `ticket_*`; retrying `pos_order_conflict`; not distinguishing the window error; failing instead of retrying 429/5xx/timeouts; mapping 429 to a bad request; dropping the `ticket_used` mapping; not sending `paidAt`; accepting a naive `paidAt`; dropping the `Z`; using the earliest instead of the latest payment time; treating a replay as an error; classifying an unknown 401 as a member problem.
 - `mock/almond_bff_mock.py` — stdlib mock of the 4 endpoints mirroring the BFF's codes, statuses and **order of checks** (key → rate limit → schema → ticket signature → future paidAt → replay/conflict → ticket_used → expired/window → grant).
 - All `.py` compile, all XML well-formed, all JS parses (acorn, ES2022 modules) and passes the repo ESLint.
@@ -162,7 +199,7 @@ UNVERIFIED specifically called out in code comments (`UNVERIFIED (Odoo 19)`):
 2. **Odoo tests**: `TransactionCase` for `_almond_loyalty_link` (paid order → one earn row; corporate → none; refund → reverse; mismatch flag; exception inside → sale still commits) and for `_cron_process_outbox` with the client patched; a POS **tour** for button → scan → pay. (Put them in `tests/` with an `__init__.py` **and move `test_client.py` out**, or keep it and make Odoo ignore it — Odoo's loader expects `odoo.tests` cases.)
 3. **Receipt**: print member ref / "points will be credited" on the ticket (earn result is async, so no points number at print time).
 4. **Order reload**: re-fetch the member state for a draft order opened on another device (server has it in `almond.loyalty.scan` by `order_uuid`; add a `/almond_loyalty/order_state` route).
-5. **Settle timeout** is ambiguous (the API may have consumed the code): today the cashier sees "not reachable" and a retry returns "refused". Add a "check status" call if the BFF provides one.
+5. **Settle recovery on dev Odoo:** verify an exact original-credential retry after a lost response recovers one audit and one payment, including after the QR deadline. A new scan is a new attempt, not a replacement receipt under the old key. Cross-device draft recovery still needs the order-state route in TODO 4.
 6. **Alerting**: failed outbox rows only show in the back office (a `config` failure is also logged at ERROR). Hook `failure_kind = config` rows into the existing alert mail/cron — one of them means every till is losing earns.
 7. **Housekeeping**: purge archived `almond.loyalty.scan` rows older than N days.
 8. **Arabic translations**: all user strings go through `_()` / `_t()` / template auto-translation; generate `i18n/ar.po` (`--i18n-export`) and translate.
@@ -178,9 +215,8 @@ Resolved by the BFF (commit e9f6c15) and adopted here:
 
 Still open (not blocking):
 - **Partial-refund reversal** — the reverse call has no amount; full reversal is the owner's decision (Decision 4).
-- ~~A scanned QR cannot then settle by token~~ — **confirmed intended** by the BFF side (e9f6c15): the redemption code returned by `/scan` IS the settle credential, single-use at settle. Settling a scanned redemption by that code is the designed path.
-- ~~Redemption code input format~~ — **confirmed**: the BFF stores codes without the dash and normalises input (`normalizeRedemptionCode`: upper-case, spaces and dashes removed) before lookup, so `AB2C-D3EF`, `ab2cd3ef` and ` ab2c d3ef ` all settle the same code.
-- **Settle timeout is ambiguous** (the code may have been consumed); there is no status endpoint to ask.
+- **Typed points codes retired:** a scanned redemption settles only through its signed receipt with the original QR deadline; fresh unscanned redemption QR is also supported. Gift claim codes are a separate app flow.
+- **Settle retry:** retain the original receipt/token, order and idempotency key. Exact durable retries recover the same result; a different request cannot reuse it.
 - **Redeem visit = two scans** (redeem QR + pay QR) because a redeem scan carries no earn ticket — a cashier-training point; a combined flow would need a contract change.
 
 ---
@@ -191,6 +227,7 @@ Client + policy unit tests (no Odoo):
 
 ```bash
 python3 -m unittest discover integrations/almond_loyalty_pos/tests -v
+node --test integrations/almond_loyalty_pos/tests/redemption_frontend.test.mjs
 ```
 
 Full till flow on dev-almond against the mock:
@@ -201,7 +238,7 @@ python3 integrations/almond_loyalty_pos/mock/almond_bff_mock.py --port 8898 --ke
 # Mint member QR tokens (paste into the dialog, or render as a QR for the scanner):
 curl -s -XPOST localhost:8898/__mock/token -d '{"memberId":"m1","mode":"pay"}'
 curl -s -XPOST localhost:8898/__mock/token -d '{"memberId":"c1","mode":"corporate","percentOff":15}'
-curl -s -XPOST localhost:8898/__mock/token -d '{"memberId":"r1","mode":"redeem","redemptionValueJod":2.5}'   # returns the code too
+curl -s -XPOST localhost:8898/__mock/token -d '{"memberId":"r1","mode":"redeem","redemptionValueJod":2.5}'   # mock-only legacy code is for refusal tests, never till input
 curl -s -XPOST localhost:8898/__mock/config -d '{"delaySeconds":10}'   # simulate a slow API
 curl -s -XPOST localhost:8898/__mock/config -d '{"failNext":503}'      # simulate an outage
 curl -s -XPOST localhost:8898/__mock/config -d '{"failNext":429}'      # simulate rate_limited (earn/reverse/settle)
@@ -216,7 +253,7 @@ Test plan on the till: (1) pay member → paid → outbox row `done`, order `alm
 
 | path | role |
 |---|---|
-| `__manifest__.py` | 19.0.1.0.0, depends `point_of_sale`, assets in `point_of_sale._assets_pos` |
+| `__manifest__.py` | 19.0.1.1.0, depends `point_of_sale`, assets in `point_of_sale._assets_pos` |
 | `models/almond_loyalty_client.py` | HTTP client, **no Odoo imports** |
 | `models/almond_loyalty_policy.py` | `classify` (retry/fail + reason), backoff, `paid_total`, `payment_time`/`iso_utc`, **no Odoo imports** |
 | `models/almond_loyalty_service.py` | builds the client from `ir.config_parameter` (the one place settings are read) |

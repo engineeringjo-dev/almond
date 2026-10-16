@@ -204,7 +204,8 @@ describe('S14 rate limits', () => {
     const max = config.RATE_LIMITS.settlePerMember.max;
     for (let i = 0; i < max; i++) {
       const r = await app.inject({ method: 'POST', url: '/v1/loyalty/redemption/settle', headers: headers(token), payload: { code: 'ABCD-EFGH' } });
-      expect(r.statusCode).toBe(404);
+      expect(r.statusCode).toBe(400);
+      expect(r.json().error).toBe('redemption_barcode_required');
     }
     const over = await app.inject({ method: 'POST', url: '/v1/loyalty/redemption/settle', headers: headers(token), payload: { code: 'ABCD-EFGH' } });
     expect(over.statusCode).toBe(429);
@@ -384,6 +385,7 @@ const ROUTES: Record<string, Guard> = {
   'POST /v1/loyalty/redeem': 'member',
   'GET /v1/me/redemption': 'member',
   'POST /v1/me/redemption/qr': 'member',
+  'GET /v1/me/redemption/:redemptionId': 'member',
   'POST /v1/me/redemption/cancel': 'member',
   'POST /v1/loyalty/redemption/settle': 'member',
   'GET /v1/me/voucher': 'member',
@@ -507,19 +509,29 @@ describe('S19 the till settles a redemption only from a redeem-mode QR', () => {
     const token = await signIn(app, freshPhone());
     const id = subOf(token);
     await backend.addPoints(id, 500, 'test', 'test');
-    await backend.createRedemption(id, 300);
+    const made = await backend.createRedemption(id, 300);
+    const heldLots = structuredClone((await backend.getMember(id)).lots);
     const payQr = await app.inject({ method: 'POST', url: '/v1/pos/token', headers: { authorization: `Bearer ${token}` }, payload: { mode: 'pay' } });
     const r = await app.inject({
-      method: 'POST', url: '/v1/pos/redemption/settle', headers: { 'x-pos-key': KEY }, payload: { token: payQr.json().token },
+      method: 'POST', url: '/v1/pos/redemption/settle',
+      headers: { 'x-pos-key': KEY, 'idempotency-key': randomUUID() },
+      payload: { token: payQr.json().token, posOrderRef: 'S19/member-qr-refused' },
     });
-    expect(r.statusCode).toBe(400);
-    expect((await backend.activeRedemption(id))?.settledAt ?? null).toBeNull();
+    expect([r.statusCode, r.json().error]).toEqual([401, 'token_invalid']);
+    expect((await backend.getRedemption(id, made.id))?.settledAt).toBeNull();
+    expect((await backend.getMember(id)).lots).toEqual(heldLots);
 
     // The member's own redemption QR still works.
-    const redeemQr = await app.inject({ method: 'POST', url: '/v1/me/redemption/qr', headers: { authorization: `Bearer ${token}` } });
+    const redeemQr = await app.inject({ method: 'POST', url: '/v1/me/redemption/qr', headers: { authorization: `Bearer ${token}` }, payload: { redemptionId: made.id } });
     const ok = await app.inject({
-      method: 'POST', url: '/v1/pos/redemption/settle', headers: { 'x-pos-key': KEY }, payload: { token: redeemQr.json().token },
+      method: 'POST', url: '/v1/pos/redemption/settle',
+      headers: { 'x-pos-key': KEY, 'idempotency-key': randomUUID() },
+      payload: { token: redeemQr.json().token, posOrderRef: 'S19/redeem-qr-accepted' },
     });
     expect(ok.statusCode).toBe(201);
+    expect(ok.json().redemption.id).toBe(made.id);
+    expect(ok.json().valueJod).toBe(3);
+    expect((await backend.getRedemption(id, made.id))?.settledAt).not.toBeNull();
+    expect((await backend.getMember(id)).lots).toEqual(heldLots);
   });
 });

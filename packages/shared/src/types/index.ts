@@ -267,6 +267,10 @@ export interface Voucher {
   value?: number;
   expiresAt: string; // ISO
   used?: boolean;
+  /** Only a real points-reservation response supplies this. The voucher id
+   * itself is never a barcode or an authorization to consume points. */
+  redemptionId?: string;
+  points?: number;
 }
 
 export interface PointsLogEntry {

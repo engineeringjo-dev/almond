@@ -34,7 +34,7 @@ const row = (over: Partial<RedemptionRow> = {}): RedemptionRow => ({
 });
 const AT = (iso: string) => new Date(iso);
 
-describe('T36a the code is readable, and a misread never becomes another code', () => {
+describe('T36a internal legacy code formatting never turns a misread into another code', () => {
   it('formats for reading aloud and accepts it back in any casing or spacing', () => {
     expect(formatRedemptionCode('ABCD2345')).toBe('ABCD-2345');
     for (const typed of ['ABCD-2345', 'abcd2345', 'ABCD 2345', ' abcd-2345 ']) {
@@ -80,6 +80,7 @@ describe('T36b status is derived from the clock, never stored', () => {
   it('the countdown floors at zero rather than going negative', () => {
     expect(toRedemptionView(row(), AT('2026-09-09T10:05:00Z')).expiresIn).toBe(600);
     expect(toRedemptionView(row(), AT('2026-09-09T11:00:00Z')).expiresIn).toBe(0);
+    expect(toRedemptionView(row(), AT('2026-09-09T10:05:00Z'))).not.toHaveProperty('code');
   });
 });
 
@@ -139,8 +140,20 @@ describe('T36d the redemption rail, end to end', () => {
     payload: { points },
     headers: auth({ 'idempotency-key': randomUUID() }),
   });
+  const mint = (redemptionId?: string) => app.inject({
+    method: 'POST', url: '/v1/me/redemption/qr', headers: auth(),
+    payload: redemptionId ? { redemptionId } : {},
+  });
+  // The internal code is read ONLY to prove the retired typed routes refuse
+  // even a genuine pending reservation. Positive settlement always uses a QR.
+  const internal = async (redemptionId: string) => {
+    const member = await backend.findOrCreateByPhone('+962791234567');
+    const stored = await backend.getRedemption(member.id, redemptionId);
+    expect(stored).not.toBeNull();
+    return stored!;
+  };
 
-  it('🔴 redeeming now PRODUCES a code — the whole point of this change', async () => {
+  it('🔴 redeeming produces a reservation to present through a separately signed QR, never a typed credential', async () => {
     const before = await balance();
     const r = await redeem(300);
     expect(r.statusCode, r.body).toBe(201);
@@ -150,44 +163,66 @@ describe('T36d the redemption rail, end to end', () => {
     expect(b.redeemed).toBe(true);
     expect(b.valueJod).toBe(3);
     expect(b.pointsBalance).toBe(before - 300);
-    // And now there is something to present.
-    expect(b.redemption.code).toMatch(/^[A-Z0-9]{4}-[A-Z0-9]{4}$/);
+    expect(b.redemption.id).toEqual(expect.any(String));
+    expect(b.redemption).not.toHaveProperty('code');
     expect(b.redemption.status).toBe('pending');
     expect(b.redemption.points).toBe(300);
     expect(b.redemption.expiresIn).toBeGreaterThan(loyalty.REDEMPTION_TTL_SECONDS - 10);
   });
 
-  it('the member can read their live code back, and mint a separately timed, bound QR', async () => {
+  it('the member can read public reservation metadata and mint a separately timed, bound QR', async () => {
     const live = await app.inject({ method: 'GET', url: '/v1/me/redemption', headers: auth() });
     expect(live.json().redemption.status).toBe('pending');
+    expect(live.json().redemption).not.toHaveProperty('code');
 
-    const qr = await app.inject({ method: 'POST', url: '/v1/me/redemption/qr', headers: auth() });
+    const qr = await mint();
     expect(qr.statusCode, qr.body).toBe(201);
     expect(qr.json().expiresIn).toBe(config.REDEMPTION_QR_TTL_SECONDS);
     expect(config.REDEMPTION_QR_TTL_SECONDS).toBe(120);
     expect(config.POS_TOKEN_TTL_SECONDS).toBe(60);
     expect(qr.json().mode).toBe('redeem');
+    expect(qr.json().redemptionId).toBe(live.json().redemption.id);
   });
 
-  it('🔴 the till settles it once, and a replay is refused', async () => {
+  it('🔴 one signed QR settles once: the identical order/attempt recovers its result, and a new attempt receives no value', async () => {
     const live = await app.inject({ method: 'GET', url: '/v1/me/redemption', headers: auth() });
-    const code = live.json().redemption.code as string;
+    const redemptionId = live.json().redemption.id as string;
+    const qr = await mint(redemptionId);
+    expect(qr.statusCode, qr.body).toBe(201);
+    const before = await balance();
+    const payload = { token: qr.json().token, posOrderRef: 'T36/order-one' };
+    const headers = { 'x-pos-key': posKey, 'idempotency-key': randomUUID() };
 
     const first = await app.inject({
       method: 'POST', url: '/v1/pos/redemption/settle',
-      payload: { code }, headers: { 'x-pos-key': posKey },
+      payload, headers,
     });
     expect(first.statusCode, first.body).toBe(201);
     expect(first.json().valueJod).toBe(3);
     expect(first.json().redemption.status).toBe('settled');
+    expect(first.json().redemption.id).toBe(redemptionId);
+    expect(first.json().redemption).not.toHaveProperty('code');
+    expect(await balance()).toBe(before);
 
-    // The double-spend guard. Two tills scanning one code must not both pay.
+    // A transport retry recovers the original result rather than consuming
+    // another reservation or changing the already-spent points balance.
     const replay = await app.inject({
       method: 'POST', url: '/v1/pos/redemption/settle',
-      payload: { code }, headers: { 'x-pos-key': posKey },
+      payload, headers,
     });
-    expect(replay.statusCode).toBe(409);
-    expect(replay.json().error).toBe('redemption_already_settled');
+    expect(replay.statusCode, replay.body).toBe(201);
+    expect(replay.headers['idempotent-replay']).toBe('true');
+    expect(replay.body).toBe(first.body);
+    // A different till intent must not obtain tender value a second time.
+    const another = await app.inject({
+      method: 'POST', url: '/v1/pos/redemption/settle', payload,
+      headers: { ...headers, 'idempotency-key': randomUUID() },
+    });
+    expect(another.statusCode, another.body).toBe(409);
+    expect(another.json().error).toBe('redemption_already_settled');
+    expect(another.json()).not.toHaveProperty('valueJod');
+    expect(another.json()).not.toHaveProperty('redemption');
+    expect(await balance()).toBe(before);
   });
 
   it('a settled code does NOT come back as the member’s live one', async () => {
@@ -200,25 +235,34 @@ describe('T36d the redemption rail, end to end', () => {
       method: 'POST', url: '/v1/pos/redemption/settle', payload: { code: 'ABCD2345' },
     });
     expect(r.statusCode).toBe(401);
+    expect(r.json().error).toBe('pos_key_invalid');
   });
 
-  it('the website settles a code the member owns', async () => {
+  it('both retired typed paths refuse even the member’s genuine internal code, without moving value', async () => {
     const made = (await redeem(200)).json();
-    const r = await app.inject({
-      method: 'POST', url: '/v1/loyalty/redemption/settle',
-      payload: { code: made.redemption.code },
-      headers: auth({ 'idempotency-key': randomUUID() }),
-    });
-    expect(r.statusCode, r.body).toBe(201);
-    expect(r.json().valueJod).toBe(2);
+    const stored = await internal(made.redemption.id);
+    const before = await balance();
+    for (const path of ['member', 'pos']) {
+      const r = await app.inject({
+        method: 'POST', url: path === 'member' ? '/v1/loyalty/redemption/settle' : '/v1/pos/redemption/settle',
+        payload: { code: stored.code, posOrderRef: 'T36/typed-refused' },
+        headers: path === 'member' ? auth({ 'idempotency-key': randomUUID() }) : { 'x-pos-key': posKey, 'idempotency-key': randomUUID() },
+      });
+      expect([r.statusCode, r.json().error], r.body).toEqual([400, 'redemption_barcode_required']);
+      expect(r.json()).not.toHaveProperty('valueJod');
+      expect((await internal(made.redemption.id)).settledAt).toBeNull();
+      expect(await balance()).toBe(before);
+    }
   });
 
   it('🔴 the website refuses someone ELSE’s code, indistinguishably from a fake one', async () => {
     const mine = (await redeem(100)).json();
+    const stored = await internal(mine.redemption.id);
+    const before = await balance();
     const other = await signIn(app, '0781111111');
     const stolen = await app.inject({
       method: 'POST', url: '/v1/loyalty/redemption/settle',
-      payload: { code: mine.redemption.code },
+      payload: { code: stored.code },
       headers: { authorization: `Bearer ${other}`, 'idempotency-key': randomUUID() },
     });
     const invented = await app.inject({
@@ -227,9 +271,12 @@ describe('T36d the redemption rail, end to end', () => {
       headers: { authorization: `Bearer ${other}`, 'idempotency-key': randomUUID() },
     });
     // The SAME answer, so this cannot be used to discover which codes are live.
-    expect(stolen.statusCode).toBe(404);
-    expect(invented.statusCode).toBe(404);
+    expect(stolen.statusCode).toBe(400);
+    expect(stolen.json().error).toBe('redemption_barcode_required');
+    expect(invented.statusCode).toBe(400);
     expect(stolen.json()).toEqual(invented.json());
+    expect((await internal(mine.redemption.id)).settledAt).toBeNull();
+    expect(await balance()).toBe(before);
   });
 
   it('🔴 an expired code returns the points IN FULL', async () => {

@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Stack, useIsFocused, useLocalSearchParams } from 'expo-router';
 
@@ -25,7 +25,9 @@ export default function VouchersScreen() {
   const { t } = useI18n();
   const { voucherId: rawVoucherId } = useLocalSearchParams<{ voucherId?: string | string[] }>();
   const voucherId = Array.isArray(rawVoucherId) ? rawVoucherId[0] : rawVoucherId;
-  const { data, isLoading, isFetching, isError, refetch } = useVouchers();
+  const { data, isLoading, isFetching, isError, refetch } = useVouchers(voucherId);
+  const [barcodeId, setBarcodeId] = useState<string | null>(voucherId ?? null);
+  useEffect(() => { setBarcodeId(voucherId ?? null); }, [voucherId]);
   const { selected, others } = voucherHandoff(data ?? [], voucherId);
   const focused = useIsFocused();
   // A callback ref runs when the card actually mounts, including after Screen
@@ -61,12 +63,12 @@ export default function VouchersScreen() {
                 style={styles.list}
                 testID="issued-voucher"
               >
-                <Text variant="title" role="heading" aria-level={2}>{t('loyalty.yourVoucher')}</Text>
-                <VoucherCard voucher={selected} />
+                <Text variant="title" role="heading" aria-level={2}>{t(selected.redemptionId ? 'loyalty.redemptionYourBarcode' : 'loyalty.yourVoucher')}</Text>
+                <VoucherCard voucher={selected} showBarcode={barcodeId === selected.id} onShowBarcode={() => setBarcodeId(selected.id)} />
               </View>
             ) : null}
             {others.map((v: Voucher) => (
-              <VoucherCard key={v.id} voucher={v} />
+              <VoucherCard key={v.id} voucher={v} showBarcode={barcodeId === v.id} onShowBarcode={() => setBarcodeId(v.id)} />
             ))}
           </View>
         ) : (

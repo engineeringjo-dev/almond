@@ -391,15 +391,19 @@ describe.each([
       return out;
     };
     const reverse = (i: number) => till.reverse({ posOrderRef: `Shop/none-${i}`, reason: 'x' });
-    const settle = (i: number) => app.inject({
-      method: 'POST', url: '/v1/pos/redemption/settle', headers: { 'x-pos-key': KEY }, payload: { code: `ZZZZ${2000 + i}` },
-    });
+    const settle = async (i: number) => {
+      const response = await app.inject({
+        method: 'POST', url: '/v1/pos/redemption/settle', headers: { 'x-pos-key': KEY }, payload: { code: `ZZZZ${2000 + i}` },
+      });
+      if (response.statusCode !== 429) expect(response.json().error).toBe('redemption_barcode_required');
+      return response;
+    };
     cfg.RATE_LIMITS = { ...saved.RATE_LIMITS, posEarnPerTill: { max: 3, windowSeconds: 60 } };
     expect(await run(5, reverse)).toEqual([404, 404, 404, 429, 429]);
     __resetRateLimits();
     // The per-KEY ceiling bounds the chain, whatever till (address) asks.
     cfg.RATE_LIMITS = { ...saved.RATE_LIMITS, posSettlePerKey: { max: 4, windowSeconds: 60 } };
-    expect(await run(6, settle)).toEqual([404, 404, 404, 404, 429, 429]);
+    expect(await run(6, settle)).toEqual([400, 400, 400, 400, 429, 429]);
     // A code-guessing flood on /settle does not stop the chain earning.
     expect((await reverse(99)).statusCode).toBe(404);
     // An unauthenticated caller spends no budget at all.

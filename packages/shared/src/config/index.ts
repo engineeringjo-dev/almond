@@ -701,22 +701,16 @@ export const config = {
    * pays nothing.
    */
   /**
-   * How long a redemption code lives, in seconds. 15 minutes.
-   *
-   * 🔴 NOT 60. The owner asked for a QR «صلاحيته دقيقة منذ انشاءه», and that is
-   * exactly what the QR is — it is minted from this redemption with the
-   * existing 60-second POS token, so the code held up to a scanner is never
-   * more than a minute old. THIS dial is the life of the redemption behind it,
-   * which has to survive a website checkout: a member who redeems, picks a
-   * branch, and reaches the payment step needs longer than a minute, and a
-   * redemption that died under them would have taken their points with it
-   * until the sweep returned them.
-   *
-   * Shorter is not safer here. The code is single-use and bound to a member;
-   * the risk it manages is a shoulder-surfed screen, which the 60-second QR
-   * already handles. Making this 60 too would just strand people mid-checkout.
+   * Point reservation lifetime, in seconds. This is not a scan credential.
+   * The owner requires a separately issued two-minute redemption barcode;
+   * refresh targets this same reservation without another debit or extension.
+   * Unused reserves return only their still-live original FIFO point slices.
+   * Typed points codes no longer authorize settlement (gift claims differ).
    */
   REDEMPTION_TTL_SECONDS: 15 * 60,
+  /** Points stay reserved above; a fresh barcode may authorize settlement for
+   * at most two minutes. Refresh never spends points or renews the reserve. */
+  REDEMPTION_QR_TTL_SECONDS: 120,
   // The profile bonus (its long comment sits above REDEMPTION_TTL_SECONDS).
   // 🔴 Owner, 2026-09-24: it now needs NAME + BIRTH DATE + GENDER + PHONE, not
   // a name alone — loyalty/profile.ts `isProfileComplete` is the one predicate.

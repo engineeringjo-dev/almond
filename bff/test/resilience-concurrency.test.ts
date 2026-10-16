@@ -628,7 +628,7 @@ describe.each(HARNESSES)('R1 concurrency — %s', (_name, make) => {
       expect(await balance(id)).toBe(earned);
     }, 60_000);
 
-    it('R1.13 the POS settle route: one code presented at two tills at once settles once', async () => {
+    it('R1.13 the POS settle route: one signed QR presented under concurrent till intents settles once', async () => {
       const posKey = 'resilience-pos-key-'.padEnd(32, 'x');
       const prev = config.POS_SCAN_KEY;
       (config as unknown as { POS_SCAN_KEY: string }).POS_SCAN_KEY = posKey;
@@ -637,15 +637,27 @@ describe.each(HARNESSES)('R1 concurrency — %s', (_name, make) => {
         const id = await memberIdOf(app, token);
         await h.backend.addPoints(id, 400, 'منحة', 'Grant');
         const r = await h.backend.createRedemption(id, 250);
+        const qr = await app.inject({
+          method: 'POST', url: '/v1/me/redemption/qr',
+          headers: { authorization: `Bearer ${token}` }, payload: { redemptionId: r.id },
+        });
+        expect(qr.statusCode, qr.body).toBe(201);
         const rs = await Promise.all(Array.from({ length: 6 }, () => app.inject({
           method: 'POST', url: '/v1/pos/redemption/settle',
-          payload: { code: r.code }, headers: { 'x-pos-key': posKey },
+          payload: { token: qr.json().token, posOrderRef: `R1/${randomUUID()}` },
+          headers: { 'x-pos-key': posKey, 'idempotency-key': randomUUID() },
         })));
         expect(rs.filter((x) => x.statusCode === 201)).toHaveLength(1);
+        const settled = rs.find((x) => x.statusCode === 201)!.json();
+        expect(settled.redemption.id).toBe(r.id);
+        expect(settled.redemption).not.toHaveProperty('code');
+        expect(settled.valueJod).toBe(2.5);
         for (const x of rs.filter((y) => y.statusCode !== 201)) {
           expect(x.statusCode).toBe(409);
           expect(x.json().error).toBe('redemption_already_settled');
+          expect(x.json()).not.toHaveProperty('valueJod');
         }
+        expect((await h.backend.getRedemption(id, r.id))?.settledAt).not.toBeNull();
         expect(await balance(id)).toBe(150);
       } finally {
         (config as unknown as { POS_SCAN_KEY: string }).POS_SCAN_KEY = prev;

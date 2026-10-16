@@ -1,34 +1,15 @@
 import type { Lang, LoyaltyBalance, Tier, TierId } from '@/types';
 import { progressToNextTier, tierName, tiers } from '@almond/shared/loyalty';
-import { formatJOD } from '@almond/shared/lib/format';
+import { formatJOD, formatNumber } from '@almond/shared/lib/format';
 
 /**
  * THE ONE PLACE THAT DECIDES WHICH PROGRESS SENTENCE A MEMBER SEES.
  *
- * 🔴 THE UNIT IS SPEND, AND THAT REVERSES AN EARLIER DECISION ON PURPOSE.
- *
- * Owner, 2026-09-08: «مش عالزيارات بدي spend more هلقد قبل هلقظ وبتنتقل لشريحة
- * ٤% كاشباك» — not visits; say how much more to SPEND to reach 4%.
- *
- * It was visits, from the brief's «باقي لك 3 زيارات ويتضاعف خصمك ×2», on the
- * argument that "20 JOD in 90 days" is not a sayable sentence. What that
- * argument missed is that the visits number was never true: above the second
- * rung there is no visits door at all, so the count was a PROJECTION at the
- * measured 5.85 JOD basket, and a member on 60 JOD told "1 more visit" who
- * returned for a 2.50 JOD americano landed at 62.5 and was still paid 4%. The
- * hedging that existed to cover that (`visitsGuaranteed`, "about", "could") was
- * a way of half-saying a number we could not stand behind.
- *
- * `jodRemaining` has no such problem. It is `threshold − windowSpend`: exact at
- * every rung, on both code paths, with nothing projected. So the sentence gets
- * SHORTER and the hedging is gone rather than reworded.
- *
- * ONE THING IT UNDERSTATES, deliberately. The second rung has a second door —
- * TIER2_VISITS_ALTERNATIVE qualifying days — so a member can arrive there
- * without spending the remaining dinars. Naming the spend is therefore
- * conservative: it never promises a rung the member will not get, it only omits
- * a shortcut they may stumble into. The reverse error (naming the shortcut and
- * missing the spend) is the one that produces a complaint.
+ * Owner, 2026-10-16: make the remaining spend OR visits clear. Spend remains
+ * the primary sentence. The optional alternative is read ONLY from a real
+ * standing's guaranteed paid-day count; it is never a conversion from spend
+ * at the measured basket. The top rung has no visits door. The tier screen
+ * explains the rolling window and distinct paid Amman days beside the count.
  *
  * ── WHY IT PREFERS THE BALANCE'S OWN `nextTier` ─────────────────────────────
  *
@@ -51,13 +32,17 @@ import { formatJOD } from '@almond/shared/lib/format';
  */
 
 export interface TierProgressCopy {
-  /** An i18n key that exists in BOTH locale files — C11 asserts that. Two keys
-   *  now, not four: with an exact figure there is nothing to hedge, so the
-   *  `oneVisitLeft` / `nearlyNext` pair that softened a projection is gone. */
+  /** Primary spend key. The optional paid-day alternative has its own key;
+   *  no key presents the old basket-based visits projection as a target. */
   key: 'loyalty.toPlus' | 'loyalty.toTop';
   /** `jod` is ALREADY FORMATTED for `lang` — the caller interpolates it into a
    *  sentence and must not re-decide the decimals or the numerals. */
   params: { jod: string; tier: string };
+  /** Present only for the real visits door, never a projected basket count. */
+  visitsAlternative?: {
+    key: 'loyalty.visitDaysAlternative';
+    params: { count: number; visits: string; tier: string };
+  };
   /** The rung being moved toward, for the caller's own styling. */
   next: Tier;
 }
@@ -101,9 +86,22 @@ export function tierProgressCopy(
   }
 
   const params = { jod: formatJOD(jodRemaining, lang), tier: tierName(next, lang) };
+  const actual = balance.nextTier;
+  const visitsAlternative: TierProgressCopy['visitsAlternative'] =
+    next.id === tiers[1].id && actual?.visitsGuaranteed === true &&
+    Number.isInteger(actual.visitsRemaining) && actual.visitsRemaining > 0
+      ? {
+          key: 'loyalty.visitDaysAlternative',
+          params: {
+            count: actual.visitsRemaining,
+            visits: formatNumber(actual.visitsRemaining, lang),
+            tier: params.tier,
+          },
+        }
+      : undefined;
   // ×2 lives on this key and nowhere else — see the header. Selecting on
   // `next.id` keeps that structural rather than editorial, and the second
   // step's real value (×1.5) is never spoken at all.
-  if (next.id === tiers[1].id) return { key: 'loyalty.toPlus', params, next };
+  if (next.id === tiers[1].id) return { key: 'loyalty.toPlus', params, next, visitsAlternative };
   return { key: 'loyalty.toTop', params, next };
 }

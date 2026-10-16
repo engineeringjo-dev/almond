@@ -19,6 +19,7 @@ import types
 import unittest
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
+from unittest.mock import patch
 
 import requests
 
@@ -82,6 +83,13 @@ class MockServerCase(unittest.TestCase):
     def ticket(self, member):
         return self.client().scan(self.mint(member)["token"]).earn_ticket
 
+    def settle(self, client=None, ref="TILL/SETTLE", key=None, **source):
+        kind = "token" if source.get("token") else "settlementToken"
+        credential = source.get("token") or source.get("settlement_token") or ""
+        return (client or self.client()).settle_redemption(
+            pos_order_ref=ref, idempotency_key=key or C.redemption_attempt_key(ref, kind, credential), **source,
+        )
+
     def age_ticket(self, ticket, seconds):
         self.http.post(self.base + "/__mock/age_ticket", json={"earnTicket": ticket, "seconds": seconds}, timeout=5)
 
@@ -119,7 +127,9 @@ class TestScan(MockServerCase):
         self.assertTrue(res.earns_points)          # the member earns...
         self.assertIsNone(res.earn_ticket)         # ...but only through a pay-mode scan
         self.assertEqual(res.redemption["valueJod"], 2.5)
-        self.assertEqual(res.redemption["code"], minted["code"])
+        self.assertNotIn("code", res.redemption)
+        self.assertTrue(res.redemption["settlementToken"])
+        self.assertTrue(C.is_iso_with_offset(res.redemption["presentationExpiresAt"]))
 
     def test_token_replay_409(self):
         token = self.mint("m-once")["token"]
@@ -147,7 +157,7 @@ class TestErrors(MockServerCase):
             lambda: bad.scan(self.mint()["token"]),
             lambda: bad.earn("t", "Shop/K", "mecca-st", 1.0, now_iso()),
             lambda: bad.reverse_earn("Shop/K", "refund"),
-            lambda: bad.settle_redemption(code="AAAA-BBBB"),
+            lambda: self.settle(client=bad, token="opaque-current-qr"),
         )
         for call in calls:
             with self.assertRaises(C.PosKeyInvalidError) as ctx:
@@ -158,7 +168,7 @@ class TestErrors(MockServerCase):
     def test_rate_limited_429_retries(self):
         self.server.state.fail_next = 429
         with self.assertRaises(C.RateLimitedError) as ctx:
-            self.client().settle_redemption(code="AAAA-BBBB")
+            self.settle(token="opaque-current-qr")
         self.assertEqual((ctx.exception.status, ctx.exception.api_code), (429, "rate_limited"))
         self.assertOutcome(ctx.exception, policy.RETRY, None)
 
@@ -325,29 +335,104 @@ class TestReverse(MockServerCase):
 
 # --------------------------------------------------------------------------- settle
 class TestSettle(MockServerCase):
-    def test_settle_by_code_once(self):
-        code = self.mint("m-code", "redeem", redemptionValueJod=1.75)["code"]
-        res = self.client().settle_redemption(code=" " + code.lower() + " ")
+    def test_scanned_receipt_settles_once_and_exact_retry_recovers_after_expiry(self):
+        token = self.mint("m-code", "redeem", redemptionValueJod=1.75)["token"]
+        scanned = self.client().scan(token)
+        receipt = scanned.redemption["settlementToken"]
+        res = self.settle(settlement_token=receipt)
         self.assertEqual(res.value_jod, 1.75)
-        with self.assertRaises(C.NotFoundError):
-            self.client().settle_redemption(code=code)
+        self.assertEqual(res.redemption_id, scanned.redemption["id"])
+        with patch.object(almond_bff_mock, "_now", return_value=self.server.state.receipts[receipt]["exp"] + 1):
+            self.assertEqual(self.settle(settlement_token=receipt).redemption_id, res.redemption_id)
+        with self.assertRaises(C.ConflictError):
+            self.settle(settlement_token=receipt, ref="OTHER/ORDER")
 
     def test_settle_by_redeem_token(self):
         self.mint("m-tok", "redeem", redemptionValueJod=3.0)
-        res = self.client().settle_redemption(token=self.mint("m-tok", "redeem")["token"])
+        res = self.settle(token=self.mint("m-tok", "redeem")["token"])
         self.assertEqual(res.value_jod, 3.0)
 
     def test_scanned_redeem_token_cannot_settle_again(self):
         minted = self.mint("m-scan-then-settle", "redeem", redemptionValueJod=1.0)
         self.client().scan(minted["token"])
         with self.assertRaises(C.TokenReplayError):
-            self.client().settle_redemption(token=minted["token"])
+            self.settle(token=minted["token"])
 
     def test_settle_needs_exactly_one(self):
         with self.assertRaises(C.ClientValidationError):
             self.client().settle_redemption()
         with self.assertRaises(C.ClientValidationError):
-            self.client().settle_redemption(token="a", code="b")
+            self.settle(token="a", settlement_token="b")
+
+    def test_typed_code_never_leaves_client_and_old_http_client_is_also_refused(self):
+        code = self.mint("m-typed", "redeem", redemptionValueJod=1.0)["code"]
+        before = self.requests_to("/v1/pos/redemption/settle")
+        for source in ({"code": code}, {"code": code, "token": "qr"}, {"code": ""}):
+            with self.assertRaises(C.ClientValidationError):
+                self.settle(**source)
+        self.assertEqual(self.requests_to("/v1/pos/redemption/settle"), before)
+        response = self.http.post(self.base + "/v1/pos/redemption/settle", json={"code": code}, headers={"x-pos-key": KEY})
+        self.assertEqual((response.status_code, response.json()["error"]), (400, "redemption_barcode_required"))
+
+    def test_scan_at_119_seconds_does_not_extend_original_deadline(self):
+        minted = self.mint("m-last-second", "redeem", redemptionValueJod=2)
+        original_expiry = self.server.state.tokens[minted["token"]]["exp"]
+        with patch.object(almond_bff_mock, "_now", return_value=original_expiry - 1):
+            scanned = self.client().scan(minted["token"])
+        receipt = scanned.redemption["settlementToken"]
+        self.assertEqual(self.server.state.receipts[receipt]["exp"], original_expiry)
+        for time_at in (original_expiry, original_expiry + 1):
+            with patch.object(almond_bff_mock, "_now", return_value=time_at):
+                with self.assertRaises(C.TokenExpiredError):
+                    self.settle(settlement_token=receipt)
+        self.assertFalse(self.server.state.redemptions[minted["code"]]["settled"])
+
+    def test_receipt_and_raw_qr_purposes_cannot_be_exchanged(self):
+        token = self.mint("m-domains", "redeem", redemptionValueJod=2)["token"]
+        receipt = self.client().scan(token).redemption["settlementToken"]
+        with self.assertRaises(C.TokenInvalidError):
+            self.settle(settlement_token=token)
+        with self.assertRaises(C.TokenInvalidError):
+            self.settle(token=receipt)
+
+    def test_exact_bound_row_and_order_body_stay_bound_to_the_attempt(self):
+        first = self.mint("m-two", "redeem", redemptionValueJod=1)
+        second = self.mint("m-two", "redeem", redemptionValueJod=5)
+        receipt = self.client().scan(first["token"]).redemption["settlementToken"]
+        key = C.redemption_attempt_key("ORDER/A", "settlementToken", receipt)
+        self.assertEqual(self.settle(settlement_token=receipt, ref="ORDER/A", key=key).value_jod, 1)
+        self.assertFalse(self.server.state.redemptions[second["code"]]["settled"])
+        with self.assertRaises(C.BadRequestError) as ctx:
+            self.settle(settlement_token=receipt, ref="ORDER/B", key=key)
+        self.assertEqual(ctx.exception.api_code, "idempotency_key_reused")
+
+    def test_legacy_or_missing_receipt_scan_response_fails_closed(self):
+        for redemption in (None, {"valueJod": 2, "code": "ABCD-EFGH"}, {"id": "rid", "valueJod": 2}):
+            with patch.object(C.AlmondLoyaltyClient, "_post", return_value={
+                "memberId": "m-legacy", "mode": "redeem", "earnsPoints": True, "redemption": redemption,
+            }):
+                with self.assertRaises(C.ProtocolError):
+                    self.client().scan("opaque-qr")
+
+    def test_cancelled_or_expired_reservation_refuses_even_a_still_current_receipt(self):
+        for state in ("cancelled", "expired"):
+            minted = self.mint("m-state-" + state, "redeem", redemptionValueJod=2)
+            receipt = self.client().scan(minted["token"]).redemption["settlementToken"]
+            row = self.server.state.redemptions[minted["code"]]
+            if state == "cancelled":
+                row["cancelled"] = True
+            else:
+                row["expiresAt"] = 0
+            with self.assertRaises(C.NotFoundError):
+                self.settle(settlement_token=receipt)
+            self.assertFalse(row["settled"])
+
+    def test_wrong_order_in_successful_response_is_not_accepted(self):
+        with patch.object(C.AlmondLoyaltyClient, "_post", return_value={
+            "posOrderRef": "different-order", "valueJod": 2, "points": 200, "redemption": {"id": "r"},
+        }):
+            with self.assertRaises(C.ProtocolError):
+                self.settle(token="current-qr")
 
 
 # --------------------------------------------------------------------------- secrets
@@ -364,14 +449,15 @@ class TestSecretsNeverLogged(MockServerCase):
         try:
             minted = self.mint("m-log", "redeem", redemptionValueJod=1.0)
             token, code = minted["token"], minted["code"]
+            receipt_result = self.client().scan(token)
+            receipt = receipt_result.redemption["settlementToken"]
             res = self.client().scan(self.mint("m-log", "pay")["token"])
             ticket = res.earn_ticket
             self.client().earn(ticket, "Shop/LOG1", "mecca-st", 1.0, now_iso())
             calls = (
-                (0.0, lambda: self.client().scan(token)),                   # ok (redeem)
                 (0.0, lambda: self.client().scan(token)),                   # 409 replay
-                (0.0, lambda: self.client().settle_redemption(code=code)),  # ok
-                (0.0, lambda: self.client().settle_redemption(code=code)),  # 404
+                (0.0, lambda: self.settle(settlement_token=receipt)),       # ok
+                (0.0, lambda: self.settle(settlement_token=receipt, ref="OTHER")),  # 409
                 (0.0, lambda: self.client().earn(ticket, "Shop/LOG3", "b", 1.0, now_iso())),  # ticket_used
                 (0.6, lambda: self.client(timeout=0.2).earn(ticket, "Shop/LOG2", "b", 1.0, now_iso())),
             )
@@ -394,9 +480,9 @@ class TestSecretsNeverLogged(MockServerCase):
         blob = stream.getvalue() + "\n".join(
             "%s %r %s %s" % (e, e, e.api_code, e.api_message) for e in errors
         )
-        blob += repr(self.client()) + str(self.client()) + repr(res)
+        blob += repr(self.client()) + str(self.client()) + repr(res) + repr(receipt_result)
         self.assertIn("/v1/pos/scan", blob)  # we did log something
-        for secret in (KEY, token, code, ticket):
+        for secret in (KEY, token, code, ticket, receipt):
             self.assertNotIn(secret, blob)
 
 
@@ -480,9 +566,11 @@ class TestPolicy(unittest.TestCase):
         for bad in ("2026-09-23T07:12:05", "2026-09-23 07:12:05Z", "2026-09-23", "", None, 5):
             self.assertFalse(C.is_iso_with_offset(bad), bad)
 
-    def test_normalize_code(self):
-        self.assertEqual(C.normalize_redemption_code(" ab2c-d3ef "), "AB2C-D3EF")
-        self.assertEqual(C.normalize_redemption_code("ab2c d3ef"), "AB2CD3EF")
+    def test_attempt_identity_binds_original_credential_kind_and_order(self):
+        key = C.redemption_attempt_key("order-a", "settlementToken", "receipt-a")
+        self.assertEqual(key, C.redemption_attempt_key("order-a", "settlementToken", "receipt-a"))
+        for order, kind, credential in (("order-b", "settlementToken", "receipt-a"), ("order-a", "token", "receipt-a"), ("order-a", "settlementToken", "receipt-b")):
+            self.assertNotEqual(key, C.redemption_attempt_key(order, kind, credential))
 
 
 if __name__ == "__main__":

@@ -17,8 +17,8 @@ export function PromoCarousel() {
   return (
     <CampaignPager
       ids={slides.map((slide) => slide.id)}
-      renderSlide={(index, active) => slides[index].id === 'combo' && active
-        ? <ComboOfferCard inCarousel />
+      renderSlide={(index, active) => slides[index].id === 'combo'
+        ? <ComboOfferCard inCarousel interactive={active} />
         : <CampaignSlideCard slide={slides[index]} active={active} extraPercent={extraPercent} />}
     />
   );

@@ -7,6 +7,7 @@ import { useI18n } from '@/hooks/useI18n';
 import { tiers } from '@/services/seed';
 import { tierName } from '@almond/shared/loyalty';
 import { tierProgressCopy } from '@/lib/tierCopy';
+import { config } from '@/constants/config';
 import type { LoyaltyBalance, TierId } from '@/types';
 
 interface Props {
@@ -14,7 +15,7 @@ interface Props {
   /** Qualifying spend inside the 90-day window (config.TIER_WINDOW_DAYS). */
   windowSpend: number;
   /** `standing().next` when the caller has it — see lib/tierCopy.ts. Without
-   *  it the bottom line falls back to the spend-only projection. */
+   *  it a non-top tier asks to refresh instead of guessing its progress. */
   nextTier?: LoyaltyBalance['nextTier'];
 }
 
@@ -24,10 +25,8 @@ interface Props {
  * fill advances stop-by-stop with the in-segment fraction.
  *
  * The bare threshold row under each label ("0 / 20 / 65") is GONE. It was three
- * unitless integers — not dinars, not visits, not points, and unlabelled in
- * either language — sitting directly under the tier names, and the copy rules
- * forbid stating the ladder in dinars at all. What is left is the name (the
- * rate) and one sentence in visits.
+ * unitless integers, unlabelled in either language. The remaining money and
+ * real visits alternative are stated with their units below the ladder.
  */
 export function TierProgress({ tier, windowSpend, nextTier }: Props) {
   const { t, lang } = useI18n();
@@ -49,7 +48,8 @@ export function TierProgress({ tier, windowSpend, nextTier }: Props) {
       ? Math.min(1, Math.max(0, (windowSpend - cur.threshold) / (next.threshold - cur.threshold)))
       : 1;
   const fillPct = ((currentIndex + (next ? segFraction : 0)) / lastIdx) * 100;
-  const progress = tierProgressCopy({ tier, windowSpend, nextTier }, lang);
+  // A partial/older producer is not evidence of having reached the top.
+  const progress = nextTier === undefined ? null : tierProgressCopy({ tier, windowSpend, nextTier }, lang);
 
   return (
     <View style={styles.wrap}>
@@ -59,7 +59,9 @@ export function TierProgress({ tier, windowSpend, nextTier }: Props) {
         <View style={[styles.fill, { width: `${fillPct}%` }]} />
         <View style={styles.stopsRow}>
           {tiers.map((tr, i) => {
-            const reached = windowSpend >= tr.threshold;
+            // A held rung stays reached even after the qualifying window
+            // rolls off; spend alone also misses the real paid-day door.
+            const reached = i <= currentIndex;
             const isCurrent = i === currentIndex;
             return (
               <View key={tr.id} style={styles.stopCol}>
@@ -100,13 +102,25 @@ export function TierProgress({ tier, windowSpend, nextTier }: Props) {
         ))}
       </View>
 
-      <Text variant="bodyBold" color={colors.dark} center style={styles.remaining}>
+      <Text testID="tier-remaining" variant="bodyBold" color={colors.dark} center style={styles.remaining}>
         {progress
           ? t(progress.key, progress.params)
-          : t('loyalty.tierMax', { tier: tierName(tiers[lastIdx], lang) })}
+          : currentIndex === lastIdx
+            ? t('loyalty.tierMax', { tier: tierName(tiers[lastIdx], lang) })
+            : t('loyalty.progressUnavailable')}
       </Text>
-      <Text variant="caption" color={colors.warmGray} center>
-        {t('loyalty.windowNote')}
+      {progress?.visitsAlternative ? (
+        <Text testID="tier-visits-alternative" variant="bodyBold" color={colors.dark} center>
+          {t(progress.visitsAlternative.key, progress.visitsAlternative.params)}
+        </Text>
+      ) : null}
+      {progress ? (
+        <Text testID="tier-window" variant="caption" color={colors.warmGray} center>
+          {t('loyalty.windowNote', { days: config.TIER_WINDOW_DAYS })}
+        </Text>
+      ) : null}
+      <Text testID="tier-kept" variant="caption" color={colors.warmGray} center>
+        {t('loyalty.tierKept')}
       </Text>
     </View>
   );

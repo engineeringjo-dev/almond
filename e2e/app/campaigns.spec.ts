@@ -41,7 +41,49 @@ async function home(page: Page, lang: Lang, items: CartItem[] = []): Promise<voi
   await expect(page.getByRole('button', { name: new RegExp(`^${escape(title)}`) })).toBeVisible({ timeout: 20_000 });
 }
 
-/** Real browser touch input: CSS scroll snapping and RN-web momentum-end must
+/** Start from the actual randomly selected card. No production test flag or
+ * assumption that Home opens at the first card. */
+async function campaignPosition(page: Page): Promise<{ current: number; total: number }> {
+  const position = page.getByTestId('home-campaign-position');
+  await expect(position).toBeVisible();
+  const digits = (await position.textContent())?.match(/\d+/g);
+  if (!digits || digits.length !== 2) throw new Error('Campaign position must expose current and total');
+  return { current: Number(digits[0]), total: Number(digits[1]) };
+}
+
+async function selectCampaign(page: Page, lang: Lang, target: number): Promise<void> {
+  const carousel = page.getByTestId('home-campaign-carousel');
+  const { current, total } = await campaignPosition(page);
+  expect(current).toBeGreaterThanOrEqual(1);
+  expect(current).toBeLessThanOrEqual(total);
+  expect(total).toBe(7);
+  for (let step = 0; step < (target - current + total) % total; step++) {
+    await carousel.getByRole('button', { name: words[lang].common.next, exact: true }).click();
+  }
+  await expect(page.getByTestId('home-campaign-position')).toHaveText(fill(words[lang].campaignSlides.position, { current: target, total }));
+}
+
+async function expectNeighbourPeeks(page: Page): Promise<void> {
+  const track = page.getByTestId('home-campaign-track');
+  await track.scrollIntoViewIfNeeded();
+  // Measure actual adjacent photo planes, including the visual-only end copies.
+  await expect.poll(() => track.evaluate((node) => {
+    const viewport = node.getBoundingClientRect();
+    const pages = Array.from(node.querySelectorAll<HTMLElement>('[data-testid^="campaign-slide-"], [data-testid^="campaign-clone-"]'));
+    const active = pages.findIndex((page) => page.getAttribute('aria-hidden') !== 'true');
+    return [pages[active - 1], pages[active + 1]].map((page) => {
+      const photo = page?.querySelector('img')?.getBoundingClientRect();
+      return photo ? Math.round(Math.max(0, Math.min(photo.right, viewport.right) - Math.max(photo.left, viewport.left))) : 0;
+    });
+  })).toEqual([20, 20]);
+  await expect(track.getByRole('button')).toHaveCount(1);
+  for (const clone of await track.getByTestId(/^campaign-clone-/).all()) {
+    await expect(clone).toHaveAttribute('aria-hidden', 'true');
+    await expect(clone.getByRole('button', { includeHidden: true })).toHaveCount(0);
+  }
+}
+
+/** Real browser touch input: CSS snapping and event-driven web settlement must
  * agree with the logical index, not just the Previous/Next button handler. */
 async function swipeCampaign(page: Page, lang: Lang): Promise<void> {
   const track = page.getByTestId('home-campaign-track');
@@ -90,10 +132,12 @@ for (const lang of ['ar', 'en'] as const) {
     const copy = words[lang];
     const carousel = page.getByTestId('home-campaign-carousel');
     const track = page.getByTestId('home-campaign-track');
+    await selectCampaign(page, lang, 1);
     await expect(carousel.getByText(fill(copy.campaignSlides.position, { current: 1, total: 7 }), { exact: true })).toBeVisible();
     await expect(track.getByRole('button')).toHaveCount(1);
     await swipeCampaign(page, lang);
     await expect(carousel.getByText(fill(copy.campaignSlides.position, { current: 2, total: 7 }), { exact: true })).toBeVisible();
+    await expectNeighbourPeeks(page);
     const gift = track.getByRole('button', { name: campaignAccessibleLabel(copy.campaignSlides.giftTitle, copy.campaignSlides.giftBody, copy.campaignSlides.giftAction), exact: true });
     await expect(gift).toBeVisible();
     await expect(track.getByRole('button')).toHaveCount(1);
@@ -101,6 +145,7 @@ for (const lang of ['ar', 'en'] as const) {
     await page.setViewportSize({ width: viewport.width + 24, height: viewport.height });
     await expect(gift).toBeVisible();
     await expect(carousel.getByText(fill(copy.campaignSlides.position, { current: 2, total: 7 }), { exact: true })).toBeVisible();
+    await expectNeighbourPeeks(page);
     await carousel.getByRole('button', { name: copy.common.next, exact: true }).click();
     const walletName = campaignAccessibleLabel(fill(copy.campaignSlides.walletTitle, { extra: 50 }), copy.campaignSlides.walletBody, copy.campaignSlides.walletAction, copy.campaignSlides.walletExclusions);
     await expect(track.getByRole('button', { name: walletName, exact: true })).toBeVisible();
@@ -134,6 +179,7 @@ for (const lang of ['ar', 'en'] as const) {
 
   test(`App campaigns (${lang}): four photographed examples disclose the real points terms, then let the customer choose`, async ({ page }) => {
     await home(page, lang);
+    await selectCampaign(page, lang, 1);
     const offer = page.getByRole('button', { name: `${copy.campaign.comboName}. ${copy.campaign.viewCombos}`, exact: true });
     await expect(offer.getByText(copy.campaign.comboEligibility, { exact: true })).toBeVisible();
     const expectedBadge = `Cash back\n${config.COMBO_BONUS_POINTS} points`;
@@ -195,6 +241,7 @@ for (const lang of ['ar', 'en'] as const) {
 
 test('App campaigns: catering reaches the real contact controls without launching an external action', async ({ page }) => {
   await home(page, 'ar');
+  await selectCampaign(page, 'ar', 1);
   const carousel = page.getByTestId('home-campaign-carousel');
   for (let step = 0; step < 3; step++) await carousel.getByRole('button', { name: ar.common.next, exact: true }).click();
   await expect(carousel.getByText(fill(ar.campaignSlides.position, { current: 4, total: 7 }), { exact: true })).toBeVisible();
@@ -217,6 +264,52 @@ test('App campaigns: catering reaches the real contact controls without launchin
   // Stop here: these controls launch phone, WhatsApp, mail or browser apps.
   expect(page.context().pages()).toHaveLength(1);
   expect(await storedItems(page)).toEqual([]);
+});
+
+for (const lang of ['ar', 'en'] as const) {
+  for (const theme of ['light', 'dark'] as const) {
+    test(`App campaigns (${lang}, ${theme}): 320px real bilateral peeks survive circular finger wrap and rapid Next`, async ({ page }) => {
+      await page.setViewportSize({ width: 320, height: 800 });
+      await page.emulateMedia({ colorScheme: theme });
+      await home(page, lang);
+      const carousel = page.getByTestId('home-campaign-carousel');
+      // Both logical ends must retain real neighbours rather than blank gutters.
+      for (const target of [1, 7]) {
+        await selectCampaign(page, lang, target);
+        await expectNeighbourPeeks(page);
+      }
+      await swipeCampaign(page, lang);
+      await expect(page.getByTestId('home-campaign-position')).toHaveText(fill(words[lang].campaignSlides.position, { current: 1, total: 7 }));
+      await expectNeighbourPeeks(page);
+      // Latest button intent wins even when requests cross the circular edge.
+      await selectCampaign(page, lang, 6);
+      for (let tap = 0; tap < 3; tap++) await carousel.getByRole('button', { name: words[lang].common.next, exact: true }).click();
+      await expect(page.getByTestId('home-campaign-position')).toHaveText(fill(words[lang].campaignSlides.position, { current: 2, total: 7 }));
+      await expectNeighbourPeeks(page);
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+      expect(await storedItems(page)).toEqual([]);
+    });
+  }
+}
+
+test('App campaigns: only a fresh Home focus chooses another opening card', async ({ page }) => {
+  await home(page, 'ar');
+  await selectCampaign(page, 'ar', 2);
+  // A bounded test-only RNG makes the next visit deterministic. Changing it
+  // inside this visit must not replace the card the member manually selected.
+  await page.evaluate(() => { Math.random = () => 0; });
+  const viewport = page.viewportSize()!;
+  await page.setViewportSize({ width: viewport.width + 24, height: viewport.height });
+  await expect(page.getByTestId('home-campaign-position')).toHaveText(fill(ar.campaignSlides.position, { current: 2, total: 7 }));
+  await page.getByRole('tab', { name: ar.tabs.more, exact: true }).click();
+  await page.getByRole('tab', { name: ar.tabs.home, exact: true }).click();
+  await expect(page.getByTestId('home-campaign-position')).toHaveText(fill(ar.campaignSlides.position, { current: 1, total: 7 }));
+  await expectNeighbourPeeks(page);
+  await page.evaluate(() => { Math.random = () => 0.999999; });
+  await page.getByRole('tab', { name: ar.tabs.more, exact: true }).click();
+  await page.getByRole('tab', { name: ar.tabs.home, exact: true }).click();
+  await expect(page.getByTestId('home-campaign-position')).toHaveText(fill(ar.campaignSlides.position, { current: 7, total: 7 }));
+  await expectNeighbourPeeks(page);
 });
 
 test('App campaigns: a nonempty Home order keeps its lead photo, quantity and total and opens the cart', async ({ page }) => {

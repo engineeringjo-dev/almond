@@ -12,12 +12,15 @@ for (const lang of ['ar', 'en'] as const) {
     const policy = page.getByRole('region', { name: copy.policies.title, exact: true });
     await expect(policy).toBeVisible({ timeout: 20_000 });
     await expect(page).toHaveURL(/\/profile\/policies$/);
-    for (const title of [copy.policies.pointsTitle, copy.policies.referralTitle, copy.policies.refundTitle]) {
+    for (const title of [copy.policies.pointsTitle, copy.policies.redemptionTitle, copy.policies.referralTitle, copy.policies.refundTitle]) {
       await expect(policy.getByRole('heading', { name: title, exact: true })).toBeVisible();
     }
     await expect(policy.getByText(copy.policies.referralReward.replace('{{points}}', String(config.REFERRAL_REWARD_POINTS)), { exact: true })).toBeVisible();
     await expect(policy.getByText(copy.policies.referralCap.replace('{{points}}', String(config.REFERRAL_LIFETIME_CAP_POINTS)), { exact: true })).toBeVisible();
     await expect(policy.getByText(copy.policies.unusedReturn, { exact: true })).toBeVisible();
+    await expect(policy.getByText(copy.policies.redemptionLifetime.replace('{{seconds}}', String(config.REDEMPTION_QR_TTL_SECONDS)), { exact: true })).toBeVisible();
+    await expect(policy.getByText(copy.policies.redemptionRefresh, { exact: true })).toBeVisible();
+    await expect(policy.getByText(copy.policies.redemptionSharing, { exact: true })).toBeVisible();
     await expect(policy.getByText(copy.policies.refundEarned, { exact: true })).toBeVisible();
     await expect(policy.getByText(copy.policies.refundMoney, { exact: true })).toBeVisible();
     await expect(policy.getByText(copy.policies.refundGifts, { exact: true })).toBeVisible();

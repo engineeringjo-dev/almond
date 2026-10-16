@@ -2,7 +2,6 @@ import type { PendingVisit, VisitRating } from '@almond/shared/loyalty/visitRati
 import type { AccountDeletion } from '@almond/shared/loyalty/accountDeletion';
 import type {
   LoyaltyBalance,
-  Voucher,
   PointsLogEntry,
   EarnResult,
   SpinConfig,
@@ -19,6 +18,10 @@ import { integration, loyaltyAuthHeaders } from '@/constants/integration';
 import { parseMeBalance, toLoyaltyBalance } from '@almond/shared/loyalty/balanceWire';
 import { parsePosToken, type PosTokenWire } from '@almond/shared/pos/tokenWire';
 import { apiDelete, apiGet, apiPost } from '@/lib/apiClient';
+import { parseRedemptionPresentation, parseRedemptionView, voucherForRedemption } from '@almond/shared/loyalty/redemptionPresentation';
+import ar from '@/locales/ar.json';
+import en from '@/locales/en.json';
+import { formatJOD } from '@/lib/format';
 
 /**
  * Live loyalty / e-wallet / gift / POS client. Talks to the standalone loyalty
@@ -27,8 +30,8 @@ import { apiDelete, apiGet, apiPost } from '@/lib/apiClient';
  * Contract: docs/ODOO-INTEGRATION.md.
  *
  * ⚠️ THIS CLIENT IS NOT POINTED AT THE BFF IN THIS REPO, AND CANNOT BE BY
- * CHANGING A URL. A probe booted the real BFF and called all twenty endpoints
- * below with a real member JWT: eighteen returned 404, because this map was
+ * CHANGING A URL. An earlier probe found most legacy endpoints returned404:
+ * that map was
  * written against a hypothetical standalone loyalty server (`/loyalty/*` on
  * config.LOYALTY_BASE_URL) that does not exist, while the BFF registers
  * `/v1/*`. Four independent things are missing, not one:
@@ -37,9 +40,9 @@ import { apiDelete, apiGet, apiPost } from '@/lib/apiClient';
  *   2. auth — a static build-time EXPO_PUBLIC_LOYALTY_TOKEN plus a userId in
  *      the URL, vs the BFF's per-member JWT whose SUBJECT is the identity.
  *      `stores/authStore.ts` has no token field, so the app never holds one;
- *   3. contracts — e.g. redeemReward posts {beans,titleAr,titleEn,type} where
- *      `POST /v1/loyalty/redeem` takes {points}. Repointing paths alone would
- *      turn 404s into 400s;
+ *   3. contracts — legacy endpoints still need individual validated adapters.
+ *      Points redemption now uses the real /v1 reservation and presentation
+ *      routes, sends {points} with a stable creation key, and never signs a QR;
  *   4. features — spin, gift cards and scan-status have no BFF route at
  *      all. They are unbuilt features, not broken wiring. (Referrals and
  *      transfers to a friend DO, since 2026-09-24, and visit ratings and
@@ -58,6 +61,14 @@ const E = integration.endpoints;
 const get = <T>(path: string) => apiGet<T>(BASE, path, loyaltyAuthHeaders());
 const post = <T>(path: string, body: unknown, headers: Record<string, string> = {}) =>
   apiPost<T>(BASE, path, body, { ...loyaltyAuthHeaders(), ...headers });
+const redemptionVoucher = (raw: unknown) => {
+  const row = parseRedemptionView(raw);
+  // Service data needs both fixed languages, not the runtime Expo locale.
+  return voucherForRedemption(row, {
+    titleAr: ar.rewards.creditVoucher.replace('{{jod}}', formatJOD(row.valueJod, 'ar')),
+    titleEn: en.rewards.creditVoucher.replace('{{jod}}', formatJOD(row.valueJod, 'en')),
+  });
+};
 
 export const liveLoyaltyService: LoyaltyService = {
   // Validated, not cast. `parseMeBalance` throws a named BalanceWireError at
@@ -69,9 +80,28 @@ export const liveLoyaltyService: LoyaltyService = {
   // the server never sends it: the member is the JWT subject.
   getBalance: async (userId): Promise<LoyaltyBalance> =>
     toLoyaltyBalance(parseMeBalance(await get<unknown>(E.balance(userId))), userId),
-  getVouchers: (userId) => get<Voucher[]>(E.vouchers(userId)),
-  redeemReward: (userId, input) =>
-    post<{ points: number; voucher: Voucher }>(E.redeemReward, { userId, ...input }),
+  // Points redemption now uses the actual BFF reservation/credential contract.
+  // BASE and member-JWT cutover are still required (see the header); failure
+  // remains an error, never a client-built production barcode.
+  getVouchers: async (_userId, redemptionId) => {
+    const result = await get<{ redemption: unknown | null }>(redemptionId ? `/v1/me/redemption/${encodeURIComponent(redemptionId)}` : '/v1/me/redemption');
+    return result.redemption ? [redemptionVoucher(result.redemption)] : [];
+  },
+  redeemReward: async (_userId, input) => {
+    const result = await post<{ pointsBalance: number | null; redemption: unknown }>('/v1/loyalty/redeem',
+      { points: input.beans }, { 'Idempotency-Key': input.idempotencyKey });
+    return { points: result.pointsBalance, voucher: redemptionVoucher(result.redemption) };
+  },
+  getRedemption: async (_userId, redemptionId) => {
+    const result = await get<{ redemption: unknown }>(`/v1/me/redemption/${encodeURIComponent(redemptionId)}`);
+    return parseRedemptionView(result.redemption, redemptionId);
+  },
+  getRedemptionPresentation: async (_userId, redemptionId) =>
+    parseRedemptionPresentation(await post<unknown>('/v1/me/redemption/qr', { redemptionId }), redemptionId),
+  cancelRedemption: async (_userId, redemptionId, idempotencyKey) => {
+    const result = await post<{ redemption: unknown }>('/v1/me/redemption/cancel', { redemptionId }, { 'Idempotency-Key': idempotencyKey });
+    return parseRedemptionView(result.redemption, redemptionId);
+  },
 
   // POST /v1/me/profile. Sends the NAME; reads back what the server granted.
   // `userId` is not in the body on purpose — identity is the bearer token's

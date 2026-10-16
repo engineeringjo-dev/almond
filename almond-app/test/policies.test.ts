@@ -29,7 +29,7 @@ describe('P1 programme policies remain public and findable', () => {
 describe('P2 policy amounts follow shared dials and bound the final referral grant', () => {
   it('the route reads shared settings instead of stating its own figures', () => {
     const page = source('app/profile/policies.tsx');
-    for (const setting of ['REFERRAL_REWARD_POINTS', 'REFERRAL_LIFETIME_CAP_POINTS', 'POINT_LOT_LIFE_MONTHS']) {
+    for (const setting of ['REFERRAL_REWARD_POINTS', 'REFERRAL_LIFETIME_CAP_POINTS', 'POINT_LOT_LIFE_MONTHS', 'REDEMPTION_QR_TTL_SECONDS']) {
       expect(page).toContain(`formatNumber(config.${setting}, lang)`);
     }
     expect(page).toContain('count: config.POINT_LOT_LIFE_MONTHS');
@@ -42,6 +42,9 @@ describe('P2 policy amounts follow shared dials and bound the final referral gra
       await i18n.init({ ...I18N_OPTIONS, lng: lang });
       const reward = i18n.t('policies.referralReward', { points: '41' });
       const cap = i18n.t('policies.referralCap', { points: '613' });
+      const barcode = i18n.t('policies.redemptionLifetime', { seconds: '77' });
+      expect(barcode).toContain('77');
+      expect(barcode).not.toMatch(/\{\{|\b120\b/);
       expect(reward).toMatch(lang === 'ar' ? /لغاية 41/ : /up to 41/);
       expect(cap).toContain('613');
       for (const text of [reward, cap]) expect(text).not.toMatch(/\{\{|\b50\b|\b500\b/);

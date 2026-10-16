@@ -13,18 +13,11 @@ import type { Lang } from '@/types';
 
 /** A stationary campaign entry. The pictured pair is an example, so opening
  *  it never adds an unrelated recommendation to the customer's basket. */
-export function ComboOfferCard({ inCarousel = false }: { inCarousel?: boolean }) {
+export function ComboOfferCard({ inCarousel = false, interactive = true }: { inCarousel?: boolean; interactive?: boolean }) {
   const { t, lang } = useI18n();
   const copy = comboOffer(lang);
   if (!copy) return null;
-  return (
-    <Pressable
-      onPress={() => router.push(CAMPAIGN_DESTINATIONS.showcase)}
-      accessibilityRole="button"
-      accessibilityLabel={`${t('campaign.comboName')}. ${t('campaign.viewCombos')}`}
-      accessibilityHint={`${t('campaign.comboSummary', copy.params)} ${t('campaign.exampleNote')} ${t(copy.bodyKey, copy.params)}`}
-      style={({ pressed }) => [styles.card, inCarousel && styles.inCarousel, pressed && styles.pressed]}
-    >
+  const content = <>
       <CampaignPhoto photo="americanoCookie" points={copy.params.points} compact />
       <View style={styles.words}>
         <Text variant="h2">{t('campaign.comboName')}</Text>
@@ -32,7 +25,16 @@ export function ComboOfferCard({ inCarousel = false }: { inCarousel?: boolean })
         <Text variant="caption" color={colors.warmGray}>{t('campaign.comboEligibility')}</Text>
         <Text variant="caption" style={styles.link}>{t('campaign.viewCombos')}</Text>
       </View>
-    </Pressable>
+  </>;
+  if (!interactive) return <View style={[styles.card, inCarousel && styles.inCarousel]}>{content}</View>;
+  return (
+    <Pressable
+      onPress={() => router.push(CAMPAIGN_DESTINATIONS.showcase)}
+      accessibilityRole="button"
+      accessibilityLabel={`${t('campaign.comboName')}. ${t('campaign.viewCombos')}`}
+      accessibilityHint={`${t('campaign.comboSummary', copy.params)} ${t('campaign.exampleNote')} ${t(copy.bodyKey, copy.params)}`}
+      style={({ pressed }) => [styles.card, inCarousel && styles.inCarousel, pressed && styles.pressed]}
+    >{content}</Pressable>
   );
 }
 
