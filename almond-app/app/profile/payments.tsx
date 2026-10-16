@@ -30,9 +30,7 @@ export default function PaymentsScreen() {
         </Card>
         <Text variant="caption" color={colors.warmGray} style={styles.note}>
           {/* Processing is mocked in MVP (section 0.3). */}
-          {lang === 'ar'
-            ? 'تتم معالجة الدفع بشكل تجريبي في هذه النسخة.'
-            : 'Payment processing is mocked in this MVP.'}
+          {t('profile.paymentsMockNote')}
         </Text>
       </Screen>
     </>

@@ -5,7 +5,7 @@ import { LIST_SEPARATOR } from '@/lib/cartLineText';
  * «يُطلب عادةً مع» — THE PAIRINGS IN THE ITEM SHEET.
  *
  * A pairing chip used to call addItem() on every tap and only relabel itself
- * «تمت الإضافة ✓»: two taps put two croissants in the cart, the sheet's CTA
+ * as added, with a check: two taps put two croissants in the cart, the sheet's CTA
  * still showed the drink alone, and closing the sheet without adding the drink
  * left the croissant behind anyway (audit P1, measured 10.200 → 15.700 JOD).
  *

@@ -269,7 +269,7 @@ export function GiftsView() {
                   <span className="font-bold text-primary">{formatJOD(g.amount, lang)}</span>
                   {g.redeemed && (
                     <span className="rounded-pill bg-neutral-warm px-2 py-0.5 text-xs text-text-secondary">
-                      {t('redeemSuccess')}
+                      {t('redeemedBadge')}
                     </span>
                   )}
                 </div>

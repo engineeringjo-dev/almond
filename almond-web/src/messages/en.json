@@ -152,7 +152,7 @@
     "topTier": "You're at our top tier: {tier} back on every order",
     "redeemTitle": "Redeem your points",
     "redeem": "Redeem",
-    "redeemed": "Redeemed",
+    "redeemed": "Discount ready",
     "cost": "Points: {cost}",
     "vouchersTitle": "Your vouchers",
     "noVouchers": "No vouchers yet",
@@ -198,6 +198,7 @@
     "codePlaceholder": "Enter gift code",
     "redeemCta": "Add to balance",
     "redeemSuccess": "The gift was added to your wallet!",
+    "redeemedBadge": "Redeemed",
     "redeemInvalid": "Invalid code",
     "sentTitle": "Gifts you've sent",
     "to": "to {name}"

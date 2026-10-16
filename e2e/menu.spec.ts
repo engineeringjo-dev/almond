@@ -74,7 +74,7 @@ test.describe('Menu', () => {
     await expect.poll(async () => parseJod(await add.innerText())).toBeCloseTo(unit * 2, 3);
 
     await add.click();
-    await expect(page.getByRole('button', { name: /تمت الإضافة/ })).toBeVisible();
+    await expect(page.getByRole('button', { name: /في سلتك/ })).toBeVisible();
 
     // The header cart badge counts the two units.
     await expect(page.getByRole('link', { name: /السلة/ }).first()).toContainText('2');

@@ -11,7 +11,7 @@ test.describe('Checkout (mock mode)', () => {
     await page.goto(`/menu/${ITEM_WITH_MODIFIERS}`);
     await waitForHydration(page);
     await page.getByRole('button', { name: /أضف إلى السلة/ }).click();
-    await expect(page.getByRole('button', { name: /تمت الإضافة/ })).toBeVisible();
+    await expect(page.getByRole('button', { name: /في سلتك/ })).toBeVisible();
   });
 
   test('pickup order reaches the confirmation screen', async ({ page, health }) => {
@@ -32,7 +32,7 @@ test.describe('Checkout (mock mode)', () => {
     await page.getByRole('button', { name: 'تأكيد الطلب' }).click();
 
     await expect(page).toHaveURL(/\/checkout\/success$/);
-    await expect(page.getByRole('heading', { level: 1, name: 'تم استلام طلبك!' })).toBeVisible();
+    await expect(page.getByRole('heading', { level: 1, name: 'وصلنا طلبك' })).toBeVisible();
     const totalRow = page.getByText('الإجمالي', { exact: true }).locator('..');
     expect(parseJod(await totalRow.innerText())).toBeGreaterThan(0);
 
@@ -56,7 +56,7 @@ test.describe('Checkout (mock mode)', () => {
     await page.getByRole('textbox', { name: 'عنوان التوصيل' }).fill('عمّان، الرابية، شارع ١');
     await page.getByRole('button', { name: 'تأكيد الطلب' }).click();
     await expect(page).toHaveURL(/\/checkout\/success$/);
-    await expect(page.getByRole('heading', { level: 1, name: 'تم استلام طلبك!' })).toBeVisible();
+    await expect(page.getByRole('heading', { level: 1, name: 'وصلنا طلبك' })).toBeVisible();
 
     expectHealthy(health);
   });

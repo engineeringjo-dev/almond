@@ -29,8 +29,8 @@ afterEach(() => {
 describe('DG1 on the web, the browser\'s own alert', () => {
   it('notify shows the title and the body', () => {
     const native = vi.spyOn(Alert, 'alert');
-    notify('تم', 'أضفنا القسيمة');
-    expect(g.window!.alert).toHaveBeenCalledWith('تم\n\nأضفنا القسيمة');
+    notify('خصمك جاهز', 'أضفنا القسيمة');
+    expect(g.window!.alert).toHaveBeenCalledWith('خصمك جاهز\n\nأضفنا القسيمة');
     notify('خطأ');
     expect(g.window!.alert).toHaveBeenLastCalledWith('خطأ');
     expect(native).not.toHaveBeenCalled();

@@ -7,8 +7,8 @@ import { appUrl, seedApp } from './helpers';
  * react-native-web's Alert is an empty function, so this button once asked
  * nothing and redeemed nothing on the web (layout panel, 2026-10-15). The
  * question is now a sheet on the Rewards tab (components/loyalty/RedeemSheet.tsx),
- * the same on every platform: the amount, then «استبدال», then «تمّ» with the
- * way to the coupon. The mock seeds 1,240 points (12.400 د.أ); 1.000 د.أ costs
+ * the same on every platform: the amount, then «استبدال», then «خصمك جاهز»
+ * with the way to the coupon. The mock seeds 1,240 points (12.400 د.أ); 1.000 د.أ costs
  * 100.
  */
 const ONE_JOD = 'اخصم 1.000 د.أ من فاتورتك مقابل 100 من نقاطك';
@@ -27,7 +27,7 @@ test.describe('App: redeeming on the web', () => {
     await expect(sheet).toContainText('نخصم 1.000 د.أ من فاتورتك مقابل 100 من نقاطك؟');
 
     await sheet.getByRole('button', { name: 'استبدال', exact: true }).click();
-    const done = page.getByRole('dialog', { name: 'تمّ' });
+    const done = page.getByRole('dialog', { name: 'خصمك جاهز' });
     await expect(done).toContainText('حوّلنا 1.000 د.أ من نقاطك إلى خصم يُطبَّق على فاتورتك عند الدفع');
     await expect(page.getByText(WORTH_AFTER)).toBeVisible();
 

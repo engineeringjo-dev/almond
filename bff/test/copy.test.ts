@@ -919,3 +919,42 @@ describe('C23 Arabic copy is punctuated as Arabic', () => {
     expect(offenders).toEqual([]);
   });
 });
+
+describe('C27 no «تم» in any form: say what happened', () => {
+  // Owner, 2026-10-16: «ما تكتب تم مش حلوه». «تم + مصدر» (تم الحفظ، تمت
+  // الإضافة، لم يتم الدفع) is the passive of forms and banks: it hides who did
+  // what. Say it with a verb in our voice («أضفنا»، «وصلنا طلبك»), name the
+  // result («خصمك جاهز»), and use «تعذّر» for a failure. One pattern catches
+  // تم، تمّ، تمت، يتم، يتمّ، تتم، لم يتم and a joined و/ف; it leaves إتمام،
+  // تمكّن، تمام، مستمر and تمرير alone (a letter on either side).
+  const TAMM = /(?<![\p{L}\p{M}])[وف]?[يت]?\p{M}*تمّ?ت?(?![\p{L}\p{M}])/u;
+
+  it('in both Arabic files', () => {
+    const offenders: string[] = [];
+    for (const rel of [APP_LOCALES.ar, WEB_LOCALES.ar]) {
+      for (const [k, v] of Object.entries(load(rel))) {
+        if (TAMM.test(v)) offenders.push(`${rel} ${k}: ${v}`);
+      }
+    }
+    expect(offenders).toEqual([]);
+  });
+
+  it('in an Arabic literal typed into a screen', () => {
+    // A string typed straight into a component skips the locale files
+    // (profile/payments.tsx once held «تتم معالجة الدفع…»). Comments are
+    // stripped; tests are not in the walk.
+    const offenders = sources
+      .filter((f) => /^(almond-app|almond-web|packages)\//.test(f.path))
+      .flatMap((f) => f.code.flatMap((line, i) => (TAMM.test(line) ? [`${f.path}:${i + 1}: ${line.trim()}`] : [])));
+    expect(offenders).toEqual([]);
+  });
+
+  it('the pattern catches every form and spares the look-alikes', () => {
+    for (const s of ['تم', 'تمّ', 'تمت', 'تمّت', 'يتم', 'يتمّ', 'يُتمّ', 'تتم', 'لم يتم الدفع', 'وتمّ', 'فتم']) {
+      expect(TAMM.test(s), s).toBe(true);
+    }
+    for (const s of ['إتمام الطلب', 'لتتمكّن', 'تمكّن', 'تمام', 'مستمر', 'تمرير', 'تموز']) {
+      expect(TAMM.test(s), s).toBe(false);
+    }
+  });
+});
