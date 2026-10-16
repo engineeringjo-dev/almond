@@ -16,7 +16,7 @@
   ],
   "scripts": {
     "test": "npm test --workspace @almond/bff && npm test --workspace almond-app && npm test --workspace almond-web",
-    "typecheck": "npm run shared:typecheck && npm run web:typecheck && npm run typecheck --workspace @almond/bff && npm run typecheck --workspace almond-app && tsc -p e2e/tsconfig.json && tsc -p scripts/load/tsconfig.json && tsc -p scripts/pos/tsconfig.json",
+    "typecheck": "npm run shared:typecheck && npm run web:typecheck && npm run typecheck --workspace @almond/bff && npm run typecheck --workspace almond-app && tsc -p e2e/tsconfig.json && tsc -p scripts/load/tsconfig.json && tsc -p scripts/pos/tsconfig.json && tsc -p scripts/menu/tsconfig.json",
     "shared:typecheck": "npm run typecheck --workspace @almond/shared",
     "web:dev": "npm run dev --workspace almond-web",
     "web:build": "npm run build --workspace almond-web",
@@ -24,6 +24,7 @@
     "menu:pull": "tsx scripts/odoo-menu-pull.ts",
     "menu:export": "tsx scripts/export-public-menu.ts",
     "menu:insights": "tsx scripts/odoo-menu-insights.ts",
+    "menu:frames": "tsx scripts/menu-photo-frames.ts",
     "coverage": "npm run coverage --workspace @almond/bff && npm run coverage --workspace almond-app && npm run coverage --workspace almond-web",
     "test:e2e": "playwright test",
     "load:baseline": "tsx scripts/load/bff-baseline.ts",

@@ -200,6 +200,7 @@ GM, 2026-09-30: the app's menu updates the way Careem and Talabat do.
 | Branches | `CATEGORY_BRANCH_LIMITS`: pizza and pasta only at Rabieh, 8th Circle, JU, Madina and Shafa Badran (GM, 2026-09-25). Every other item is sold at all branches. The pull does not yet read `pos.config` per branch |
 | Tags | Category name ("Gluten-free …", "Seasonal Drinks") or item name (gluten/GF/جلوتين, keto/كيتو, sugar free, vegan/نباتي, pumpkin/gingerbread/fall/autumn/خريف/قرع) |
 | Photos | `image_1920`, resized to 512 px WebP by `npm run menu:pull` |
+| Photo frames | Measured from those photos in the same run (`npm run menu:frames`, the rule in `packages/shared/src/menu/photoFrame.ts`) into `packages/shared/src/menu/photoFrames.generated.ts`: the square that hides each photo's white margin in the app's menu |
 
 ## Order payload — one structure for WhatsApp now and for app orders later
 

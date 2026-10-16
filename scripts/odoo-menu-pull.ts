@@ -40,6 +40,7 @@ import { writeFileSync, mkdirSync, rmSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import sharp from 'sharp';
 import type { Category, MenuItem, ItemSize, CustomizationGroup } from '../packages/shared/src/types';
+import { writeMenuPhotoFrames } from './menu/photoFrames';
 
 const URL_ = need('ODOO_URL'), DB = need('ODOO_DB');
 const LOGIN = need('ODOO_LOGIN'), KEY = need('ODOO_API_KEY');
@@ -349,6 +350,10 @@ async function main() {
     process.stdout.write(`\r  photos ${done}/${photoIds.length}`);
   }
   console.log(`\n  ${done} photos, ${(bytes / 1048576).toFixed(1)} MB`);
+  // The menu's photo frames are measured from these photos, so they are
+  // rewritten in the same run: a changed photo ships with its new frame and
+  // the frames' hash test passes in the sync's own gate.
+  await writeMenuPhotoFrames();
 
   // ---- emit -------------------------------------------------------------
   const header = `import type { Category, MenuItem } from '../types';

@@ -42,6 +42,8 @@
     "./menu/store": "./src/menu/store.ts",
     "./menu/browse": "./src/menu/browse.ts",
     "./menu/menu.insights.generated": "./src/menu/menu.insights.generated.ts",
+    "./menu/photoFrame": "./src/menu/photoFrame.ts",
+    "./menu/photoFrames.generated": "./src/menu/photoFrames.generated.ts",
     "./lib/categoryKind": "./src/lib/categoryKind.ts",
     "./lib/combo": "./src/lib/combo.ts",
     "./lib/phone": "./src/lib/phone.ts",
