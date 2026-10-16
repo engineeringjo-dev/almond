@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect } from 'react';
+import { useMemo, useState } from 'react';
 import { View, StyleSheet, Pressable, Image, useWindowDimensions } from 'react-native';
 
 import { BottomSheet } from '@/components/ui/BottomSheet';
@@ -11,6 +11,7 @@ import { Icon } from '@/components/ui/Icon';
 import { colors, spacing, radius } from '@/constants/theme';
 import { config } from '@/constants/config';
 import { useI18n } from '@/hooks/useI18n';
+import { useMenuState } from '@/hooks/useMenuState';
 import { formatJOD } from '@/lib/format';
 import { iconForCategory } from '@/lib/productIcon';
 import { secondaryName } from '@/lib/itemName';
@@ -21,94 +22,121 @@ import { addSheetToCart, quickAddPrice, sheetTotal, stagedPairingsLine, togglePa
 import { choiceA11y, choiceGroupA11y, MIN_TOUCH_TARGET } from '@/lib/a11y';
 import { useCartStore } from '@/stores/cartStore';
 import { useFavouritesStore } from '@/stores/favouritesStore';
-import type { MenuItem, ItemSize, CartCustomization } from '@/types';
+import { cartEditCollision, draftForCartLine, resolveCartEdit, type CartEditIssue } from '@/lib/cartEdit';
+import { lineUnitPrice } from '@almond/shared/cart';
+import type { MenuItem, ItemSize, CartCustomization, CartItem } from '@/types';
 
 interface Props {
   item: MenuItem | null;
   visible: boolean;
   onClose: () => void;
+  editingLine?: CartItem;
 }
 
 /** Item customization bottom sheet (section 4.5). */
-export function ItemModal({ item, visible, onClose }: Props) {
+export function ItemModal(props: Props) {
+  const menu = useMenuState();
+  // Closing discards this local draft. Reopening the same item starts from
+  // the actual cart again; a live menu refresh never resets an open draft.
+  if (!props.visible || (!props.item && !props.editingLine)) return null;
+  const item = props.editingLine
+    ? menu.items.find((m) => m.id === props.editingLine!.itemId) ?? null
+    : props.item;
+  return <ItemSheet key={props.editingLine?.lineId ?? item?.id} {...props} item={item} />;
+}
+
+function ItemSheet({ item, visible, onClose, editingLine }: Props) {
   const { t, lang } = useI18n();
   const { width, fontScale } = useWindowDimensions();
   const stackFooter = width < 360 || fontScale > 1.2;
   const addItem = useCartStore((s) => s.addItem);
+  const editLine = useCartStore((s) => s.editLine);
+  const cartItems = useCartStore((s) => s.items);
   const favIds = useFavouritesStore((s) => s.ids);
   const toggleFav = useFavouritesStore((s) => s.toggle);
   const isFav = !!item && favIds.includes(item.id);
-  const [sizeId, setSizeId] = useState<ItemSize['id']>('M');
-  const [selected, setSelected] = useState<Record<string, string[]>>({});
-  const [qty, setQty] = useState(1);
+  const [sizeId, setSizeId] = useState<ItemSize['id']>(editingLine?.sizeId ?? item?.sizes[0]?.id ?? 'M');
+  const [selected, setSelected] = useState<CartCustomization[]>(() => editingLine
+    ? draftForCartLine(editingLine).customizations
+    : (item?.customizations ?? []).flatMap((g) => {
+      const first = g.options[0];
+      return !g.multiple && first ? [{ groupId: g.id, optionId: first.id, nameAr: first.nameAr, nameEn: first.nameEn, priceDelta: first.priceDelta }] : [];
+    }));
+  const [qty, setQty] = useState(editingLine?.qty ?? 1);
+  const [saveIssue, setSaveIssue] = useState<CartEditIssue | null>(null);
   // Pairings the customer ticked; they join the cart with «أضف للسلة», not before.
   const [staged, setStaged] = useState<string[]>([]);
   const [failedImage, setFailedImage] = useState<string | null>(null);
   const hasPhoto = !!item?.imageUrl && failedImage !== item.imageUrl;
 
-  // Reset state whenever a new item opens; default single-choice to first option.
-  useEffect(() => {
-    if (!item) return;
-    setSizeId(item.sizes[0].id);
-    setQty(1);
-    setStaged([]);
-    const init: Record<string, string[]> = {};
-    item.customizations.forEach((g) => {
-      init[g.id] = g.multiple ? [] : [g.options[0].id];
-    });
-    setSelected(init);
-  }, [item]);
-
   const size = useMemo(
-    () => item?.sizes.find((s) => s.id === sizeId) ?? item?.sizes[0],
-    [item, sizeId],
+    () => item?.sizes.find((s) => s.id === sizeId) ?? (editingLine ? undefined : item?.sizes[0]),
+    [item, sizeId, editingLine],
   );
 
-  const customizations = useMemo<CartCustomization[]>(() => {
-    if (!item) return [];
-    const out: CartCustomization[] = [];
-    item.customizations.forEach((g) => {
-      (selected[g.id] ?? []).forEach((optId) => {
-        const opt = g.options.find((o) => o.id === optId);
-        if (opt) out.push({ groupId: g.id, optionId: opt.id, nameAr: opt.nameAr, nameEn: opt.nameEn, priceDelta: opt.priceDelta });
-      });
-    });
-    return out;
-  }, [item, selected]);
+  const resolved = editingLine ? resolveCartEdit(item, { sizeId, customizations: selected, qty }) : null;
+  const customizations = resolved?.line?.customizations ?? selected;
+  const issue = resolved?.issue ?? saveIssue;
+  const originalPrice = editingLine ? resolveCartEdit(item, draftForCartLine(editingLine)).line : null;
+  const priceChanged = !!editingLine && !!originalPrice && Math.abs(lineUnitPrice(originalPrice) - lineUnitPrice(editingLine)) > 0.000001;
+  const collision = editingLine && resolved?.line ? cartEditCollision(cartItems, editingLine, resolved.line) : null;
 
   const unit = (size?.price ?? 0) + customizations.reduce((s, c) => s + c.priceDelta, 0);
 
-  if (!item || !size) return null;
+  if (!item) return (
+    <BottomSheet
+      visible={visible}
+      onClose={onClose}
+      label={editingLine ? t('cart.editItem', { name: lang === 'ar' ? editingLine.nameAr : editingLine.nameEn }) : undefined}
+      footer={<Button title={t('common.cancel')} variant="secondary" onPress={onClose} />}
+    >
+      <Text variant="body" accessibilityRole="alert" selectable>{t('cart.editItemUnavailable')}</Text>
+    </BottomSheet>
+  );
+  if (!size && !editingLine) return null;
 
   // Upsell + cross-sell (Starbucks-style).
   const upsell = getSizeUpsell(item, sizeId);
-  const pairings = getItemPairings(item, 4);
+  const pairings = editingLine ? [] : getItemPairings(item, 4);
   const stagedItems = pairings.filter((p) => staged.includes(p.id));
   // The button says what one tap will put in the cart: this item × qty and
   // every ticked pairing once.
-  const total = sheetTotal(unit, qty, stagedItems);
+  const total = collision?.total ?? sheetTotal(unit, qty, stagedItems);
   // …and says what is in it beyond this item, so the jump is explained.
   const includes = stagedPairingsLine(stagedItems, lang);
 
   const toggle = (groupId: string, optId: string, multiple: boolean) => {
+    const option = item.customizations.find((g) => g.id === groupId)?.options.find((o) => o.id === optId);
+    if (!option) return;
+    const choice = { groupId, optionId: optId, nameAr: option.nameAr, nameEn: option.nameEn, priceDelta: option.priceDelta };
+    setSaveIssue(null);
     setSelected((prev) => {
-      const current = prev[groupId] ?? [];
+      const isSelected = prev.some((c) => c.groupId === groupId && c.optionId === optId);
       if (multiple) {
-        return {
-          ...prev,
-          [groupId]: current.includes(optId)
-            ? current.filter((x) => x !== optId)
-            : [...current, optId],
-        };
+        return isSelected
+          ? prev.filter((c) => c.groupId !== groupId || c.optionId !== optId)
+          : [...prev, choice];
       }
-      return { ...prev, [groupId]: [optId] };
+      return [...prev.filter((c) => c.groupId !== groupId), choice];
     });
   };
 
   const onAdd = () => {
+    if (editingLine) {
+      const result = editLine(editingLine, { sizeId, customizations: selected, qty }, unit, collision);
+      if (!result.saved) {
+        setSaveIssue(result.issue);
+        return;
+      }
+      onClose();
+      return;
+    }
+    if (!size) return;
     addSheetToCart(addItem, { item, size, customizations, qty }, stagedItems);
     onClose();
   };
+
+  const chooseSize = (id: ItemSize['id']) => { setSizeId(id); setSaveIssue(null); };
 
   // earn-arith-exempt: an offer LABEL — no invoice, no grant. §3.5 / §7 T7.
   const comboPoints = config.COMBO_BONUS_POINTS;
@@ -120,9 +148,21 @@ export function ItemModal({ item, visible, onClose }: Props) {
     <BottomSheet
       visible={visible}
       onClose={onClose}
-      label={lang === 'ar' ? item.nameAr : item.nameEn}
+      label={editingLine ? t('cart.editItem', { name: lang === 'ar' ? item.nameAr : item.nameEn }) : lang === 'ar' ? item.nameAr : item.nameEn}
       footer={
         <View style={styles.footer}>
+          {editingLine && issue ? (
+            <Text variant="caption" accessibilityRole="alert" selectable>{t(EDIT_ISSUE_COPY[issue])}</Text>
+          ) : null}
+          {collision ? (
+            <View aria-live="polite">
+              <Text variant="caption" selectable>{t('cart.editMergeNotice', {
+                qty: collision.mergedQty,
+                unit: formatJOD(collision.unitPrice, lang),
+                total: formatJOD(collision.total, lang),
+              })}</Text>
+            </View>
+          ) : null}
           {includes ? (
             <View aria-live="polite">
               <Text variant="caption" color={colors.dark} center>
@@ -134,18 +174,23 @@ export function ItemModal({ item, visible, onClose }: Props) {
             </View>
           ) : null}
           <View style={[styles.footerActions, stackFooter && styles.footerActionsStacked]}>
-            <Stepper value={qty} onChange={setQty} label={lang === 'ar' ? item.nameAr : item.nameEn} />
+            <Stepper value={qty} max={Math.max(99, editingLine?.qty ?? 1)} onChange={(value) => { setQty(value); setSaveIssue(null); }} label={lang === 'ar' ? item.nameAr : item.nameEn} />
             <Button
-              title={`${t('menu.addToCart')} · ${formatJOD(total, lang)}`}
+              title={editingLine
+                ? `${t('cart.saveChanges')}${resolved?.line ? ` · ${formatJOD(total, lang)}` : ''}`
+                : `${t('menu.addToCart')} · ${formatJOD(total, lang)}`}
               onPress={onAdd}
+              disabled={!!editingLine && !resolved?.line}
               fullWidth={stackFooter}
               style={stackFooter ? styles.addButtonStacked : styles.addButton}
             />
           </View>
+          {editingLine ? <Button title={t('common.cancel')} variant="ghost" onPress={onClose} /> : null}
         </View>
       }
     >
       <View style={styles.header}>
+        {priceChanged ? <Text variant="caption" selectable>{t('cart.editPriceUpdated')}</Text> : null}
         {/* Favourite ♥ — saves the drink to the Order › Favourites sub-tab (§2.4). */}
         <Pressable
           onPress={() => toggleFav(item.id)}
@@ -181,7 +226,7 @@ export function ItemModal({ item, visible, onClose }: Props) {
             {secondaryName(item, lang)}
           </Text>
         ) : null}
-        <Text variant="price" style={styles.unitPrice}>{formatJOD(unit, lang)}</Text>
+        {!editingLine || resolved?.line ? <Text variant="price" style={styles.unitPrice}>{formatJOD(unit, lang)}</Text> : null}
         {/* The description in the reader's language, gated on THAT field: the
             gate read `descAr` in English too, so an English description with
             no Arabic one never showed, and an Arabic one with no English one
@@ -232,14 +277,34 @@ export function ItemModal({ item, visible, onClose }: Props) {
         </View>
       ) : null}
 
-      {item.sizes.length > 1 ? (
+      {resolved?.unavailable.length ? (
+        <Section title={t('cart.editUnavailableOptions')}>
+          {resolved.unavailable.map((choice) => {
+            const name = lang === 'ar' ? choice.nameAr : choice.nameEn;
+            return (
+              <Pressable
+                key={`${choice.groupId}:${choice.optionId}`}
+                style={({ pressed }) => [styles.optionItem, styles.optChip, pressed && styles.optionPressed]}
+                accessibilityRole="button"
+                accessibilityLabel={t('cart.editRemoveOption', { name })}
+                onPress={() => { setSelected((prev) => prev.filter((c) => c.groupId !== choice.groupId || c.optionId !== choice.optionId)); setSaveIssue(null); }}
+              >
+                <Text variant="body" style={styles.flex}>{name}</Text>
+                <Text variant="caption">{t('cart.remove')}</Text>
+              </Pressable>
+            );
+          })}
+        </Section>
+      ) : null}
+
+      {item.sizes.length > 1 || (editingLine && !size) ? (
         <Section title={t('menu.size')}>
           <View style={styles.optionRow} {...choiceGroupA11y(false, t('menu.size'))}>
             {item.sizes.map((s) => (
               <Pressable
                 key={s.id}
                 style={({ pressed }) => [styles.sizeChip, s.id === sizeId && styles.sizeChipActive, pressed && styles.pressed]}
-                onPress={() => setSizeId(s.id)}
+                onPress={() => chooseSize(s.id)}
                 {...choiceA11y(
                   'radio',
                   s.id === sizeId,
@@ -263,7 +328,7 @@ export function ItemModal({ item, visible, onClose }: Props) {
 
       {/* Size upsell (Starbucks "upsize") */}
       {upsell ? (
-        <Pressable style={({ pressed }) => [styles.upsell, pressed && styles.pressed]} onPress={() => setSizeId(upsell.size.id)} accessibilityRole="button">
+        <Pressable style={({ pressed }) => [styles.upsell, pressed && styles.pressed]} onPress={() => chooseSize(upsell.size.id)} accessibilityRole="button">
           <Icon name="arrow-up" size={18} color={colors.dark} strokeWidth={2.2} />
           <Text variant="caption" color={colors.dark} style={styles.flex}>
             {t('menu.upsize', {
@@ -281,7 +346,7 @@ export function ItemModal({ item, visible, onClose }: Props) {
               which, and which are on. */}
           <View style={styles.optionList} {...choiceGroupA11y(g.multiple, lang === 'ar' ? g.nameAr : g.nameEn)}>
             {g.options.map((o) => {
-              const isSel = (selected[g.id] ?? []).includes(o.id);
+              const isSel = selected.some((c) => c.groupId === g.id && c.optionId === o.id);
               const name = lang === 'ar' ? o.nameAr : o.nameEn;
               return (
                 <Pressable
@@ -345,6 +410,18 @@ export function ItemModal({ item, visible, onClose }: Props) {
     </BottomSheet>
   );
 }
+
+const EDIT_ISSUE_COPY: Record<CartEditIssue, string> = {
+  itemUnavailable: 'cart.editItemUnavailable',
+  sizeUnavailable: 'cart.editSizeUnavailable',
+  optionsUnavailable: 'cart.editOptionsUnavailable',
+  optionsChanged: 'cart.editOptionsChanged',
+  quantityInvalid: 'cart.editQuantityInvalid',
+  unpriced: 'cart.editUnpriced',
+  lineChanged: 'cart.editLineChanged',
+  menuChanged: 'cart.editMenuChanged',
+  mergeChanged: 'cart.editMergeChanged',
+};
 
 /** Selection is visible in the control itself, alongside the spoken state. */
 function ChoiceMark({ selected, multiple }: { selected: boolean; multiple: boolean }) {

@@ -22,6 +22,8 @@ import { Text } from './Text';
 interface Props {
   visible: boolean;
   onClose: () => void;
+  /** After the modal and its focus trap finish dismissing (web/iOS). */
+  onDismiss?: () => void;
   title?: string;
   /**
    * The dialog's accessible name when there is no visible `title` (the item
@@ -46,7 +48,7 @@ interface Props {
  *   centred, instead of a 1,400 px button.
  * - Reduce Motion: no spring slide — the backdrop's fade carries it.
  */
-export function BottomSheet({ visible, onClose, title, label, children, footer }: Props) {
+export function BottomSheet({ visible, onClose, onDismiss, title, label, children, footer }: Props) {
   const { t } = useI18n();
   const insets = useSafeAreaInsets();
   const { height } = useWindowDimensions();
@@ -97,6 +99,7 @@ export function BottomSheet({ visible, onClose, title, label, children, footer }
       transparent
       animationType="fade"
       onRequestClose={onClose}
+      onDismiss={onDismiss}
       aria-label={title ?? label}
     >
       <Pressable

@@ -109,8 +109,9 @@ describe('RH3 the redeem sheet: asked, waiting, done, failed', () => {
     const sheet = code('components/loyalty/RedeemSheet.tsx');
     expect(sheet).toMatch(/step === 'failed' \? t\('common\.retry'\) : t\('rewards\.redeemCta'\)/);
     expect(sheet).toMatch(/\{step === 'failed' \? \(\s*<Text[^>]*accessibilityRole="alert">\s*\{t\('rewards\.redeemFailed'\)\}/);
-    // And «قسائمي» after a redemption goes to the coupon it made.
-    expect(sheet).toMatch(/onClose\(\);\s*router\.push\('\/vouchers'\);/);
+    // The next step identifies the voucher returned by this redemption.
+    expect(sheet).toContain("const destination: Href = { pathname: '/vouchers', params: issued ? { voucherId: issued.id } : undefined };");
+    expect(sheet).toContain('onDismiss={finishVoucherNavigation}');
   });
 });
 

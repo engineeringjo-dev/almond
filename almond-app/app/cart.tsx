@@ -11,6 +11,7 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { Toggle } from '@/components/ui/Toggle';
 import { OrderTypeTabs } from '@/components/cart/OrderTypeTabs';
 import { CartLine } from '@/components/cart/CartLine';
+import { ItemModal } from '@/components/menu/ItemModal';
 import { PickupInfo } from '@/components/cart/PickupInfo';
 import { PromoInput } from '@/components/cart/PromoInput';
 import { Summary } from '@/components/cart/Summary';
@@ -43,6 +44,7 @@ import { integration } from '@/constants/integration';
 import { usePromoStore } from '@/stores/promoStore';
 import { comboBasket } from '@/lib/combo';
 import { aggregatorService } from '@/services/aggregator.service';
+import type { CartItem } from '@/types';
 
 export default function CartScreen() {
   const { t, lang } = useI18n();
@@ -89,6 +91,7 @@ export default function CartScreen() {
 
   const [pickerOpen, setPickerOpen] = useState(false);
   const [reviewOpen, setReviewOpen] = useState(false);
+  const [editingLine, setEditingLine] = useState<CartItem | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
   const block = checkoutBlock({
@@ -324,7 +327,7 @@ export default function CartScreen() {
             <View style={styles.section}>
               <View style={styles.lines}>
                 {items.map((line) => (
-                  <CartLine key={line.lineId} line={line} />
+                  <CartLine key={line.lineId} line={line} onEdit={setEditingLine} />
                 ))}
               </View>
             </View>
@@ -434,6 +437,12 @@ export default function CartScreen() {
         paymentMethod={paymentMethod}
         submitting={submitting}
         onConfirm={placeOrder}
+      />
+      <ItemModal
+        item={null}
+        editingLine={editingLine ?? undefined}
+        visible={editingLine !== null}
+        onClose={() => setEditingLine(null)}
       />
     </>
   );
