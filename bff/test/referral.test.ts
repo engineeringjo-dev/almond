@@ -6,7 +6,7 @@ import { menuItems } from '@almond/shared/menu';
 import { itemKind } from '@almond/shared/lib/categoryKind';
 import { liveBalance } from '@almond/shared/loyalty/lots';
 import {
-  normalizeReferralCode, referralAttachError, referralRewardFor, referralShareLink,
+  normalizeReferralCode, referralAttachError, referralRemainingPoints, referralRewardFor, referralShareLink,
 } from '@almond/shared/loyalty/referral';
 import { config } from '../src/config';
 import { build } from '../src/server';
@@ -45,22 +45,38 @@ describe('RF0 the shared rule', () => {
 
   it('RF0.2 🔴 the attach rule, each refusal on its own', () => {
     const ok = {
-      memberId: 'f', memberPhone: '+962792222222', memberFirstPaidAt: null, alreadyAttached: false,
-      referrer: { id: 'r', phone: '+962791111111' },
+      memberId: 'f', memberPhone: '+962792222222', memberPhoneVerifiedAt: '2026-10-16T10:00:00.000Z',
+      memberFirstPaidAt: null, alreadyAttached: false,
+      referrer: { id: 'r', phone: '+962791111111', phoneVerifiedAt: '2026-10-16T10:00:00.000Z' },
     };
     expect(referralAttachError(ok)).toBeNull();
     expect(referralAttachError({ ...ok, referrer: { ...ok.referrer, id: 'f' } })).toBe('referral_self');
     // The same PERSON under another id — any spelling of the one number.
-    expect(referralAttachError({ ...ok, referrer: { id: 'r', phone: '0792222222' } })).toBe('referral_same_phone');
+    expect(referralAttachError({ ...ok, referrer: { ...ok.referrer, phone: '0792222222' } })).toBe('referral_same_phone');
     expect(referralAttachError({ ...ok, alreadyAttached: true })).toBe('referral_already_attached');
     expect(referralAttachError({ ...ok, memberFirstPaidAt: '2026-09-24T10:00:00.000Z' })).toBe('referral_too_late');
+    expect(referralAttachError({ ...ok, memberPhoneVerifiedAt: null })).toBe('referral_phone_unverified');
+    expect(referralAttachError({ ...ok, referrer: { ...ok.referrer, phoneVerifiedAt: null } })).toBe('referral_phone_unverified');
+    expect(referralAttachError({ ...ok, memberPhone: '+971501234567' })).toBe('referral_phone_unverified');
   });
 
   it('RF0.3 a corporate referrer is paid 0, like the earn engine pays them; a dead dial pays 0', () => {
-    expect(referralRewardFor(false)).toBe(loyalty.REFERRAL_REWARD_POINTS);
-    expect(referralRewardFor(true)).toBe(0);
-    for (const bad of [0, -50, Number.NaN]) expect(referralRewardFor(false, bad)).toBe(0);
-    expect(referralRewardFor(false, 50.9)).toBe(50);
+    const eligible = {
+      referrerIsCorporate: false, referrerPhone: '+962791111111', referredPhone: '+962792222222',
+      referrerPhoneVerifiedAt: '2026-10-16T10:00:00.000Z', referredPhoneVerifiedAt: '2026-10-16T10:00:00.000Z',
+      pointsEarned: 0,
+    };
+    expect(referralRewardFor(eligible)).toBe(loyalty.REFERRAL_REWARD_POINTS);
+    expect(referralRewardFor({ ...eligible, referrerIsCorporate: true })).toBe(0);
+    for (const bad of [0, -50, Number.NaN]) expect(referralRewardFor(eligible, bad)).toBe(0);
+    expect(referralRewardFor(eligible, 50.9)).toBe(50);
+    expect(referralRewardFor({ ...eligible, pointsEarned: 490 })).toBe(10);
+    expect(referralRewardFor({ ...eligible, pointsEarned: 500 })).toBe(0);
+    expect(referralRewardFor({ ...eligible, referredPhoneVerifiedAt: null })).toBe(0);
+    expect(referralRewardFor({ ...eligible, referrerPhone: eligible.referredPhone })).toBe(0);
+    for (const bad of [-1, Number.NaN, 1.5, Number.POSITIVE_INFINITY]) {
+      expect(referralRemainingPoints(bad)).toBe(0);
+    }
   });
 });
 
@@ -108,6 +124,8 @@ describe.each([
       link: referralShareLink(first.code),
       referredCount: 0, rewardedCount: 0, pointsEarned: 0,
       rewardPoints: loyalty.REFERRAL_REWARD_POINTS,
+      capPoints: loyalty.REFERRAL_LIFETIME_CAP_POINTS, capPeriod: 'lifetime',
+      remainingPoints: loyalty.REFERRAL_LIFETIME_CAP_POINTS, eligibleForRewards: true,
       attachedCode: null, canAttach: true,
     });
     expect((await getReferral(me.token)).code).toBe(first.code);
@@ -169,5 +187,23 @@ describe.each([
     const third = await attach(me.token, 'ZZZZZX');
     expect(third.statusCode).toBe(429);
     expect(third.json().error).toBe('rate_limited');
+  });
+
+  it('RF5 an old session/imported phone is not verification; only a successful OTP writes ownership proof', async () => {
+    const phone = '+962796543210';
+    const m = await backend.findOrCreateByPhone(phone);
+    const oldSession = app.jwt.sign({ sub: m.id });
+    expect(await getReferral(oldSession)).toMatchObject({ eligibleForRewards: false, canAttach: false });
+    const wrong = await app.inject({
+      method: 'POST', url: '/v1/auth/otp/verify', payload: { phone, code: '000000' },
+    });
+    expect(wrong.statusCode).toBe(401);
+    expect((await backend.getMember(m.id)).phoneVerifiedAt).toBeNull();
+    const verifiedSession = await signIn(app, phone);
+    expect((await backend.getMember(m.id)).phoneVerifiedAt).not.toBeNull();
+    expect(await getReferral(verifiedSession)).toMatchObject({ eligibleForRewards: true, canAttach: true });
+    await backend.saveCompany({ id: 'rf-proof-corp', nameAr: 'شركة', nameEn: 'Company', percentOff: 10, active: true });
+    await backend.replaceRoster('rf-proof-corp', [{ phone, companyId: 'rf-proof-corp' }]);
+    expect(await getReferral(verifiedSession)).toMatchObject({ eligibleForRewards: false });
   });
 });

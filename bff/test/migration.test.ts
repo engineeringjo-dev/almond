@@ -642,7 +642,8 @@ describe('R3.12 migration 20260929_pos_point_spends.sql', () => {
     const pg = await fresh();
     await pg.exec(SCHEMA);
     const before = await shape(pg);
-    expect(before.length).toBe(14);
+    expect(before.length).toBe(15);
+    expect(before.some((c) => (c as { column_name: string }).column_name === 'recovered_points')).toBe(true);
     await pg.exec(POINT_SPENDS_MIGRATION);
     await pg.exec(POINT_SPENDS_MIGRATION);
     expect(await shape(pg)).toEqual(before);
@@ -694,7 +695,9 @@ describe('R3.13 migration 20260930_pos_sale_refunds.sql', () => {
     const pg = await fresh();
     await pg.exec(SCHEMA);
     const before = { r: await shape(pg, 'pos_sale_refunds'), s: await shape(pg, 'pos_sales') };
-    expect(before.r.length).toBe(11);
+    expect(before.r.length).toBe(13);
+    expect(before.r.map((c) => (c as { column_name: string }).column_name))
+      .toEqual(expect.arrayContaining(['expired_reserved_points', 'reconciliation_required']));
     expect(before.s.some((c) => (c as { column_name: string }).column_name === 'refunded_total')).toBe(true);
     const cons = () => rows(pg, `select conname, pg_get_constraintdef(oid) as def from pg_constraint
       where conrelid in ('pos_sales'::regclass, 'pos_sale_refunds'::regclass) order by 1`);

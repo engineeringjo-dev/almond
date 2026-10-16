@@ -78,7 +78,11 @@ describe('loyaltyStore', () => {
     const st = s.getState();
     expect(st.points).toBe(start - option.points);
     expect(st.vouchers[0]).toMatchObject({ type: 'credit', value: option.jod, used: false });
+    expect(st.vouchers[0].titleAr).toBe('خصم 2.40 د.أ من فاتورتك');
+    expect(st.vouchers[0].titleEn).toBe('JOD 2.40 off your bill');
     expect(st.pointsHistory[0].deltaPoints).toBe(-option.points);
+    expect(st.pointsHistory[0].reasonAr).toBe('استبدال نقاط: 2.40 د.أ');
+    expect(st.pointsHistory[0].reasonEn).toBe('Points redeemed: JOD 2.40');
     // Spending the same full balance again must now fail (no double spend).
     expect(option.points).toBeGreaterThan(0);
     expect(s.getState().redeemReward(option)).toBe(false);

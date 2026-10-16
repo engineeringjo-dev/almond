@@ -13,7 +13,7 @@ import type { Lang } from '@/types';
 
 /** A stationary campaign entry. The pictured pair is an example, so opening
  *  it never adds an unrelated recommendation to the customer's basket. */
-export function ComboOfferCard() {
+export function ComboOfferCard({ inCarousel = false }: { inCarousel?: boolean }) {
   const { t, lang } = useI18n();
   const copy = comboOffer(lang);
   if (!copy) return null;
@@ -23,7 +23,7 @@ export function ComboOfferCard() {
       accessibilityRole="button"
       accessibilityLabel={`${t('campaign.comboName')}. ${t('campaign.viewCombos')}`}
       accessibilityHint={`${t('campaign.comboSummary', copy.params)} ${t('campaign.exampleNote')} ${t(copy.bodyKey, copy.params)}`}
-      style={({ pressed }) => [styles.card, pressed && styles.pressed]}
+      style={({ pressed }) => [styles.card, inCarousel && styles.inCarousel, pressed && styles.pressed]}
     >
       <CampaignPhoto photo="americanoCookie" points={copy.params.points} compact />
       <View style={styles.words}>
@@ -46,6 +46,7 @@ export function comboOffer(lang: Lang) {
 
 const styles = StyleSheet.create({
   card: { borderRadius: radius.lg, borderCurve: 'continuous', overflow: 'hidden', backgroundColor: colors.surface, marginBottom: spacing.lg },
+  inCarousel: { flex: 1, marginBottom: 0 },
   words: { padding: spacing.lg, gap: spacing.xs },
   link: { fontFamily: fontFamily.bold, textDecorationLine: 'underline', marginTop: spacing.xs },
   pressed: { opacity: 0.8 },

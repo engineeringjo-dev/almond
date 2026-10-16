@@ -609,6 +609,9 @@ describe('R/X — referrals and transfers in the mock (owner, 2026-09-24)', () =
   it('R1 a friend attaches a code; the REFERRER is paid once, on the friend\'s first paid order', async () => {
     const referrer = newUserId();
     const friend = newUserId();
+    // Explicit synthetic test proof, never inferred from mock demo numbers.
+    __getMockUser(referrer).phoneVerifiedAt = new Date().toISOString();
+    __getMockUser(friend).phoneVerifiedAt = new Date().toISOString();
     const { code, canAttach } = await mockLoyaltyService.getReferral(referrer);
     expect(code).toMatch(/^[A-Z2-9]{6}$/);
     expect(canAttach).toBe(true);
@@ -621,6 +624,57 @@ describe('R/X — referrals and transfers in the mock (owner, 2026-09-24)', () =
     expect(liveBalance(__getMockUser(referrer).lots)).toBe(before + config.REFERRAL_REWARD_POINTS);
     expect(await mockLoyaltyService.getReferral(referrer)).toMatchObject({ referredCount: 1, rewardedCount: 1 });
     expect((await mockLoyaltyService.getReferral(friend)).canAttach).toBe(false);
+  });
+
+  it('R2 demo phone numbers alone are not SMS verification and cannot earn referral rewards', async () => {
+    const referrer = newUserId();
+    const friend = newUserId();
+    const info = await mockLoyaltyService.getReferral(referrer);
+    expect(info).toMatchObject({
+      eligibleForRewards: false, canAttach: false,
+      capPoints: config.REFERRAL_LIFETIME_CAP_POINTS, capPeriod: 'lifetime',
+      remainingPoints: config.REFERRAL_LIFETIME_CAP_POINTS,
+    });
+    await expect(mockLoyaltyService.attachReferral(friend, info.code))
+      .rejects.toMatchObject({ code: 'referral_phone_unverified' });
+    expect(__getMockUser(referrer).referralPointsEarned).toBe(0);
+  });
+
+  it('R3 the mock applies the same lifetime cap across simultaneous friends, unaffected by its live lots', async () => {
+    const referrer = newUserId();
+    const inviter = __getMockUser(referrer);
+    inviter.phoneVerifiedAt = new Date().toISOString();
+    const { code } = await mockLoyaltyService.getReferral(referrer);
+    const friends = Array.from({ length: 12 }, () => newUserId());
+    for (const id of friends) __getMockUser(id).phoneVerifiedAt = new Date().toISOString();
+    await Promise.all(friends.map((id) => mockLoyaltyService.attachReferral(id, code)));
+    await Promise.all(friends.map((id) => mockLoyaltyService.earn({ userId: id, invoiceAmount: 3, paidFromBalance: false })));
+    expect(inviter.referralPointsEarned).toBe(config.REFERRAL_LIFETIME_CAP_POINTS);
+    expect(await mockLoyaltyService.getReferral(referrer)).toMatchObject({ remainingPoints: 0 });
+    // An empty balance (spent or expired) is never a fresh referral allowance.
+    inviter.lots = [];
+    const extra = newUserId();
+    __getMockUser(extra).phoneVerifiedAt = new Date().toISOString();
+    await mockLoyaltyService.attachReferral(extra, code);
+    await mockLoyaltyService.earn({ userId: extra, invoiceAmount: 3, paidFromBalance: false });
+    expect(inviter.referralPointsEarned).toBe(config.REFERRAL_LIFETIME_CAP_POINTS);
+    expect(inviter.lots).toEqual([]);
+  });
+
+  it('R4 zero-money and points-only mock invoices leave a referral pending', async () => {
+    const referrer = newUserId();
+    const friend = newUserId();
+    __getMockUser(referrer).phoneVerifiedAt = new Date().toISOString();
+    __getMockUser(friend).phoneVerifiedAt = new Date().toISOString();
+    const { code } = await mockLoyaltyService.getReferral(referrer);
+    await mockLoyaltyService.attachReferral(friend, code);
+    await mockLoyaltyService.earn({ userId: friend, invoiceAmount: 0, paidFromBalance: false });
+    await mockLoyaltyService.earn({ userId: friend, invoiceAmount: 3, pointsRedeemed: 300, paidFromBalance: false });
+    expect(__getMockUser(friend).firstPaidAt).toBeNull();
+    expect(__getMockUser(friend).referredBy?.rewarded).toBe(false);
+    expect(__getMockUser(referrer).referralPointsEarned).toBe(0);
+    await mockLoyaltyService.earn({ userId: friend, invoiceAmount: 0.001, paidFromBalance: false });
+    expect(__getMockUser(referrer).referralPointsEarned).toBe(config.REFERRAL_REWARD_POINTS);
   });
 
   it('X1 the preview masks the name; a transfer moves points and respects the daily cap', async () => {

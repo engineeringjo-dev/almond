@@ -224,17 +224,23 @@ test.describe('App design system: targets, digits, direction, names', () => {
     expect(parseFloat(await size('الباركود'))).toBeGreaterThanOrEqual(11);
   });
 
-  test('dates print in Latin digits beside Latin prices', async ({ page }) => {
+  test('full dates print DD/MM/YYYY in Latin digits beside Latin prices', async ({ page }) => {
+    // The seeded orders are 3 and 7 days old. At this instant UTC is still
+    // 4 January, while Amman is already 5 January: the dates must cross the
+    // calendar year as 2 January and 29 December, not 1 January/28 December.
+    await page.clock.install({ time: new Date('2027-01-04T21:30:00Z') });
+    await page.clock.resume();
     await seedApp(page, { signedIn: true });
     await page.goto(appUrl('/order'));
     await page.getByRole('tab', { name: 'السابقة' }).click();
     await expect(page.getByText(/رقم الطلب/).first()).toBeVisible({ timeout: 20_000 });
     const text = await page.locator('body').innerText();
-    const months = 'كانون|شباط|آذار|نيسان|أيار|حزيران|تموز|آب|أيلول|تشرين';
-    expect(text).toMatch(new RegExp(`\\d+ (${months})`));
-    expect(text).not.toMatch(new RegExp(`[٠-٩]+ (${months})`));
+    expect(text).toMatch(/\u2066\d{2}\/\d{2}\/\d{4}\u2069/);
+    expect(text).toContain('\u206602/01/2027\u2069');
+    expect(text).toContain('\u206629/12/2026\u2069');
+    expect(text).not.toMatch(/[٠-٩۰-۹]{1,2}\/[٠-٩۰-۹]{1,2}\/[٠-٩۰-۹]{4}/);
     // Times too («09:07 ص», not «٠٩:٠٧ ص»), wherever one is printed.
-    expect(text).not.toMatch(/[٠-٩]{2}:[٠-٩]{2}/);
+    expect(text).not.toMatch(/[٠-٩۰-۹]{2}:[٠-٩۰-۹]{2}/);
   });
 
   test('English text sits at the Arabic reading start; the search field starts right', async ({ page }) => {

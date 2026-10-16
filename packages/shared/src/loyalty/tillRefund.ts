@@ -29,8 +29,8 @@
  *
  * NEVER BELOW ZERO. The points to take back are a TARGET; what is actually
  * taken is `min(target, live balance)`, and the rest is the `shortfall` — the
- * member already spent those points, and the back-office decides whether to
- * pursue them (the same rule the full reversal always had).
+ * member already spent those points. The backend persists that POINTS-only
+ * shortfall and settles it from later credits; it is never cash payable.
  *
  * THE WINDOW. A refund also comes out of the member's rolling 90-day spend:
  * the sale's one window entry is reduced by the money refunded (removed when
@@ -112,7 +112,7 @@ export interface AppliedRefund<E extends WindowEntry> {
   spend: E[];
   /** Points actually taken back — never more than the member holds live. */
   reversedPoints: number;
-  /** `targetPoints − reversedPoints`: already spent, recorded, not clawed. */
+  /** `targetPoints − reversedPoints`: persisted by the backend for later credits. */
   shortfall: number;
 }
 

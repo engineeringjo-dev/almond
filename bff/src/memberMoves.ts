@@ -36,6 +36,7 @@ const ATTACH_MESSAGES: Record<ReferralAttachError, string> = {
   referral_same_phone: 'this code belongs to an account on the same phone number',
   referral_already_attached: 'a referral code is already attached to this account — it can be set once',
   referral_too_late: 'a referral code can only be added before the first paid order',
+  referral_phone_unverified: 'both members must verify ownership of a Jordanian mobile number before using a referral',
 };
 export const attachRefused = (code: ReferralAttachError) => conflict(code, ATTACH_MESSAGES[code]);
 

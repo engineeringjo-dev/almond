@@ -147,6 +147,9 @@ export interface PointLot {
   /** Integer points not yet spent. 🔴 THE ONLY MUTABLE FIELD IN THIS TYPE. */
   remaining: number;
   source: LotSource;
+  /** Immutable grant provenance (e.g. pos:ORDER). Missing on legacy lots;
+   * never inferred from the date, source kind or current balance. */
+  readonly originRef?: string;
 }
 
 /** Every dial the ledger reads, injectable exactly like EarnRules/WindowRules. */
@@ -401,11 +404,15 @@ export function grantLot(
   at: Date = new Date(),
   rules: LotRules = lotRulesFromConfig(),
   on?: string,
+  originRef?: string,
 ): { lots: PointLot[]; lot: PointLot | null } {
   if (!Number.isInteger(amount)) {
     throw new Error(`grantLot: amount must be a whole number of points, got ${amount}`);
   }
   if (amount < 0) throw new Error(`grantLot: amount must not be negative, got ${amount}`);
+  if (originRef !== undefined && (typeof originRef !== 'string' || originRef.trim().length === 0)) {
+    throw new Error('grantLot: originRef must be a nonempty reference');
+  }
   if (amount === 0) return { lots: lots.slice(), lot: null };
   const grantedOn = on ?? ammanDayKey(at);
   assertDayKey(grantedOn, 'grantLot');
@@ -418,6 +425,7 @@ export function grantLot(
     amount,
     remaining: amount,
     source,
+    ...(originRef === undefined ? {} : { originRef }),
   };
   return { lots: [...lots, lot], lot };
 }
@@ -496,6 +504,8 @@ export interface SpentSlice {
   expiresOn: string | null;
   points: number;
   source: LotSource;
+  /** The original grant's immutable provenance, preserved through moves. */
+  readonly originRef?: string;
 }
 
 /**
@@ -511,7 +521,10 @@ export function spentSlices(
   return consumed.map((c) => {
     const lot = lotsBefore.find((l) => l.seq === c.seq);
     if (!lot) throw new Error(`spentSlices: no lot with seq ${c.seq}`);
-    return { grantedOn: lot.grantedOn, expiresOn: lot.expiresOn, points: c.points, source: lot.source };
+    return {
+      grantedOn: lot.grantedOn, expiresOn: lot.expiresOn, points: c.points, source: lot.source,
+      ...(lot.originRef === undefined ? {} : { originRef: lot.originRef }),
+    };
   });
 }
 
@@ -550,11 +563,15 @@ export function restoreSlices(
     }
     assertDayKey(s.grantedOn, 'restoreSlices');
     if (s.expiresOn !== null) assertDayKey(s.expiresOn, 'restoreSlices');
+    if (s.originRef !== undefined && (typeof s.originRef !== 'string' || s.originRef.trim().length === 0)) {
+      throw new Error('restoreSlices: originRef must be a nonempty reference');
+    }
     if (s.expiresOn !== null && s.expiresOn < today) { expired += s.points; continue; }
     seq += 1;
     out.push({
       seq, grantedOn: s.grantedOn, expiresOn: s.expiresOn,
       amount: s.points, remaining: s.points, source: s.source,
+      ...(s.originRef === undefined ? {} : { originRef: s.originRef }),
     });
     restored += s.points;
   }

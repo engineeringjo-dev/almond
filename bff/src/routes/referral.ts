@@ -2,9 +2,10 @@ import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { config as loyalty } from '@almond/shared/config';
 import {
-  normalizeReferralCode, referralShareLink, type ReferralWire,
+  normalizeReferralCode, referralRemainingPoints, referralShareLink, verifiedReferralPhone, type ReferralWire,
 } from '@almond/shared/loyalty/referral';
 import { maskedDisplayName } from '@almond/shared/loyalty/profile';
+import { corporateEarnsPoints } from '@almond/shared/loyalty/corporate';
 import { parse } from '../validate';
 import { requireMember, memberId } from '../plugins/auth';
 import { HttpError } from '../http-error';
@@ -35,6 +36,8 @@ export function registerReferralRoutes(app: FastifyInstance, backend: Backend): 
     const summary = await backend.getReferral(id);
     const mine = await backend.getReferralOf(id);
     const m = await backend.getMember(id);
+    const corporate = await backend.entitlementFor(id);
+    const verified = verifiedReferralPhone(m.phone, m.phoneVerifiedAt);
     return {
       code: summary.code,
       link: referralShareLink(summary.code),
@@ -42,8 +45,12 @@ export function registerReferralRoutes(app: FastifyInstance, backend: Backend): 
       rewardedCount: summary.rewardedCount,
       pointsEarned: summary.pointsEarned,
       rewardPoints: loyalty.REFERRAL_REWARD_POINTS,
+      capPoints: loyalty.REFERRAL_LIFETIME_CAP_POINTS,
+      capPeriod: 'lifetime',
+      remainingPoints: referralRemainingPoints(summary.pointsEarned),
+      eligibleForRewards: verified && (!corporate || corporateEarnsPoints()),
       attachedCode: mine?.code ?? null,
-      canAttach: mine === null && m.firstPaidAt === null,
+      canAttach: verified && mine === null && m.firstPaidAt === null,
     };
   });
 

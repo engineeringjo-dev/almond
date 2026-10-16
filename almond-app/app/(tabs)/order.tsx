@@ -1,7 +1,7 @@
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { View, StyleSheet, FlatList, ScrollView, Pressable, Image, useWindowDimensions, type LayoutChangeEvent, type ViewToken } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 
 import { Text } from '@/components/ui/Text';
 import { Icon } from '@/components/ui/Icon';
@@ -29,10 +29,12 @@ import { iconForCategory, iconForItem } from '@/lib/productIcon';
 import { useFavouritesStore } from '@/stores/favouritesStore';
 import { useCartStore } from '@/stores/cartStore';
 import { useToastStore } from '@/stores/toastStore';
-import type { Category, MenuItem, Order, CartItem } from '@/types';
+import type { Category, MenuItem, Order } from '@/types';
+import { canReorderSizes } from '@almond/shared/menu';
 import { bestSellers } from '@almond/shared/lib/recommendations';
 import { matchesMenuQuery } from '@almond/shared/menu/browse';
 import { shouldWrapOrderTabs } from '@/lib/menuList';
+import { campaignCollection } from '@/lib/campaignSlides';
 
 type SubTab = 'menu' | 'featured' | 'previous' | 'favourites';
 
@@ -50,10 +52,17 @@ const HIGHLIGHT_KW = /croissant|sandwich|manaqeesh|bagel|pizza|cake|dessert/i;
 
 export default function OrderScreen() {
   const { t, lang } = useI18n();
+  const params = useLocalSearchParams<{ tab?: string | string[]; collection?: string | string[] }>();
   const { width, fontScale } = useWindowDimensions();
   const wrapTabs = shouldWrapOrderTabs(width, fontScale, lang);
   const [tab, setTab] = useState<SubTab>('menu');
   const [selectedItem, setSelectedItem] = useState<MenuItem | null>(null);
+
+  useEffect(() => {
+    if (params.tab === 'menu' || params.collection === 'keto-gluten-free') setTab('menu');
+    // Consume this one-shot recovery intent so another reorder can reopen Menu.
+    if (params.tab === 'menu') router.setParams({ tab: undefined });
+  }, [params.tab, params.collection]);
 
   const categoriesQuery = useCategories();
   const itemsQuery = useMenuItems('all');
@@ -90,6 +99,7 @@ export default function OrderScreen() {
   }
 
   const items: MenuItem[] = itemsQuery.data ?? [];
+  const collection = campaignCollection(params.collection, categoriesQuery.data ?? [], items);
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
@@ -121,16 +131,25 @@ export default function OrderScreen() {
       </View>
 
       {tab === 'menu' ? (
-        <MenuTab
-          items={items}
-          categories={categoriesQuery.data ?? []}
-          onSelect={setSelectedItem}
-        />
+        <>
+          {collection ? (
+            <View style={{ paddingHorizontal: spacing.lg, gap: spacing.xs }}>
+              <Text variant="title">{t('campaignSlides.collectionTitle')}</Text>
+              <Button title={t('campaignSlides.allMenu')} variant="ghost" onPress={() => router.setParams({ collection: undefined })} />
+            </View>
+          ) : null}
+          <MenuTab
+            key={collection ? 'keto-gluten-free' : 'all'}
+            items={collection?.items ?? items}
+            categories={collection?.categories ?? categoriesQuery.data ?? []}
+            onSelect={setSelectedItem}
+          />
+        </>
       ) : null}
       {tab === 'featured' ? (
         <FeaturedTab items={items} categories={categoriesQuery.data ?? []} onSelect={setSelectedItem} />
       ) : null}
-      {tab === 'previous' ? <PreviousTab /> : null}
+      {tab === 'previous' ? <PreviousTab items={items} onBrowse={() => setTab('menu')} /> : null}
       {tab === 'favourites' ? (
         <FavouritesTab items={items} onSelect={setSelectedItem} onBrowse={() => setTab('menu')} />
       ) : null}
@@ -450,10 +469,11 @@ function FeaturedTab({
 
 /* --------------------------- Previous sub-tab --------------------------- */
 
-function PreviousTab() {
+function PreviousTab({ items, onBrowse }: { items: MenuItem[]; onBrowse: () => void }) {
   const { t, lang } = useI18n();
   const { data, isLoading, isError, refetch } = useOrderHistory();
-  const addLine = useCartStore((s) => s.addLine);
+  const addOrder = useCartStore((s) => s.addOrder);
+  const [sizeIssue, setSizeIssue] = useState<string | null>(null);
   const showAdded = useToastStore((s) => s.showAdded);
 
   if (isLoading || isError) {
@@ -476,8 +496,8 @@ function PreviousTab() {
   }
 
   const reorder = (order: Order) => {
-    // Re-add every line with its exact size + customizations (§2.5).
-    order.items.forEach((line: CartItem) => addLine({ ...line }));
+    if (sizeIssue === order.id || !canReorderSizes(order.items, items)) { onBrowse(); return; }
+    if (!addOrder(order.items)) { setSizeIssue(order.id); return; }
     const first = order.items[0];
     if (first) showAdded({ itemId: first.itemId, nameAr: first.nameAr, nameEn: first.nameEn });
     router.push('/cart');
@@ -510,13 +530,14 @@ function PreviousTab() {
           <View style={styles.prevFoot}>
             <Text variant="price">{formatJOD(o.total, lang)}</Text>
             <Button
-              title={t('order.reorder')}
+              title={t(sizeIssue === o.id || !canReorderSizes(o.items, items) ? 'tabs.order' : 'order.reorder')}
               variant="outline"
               fullWidth={false}
               leadingIcon="reorder"
               onPress={() => reorder(o)}
             />
           </View>
+          {sizeIssue === o.id || !canReorderSizes(o.items, items) ? <Text variant="caption" selectable>{t('cart.reorderSizeUnavailable')}</Text> : null}
         </Card>
       ))}
     </ScrollView>

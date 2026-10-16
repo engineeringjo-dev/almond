@@ -48,7 +48,9 @@ describe('A2 the ordering journey uses them', () => {
   it('the item sheet: sizes are radios, option groups radio/checkbox by `multiple`, pairings checkboxes', () => {
     const s = src('components/menu/ItemModal.tsx');
     expect(s).toMatch(/choiceGroupA11y\(false, t\('menu\.size'\)\)/);
-    expect(s).toMatch(/choiceA11y\(\s*'radio',\s*s\.id === sizeId/);
+    expect(s).toMatch(/const active = available && s\.id === sizeId/);
+    expect(s).toMatch(/choiceA11y\(\s*'radio',\s*active,/);
+    expect(s).toContain('disabled={!available}');
     expect(s).toMatch(/choiceGroupA11y\(g\.multiple/);
     expect(s).toMatch(/g\.multiple \? 'checkbox' : 'radio'/);
     expect(s).toMatch(/choiceA11y\('checkbox', isStaged/);

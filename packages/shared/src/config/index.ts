@@ -739,20 +739,25 @@ export const config = {
    *     points as an ordinary 12-month lot IN THE SAME TRANSACTION, once per
    *     friend (the referral row's `rewarded_at` is the once-only stamp);
    *   - the friend gets nothing from it (referrer-only, §8.1.1).
-   * A member may therefore be paid for EVERY friend who joins and pays — which
-   * is why loyalty/challenges.ts no longer retires the pitch after the first
-   * reward: the offer keeps being honoured, so it keeps being shown.
+   * Owner, 2026-10-16: both parties must own an OTP-verified Jordanian mobile,
+   * and the referrer may earn at most REFERRAL_LIFETIME_CAP_POINTS in total.
+   * The cap is LIFETIME, not a daily/monthly allowance; spending, expiry,
+   * refunds and account deletion never replenish it. Existing referral rows
+   * are the durable paid-total ledger, not the member's live point balance.
    *
    * COST: 50 points = 0.500 JOD per referred friend who PAYS — bought traffic
    * gated on a real purchase, so an invented phone that never buys costs
-   * nothing. There is deliberately NO cap per referrer yet (none was asked
-   * for); `referralRewardsFor` is where one would go.
+   * nothing. At the current 50-point reward and 500-point lifetime cap, ten
+   * qualifying friends exhaust the benefit. A capped or ineligible first
+   * purchase is stamped with 0, so it cannot be replayed for a later grant.
    *
    * 0 retires the challenge (nextChallenge() skips a rung that pays nothing)
    * AND the grant: a referral qualified while this is 0 pays 0 and is still
    * stamped, so a later raise never pays retroactively.
    */
   REFERRAL_REWARD_POINTS: 50,
+  /** One budget per inviter, for their account's whole lifetime. */
+  REFERRAL_LIFETIME_CAP_POINTS: 500,
   /**
    * 🔴 THE WELCOME GIFT. Owner, 2026-10-15: «امنح ٢٠٠ نقطة تفعل بعد اول عملية
    * شراء وتنزيل نقاط عالتطبيق» — 200 points that become the member's on their

@@ -1,6 +1,6 @@
 import type { Lang } from '@almond/shared/types';
 
-// JOD (3-decimal) + number/date formatting — the same helpers the app uses.
+// Customer money (2-decimal) + number/date formatting shared with the app.
 export { formatJOD, formatNumber, formatTime, formatDate, formatDayKey } from '@almond/shared/lib/format';
 
 /** Coerce a next-intl locale string into the shared `Lang` union. */

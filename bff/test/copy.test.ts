@@ -768,7 +768,7 @@ describe('C20 no emoji in any customer string', () => {
   });
 });
 
-describe('C21 cashback is a computed ceiling headline or the owner-approved points badge', () => {
+describe('C21 cashback uses computed ceiling, combo points or the owner-approved wallet uplift', () => {
   // The morning of 2026-10-15 this was a ban: 1 point = 1 qirsh, so "cashback"
   // is not wrong, but a member told «نقاط» on one screen and «الكاش باك» on the
   // next reads two programmes. That evening the owner chose the word for the
@@ -780,6 +780,13 @@ describe('C21 cashback is a computed ceiling headline or the owner-approved poin
   // the price-free combo campaign. Only this app key may use that wording;
   // its count remains dynamic, and the campaign explains these are points.
   const COMBO_BADGE = 'Cash back\n{{points}} points';
+  // Owner, 2026-10-16: the manual wallet slide says 50% EXTRA cashback.
+  // It is a relative uplift on regular purchase points, never a top-up grant
+  // or the programme's absolute {max} rate. Keep this exception exact.
+  const WALLET_UPLIFT: Record<string, string> = {
+    [APP_LOCALES.ar]: '{{extra}}% كاش باك إضافي',
+    [APP_LOCALES.en]: '{{extra}}% extra Cash back',
+  };
   const HEADLINES: Record<string, readonly string[]> = {
     [APP_LOCALES.ar]: ['rewards.headline', 'onboarding.slide3Title'],
     [APP_LOCALES.en]: ['rewards.headline', 'onboarding.slide3Title'],
@@ -787,16 +794,30 @@ describe('C21 cashback is a computed ceiling headline or the owner-approved poin
     [WEB_LOCALES.en]: ['Home.loyalty.title'],
   };
 
-  it('nowhere but the headline keys and the exact app points badge', () => {
+  it('nowhere but the approved headline, points badge and relative wallet-uplift keys', () => {
     const offenders: string[] = [];
     for (const rel of ALL_LOCALES) {
       for (const [k, v] of Object.entries(load(rel))) {
         const approvedPointsBadge = Object.values(APP_LOCALES).some((appRel) => appRel === rel)
           && k === 'campaign.comboBadge' && v === COMBO_BADGE;
-        if (CASHBACK.test(v) && !HEADLINES[rel]!.includes(k) && !approvedPointsBadge) offenders.push(`${rel} ${k}: ${v}`);
+        const approvedWalletUplift = k === 'campaignSlides.walletTitle' && v === WALLET_UPLIFT[rel];
+        if (CASHBACK.test(v) && !HEADLINES[rel]!.includes(k) && !approvedPointsBadge && !approvedWalletUplift) offenders.push(`${rel} ${k}: ${v}`);
       }
     }
     expect(offenders).toEqual([]);
+  });
+
+  it('the wallet uplift is dynamic and explicitly belongs to spending points, never loading money', () => {
+    for (const rel of Object.values(APP_LOCALES)) {
+      const flat = load(rel);
+      expect(flat['campaignSlides.walletTitle']).toBe(WALLET_UPLIFT[rel]);
+      expect(placeholders(flat['campaignSlides.walletTitle']!)).toEqual(['extra']);
+      expect(flat['campaignSlides.walletTitle']).not.toMatch(/\d|JOD|د\.أ/);
+      expect(flat['campaignSlides.walletBody']).toMatch(rel === APP_LOCALES.ar ? /الدفع من الرصيد/ : /paying from balance/);
+      expect(flat['campaignSlides.walletBody']).toMatch(rel === APP_LOCALES.ar ? /ليس على مبلغ الشحن/ : /not on the top-up amount/);
+      expect(flat['campaignSlides.walletExclusions']).toMatch(rel === APP_LOCALES.ar ? /الكومبو/ : /combo/);
+      expect(flat['campaignSlides.walletExclusions']).toMatch(rel === APP_LOCALES.ar ? /الشركات/ : /Corporate/);
+    }
   });
 
   it('the app combo badge names dynamic points in both languages, never an embedded price or rate', () => {

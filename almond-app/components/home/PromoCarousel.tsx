@@ -1,30 +1,25 @@
-import { StyleSheet } from 'react-native';
-import { router } from 'expo-router';
-
 import { ComboOfferCard } from '@/components/home/ComboOfferCard';
-import { Button } from '@/components/ui/Button';
+import { CampaignSlideCard } from '@/components/home/CampaignSlideCard';
+import { CampaignPager } from '@/components/home/CampaignPager';
 import { config } from '@/constants/config';
-import { spacing } from '@/constants/theme';
-import { useI18n } from '@/hooks/useI18n';
-import { homeCampaignEntry } from '@/lib/campaigns';
+import { useWalletRate } from '@/hooks/useWalletRate';
+import { useMenuState } from '@/hooks/useMenuState';
+import { campaignCollection, campaignSlides } from '@/lib/campaignSlides';
 
-/** Keep Home stationary and compact. The actionable offer rail lives on
- *  /campaigns; ordering and reordering stay close to the member card. */
+/** Owner-requested discovery, after membership, Order and the usual order.
+ * Manual only; each photograph hands off to an actual menu/contact journey. */
 export function PromoCarousel() {
-  const { t } = useI18n();
+  const { extraPercent } = useWalletRate();
+  const menu = useMenuState();
+  const collection = campaignCollection('keto-gluten-free', menu.categories, menu.items);
   // earn-arith-exempt: choosing a presentation from the configured LABEL. §7 T7.
-  const entry = homeCampaignEntry(config.COMBO_BONUS_POINTS);
-  if (entry.kind === 'combo') return <ComboOfferCard />;
+  const slides = campaignSlides(config.COMBO_BONUS_POINTS, extraPercent, !!collection);
   return (
-    <Button
-      title={t(entry.labelKey)}
-      variant="secondary"
-      onPress={() => router.push(entry.href)}
-      style={styles.entry}
+    <CampaignPager
+      ids={slides.map((slide) => slide.id)}
+      renderSlide={(index, active) => slides[index].id === 'combo' && active
+        ? <ComboOfferCard inCarousel />
+        : <CampaignSlideCard slide={slides[index]} active={active} extraPercent={extraPercent} />}
     />
   );
 }
-
-const styles = StyleSheet.create({
-  entry: { marginBottom: spacing.lg },
-});

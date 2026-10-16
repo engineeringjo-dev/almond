@@ -1,8 +1,8 @@
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { liveBalance } from '@almond/shared/loyalty/lots';
-import { isRedemptionCodeShape, toRedemptionView } from '@almond/shared/loyalty/redemption';
-import { issuePosToken } from '../pos/token';
+import { isRedeemable, isRedemptionCodeShape, toRedemptionView } from '@almond/shared/loyalty/redemption';
+import { issueRedemptionToken } from '../pos/token';
 import { notFound } from '../http-error';
 import { toSecondVisitView } from '@almond/shared/loyalty/secondVisit';
 import { parse } from '../validate';
@@ -86,17 +86,20 @@ export function registerLoyaltyRoutes(app: FastifyInstance, backend: Backend): v
   });
 
   /**
-   * A fresh 60-second QR for a live redemption — the thing held up to the
-   * scanner. Minted on demand rather than at creation so the code on screen is
-   * never more than a minute old, however long the member has been queueing:
-   * «qr code مؤقت ... بتكون صلاحيته دقيقة منذ انشاءه».
+   * A fresh, exact-redemption QR, with its own presentation TTL (default120s).
+   * An explicit id selects the voucher the member is viewing. Empty-body old
+   * callers still select their active row AT ISSUANCE; resolution never does.
    */
   app.post('/v1/me/redemption/qr', { preHandler: [requireMember] }, async (req, reply) => {
     const id = memberId(req);
-    await backend.sweepRedemptions(id, new Date());
-    const row = await backend.activeRedemption(id);
-    if (!row) throw notFound('no active redemption');
-    return reply.code(201).send({ ...issuePosToken(id, 'redeem'), redemptionId: row.id });
+    const { redemptionId } = parse(z.object({ redemptionId: z.string().min(1).max(128).optional() }), req.body ?? {});
+    const at = new Date();
+    await backend.sweepRedemptions(id, at);
+    const row = redemptionId
+      ? await backend.getRedemption(id, redemptionId)
+      : await backend.activeRedemption(id);
+    if (!row || !isRedeemable(row, at)) throw notFound('no active redemption');
+    return reply.code(201).send(issueRedemptionToken(row));
   });
 
   /** The member gave up on it. Points return immediately, not at expiry. */

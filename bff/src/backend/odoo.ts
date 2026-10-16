@@ -77,6 +77,7 @@ export function createOdooBackend(): Backend {
     // record, which is what §5b's shadow analysis reads back.
     recordEarnBreakdown: () => todo('recordEarnBreakdown'),
     getHistory: () => todo('getHistory'),
+    getRedemption: () => todo('getRedemption'),
     // The second-visit voucher maps to a `loyalty.card` on a `coupons`-type
     // loyalty.program, plus one table of our own:
     //   almond_loyalty_second_visit(partner_id, outcome, arm_json, issued_at,

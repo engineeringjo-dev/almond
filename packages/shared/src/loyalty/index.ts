@@ -17,3 +17,4 @@ export * from './history';
 export * from './welcome';
 export * from './visitRating';
 export * from './accountDeletion';
+export * from './clawback';

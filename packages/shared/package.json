@@ -15,6 +15,7 @@
     "./loyalty": "./src/loyalty/index.ts",
     "./loyalty/earn": "./src/loyalty/earn.ts",
     "./loyalty/lots": "./src/loyalty/lots.ts",
+    "./loyalty/clawback": "./src/loyalty/clawback.ts",
     "./loyalty/holdout": "./src/loyalty/holdout.ts",
     "./loyalty/window": "./src/loyalty/window.ts",
     "./loyalty/balanceWire": "./src/loyalty/balanceWire.ts",

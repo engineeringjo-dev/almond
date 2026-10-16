@@ -233,6 +233,8 @@ export function registerCheckoutRoutes(app: FastifyInstance, backend: Backend): 
       subtotal: totals.subtotal, tax: totals.tax, total: totals.total,
       itemCount: items.reduce((s, l) => s + l.qty, 0),
       pointsEarned: result.order.pointsEarned,
+      pointsAvailable: result.pointsAvailable,
+      pointsRecovered: result.pointsRecovered,
       pointsBalance: result.pointsBalance,
       walletBalance: toJod(result.walletBalanceFils),
       // null for a member who was suppressed, declined, ineligible or already

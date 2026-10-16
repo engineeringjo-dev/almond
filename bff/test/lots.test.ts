@@ -577,7 +577,7 @@ describe('L11 nextExpiry names the earliest day and sums every lot on it', () =>
       }
       // One answer, and it is the 15th — `new Date('2027-11-15')` is UTC
       // midnight and renders as the 14th west of Greenwich.
-      expect([...seen]).toEqual(['Nov 15']);
+      expect([...seen]).toEqual(['15/11/2027']);
     } finally {
       process.env.TZ = originalTZ;
     }

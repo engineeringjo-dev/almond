@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { View, StyleSheet, Animated } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { canReorderSizes } from '@almond/shared/menu';
 
 import { Text } from '@/components/ui/Text';
 import { Icon } from '@/components/ui/Icon';
@@ -10,17 +11,19 @@ import { colors, spacing, radius } from '@/constants/theme';
 import { useI18n } from '@/hooks/useI18n';
 import { useReducedMotion } from '@/hooks/useReducedMotion';
 import { useOrder, useCancelOrder } from '@/hooks/useOrder';
+import { useMenuState } from '@/hooks/useMenuState';
 import { useCartStore } from '@/stores/cartStore';
 import { formatTime } from '@/lib/format';
 import { CANCEL_WINDOW_SECONDS } from '@/services/order.service';
-import type { CartItem } from '@/types';
 
 export default function OrderConfirm() {
   const { t, lang } = useI18n();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { data: order } = useOrder(id ?? '');
   const cancelOrder = useCancelOrder();
-  const addLine = useCartStore((s) => s.addLine);
+  const addOrder = useCartStore((s) => s.addOrder);
+  const menu = useMenuState();
+  const [sizeIssue, setSizeIssue] = useState(false);
   const reduced = useReducedMotion();
   const scale = useRef(new Animated.Value(reduced ? 1 : 0)).current;
 
@@ -33,12 +36,17 @@ export default function OrderConfirm() {
   }, [secondsLeft]);
 
   const canCancel = secondsLeft > 0 && order?.status === 'received';
+  const needsSelection = sizeIssue || (!!order && !canReorderSizes(order.items, menu.items));
 
   const doCancel = async (modify: boolean) => {
     if (!order) return;
+    if (modify && needsSelection) {
+      router.push({ pathname: '/(tabs)/order', params: { tab: 'menu' } });
+      return;
+    }
     await cancelOrder.mutateAsync(order.id);
     if (modify) {
-      order.items.forEach((line: CartItem) => addLine({ ...line }));
+      if (!addOrder(order.items)) { setSizeIssue(true); return; }
       router.replace('/cart');
     } else {
       router.replace('/(tabs)');
@@ -83,6 +91,7 @@ export default function OrderConfirm() {
       </View>
 
       <View style={styles.footer}>
+        {needsSelection ? <Text variant="caption" selectable>{t('cart.reorderSizeUnavailable')}</Text> : null}
         {canCancel ? (
           <View style={styles.cancelBox}>
             <View style={styles.cancelNote}>
@@ -93,7 +102,7 @@ export default function OrderConfirm() {
             </View>
             <View style={styles.cancelRow}>
               <Button
-                title={t('confirm.modifyOrder')}
+                title={t(needsSelection ? 'tabs.order' : 'confirm.modifyOrder')}
                 variant="outline"
                 onPress={() => doCancel(true)}
                 style={styles.cancelBtn}

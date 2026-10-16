@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { View, StyleSheet, Pressable } from 'react-native';
 import { router, useLocalSearchParams, Stack } from 'expo-router';
+import { canReorderSizes } from '@almond/shared/menu';
 
 import { Screen } from '@/components/ui/Screen';
 import { Text } from '@/components/ui/Text';
@@ -14,8 +15,8 @@ import { colors, spacing, radius, shadow } from '@/constants/theme';
 import { useI18n } from '@/hooks/useI18n';
 import { useOrder, useAdvanceOrder } from '@/hooks/useOrder';
 import { useCountdown } from '@/hooks/useCountdown';
+import { useMenuState } from '@/hooks/useMenuState';
 import { useCartStore } from '@/stores/cartStore';
-import type { CartItem } from '@/types';
 
 export default function OrderTracking() {
   const { t, lang } = useI18n();
@@ -23,7 +24,9 @@ export default function OrderTracking() {
   const { data: order, isLoading, isError, refetch } = useOrder(id ?? '');
   const advance = useAdvanceOrder();
   const { label, done } = useCountdown(order?.targetReadyAt);
-  const addLine = useCartStore((s) => s.addLine);
+  const addOrder = useCartStore((s) => s.addOrder);
+  const menu = useMenuState();
+  const [sizeIssue, setSizeIssue] = useState(false);
   const [ratingOpen, setRatingOpen] = useState(false);
 
   // Simulate the KDS advancing the order through the timeline (mock only).
@@ -45,9 +48,11 @@ export default function OrderTracking() {
 
   const branchName = lang === 'ar' ? order.branchNameAr : order.branchNameEn;
   const showCountdown = order.status !== 'completed' && order.status !== 'cancelled' && !done;
+  const needsSelection = sizeIssue || !canReorderSizes(order.items, menu.items);
 
   const reorder = () => {
-    order.items.forEach((line: CartItem) => addLine({ ...line }));
+    if (needsSelection) { router.push({ pathname: '/(tabs)/order', params: { tab: 'menu' } }); return; }
+    if (!addOrder(order.items)) { setSizeIssue(true); return; }
     router.push('/cart');
   };
 
@@ -99,7 +104,8 @@ export default function OrderTracking() {
 
         {order.status === 'completed' ? (
           <View style={styles.completedActions}>
-            <Button title={t('track.reorder')} onPress={reorder} leadingIcon="reorder" />
+            {needsSelection ? <Text variant="caption" selectable>{t('cart.reorderSizeUnavailable')}</Text> : null}
+            <Button title={t(needsSelection ? 'tabs.order' : 'track.reorder')} onPress={reorder} leadingIcon="reorder" />
             <Pressable onPress={() => setRatingOpen(true)} hitSlop={8} style={styles.rateLink}>
               <Icon name="star" size={18} color={colors.brown} />
               <Text variant="bodyBold" color={colors.brown}>

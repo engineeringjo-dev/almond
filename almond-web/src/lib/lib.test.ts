@@ -101,18 +101,39 @@ describe('cn', () => {
 
 describe('shared date/time formatting (one digit system with prices)', () => {
   // The website shares @almond/shared/lib/format with the app: its rewards
-  // and wallet history print a date next to a Latin «12.500 د.أ».
+  // and wallet history print a date next to a Latin «12.50 د.أ».
   const AT = '2026-09-30T06:07:00.000Z';
   const ARABIC_INDIC = /[\u0660-\u0669\u06F0-\u06F9]/;
 
   it('Arabic dates and times carry Latin digits, like the prices beside them', () => {
     expect(formatDate(AT, 'ar')).not.toMatch(ARABIC_INDIC);
-    expect(formatDate(AT, 'ar')).toMatch(/^30 /);
+    expect(formatDate(AT, 'ar')).toBe('\u206630/09/2026\u2069');
     expect(formatTime(AT, 'ar')).toMatch(/09:07/);
-    expect(formatJOD(12.5, 'ar')).toBe('12.500 د.أ');
+    expect(formatJOD(12.5, 'ar')).toBe('12.50 د.أ');
   });
 
-  it('English is unchanged', () => {
-    expect(formatDate(AT, 'en')).toBe('Sep 30');
+  it('English uses DD/MM/YYYY while time keeps its existing format', () => {
+    expect(formatDate(AT, 'en')).toBe('30/09/2026');
+    expect(formatTime(AT, 'en')).toBe('09:07 AM');
+  });
+
+  it('keeps day/month distinct and moves instants into the correct Amman year', () => {
+    expect(formatDate('2026-04-07T09:00:00Z', 'en')).toBe('07/04/2026');
+    expect(formatDate('2026-12-31T21:30:00Z', 'en')).toBe('01/01/2027');
+    expect(formatDate('2026-12-31T21:30:00Z', 'ar')).toBe('\u206601/01/2027\u2069');
+  });
+});
+
+describe('customer money display', () => {
+  it('uses two decimals, Latin digits and the existing currency placement', () => {
+    expect(formatJOD(4.7, 'ar')).toBe('4.70 د.أ');
+    expect(formatJOD(4.7, 'en')).toBe('JOD 4.70');
+    expect(formatJOD(0, 'en')).toBe('JOD 0.00');
+  });
+
+  it('rounds half-cent values without pre-rounding raw fractional fils', () => {
+    expect(formatJOD(1.005, 'en')).toBe('JOD 1.01');
+    expect(formatJOD(2.675, 'ar')).toBe('2.68 د.أ');
+    expect(formatJOD(1.2346, 'en')).toBe('JOD 1.23');
   });
 });

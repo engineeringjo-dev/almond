@@ -55,6 +55,7 @@
     "usual": {
       "title": "Your usual",
       "reorder": "Reorder",
+      "sizeUnavailable": "A size in your previous order is unavailable. Open the menu to choose a current size; the previous order has not been added to your cart.",
       "items": "Items: {count}"
     }
   },
@@ -74,6 +75,8 @@
     "goesWellWith": "Goes well with",
     "back": "Back to menu",
     "soldOut": "Sold out",
+    "sizeUnavailable": "Unavailable online",
+    "sizeUnavailableNotice": "Some sizes are currently unavailable online. Choose an available size or contact the branch to order.",
     "from": "from",
     "total": "Total",
     "upsize": "Go {size} for +{price}",

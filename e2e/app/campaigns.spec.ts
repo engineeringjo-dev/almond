@@ -3,6 +3,7 @@ import { cartLineFor, computeTotals } from '@almond/shared/cart';
 import { config } from '@almond/shared/config';
 import { formatJOD } from '@almond/shared/lib/format';
 import { contactLinks } from '@almond/shared/lib/phone';
+import { campaignAccessibleLabel } from '../../almond-app/lib/campaignSlides';
 import { menuItems } from '@almond/shared/menu/seed';
 import type { CartItem, Lang } from '@almond/shared/types';
 import ar from '../../almond-app/locales/ar.json';
@@ -40,6 +41,27 @@ async function home(page: Page, lang: Lang, items: CartItem[] = []): Promise<voi
   await expect(page.getByRole('button', { name: new RegExp(`^${escape(title)}`) })).toBeVisible({ timeout: 20_000 });
 }
 
+/** Real browser touch input: CSS scroll snapping and RN-web momentum-end must
+ * agree with the logical index, not just the Previous/Next button handler. */
+async function swipeCampaign(page: Page, lang: Lang): Promise<void> {
+  const track = page.getByTestId('home-campaign-track');
+  await track.scrollIntoViewIfNeeded();
+  const box = await track.boundingBox();
+  if (!box) throw new Error('The campaign scroll track has no layout');
+  const session = await page.context().newCDPSession(page);
+  await session.send('Emulation.setTouchEmulationEnabled', { enabled: true });
+  const from = box.x + box.width * (lang === 'ar' ? 0.2 : 0.8);
+  const to = box.x + box.width * (lang === 'ar' ? 0.8 : 0.2);
+  const y = box.y + Math.min(84, box.height / 4);
+  await session.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: from, y }] });
+  for (let step = 1; step <= 12; step++) {
+    await session.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: from + (to - from) * step / 12, y }] });
+    await page.waitForTimeout(25);
+  }
+  await session.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+  await session.detach();
+}
+
 /** React Native Web draws an Image as a background plus a transparent img.
  * Check the actual downloaded image and its contain plane, not its ARIA role. */
 async function bundledPhoto(scope: Locator, filename: string): Promise<Locator> {
@@ -63,6 +85,31 @@ async function bundledPhoto(scope: Locator, filename: string): Promise<Locator> 
 }
 
 for (const lang of ['ar', 'en'] as const) {
+  test(`App campaigns (${lang}): a finger swipe advances to the gift card, keeps inactive actions out of focus, and survives resize`, async ({ page }) => {
+    await home(page, lang);
+    const copy = words[lang];
+    const carousel = page.getByTestId('home-campaign-carousel');
+    const track = page.getByTestId('home-campaign-track');
+    await expect(carousel.getByText(fill(copy.campaignSlides.position, { current: 1, total: 7 }), { exact: true })).toBeVisible();
+    await expect(track.getByRole('button')).toHaveCount(1);
+    await swipeCampaign(page, lang);
+    await expect(carousel.getByText(fill(copy.campaignSlides.position, { current: 2, total: 7 }), { exact: true })).toBeVisible();
+    const gift = track.getByRole('button', { name: campaignAccessibleLabel(copy.campaignSlides.giftTitle, copy.campaignSlides.giftBody, copy.campaignSlides.giftAction), exact: true });
+    await expect(gift).toBeVisible();
+    await expect(track.getByRole('button')).toHaveCount(1);
+    const viewport = page.viewportSize()!;
+    await page.setViewportSize({ width: viewport.width + 24, height: viewport.height });
+    await expect(gift).toBeVisible();
+    await expect(carousel.getByText(fill(copy.campaignSlides.position, { current: 2, total: 7 }), { exact: true })).toBeVisible();
+    await carousel.getByRole('button', { name: copy.common.next, exact: true }).click();
+    const walletName = campaignAccessibleLabel(fill(copy.campaignSlides.walletTitle, { extra: 50 }), copy.campaignSlides.walletBody, copy.campaignSlides.walletAction, copy.campaignSlides.walletExclusions);
+    await expect(track.getByRole('button', { name: walletName, exact: true })).toBeVisible();
+    await carousel.getByRole('button', { name: copy.common.previous, exact: true }).click();
+    await gift.click();
+    await expect(page).toHaveURL(/\/profile\/gift-cards$/);
+    expect(await storedItems(page)).toEqual([]);
+  });
+
   const copy = words[lang];
 
   test(`App campaigns (${lang}): the bundled cup opens pickup ordering without creating a basket`, async ({ page }) => {
@@ -148,7 +195,10 @@ for (const lang of ['ar', 'en'] as const) {
 
 test('App campaigns: catering reaches the real contact controls without launching an external action', async ({ page }) => {
   await home(page, 'ar');
-  await page.getByRole('button', { name: ar.campaign.cateringAction, exact: true }).click();
+  const carousel = page.getByTestId('home-campaign-carousel');
+  for (let step = 0; step < 3; step++) await carousel.getByRole('button', { name: ar.common.next, exact: true }).click();
+  await expect(carousel.getByText(fill(ar.campaignSlides.position, { current: 4, total: 7 }), { exact: true })).toBeVisible();
+  await carousel.getByRole('button', { name: campaignAccessibleLabel(ar.campaignSlides.cateringTitle, ar.campaignSlides.cateringBody, ar.campaignSlides.cateringAction), exact: true }).click();
   await expect(page).toHaveURL(/\/profile\/help$/);
   await expect(page.getByText(ar.help.heading, { exact: true })).toBeVisible();
   const contact = contactLinks(config.CONTACT_PHONE_E164);

@@ -14,7 +14,8 @@ import { maskedDisplayName, normalizeName, profileBonusFor, type Gender } from '
 import { WELCOME_BONUS_REASON, welcomeBonusFor } from '@almond/shared/loyalty/welcome';
 import { WALLET_LINE_REASON, WALLET_LINE_SIGN, type WalletLineKind } from '@almond/shared/loyalty/history';
 import {
-  normalizeReferralCode, referralAttachError, referralRewardFor, referralShareLink,
+  normalizeReferralCode, referralAttachError, referralRemainingPoints, referralRewardFor, referralShareLink,
+  verifiedReferralPhone,
   REFERRAL_CODE_ALPHABET, REFERRAL_CODE_LENGTH,
 } from '@almond/shared/loyalty/referral';
 import {
@@ -125,6 +126,10 @@ export interface LoyaltyUser {
    * finding a friend by number demonstrable at all.
    */
   phone: string;
+  /** The mock never receives or verifies an SMS OTP. Leave this null; a
+   * synthetic phone is not evidence of ownership. Tests may set it explicitly
+   * to exercise verified-member business rules without claiming live proof. */
+  phoneVerifiedAt: string | null;
 }
 
 /** A stable, valid-looking Jordanian number per mock member id. Demo only. */
@@ -259,6 +264,7 @@ function ensureUser(userId: string): LoyaltyUser {
       referralPointsEarned: 0,
       transfersSent: [],
       phone: demoPhoneFor(userId),
+      phoneVerifiedAt: null,
     };
     store.set(userId, u);
   }
@@ -299,7 +305,12 @@ function settlePaidOrder(u: LoyaltyUser, at: Date): void {
   ref.rewarded = true;
   const referrer = ensureUser(ref.referrerId);
   // The mock holds no corporate roster; the shared rule is still the one asked.
-  const points = referralRewardFor(false);
+  const points = referralRewardFor({
+    referrerIsCorporate: false,
+    referrerPhone: referrer.phone, referrerPhoneVerifiedAt: referrer.phoneVerifiedAt,
+    referredPhone: u.phone, referredPhoneVerifiedAt: u.phoneVerifiedAt,
+    pointsEarned: referrer.referralPointsEarned,
+  });
   if (points <= 0) return;
   settleExpiry(referrer, at);
   const reward = grantLot(referrer.lots, points, 'bonus', at, LOTS);
@@ -524,6 +535,8 @@ export const mockLoyaltyService: LoyaltyService = {
     return delay({
       profile: { name, birthday: u.birthday, gender: u.gender },
       bonusGranted: bonus,
+      bonusAvailablePoints: bonus,
+      bonusRecoveredPoints: 0,
       pointsBalance: liveBalance(u.lots),
     });
   },
@@ -600,8 +613,10 @@ export const mockLoyaltyService: LoyaltyService = {
     // This IS a paid order in the mock (cart.tsx calls earn after the order is
     // placed): it settles the welcome gift and is the referral rail's trigger
     // — as in the BFF.
-    settleWelcome(u, at ?? new Date(), branchId ?? null);
-    settlePaidOrder(u, at ?? new Date());
+    if (Number.isFinite(earn.cashTotal) && earn.cashTotal > 0) {
+      settleWelcome(u, at ?? new Date(), branchId ?? null);
+      settlePaidOrder(u, at ?? new Date());
+    }
 
     // The combo bonus is already INSIDE pointsEarned (computeEarn adds it, in
     // place of the pair's regular points). Log it; never add it again.
@@ -770,8 +785,12 @@ export const mockLoyaltyService: LoyaltyService = {
       rewardedCount: mine.filter((x) => x.referredBy?.rewarded).length,
       pointsEarned: u.referralPointsEarned,
       rewardPoints: config.REFERRAL_REWARD_POINTS,
+      capPoints: config.REFERRAL_LIFETIME_CAP_POINTS,
+      capPeriod: 'lifetime' as const,
+      remainingPoints: referralRemainingPoints(u.referralPointsEarned),
+      eligibleForRewards: verifiedReferralPhone(u.phone, u.phoneVerifiedAt),
       attachedCode: u.referredBy?.code ?? null,
-      canAttach: u.referredBy === null && u.firstPaidAt === null,
+      canAttach: verifiedReferralPhone(u.phone, u.phoneVerifiedAt) && u.referredBy === null && u.firstPaidAt === null,
     });
   },
 
@@ -786,8 +805,9 @@ export const mockLoyaltyService: LoyaltyService = {
       return delay({ attached: true as const, code, referrerDisplayName: maskedDisplayName(referrer.name), replay: true });
     }
     const refusal = referralAttachError({
-      memberId: userId, memberPhone: u.phone, memberFirstPaidAt: u.firstPaidAt,
-      alreadyAttached: u.referredBy !== null, referrer: { id: referrerId, phone: referrer.phone },
+      memberId: userId, memberPhone: u.phone, memberPhoneVerifiedAt: u.phoneVerifiedAt,
+      memberFirstPaidAt: u.firstPaidAt, alreadyAttached: u.referredBy !== null,
+      referrer: { id: referrerId, phone: referrer.phone, phoneVerifiedAt: referrer.phoneVerifiedAt },
     });
     if (refusal) return refuse(409, refusal);
     u.referredBy = { referrerId, code, rewarded: false };

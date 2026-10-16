@@ -144,6 +144,9 @@ export function VisitRatingSheet({ visible, onClose, visitRef, branchName, point
                   style={styles.star}
                   {...choiceA11y('radio', n === stars, t('visit.starsLabel', { n }))}
                 >
+                  {/* One labelled control: the number is visual; the radio
+                      already announces the same value as "n of 5". */}
+                  <Text variant="caption" center aria-hidden>{String(n)}</Text>
                   <Icon
                     name="star"
                     size={32}
@@ -174,7 +177,14 @@ export function VisitRatingSheet({ visible, onClose, visitRef, branchName, point
 const styles = StyleSheet.create({
   thanks: { gap: spacing.xs, marginBottom: spacing.lg },
   stars: { flexDirection: 'row', justifyContent: 'center', gap: spacing.xs, marginBottom: spacing.lg },
-  star: { minWidth: MIN_TOUCH_TARGET, minHeight: MIN_TOUCH_TARGET, alignItems: 'center', justifyContent: 'center' },
+  star: {
+    minWidth: MIN_TOUCH_TARGET,
+    minHeight: MIN_TOUCH_TARGET,
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.xs,
+  },
   comment: {
     minHeight: 80,
     // The resting field fill: on the sheet's white, cardBg drew no field at all.

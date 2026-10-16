@@ -1,4 +1,5 @@
 import { tierName, walletRateName } from '@almond/shared/loyalty';
+import { walletExtraPercentage } from '@almond/shared/loyalty/earn';
 
 import { useI18n } from '@/hooks/useI18n';
 import { useLoyaltyBalance } from '@/hooks/useLoyalty';
@@ -15,9 +16,11 @@ import { tiers } from '@/services/seed';
  * the deleted reload bonus. Both numbers come off the rung and the dials
  * (walletRateName in @almond/shared), never out of a locale file.
  */
-export function useWalletRate(): { rate: string; base: string } {
+export function useWalletRate(): { rate: string; base: string; extraPercent: number } {
   const { lang } = useI18n();
   const { data } = useLoyaltyBalance();
   const tier = tiers.find((x) => x.id === data?.tier) ?? tiers[0];
-  return { rate: walletRateName(tier, lang), base: tierName(tier, lang) };
+  // This response has no corporate entitlement. The carousel therefore uses
+  // extraPercent only as a CONDITIONAL programme fact, never a personal grant.
+  return { rate: walletRateName(tier, lang), base: tierName(tier, lang), extraPercent: walletExtraPercentage() };
 }

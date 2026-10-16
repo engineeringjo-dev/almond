@@ -1,5 +1,7 @@
 import { Image, Pressable, StyleSheet, View } from 'react-native';
+import { useState } from 'react';
 import { router } from 'expo-router';
+import { canReorderSizes } from '@almond/shared/menu';
 
 import { Icon } from '@/components/ui/Icon';
 import { PhotoDim } from '@/components/ui/PhotoDim';
@@ -27,7 +29,8 @@ export function UsualOrderCard() {
   const { t, lang } = useI18n();
   const usual = useUsualOrder();
   const menu = useMenuState();
-  const addLine = useCartStore((s) => s.addLine);
+  const addOrder = useCartStore((s) => s.addOrder);
+  const [sizeIssue, setSizeIssue] = useState(false);
 
   if (!usual) return null;
 
@@ -39,10 +42,12 @@ export function UsualOrderCard() {
     .join(lang === 'ar' ? '، ' : ', ');
   const total = usual.items.reduce((s, i) => s + lineUnitPrice(i) * i.qty, 0);
   const photos = usual.items.map((i) => menu.items.find((m) => m.id === i.itemId)?.imageUrl).filter(Boolean);
-  const addLabel = t('home.usualAdd', { total: formatJOD(total, lang) });
+  const needsSelection = sizeIssue || !canReorderSizes(usual.items, menu.items);
+  const addLabel = needsSelection ? t('tabs.order') : t('home.usualAdd', { total: formatJOD(total, lang) });
 
   const addAll = () => {
-    usual.items.forEach((i) => addLine({ ...i }));
+    if (needsSelection) { router.push({ pathname: '/(tabs)/order', params: { tab: 'menu' } }); return; }
+    if (!addOrder(usual.items)) { setSizeIssue(true); return; }
     router.push('/cart');
   };
 
@@ -54,7 +59,7 @@ export function UsualOrderCard() {
       <Pressable
         onPress={addAll}
         accessibilityRole="button"
-        accessibilityLabel={`${t('home.usualOrder')} ${names} ${addLabel}`}
+        accessibilityLabel={`${t('home.usualOrder')} ${names} ${needsSelection ? t('cart.reorderSizeUnavailable') : ''} ${addLabel}`}
         style={({ pressed }) => [styles.row, pressed && styles.pressed]}
       >
         <View style={[styles.photo, !photos[0] && styles.iconPhoto]} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
@@ -69,10 +74,11 @@ export function UsualOrderCard() {
         </View>
         <View style={styles.words}>
           <Text variant="bodyBold">{names}</Text>
+          {needsSelection ? <Text variant="caption" selectable>{t('cart.reorderSizeUnavailable')}</Text> : null}
           <Text variant="caption" color={colors.warmGray}>{addLabel}</Text>
         </View>
         <View style={styles.add} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
-          <Icon name="plus" size={20} color={colors.dark} strokeWidth={1.8} />
+          <Icon name={needsSelection ? 'menu' : 'plus'} size={20} color={colors.dark} strokeWidth={1.8} />
         </View>
       </Pressable>
     </View>
