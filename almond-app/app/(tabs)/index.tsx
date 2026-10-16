@@ -8,6 +8,7 @@ import { useLaunchSheets } from '@/hooks/useLaunchSheets';
 import { LoyaltyCard } from '@/components/home/LoyaltyCard';
 import { OrderNowButton } from '@/components/home/OrderNowButton';
 import { PromoCarousel } from '@/components/home/PromoCarousel';
+import { CateringEntry } from '@/components/home/CateringEntry';
 import { UsualOrderCard } from '@/components/home/UsualOrderCard';
 import { ActiveOrderBanner } from '@/components/home/ActiveOrderBanner';
 import { ChallengeBanner } from '@/components/home/ChallengeBanner';
@@ -23,20 +24,18 @@ import { useCartStore } from '@/stores/cartStore';
 import type { Branch } from '@/types';
 
 /**
- * HOME, IN FOUR BLOCKS (expert panel, 2026-10-15, «رئيسية من 4 كتل»;
- * precedent Starbucks):
+ * Home keeps membership and ordering first (precedent Starbucks):
  *
  *   1. The membership card: points, what they are worth, the wallet, and the
  *      code (owner: «نفذ ظهور الرمز أولاً», the code first).
  *   2. Order: «اطلب الآن», or «أكمل طلبك» when the cart holds something.
- *   3. The offers carousel, explorable like Al Ameed's top bar, with the
- *      menu's own photographs.
- *   4. «طلبك المعتاد», with a photograph, once there is one.
+ *   3. «طلبك المعتاد», with a photograph, once there is one.
+ *   4. A stationary campaign entry, followed by a compact catering contact.
  *
  * What it replaced was fourteen sections: the wallet, gift-card, nearest-
  * branch, «الأكثر طلباً» and offers cards and a list of three branches. The
- * wallet is on the card now, gift cards and the best sellers are slides, and
- * the branches are behind the header's chip.
+ * wallet is on the card now, gift cards and the best sellers remain actionable
+ * slides on /campaigns, and branches are behind the header's chip.
  *
  * Above the card only what is live: an order being made, and a promotion to
  * celebrate. Below the blocks, the nudges: the first-week ladder and a
@@ -117,11 +116,10 @@ export default function HomeScreen() {
           <OrderNowButton branch={activeBranch} />
         </View>
 
-        <View style={styles.block}>
-          <PromoCarousel />
-        </View>
-
         <UsualOrderCard />
+
+        <PromoCarousel />
+        <CateringEntry />
 
         {/* The first-week ladder (fill in your details, then invite a friend),
             then the day's nudge. Both unwrapped, both nothing once done. */}

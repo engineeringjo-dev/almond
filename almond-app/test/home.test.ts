@@ -126,6 +126,7 @@ describe('H3 the carousel slides', () => {
     expect(byId('wallet').title).toEqual({ key: 'home.walletHint', params: ctx.walletRate });
     expect(byId('rewards').title).toEqual({ key: 'rewards.headline', params: { max: '9%' } });
     expect(byId('rewards').subtitle).toEqual({ key: 'home.rewardsSlide', params: { low: '2%', high: '6%', mult: '1.5' } });
+    expect(byId('rewards').icon).toBe('cashback');
     for (const s of slides.filter((x) => !x.id.startsWith('best-'))) {
       expect('key' in s.title, `${s.id}: a literal is invisible to every copy test`).toBe(true);
     }
@@ -137,11 +138,11 @@ describe('H3 the carousel slides', () => {
   });
 });
 
-describe('H4 Home is four blocks, in order, with no wrapper around one that can be empty', () => {
+describe('H4 Home keeps ordering and reordering near the member card', () => {
   const home = code('app/(tabs)/index.tsx');
 
-  it('the card, order, the offers, the usual — in that order', () => {
-    const at = ['<LoyaltyCard', '<OrderNowButton', '<PromoCarousel', '<UsualOrderCard'].map((tag) => home.indexOf(tag));
+  it('the card, order and usual precede campaign discovery', () => {
+    const at = ['<LoyaltyCard', '<OrderNowButton', '<UsualOrderCard', '<PromoCarousel'].map((tag) => home.indexOf(tag));
     expect(at.every((i) => i > 0), 'all four blocks are on Home').toBe(true);
     expect(at).toEqual([...at].sort((a, b) => a - b));
   });

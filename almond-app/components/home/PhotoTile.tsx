@@ -1,4 +1,4 @@
-import { View, StyleSheet, Pressable, Image, type StyleProp, type ViewStyle } from 'react-native';
+import { View, StyleSheet, Pressable, Image, type ImageSourcePropType, type StyleProp, type ViewStyle } from 'react-native';
 
 import { Text } from '@/components/ui/Text';
 import { Icon, type IconName } from '@/components/ui/Icon';
@@ -13,6 +13,8 @@ export interface PhotoTileProps {
   cta?: string;
   /** Menu photo paths. One, or two for a pair; none falls back to `icon`. */
   photos?: (string | undefined)[];
+  /** Bundled, transparent brand art. Kept whole, without the menu-photo zoom. */
+  artwork?: ImageSourcePropType;
   icon?: IconName;
   onPress: () => void;
   /** Read after the name by a screen reader: what the tap does, when the
@@ -56,6 +58,7 @@ export function PhotoTile({
   subtitle,
   cta,
   photos = [],
+  artwork,
   icon = 'coffee',
   onPress,
   accessibilityHint,
@@ -92,15 +95,26 @@ export function PhotoTile({
           </View>
         ) : null}
       </View>
-      <Plate shots={shots} icon={icon} size={plate} order={order} />
+      <Plate shots={shots} artwork={artwork} icon={icon} size={plate} order={order} />
     </Pressable>
   );
 }
 
 /** The photograph, or two of them for a pair, on white; an icon when there
  *  is no photograph. Decorative: the words beside it already name it. */
-function Plate({ shots, icon, size, order }: { shots: string[]; icon: IconName; size: number; order: boolean }) {
+function Plate({ shots, artwork, icon, size, order }: { shots: string[]; artwork?: ImageSourcePropType; icon: IconName; size: number; order: boolean }) {
   const frame = order ? { width: size, height: size, minHeight: size } : styles.offerPlate;
+  if (artwork) {
+    return (
+      <View
+        style={[styles.plate, frame, order && styles.orderPlate, styles.artworkPlate]}
+        accessibilityElementsHidden
+        importantForAccessibility="no-hide-descendants"
+      >
+        <Image source={artwork} style={styles.artwork} resizeMode="contain" accessibilityIgnoresInvertColors />
+      </View>
+    );
+  }
   if (shots.length === 0) {
     return (
       <View style={[styles.plate, styles.iconPlate, frame, order && styles.orderPlate]}>
@@ -162,6 +176,9 @@ const styles = StyleSheet.create({
   plate: { alignSelf: 'stretch', overflow: 'hidden', alignItems: 'center', justifyContent: 'center' },
   offerPlate: { width: '42%', minHeight: 150 },
   orderPlate: { alignSelf: 'center', borderRadius: radius.pill, marginHorizontal: spacing.sm },
+  // The extracted cup has alpha: no circular mask or zoom can cut its edges.
+  artworkPlate: { borderRadius: 0, overflow: 'visible', paddingVertical: spacing.xs },
+  artwork: { width: '100%', height: '100%' },
   photoPlate: { backgroundColor: colors.white },
   iconPlate: { backgroundColor: colors.neutralWarm },
   // The product fills about half of each frame; the zoom crops the white

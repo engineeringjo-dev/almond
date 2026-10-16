@@ -192,6 +192,7 @@ export default function RootLayout() {
             <Stack.Screen name="loyalty" />
             <Stack.Screen name="tiers" />
             <Stack.Screen name="vouchers" />
+            <Stack.Screen name="campaigns" />
             <Stack.Screen
               name="notifications"
               options={{ presentation: 'modal' }}
