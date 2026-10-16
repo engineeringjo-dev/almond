@@ -46,14 +46,26 @@ without, and the conventions).
     «كاش باك لغاية 9%», double-points days, the welcome gift, the points
     history, account deletion, the post-visit rating, the barcode sheet on
     launch. The full list: [`competitors/AL-AMEED-2026-10.ar.md`](competitors/AL-AMEED-2026-10.ar.md), «ما نُفِّذ».
-- **In progress at handoff:** a design critique with
-  `.claude/skills/impeccable` (`reference/critique.md`) of Home, Rewards,
-  Order, the item sheet and Pay. The owner's complaint, 2026-10-16:
-  «كئيب وغير ملفت، بدون شعور AI» (gloomy, not eye-catching; it should not feel
-  machine-made). **The owner approved one warm accent colour** the same day;
-  it is not chosen or built yet. Two questions are still open with the owner:
-  real branch photos for the Rewards tiles, and the logo's own line drawings as
-  the app's illustrations.
+- **Design work, 2026-10-16.** The owner's complaint: «كئيب وغير ملفت، بدون
+  شعور AI» (gloomy, not eye-catching; it should not feel machine-made).
+  - Done: the baseline critique with `.claude/skills/impeccable`
+    ([`design/CRITIQUE-2026-10-16.md`](design/CRITIQUE-2026-10-16.md):
+    Nielsen 27/40, and measured evidence with screenshots), and the four-expert
+    playbook ([`APP-DESIGN-PLAYBOOK-2026-10.ar.md`](APP-DESIGN-PLAYBOOK-2026-10.ar.md)):
+    the fingerprint, an evaluation prompt with a 43-question rubric, the order
+    of use for the skills, and three waves of work.
+  - **The owner approved direction A, «Daylight Counter»** (#100): ink and
+    paper with one toasted-almond reward colour (`reward`: `#975725` light,
+    `#E0AD70` dark), recorded in `almond-app/PRODUCT.md`,
+    `almond-app/DESIGN.md` and `almond-app/docs/daylight-counter-brief.md`.
+    Where the playbook and `DESIGN.md` differ, `DESIGN.md` wins.
+  - App design skills in `.claude/skills/`: the owner's skills-CLI install
+    (five Expo skills and `marketing-psychology`, pinned in
+    `skills-lock.json`) and three vendored in advisory mode. The index and its
+    "Never run" list: `.claude/skills/WEB-DESIGN-SKILLS.md`.
+  - **Still open with the owner:** the logo's line drawings as the app's
+    illustrations, real branch photos, and whether to add a display face
+    (recommended: no). The playbook's section 8 lists them.
 
 ---
 
@@ -144,10 +156,12 @@ The domain `almond.jo` has no DNS; `api.almond.jo` does not exist yet
 
 ## 8. Open work, in order
 
-1. **Finish the design critique** (section 2), then add the approved warm
-   accent: one new token in `packages/shared/src/theme` for both schemes,
-   contrast checked (WCAG AA), used rarely, for points and rewards moments.
-   Ask the owner about the branch photos and the logo drawings.
+1. **What is left of wave 1 in the design playbook** after Daylight Counter:
+   the guard that keeps `reward` inside its allowed files, the faux-bold fix,
+   the expiry banner, the pay moment and the post-visit moment
+   ([`APP-DESIGN-PLAYBOOK-2026-10.ar.md`](APP-DESIGN-PLAYBOOK-2026-10.ar.md)
+   section 7). Re-evaluate with its prompt 5.2 against
+   [`design/CRITIQUE-2026-10-16.md`](design/CRITIQUE-2026-10-16.md).
 2. **The owner's three page-division questions**, answered so far by defaults:
    Home unchanged, line icons on the tiles, «قسائمي» only under Rewards.
 3. **Launch blockers**, outside the code ([`HANDOVER.md`](HANDOVER.md) §2): an SMS
