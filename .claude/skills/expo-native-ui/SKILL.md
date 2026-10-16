@@ -5,10 +5,6 @@ version: 1.1.1
 license: MIT
 ---
 
-> Vendored by Almond (16/10/2026) from github.com/expo/skills@927dd7cc2088ec2f0c73589fe2e94c3c973afc45 (MIT). Advisory mode: scripts not shipped; where a step says to run a script, read the referenced data/guidance directly instead.
->
-> Almond changes: removed the upstream "Submitting Feedback" section (it ran `npx --yes submit-expo-feedback@latest`, which sends feedback to Expo, and pointed to the telemetry skill `expo-skill-feedback`); removed `references/webgpu-three.md` and its two mentions (3D/games guide that told the agent to `npm install ... --legacy-peer-deps` and rewrite `metro.config.js`). The sibling skills `expo-ui` and `expo-data-fetching` mentioned below are not vendored in this repo. The repo's CLAUDE.md wins on conflict: Arabic is primary and RTL is the default, so read "left/right" here as leading/trailing.
-
 # Expo Native UI Guidelines
 
 For routes, links, stacks, tabs, modals, sheets, and headers, use the `expo-router` skill. For any motion — entering/exiting, gestures, springs, keyboard-driven UI — use the `expo-animation` skill.
@@ -27,6 +23,7 @@ references/
   media.md               Camera, audio, video, and file saving
   storage.md             SQLite, AsyncStorage, SecureStore
   visual-effects.md      Blur (expo-blur) and liquid glass (expo-glass-effect)
+  webgpu-three.md        3D graphics, games, GPU visualizations with WebGPU and Three.js
 ```
 
 ## Running the App
@@ -52,7 +49,7 @@ You need `npx expo run:ios/android` or `eas build` ONLY when using:
 
 Expo Go supports a wide range of features out of the box:
 
-- Most `expo-*` packages (camera, location, sensors, sqlite, etc.) — but not all: remote push notifications don't work in Expo Go on Android since SDK 53, and some packages need native capabilities Expo Go doesn't bundle (e.g. WebGPU)
+- Most `expo-*` packages (camera, location, sensors, sqlite, etc.) — but not all: remote push notifications don't work in Expo Go on Android since SDK 53, and some packages need native capabilities Expo Go doesn't bundle (e.g. WebGPU — see `references/webgpu-three.md`)
 - Expo Router navigation and deep links
 - Most UI libraries (reanimated, gesture handler, etc.)
 
@@ -194,3 +191,11 @@ Use CSS `boxShadow` style prop. NEVER use legacy React Native shadow or elevatio
 ```
 
 'inset' shadows are supported.
+
+## Submitting Feedback
+If you encounter errors, misleading or outdated information in this skill, report it so Expo can improve:
+```bash
+npx --yes submit-expo-feedback@latest --category skills --subject "expo-native-ui" "<actionable feedback>"
+```
+Only submit when you have something specific and actionable to report. Include as much relevant context as possible.
+If an AI agent repeatedly failed or the user had to take over an Expo task, load the expo-skill-feedback skill and follow its eval-candidate flow instead of reusing the command above.

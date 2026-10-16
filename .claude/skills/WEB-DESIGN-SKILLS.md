@@ -59,10 +59,19 @@ Each skill folder carries its original LICENSE.
 # The app skills — added 2026-10-16
 
 Owner, 2026-10-16: «ما افضل السكلز لعمل تطبيق يشبه تطبيق دنكن دونتس … ومثل
-ستاربكس … حتى يكون التطبيق احترافي مش مبين ai وله بصمه الموند». Seven more
-skills, for the members' app (Expo SDK 56, React Native) rather than the
-website. Each was fetched, read in full, licence-checked and copied by one
-agent, then checked on disk by a second agent; both checks passed.
+ستاربكس … حتى يكون التطبيق احترافي مش مبين ai وله بصمه الموند». These are for
+the members' app (Expo SDK 56, React Native) rather than the website. They
+arrived the same day from two sessions:
+
+- **The owner's install** (commit `5515640f`, with the skills CLI): the five
+  Expo skills and `marketing-psychology`, unmodified from upstream, pinned by
+  hash in `skills-lock.json` at the repository root, each with an
+  `agents/openai.yaml` for Codex. Leave these folders byte for byte as
+  installed, so the lock file stays true.
+- **Vendored in advisory mode** (commit `7b5d5209`): three skills that were
+  fetched, read in full, licence-checked and copied by one agent, then checked
+  on disk by a second; both checks passed. Each modified file carries a notice
+  after its YAML front matter.
 
 | Skill | What it gives the app | Load it when |
 |---|---|---|
@@ -70,44 +79,58 @@ agent, then checked on disk by a second agent; both checks passed.
 | `expo-native-ui` | Platform styling: Apple HIG and Material 3, semantic colours with dark mode, native controls, blur, safe areas, tabular numbers, a screen checklist | Building or restyling any screen |
 | `expo-animation` | Motion decided in order: whether, which thread, which properties, spring or timing, gesture hand-off, reduced motion. Reanimated, Gesture Handler, `expo-haptics`, with recipes | Press feedback, sheets, transitions, haptics, reward moments |
 | `expo-router` | Native headers, tabs, form sheets, search bars, link previews | Headers, tabs, sheets, modals |
+| `expo-overview` | Which Expo skill or doc to reach for | Not sure where to start |
+| `marketing-psychology` | Behavioural principles for persuasion and choice | Reward moments, offers, copy that asks for an action. The no-dark-patterns rule below still holds |
 | `react-native-best-practices` (Callstack) | Smoothness: FPS, startup, re-renders, lists, animations, bundle size | A screen that stutters, a slow start, a long list |
 | `frontend-design` (Anthropic) | An aesthetic direction before code, and the choices that read as templated defaults | Shaping a new screen's look. Web-oriented: apply the thinking, not the CSS |
 | `ui-ux-pro-max` | A searchable library: styles, colour palettes, font pairings, UX guidelines, with a React Native stack file | Choosing a palette or a font pairing; read the CSVs in `data/` directly |
 
-| Skill | Source | Licence |
-|---|---|---|
-| `expo-design-system`, `expo-native-ui`, `expo-animation`, `expo-router` | github.com/expo/skills @ 927dd7c | MIT (`expo-animation` also MIT, Emil Kowalski) |
-| `react-native-best-practices` | github.com/callstackincubator/agent-skills @ 59e9d17 | MIT |
-| `frontend-design` | github.com/anthropics/skills @ dbd4588 | Apache-2.0 |
-| `ui-ux-pro-max` | github.com/nextlevelbuilder/ui-ux-pro-max-skill @ 56ea9cf | MIT |
+| Skill | Source | Licence | How it arrived |
+|---|---|---|---|
+| `expo-design-system`, `expo-native-ui`, `expo-animation`, `expo-router`, `expo-overview` | github.com/expo/skills | MIT (`expo-animation` also MIT, Emil Kowalski) | Owner's install, `skills-lock.json` |
+| `marketing-psychology` | github.com/coreyhaines31/marketingskills | see upstream | Owner's install, `skills-lock.json` |
+| `react-native-best-practices` | github.com/callstackincubator/agent-skills @ 59e9d17 | MIT | Vendored, advisory |
+| `frontend-design` | github.com/anthropics/skills @ dbd4588 | Apache-2.0 | Vendored, advisory |
+| `ui-ux-pro-max` | github.com/nextlevelbuilder/ui-ux-pro-max-skill @ 56ea9cf | MIT | Vendored, advisory |
 
 **Order of use for an app screen:** `impeccable critique` (what is wrong) →
 `expo-design-system` (tokens first, then components) → `expo-native-ui` (the
 screen) → `expo-animation` (the moments) → `react-native-best-practices` (it
 stays smooth) → `impeccable polish`. `craft-floor.md` is still read before any
-UI edit.
+UI edit. The app's own design context is `almond-app/PRODUCT.md` and
+`almond-app/DESIGN.md` (direction A, «Daylight Counter», approved by the
+owner on 2026-10-16); the step-by-step guide and the evaluation prompt are in
+`docs/APP-DESIGN-PLAYBOOK-2026-10.ar.md`.
 
 **The brand wins.** These skills are generic. Where one conflicts with
-`CLAUDE.md` (Arabic first, RTL, Latin digits, black and white with the one
-warm accent the owner approved on 2026-10-16, no false promises), `CLAUDE.md`
-wins. A palette from `ui-ux-pro-max` is a reference, never a replacement for
-Almond's tokens in `packages/shared/src/theme`.
+`CLAUDE.md` or `almond-app/DESIGN.md` (Arabic first, RTL, Latin digits, ink
+and paper with the one toasted-almond reward colour, no false promises, no
+dark patterns), the repository wins. A palette from `ui-ux-pro-max` is a
+reference, never a replacement for Almond's tokens in
+`packages/shared/src/theme`.
 
-## Changes from upstream (16/10/2026)
+## Never run, from any skill here
+
+The owner's copies of the Expo skills are upstream text, so they still carry
+steps this repository does not take. Read them as guidance only:
+
+- **"Submitting Feedback"** at the end of `expo-design-system`,
+  `expo-native-ui`, `expo-router` and `expo-animation`: it runs
+  `npx --yes submit-expo-feedback@latest`, an unpinned download that sends
+  text to Expo. Do not run it, and do not load the `expo-skill-feedback` skill
+  it names (it is not installed).
+- **`expo-native-ui/references/webgpu-three.md`:** installs packages with
+  `--legacy-peer-deps` and rewrites `metro.config.js`. Not for this app
+  without the owner's approval.
+- **Any `npx expo install`** (for example `expo-haptics`): a new dependency
+  waits for the owner's approval, with an exact version, then the full gate.
+
+## Changes from upstream in the vendored skills (16/10/2026)
 
 Every modified file carries a notice right after its YAML front matter (the
 front matter must stay first for the skill to load). Unmodified files are
 byte for byte.
 
-- **All four Expo skills:**
-  - Removed the "Submitting Feedback" section, which ran
-    `npx --yes submit-expo-feedback@latest` and sent data to Expo.
-  - Did not copy the telemetry skill `expo-skill-feedback`, the plugin's hooks
-    (they ran a telemetry script on every skill use), its MCP registration, or
-    the `agents/openai.yaml` files.
-  - Dropped `expo-native-ui/references/webgpu-three.md`, a 3D guide that
-    installed packages with `--legacy-peer-deps` and rewrote
-    `metro.config.js`.
 - **`react-native-best-practices`:**
   - Replaced unpinned download-and-run commands with "Not run here" notes:
     `npx source-map-explorer`, `expo-atlas`, `bundle-stats`,
@@ -128,3 +151,7 @@ byte for byte.
 - **`frontend-design`:** none. The theme-factory skill from the same
   repository was read and not copied: it themes slides and HTML artifacts, not
   an app.
+- **The four Expo skills** were first vendored here with the feedback section
+  removed (commit `7b5d5209`); the owner's install of the same skills landed on
+  `main` the same day, and the merge kept the owner's copies. The rule above
+  replaces the removal.

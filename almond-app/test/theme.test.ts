@@ -3,12 +3,14 @@ import { describe, it, expect } from 'vitest';
 import { darkTheme, lightTheme, paletteFor, type AppTheme, type ColorScheme } from '@almond/shared/theme';
 
 /**
- * T0-T5 — THE IDENTITY IS BLACK AND WHITE, AND IT IS READABLE IN BOTH SCHEMES.
+ * T0-T6 — NEUTRAL ORDERING, ONE WARM REWARD ACCENT, BOTH SCHEMES READABLE.
  *
  * Owner, 2026-10-15: «اعمل الهوية اسود وابيض كالشعار … المحل اندستريا واجهاته
  * وسقفه اسود … انسى البنفسجي». The palette is ink, paper and the greys between
  * (shared theme); colour is left only where it means something — an error, a
- * success. Every pairing a screen uses is held to WCAG 2.x here, in the light
+ * success. Direction A (owner, 2026-10-16) adds one warm rewards hue; the
+ * ordering and navigation roles stay neutral. Every pairing is held to WCAG
+ * 2.x here, in the light
  * scheme AND the dark one, because a pairing that is fine on white can vanish
  * on black (white on the ink is white on near-white in dark mode).
  */
@@ -44,14 +46,15 @@ describe('T0 the ratio itself', () => {
 const SCHEMES: [ColorScheme, AppTheme][] = [['light', lightTheme], ['dark', darkTheme]];
 
 describe('T1 black and white, like the logo', () => {
-  // Every role that carries the BRAND — everything but success and error.
+  // Neutral identity roles. The approved reward hue and status colours have
+  // separate contrast guards below.
   const BRAND: (keyof AppTheme)[] = [
     'primary', 'primaryDark', 'onInk', 'accent', 'accentLight', 'secondary', 'neutralWarm',
     'cream', 'cardBg', 'surface', 'outline', 'textPrimary', 'textSecondary',
     'tierBase', 'tierPlus', 'tierTop',
   ];
   for (const [name, t] of SCHEMES) {
-    it(`${name}: no brand role carries a hue — the violet is gone`, () => {
+    it(`${name}: ordering and navigation stay neutral — the violet is gone`, () => {
       const hued = BRAND.filter((k) => chroma(t[k]) > 8).map((k) => `${k}=${t[k]}`);
       expect(hued).toEqual([]);
     });
@@ -104,6 +107,20 @@ describe('T5 the black card (HeroCard) reads in both schemes', () => {
       const c = paletteFor(scheme);
       expect(contrast(c.onHero, c.hero)).toBeGreaterThanOrEqual(4.5);
       expect(contrast(c.onHeroMuted, c.hero)).toBeGreaterThanOrEqual(4.5);
+      expect(contrast(c.onHeroReward, c.hero)).toBeGreaterThanOrEqual(4.5);
     });
   }
+});
+
+describe.each(SCHEMES)('T6 the %s rewards accent', (_name, t) => {
+  it('points worth and cashback are AA on every neutral surface', () => {
+    for (const ground of [t.cream, t.cardBg, t.surface]) {
+      expect(contrast(t.reward, ground)).toBeGreaterThanOrEqual(4.5);
+    }
+  });
+
+  it('a selected redemption control has an AA label and a visible edge', () => {
+    expect(contrast(t.onReward, t.reward)).toBeGreaterThanOrEqual(4.5);
+    expect(contrast(t.reward, t.cream)).toBeGreaterThanOrEqual(3);
+  });
 });

@@ -5,10 +5,6 @@ version: 1.0.0
 license: MIT
 ---
 
-> Vendored by Almond (16/10/2026) from github.com/expo/skills@927dd7cc2088ec2f0c73589fe2e94c3c973afc45 (MIT). Advisory mode: scripts not shipped; where a step says to run a script, read the referenced data/guidance directly instead.
->
-> Almond changes: removed the upstream "Submitting Feedback" section (it ran `npx --yes submit-expo-feedback@latest`, which sends feedback to Expo, and pointed to the telemetry skill `expo-skill-feedback`). LICENSE is the skill's own (Emil Kowalski); LICENSE-EXPO is the expo/skills repository licence. The web skill `animate` mentioned in the description is not vendored here; for web motion use `emil-design-eng`. The repo's CLAUDE.md wins on conflict: Arabic is primary and RTL is the default, so read "left/right" here as leading/trailing.
-
 # Building Animations in Expo
 
 This skill was created in collaboration with [Emil Kowalski](https://github.com/emilkowalski) and can also be found in the [emilkowalski/skills](https://github.com/emilkowalski/skills) repository, along with other useful animation skills.
@@ -268,3 +264,11 @@ The code is the deliverable. Don't pad it into a report.
 ## Tone
 
 Opinionated and brief. When the honest answer is "this shouldn't animate," or "this needs a real device before I can tell you if it's right," give it.
+
+## Submitting Feedback
+If you encounter errors, misleading or outdated information in this skill, report it so Expo can improve:
+```bash
+npx --yes submit-expo-feedback@latest --category skills --subject "expo-animation" "<actionable feedback>"
+```
+Only submit when you have something specific and actionable to report. Include as much relevant context as possible.
+If an AI agent repeatedly failed or the user had to take over an Expo task, load the expo-skill-feedback skill and follow its eval-candidate flow instead of reusing the command above.

@@ -7,7 +7,8 @@ import { HeroCard } from '@/components/ui/HeroCard';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { TierBadge } from '@/components/loyalty/TierBadge';
 import { WelcomeGiftNote } from '@/components/loyalty/WelcomeGiftNote';
-import { colors, spacing, radius, shadow } from '@/constants/theme';
+import { colors, spacing, radius, fontSize } from '@/constants/theme';
+import { MIN_TOUCH_TARGET } from '@/lib/a11y';
 import { useI18n } from '@/hooks/useI18n';
 import { formatJOD, formatNumber } from '@/lib/format';
 import { useLoyaltyBalance, useWallet } from '@/hooks/useLoyalty';
@@ -48,13 +49,11 @@ export function LoyaltyCard() {
 
   if (isLoading || !data) {
     return (
-      <View style={styles.shadow}>
-        <HeroCard style={styles.card}>
-          <Skeleton onHero width={120} height={14} />
-          <Skeleton onHero width={180} height={40} />
-          <Skeleton onHero width="100%" height={52} />
-        </HeroCard>
-      </View>
+      <HeroCard style={styles.card}>
+        <Skeleton onHero width={120} height={14} />
+        <Skeleton onHero width={180} height={40} />
+        <Skeleton onHero width="100%" height={MIN_TOUCH_TARGET} />
+      </HeroCard>
     );
   }
 
@@ -62,75 +61,74 @@ export function LoyaltyCard() {
   const worth = formatJOD(jodFromPoints(data.points), lang);
 
   return (
-    <View style={styles.shadow}>
-      <HeroCard style={styles.card}>
-        <Pressable
-          onPress={() => router.push('/(tabs)/rewards')}
-          accessibilityRole="button"
-          accessibilityLabel={t('home.cardA11y', { points: formatNumber(data.points, lang), jod: worth })}
-          style={styles.body}
-        >
-          <View style={styles.topRow}>
-            <Text variant="caption" color={colors.onHeroMuted}>
-              {t('home.loyaltyPoints')}
-            </Text>
-            <TierBadge tier={data.tier} onHero />
-          </View>
-          <View style={styles.pointsRow}>
-            <Text variant="display" color={colors.onHero} style={styles.points}>
-              {formatNumber(data.points, lang)}
-            </Text>
-            <Text variant="bodyBold" color={colors.onHeroMuted}>
-              {t('home.pointsWorth', { jod: worth })}
-            </Text>
-          </View>
-          {/* Progress in one sentence, from one place — lib/tierCopy.ts. */}
-          {progress ? (
-            <Text variant="caption" color={colors.onHeroMuted}>
-              {t(progress.key, progress.params)}
-            </Text>
-          ) : null}
-          <WelcomeGiftNote points={data.welcomeBonusPending} color={colors.onHero} />
-        </Pressable>
+    <HeroCard style={styles.card}>
+      <Pressable
+        onPress={() => router.push('/(tabs)/rewards')}
+        accessibilityRole="button"
+        accessibilityLabel={t('home.cardA11y', { points: formatNumber(data.points, lang), jod: worth })}
+        style={styles.body}
+      >
+        <View style={styles.topRow}>
+          <Text variant="caption" color={colors.onHeroMuted} style={styles.compactCopy}>
+            {t('home.loyaltyPoints')}
+          </Text>
+          <TierBadge tier={data.tier} small onHero />
+        </View>
+        <View style={styles.pointsRow}>
+          <Text variant="display" color={colors.onHero} style={styles.points}>
+            {formatNumber(data.points, lang)}
+          </Text>
+          <Text variant="bodyBold" color={colors.onHeroReward} style={styles.worth}>
+            {t('home.pointsWorth', { jod: worth })}
+          </Text>
+        </View>
+        {/* Progress in one sentence, from one place — lib/tierCopy.ts. */}
+        {progress ? (
+          <Text variant="caption" color={colors.onHeroMuted} style={styles.compactCopy}>
+            {t(progress.key, progress.params)}
+          </Text>
+        ) : null}
+        <WelcomeGiftNote points={data.welcomeBonusPending} color={colors.onHero} />
+      </Pressable>
 
-        <Pressable
-          onPress={() => router.push('/profile/wallet')}
-          style={({ pressed }) => [styles.walletRow, pressed && styles.pressed]}
-          accessibilityRole="button"
-        >
-          <Icon name="wallet" size={18} color={colors.onHeroMuted} />
-          <Text variant="caption" color={colors.onHeroMuted}>
-            {t('home.walletBalance')}
-          </Text>
-          <Text variant="bodyBold" color={colors.onHero} style={styles.walletAmount}>
-            {formatJOD(wallet ?? 0, lang)}
-          </Text>
-          <Text variant="caption" color={colors.onHero} style={styles.topUp}>
-            {t('home.topUp')}
-          </Text>
-        </Pressable>
+      <Pressable
+        onPress={() => router.push('/profile/wallet')}
+        style={({ pressed }) => [styles.walletRow, pressed && styles.pressed]}
+        accessibilityRole="button"
+      >
+        <Icon name="wallet" size={18} color={colors.onHeroMuted} />
+        <Text variant="caption" color={colors.onHeroMuted} style={[styles.compactCopy, styles.walletLabel]}>
+          {t('home.walletBalance')}
+        </Text>
+        <Text variant="bodyBold" color={colors.onHero} style={styles.walletAmount}>
+          {formatJOD(wallet ?? 0, lang)}
+        </Text>
+        <Text variant="caption" color={colors.onHero} style={styles.topUp}>
+          {t('home.topUp')}
+        </Text>
+      </Pressable>
 
-        <Pressable
-          onPress={() => openEarnSheet()}
-          style={({ pressed }) => [styles.codeBtn, pressed && styles.pressed]}
-          accessibilityRole="button"
-        >
-          <Icon name="qr" size={22} color={colors.hero} />
-          <Text variant="bodyBold" color={colors.hero}>
-            {t('home.showCode')}
-          </Text>
-        </Pressable>
-      </HeroCard>
-    </View>
+      <Pressable
+        onPress={() => openEarnSheet()}
+        style={({ pressed }) => [styles.codeBtn, pressed && styles.pressed]}
+        accessibilityRole="button"
+      >
+        <Icon name="qr" size={22} color={colors.hero} />
+        <Text variant="bodyBold" color={colors.hero}>
+          {t('home.showCode')}
+        </Text>
+      </Pressable>
+    </HeroCard>
   );
 }
 
 const styles = StyleSheet.create({
-  shadow: { borderRadius: radius.xl, ...shadow.raised },
   card: {
     borderRadius: radius.xl,
-    padding: spacing.lg,
-    gap: spacing.md,
+    borderCurve: 'continuous',
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+    gap: spacing.sm,
     overflow: 'hidden',
   },
   /**
@@ -140,31 +138,34 @@ const styles = StyleSheet.create({
    */
   body: { gap: spacing.xs, minWidth: 0 },
   topRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  pointsRow: { flexDirection: 'row', alignItems: 'baseline', flexWrap: 'wrap', columnGap: spacing.sm },
+  pointsRow: { flexDirection: 'row', alignItems: 'baseline', flexWrap: 'wrap', columnGap: spacing.md },
   points: { lineHeight: 42 },
-  // The card's one action, as a light button on the black card: 52pt, the
-  // height of the primary button (Button.tsx), so it reads as the action.
+  worth: { fontSize: fontSize.sm, lineHeight: 20 },
+  compactCopy: { fontSize: fontSize.xs, lineHeight: 18 },
+  // Compact, but still a full platform-sized target at the counter.
   codeBtn: {
-    minHeight: 52,
+    minHeight: MIN_TOUCH_TARGET,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: spacing.sm,
     backgroundColor: colors.onHero,
     borderRadius: radius.md,
+    borderCurve: 'continuous',
   },
   /** The wallet line: under a rule, so it reads as the card's second balance
    *  and not as more of the points. 44pt, the smallest target. */
   walletRow: {
-    minHeight: 44,
+    minHeight: MIN_TOUCH_TARGET,
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: colors.onHeroMuted,
-    paddingTop: spacing.sm,
+    paddingTop: spacing.xs,
   },
-  walletAmount: { flex: 1 },
-  topUp: { fontWeight: '700', textDecorationLine: 'underline' },
+  walletLabel: { flexShrink: 1 },
+  walletAmount: { flexGrow: 1, flexShrink: 0, fontSize: fontSize.sm, lineHeight: 20 },
+  topUp: { fontSize: fontSize.xs, lineHeight: 18, flexShrink: 0, fontWeight: '700', textDecorationLine: 'underline' },
   pressed: { opacity: 0.88 },
 });

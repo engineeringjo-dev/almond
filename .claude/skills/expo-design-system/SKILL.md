@@ -5,10 +5,6 @@ version: 1.0.0
 license: MIT
 ---
 
-> Vendored by Almond (16/10/2026) from github.com/expo/skills@927dd7cc2088ec2f0c73589fe2e94c3c973afc45 (MIT). Advisory mode: scripts not shipped; where a step says to run a script, read the referenced data/guidance directly instead.
->
-> Almond changes: removed the upstream "Submitting Feedback" section (it ran `npx --yes submit-expo-feedback@latest`, which sends feedback to Expo, and pointed to the telemetry skill `expo-skill-feedback`). The sibling skills `expo-project-structure` and `expo-data-fetching` mentioned below are not vendored in this repo. The `grep`/`rg` checks in `references/` are read-only searches of the app's own source, not shipped scripts. The repo's CLAUDE.md wins on conflict: Arabic is primary and RTL is the default, so read "left/right" here as leading/trailing.
-
 # Expo Design Systems
 
 Make every screen in an app draw from one visual source of truth: a token theme and a small set of reusable components. This skill defines where tokens live, what they cover, how reusable components are shaped, and when a repeated view earns promotion into the system.
@@ -370,3 +366,11 @@ Treat visual tells as review prompts, not blanket bans on cards, fonts, or brand
 ## Auditing an Existing App
 
 To measure drift in an app that already has screens - hardcoded hex values, arbitrary spacing, inconsistent component APIs - follow `./references/audit.md`. It contains grep-based checks, a scoring rubric, an incremental adoption order for fixing a drifted app, and templates for documenting existing components and proposing new ones.
+
+## Submitting Feedback
+If you encounter errors, misleading or outdated information in this skill, report it so Expo can improve:
+```bash
+npx --yes submit-expo-feedback@latest --category skills --subject "expo-design-system" "<actionable feedback>"
+```
+Only submit when you have something specific and actionable to report. Include as much relevant context as possible.
+If an AI agent repeatedly failed or the user had to take over an Expo task, load the expo-skill-feedback skill and follow its eval-candidate flow instead of reusing the command above.

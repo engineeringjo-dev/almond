@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { View, StyleSheet, Pressable } from 'react-native';
+import { View, StyleSheet, Pressable, useWindowDimensions } from 'react-native';
 import { router } from 'expo-router';
 
 import { Screen } from '@/components/ui/Screen';
@@ -16,7 +16,8 @@ import { RewardsTile } from '@/components/loyalty/RewardsTile';
 import { RedeemSheet } from '@/components/loyalty/RedeemSheet';
 import { HowItWorksSheet, HowItWorksSteps } from '@/components/loyalty/HowItWorks';
 import { TierCards } from '@/components/loyalty/TierCards';
-import { colors, spacing, radius, shadow } from '@/constants/theme';
+import { colors, spacing, radius, fontSize } from '@/constants/theme';
+import { MIN_TOUCH_TARGET } from '@/lib/a11y';
 import { useI18n } from '@/hooks/useI18n';
 import { formatDate, formatDayKey, formatJOD, formatNumber } from '@/lib/format';
 import { activeVoucherCount, lastPointsMove } from '@/lib/rewardsHub';
@@ -50,6 +51,7 @@ export default function RewardsScreen() {
 
 function MemberRewards() {
   const { t, lang } = useI18n();
+  const { width } = useWindowDimensions();
   const balanceQ = useLoyaltyBalance();
   const vouchersQ = useVouchers();
   const historyQ = usePointsHistory();
@@ -63,7 +65,7 @@ function MemberRewards() {
     return (
       <Screen>
         <View style={styles.titleRow}>
-          <Text variant="h1">{t('rewards.title')}</Text>
+          <Text variant="h1" accessibilityRole="header">{t('rewards.title')}</Text>
         </View>
         <Skeleton height={240} style={styles.skelHero} />
         <Skeleton width="40%" height={24} style={styles.skelLine} />
@@ -118,7 +120,7 @@ function MemberRewards() {
     <>
       <Screen onRefresh={balanceQ.refetch}>
         <View style={styles.titleRow}>
-          <Text variant="h1">{t('rewards.title')}</Text>
+          <Text variant="h1" accessibilityRole="header">{t('rewards.title')}</Text>
         </View>
 
         {/* Only on a day the server pays double (config.DOUBLE_POINTS_DAYS). */}
@@ -129,11 +131,11 @@ function MemberRewards() {
           <Text variant="caption" color={colors.onHeroMuted}>
             {t('pay.yourPoints')}
           </Text>
-          <Text variant="display" color={colors.onHero}>
+          <Text variant="display" color={colors.onHero} style={styles.points}>
             {formatNumber(points, lang)}
           </Text>
           <BalanceWorth points={points} />
-          <Text variant="caption" color={colors.onHeroMuted}>
+          <Text variant="caption" color={colors.onHeroMuted} style={styles.expiry}>
             {/* WHICH points, and WHEN — never "your points expire on X" for a
                 balance made of grants months apart, and never "your points never
                 expire" beside a rule that says every point does. Nothing is
@@ -171,7 +173,13 @@ function MemberRewards() {
               return (
                 <Pressable
                   key={o.id}
-                  style={({ pressed }) => [styles.redeemChip, pressed && styles.pressed]}
+                  style={({ pressed }) => [
+                    styles.redeemChip,
+                    width < 360 && styles.redeemChipNarrow,
+                    o.full && styles.redeemChipReward,
+                    redeeming?.id === o.id && styles.redeemChipSelected,
+                    pressed && styles.pressed,
+                  ]}
                   onPress={() => setRedeeming(o)}
                   accessibilityRole="button"
                   accessibilityLabel={
@@ -180,7 +188,12 @@ function MemberRewards() {
                       : t('rewards.redeemA11y', { jod, points: cost })
                   }
                 >
-                  <Text variant="bodyBold" color={colors.primary} center numberOfLines={1}>
+                  <Text
+                    variant="bodyBold"
+                    color={redeeming?.id === o.id ? colors.onReward : o.full ? colors.reward : colors.primary}
+                    center
+                    style={styles.redeemAmount}
+                  >
                     {o.full ? t('rewards.wholeBalance') : jod}
                   </Text>
                 </Pressable>
@@ -193,7 +206,7 @@ function MemberRewards() {
             both read off the dials. Owner, 2026-10-15: «لا نستخدم نقاطك نقود.
             ممكن نحكي كاش باك لغاية ٩%». The line under it names the floor
             (2%), so the ceiling is never read as everyone's rate. */}
-        <Text variant="h2" center style={styles.headline}>
+        <Text variant="h2" color={colors.reward} center style={styles.headline}>
           {t('rewards.headline', range)}
         </Text>
         <Text variant="body" color={colors.warmGray} center style={styles.headlineSub}>
@@ -245,12 +258,12 @@ function GuestRewards() {
   return (
     <Screen>
       <View style={styles.titleRow}>
-        <Text variant="h1">{t('rewards.title')}</Text>
+        <Text variant="h1" accessibilityRole="header">{t('rewards.title')}</Text>
       </View>
 
       <DoubleDayNote />
 
-      <Text variant="h2" center style={styles.guestHeadline}>
+      <Text variant="h2" color={colors.reward} center style={styles.guestHeadline}>
         {t('rewards.headline', range)}
       </Text>
       <Text variant="body" color={colors.warmGray} center style={styles.headlineSub}>
@@ -285,35 +298,43 @@ const styles = StyleSheet.create({
   skelTile: { flexBasis: '47%', flexGrow: 1 },
   pointsCard: {
     alignItems: 'center',
-    gap: spacing.xs,
-    borderRadius: radius.lg,
+    borderRadius: radius.xl,
+    borderCurve: 'continuous',
     padding: spacing.lg,
     overflow: 'hidden',
-    ...shadow.card,
   },
-  tierRow: { marginTop: spacing.sm },
+  points: { fontVariant: ['tabular-nums'] },
+  expiry: { fontSize: fontSize.xs, lineHeight: 20, marginTop: spacing.xs },
+  tierRow: { marginVertical: spacing.xs },
 
   redeemTitle: { marginTop: spacing.lg, marginBottom: spacing.sm },
-  redeemRow: { flexDirection: 'row', gap: spacing.sm },
+  redeemRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
   redeemChip: {
     // Up to four in one row, sharing it equally.
     flexBasis: 0,
     flexGrow: 1,
-    minHeight: 48,
+    minHeight: MIN_TOUCH_TARGET,
     justifyContent: 'center',
     paddingHorizontal: spacing.xs,
     borderRadius: radius.md,
+    borderCurve: 'continuous',
     borderWidth: 1,
     borderColor: colors.outline,
     backgroundColor: colors.cardBg,
   },
+  // Four amounts at ordinary phone widths; two per row at 320px so neither
+  // Arabic money nor English “JOD” labels are squeezed or truncated.
+  redeemChipNarrow: { flexBasis: '45%' },
+  redeemChipReward: { borderColor: colors.reward },
+  redeemChipSelected: { borderColor: colors.reward, backgroundColor: colors.reward },
+  redeemAmount: { fontSize: fontSize.sm, lineHeight: 20, fontVariant: ['tabular-nums'] },
   pressed: { opacity: 0.85 },
 
   headline: { marginTop: spacing.lg },
   guestHeadline: { marginTop: spacing.sm },
-  headlineSub: { marginTop: spacing.xs, marginBottom: spacing.lg },
+  headlineSub: { fontSize: fontSize.sm, lineHeight: 24, marginTop: spacing.xs, marginBottom: spacing.lg },
 
-  tiles: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.md },
+  tiles: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
 
   howCard: { gap: spacing.lg, marginTop: spacing.xl },
   sectionTitle: { marginTop: spacing.xl, marginBottom: spacing.md },

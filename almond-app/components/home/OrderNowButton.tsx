@@ -43,11 +43,12 @@ export function OrderNowButton({ branch }: { branch?: Branch }) {
     return (
       <PhotoTile
         titleVariant="h2"
+        variant="order"
         title={t('home.continueOrder')}
         subtitle={t('home.cartLine', { count, total: formatJOD(total, lang) })}
         photos={[lead?.imageUrl]}
         icon="cart"
-        plate={112}
+        plate={72}
         onPress={() => router.push('/cart')}
       />
     );
@@ -58,11 +59,12 @@ export function OrderNowButton({ branch }: { branch?: Branch }) {
     <>
       <PhotoTile
         titleVariant="h2"
+        variant="order"
         title={t('home.quickOrder')}
         subtitle={branchName ? t('home.pickupAt', { branch: branchName }) : undefined}
         photos={[photo]}
         icon="coffee"
-        plate={112}
+        plate={72}
         onPress={() => setOpen(true)}
       />
       <OrderTypeSheet visible={open} onClose={() => setOpen(false)} />
