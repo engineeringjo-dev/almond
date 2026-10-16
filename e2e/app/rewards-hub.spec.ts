@@ -62,7 +62,7 @@ test.describe('App: the Rewards tab is one screen', () => {
       await expect(tiles.nth(i)).toContainText(name);
     }
     await expect(page.getByText(/^نقاط مضاعفة اليوم/)).toHaveCount(0);
-    await expect(page.getByRole('button', { name: /^اخصم 1\.000 د\.أ/ })).toBeInViewport();
+    await expect(page.getByRole('button', { name: 'استبدل 100 من نقاطك بقسيمة بقيمة 1.000 د.أ', exact: true })).toBeInViewport();
     expect(await bottom(page, tiles.last())).toBeLessThanOrEqual(TAB_BAR_TOP);
     expect(await scrollHeight(page)).toBeLessThanOrEqual(SCREEN);
 

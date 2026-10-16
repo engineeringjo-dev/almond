@@ -153,8 +153,8 @@ function MemberRewards() {
           <WelcomeGiftNote points={balance.welcomeBonusPending} color={colors.onHero} />
         </HeroCard>
 
-        {/* Points are money off the bill, in any amount: one row of amounts,
-            and the confirmation in a sheet. Each button says the money; what
+        {/* Shared redeem options issue a credit voucher, with confirmation
+            in a sheet. Each button says the value; what
             it costs in points is in its spoken name and in the sheet. The old
             «رصيد نقاطك يساوي» card said the card's own sentence a second time
             at display size. */}

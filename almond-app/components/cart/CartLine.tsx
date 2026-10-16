@@ -1,4 +1,4 @@
-import { View, StyleSheet, Pressable } from 'react-native';
+import { View, StyleSheet, Pressable, useWindowDimensions } from 'react-native';
 import { Text } from '@/components/ui/Text';
 import { Stepper } from '@/components/ui/Stepper';
 import { Icon } from '@/components/ui/Icon';
@@ -8,10 +8,13 @@ import { formatJOD } from '@/lib/format';
 import { iconForItem } from '@/lib/productIcon';
 import { customizationText } from '@/lib/cartLineText';
 import { lineUnitPrice, useCartStore } from '@/stores/cartStore';
+import { MIN_TOUCH_TARGET } from '@/lib/a11y';
 import type { CartItem } from '@/types';
 
-export function CartLine({ line }: { line: CartItem }) {
+export function CartLine({ line, onEdit }: { line: CartItem; onEdit: (line: CartItem) => void }) {
   const { t, lang } = useI18n();
+  const { width, fontScale } = useWindowDimensions();
+  const stackControls = width < 400 || fontScale > 1.2;
   const incLine = useCartStore((s) => s.incLine);
   const decLine = useCartStore((s) => s.decLine);
   const removeLine = useCartStore((s) => s.removeLine);
@@ -21,7 +24,7 @@ export function CartLine({ line }: { line: CartItem }) {
   const name = lang === 'ar' ? line.nameAr : line.nameEn;
 
   return (
-    <View style={styles.row}>
+    <View style={[styles.row, stackControls && styles.rowStacked]}>
       <View style={styles.thumb}>
         <Icon name={iconForItem(line.itemId)} size={28} color={colors.brown} strokeWidth={1.7} />
       </View>
@@ -34,8 +37,16 @@ export function CartLine({ line }: { line: CartItem }) {
         <Text variant="price" style={styles.price}>
           {formatJOD(lineTotal, lang)}
         </Text>
+        <Pressable
+          onPress={() => onEdit(line)}
+          style={({ pressed }) => [styles.edit, pressed && styles.removePressed]}
+          accessibilityRole="button"
+          accessibilityLabel={t('cart.editItem', { name })}
+        >
+          <Text variant="caption">{t('cart.edit')}</Text>
+        </Pressable>
       </View>
-      <View style={styles.controls}>
+      <View style={[styles.controls, stackControls && styles.controlsStacked]}>
         <Stepper
           value={line.qty}
           min={0}
@@ -65,6 +76,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.lg,
     padding: spacing.md,
   },
+  rowStacked: { flexWrap: 'wrap' },
   thumb: {
     width: 56,
     height: 56,
@@ -73,9 +85,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  body: { flex: 1, gap: 2 },
+  body: { flex: 1, minWidth: 0, gap: 2 },
   price: { marginTop: spacing.xs },
+  edit: { minWidth: MIN_TOUCH_TARGET, minHeight: MIN_TOUCH_TARGET, alignSelf: 'flex-start', justifyContent: 'center', paddingHorizontal: spacing.sm, borderRadius: radius.sm },
   controls: { alignItems: 'center', justifyContent: 'space-between', gap: spacing.xs },
+  controlsStacked: { flexBasis: '100%', flexDirection: 'row', justifyContent: 'space-between' },
   remove: {
     width: 44,
     height: 44,

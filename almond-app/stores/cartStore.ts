@@ -11,8 +11,10 @@ import type {
   PaymentMethodId,
 } from '@/types';
 import { cartLineFor } from '@almond/shared/cart';
+import { getMenu } from '@almond/shared/menu/store';
 import { useToastStore } from './toastStore';
 import { branchRef, type BranchNames, type BranchRef, type BranchSwitch } from '@/lib/cartBranch';
+import { saveCartEdit, type CartEditCollision, type CartEditDraft, type CartEditResult } from '@/lib/cartEdit';
 
 // Cart pricing is the single source of truth in @almond/shared/cart (so app +
 // website total identically). Re-exported so existing @/stores/cartStore
@@ -47,6 +49,7 @@ interface CartState {
     qty: number,
   ) => void;
   addLine: (line: CartItem) => void;
+  editLine: (original: CartItem, draft: CartEditDraft, quotedUnitPrice: number, quotedCollision: CartEditCollision | null) => CartEditResult;
   incLine: (lineId: string) => void;
   decLine: (lineId: string) => void;
   removeLine: (lineId: string) => void;
@@ -108,6 +111,15 @@ export const useCartStore = create<CartState>()(
       }
       return { items: [...state.items, line] };
     }),
+
+  editLine: (original, draft, quotedUnitPrice, quotedCollision) => {
+    let result: CartEditResult = { saved: false, issue: 'lineChanged' };
+    set((state) => {
+      result = saveCartEdit(state.items, original, draft, getMenu().items, quotedUnitPrice, quotedCollision);
+      return result.saved ? { items: result.items } : state;
+    });
+    return result;
+  },
 
   incLine: (lineId) =>
     set((state) => ({

@@ -1,15 +1,16 @@
-import { useEffect, useState } from 'react';
-import { StyleSheet, View } from 'react-native';
-import { router } from 'expo-router';
+import { useEffect, useRef, useState } from 'react';
+import { Platform, StyleSheet, View } from 'react-native';
+import { router, type Href } from 'expo-router';
 
 import { BottomSheet } from '@/components/ui/BottomSheet';
 import { Button } from '@/components/ui/Button';
 import { Text } from '@/components/ui/Text';
 import { colors, spacing } from '@/constants/theme';
+import { config } from '@/constants/config';
 import { useI18n } from '@/hooks/useI18n';
 import { useRedeemReward } from '@/hooks/useLoyalty';
 import { formatJOD, formatNumber } from '@/lib/format';
-import { redeemStep } from '@/lib/redeemSheet';
+import { redeemStep, voucherAvailabilityKey } from '@/lib/redeemSheet';
 import i18n from '@/lib/i18n';
 import type { RedeemOption } from '@almond/shared/loyalty/redeem';
 import type { Lang } from '@/types';
@@ -43,12 +44,32 @@ export function RedeemSheet({ option, onClose }: Props) {
   }, [option, reset]);
 
   const step = redeemStep(redeem);
+  const issued = step === 'done' ? redeem.data?.voucher : undefined;
+  // The issued id must survive `onClose` clearing the parent option. On web
+  // and iOS, navigation waits for the real Modal dismissal: the outgoing
+  // modal otherwise recaptures the new screen's focus during its close fade.
+  const pendingDestination = useRef<Href | null>(null);
+  const openVoucher = () => {
+    const destination: Href = { pathname: '/vouchers', params: issued ? { voucherId: issued.id } : undefined };
+    if (Platform.OS === 'android') {
+      // RN Android removes a hidden Modal directly; it has no onDismiss event.
+      onClose();
+      router.push(destination);
+      return;
+    }
+    pendingDestination.current = destination;
+    onClose();
+  };
+  const finishVoucherNavigation = () => {
+    const destination = pendingDestination.current;
+    pendingDestination.current = null;
+    if (destination) router.push(destination);
+  };
 
   const confirm = () => {
     if (!shown || redeem.isPending) return;
-    // The voucher is a CREDIT worth exactly `shown.jod`, not a named item
-    // capped at a value: 1 point = 1 qirsh, so there is no cap to disclose and
-    // no difference to pay at the till.
+    // Preserve the shared option's exact credit value. Issuing this Voucher
+    // does not itself apply a discount to a cart or supply a POS credential.
     const titleFor = (lng: Lang) => i18n.t('rewards.creditVoucher', { lng, jod: formatJOD(shown.jod, lng) });
     redeem.mutate({
       beans: shown.points,
@@ -64,15 +85,11 @@ export function RedeemSheet({ option, onClose }: Props) {
 
   const footer = step === 'done' ? (
     <View style={styles.actions}>
-      <Button title={t('common.ok')} onPress={onClose} />
       <Button
-        title={t('profile.vouchers')}
-        variant="outline"
-        onPress={() => {
-          onClose();
-          router.push('/vouchers');
-        }}
+        title={issued ? t('rewards.viewVoucher') : t('profile.vouchers')}
+        onPress={openVoucher}
       />
+      <Button title={t('common.ok')} variant="ghost" onPress={onClose} />
     </View>
   ) : (
     <View style={styles.actions}>
@@ -89,14 +106,23 @@ export function RedeemSheet({ option, onClose }: Props) {
     <BottomSheet
       visible={option !== null}
       onClose={onClose}
+      onDismiss={finishVoucherNavigation}
       title={step === 'done' ? t('rewards.redeemedTitle') : t('rewards.confirmTitle')}
       footer={footer}
     >
+      {issued ? (
+        <Text variant="bodyBold" color={colors.reward} style={styles.body} selectable>
+          {lang === 'ar' ? issued.titleAr : issued.titleEn}
+        </Text>
+      ) : null}
       <Text variant="body" style={styles.body}>
-        {step === 'done' ? t('rewards.redeemedBody', { jod }) : t('rewards.confirmBody', { jod, points })}
+        {step === 'done' ? t('rewards.redeemedBody') : t('rewards.confirmBody', { jod, points })}
+      </Text>
+      <Text variant="caption" color={colors.warmGray} style={styles.body}>
+        {t(voucherAvailabilityKey(config.DATA_SOURCE))}
       </Text>
       {step === 'failed' ? (
-        <Text variant="bodyBold" color={colors.red} style={styles.body} accessibilityRole="alert">
+        <Text variant="bodyBold" color={colors.red} style={styles.body} selectable accessibilityRole="alert">
           {t('rewards.redeemFailed')}
         </Text>
       ) : null}
