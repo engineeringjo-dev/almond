@@ -87,7 +87,7 @@ test.describe('App: redeeming on the web', () => {
     const sheet = page.getByRole('dialog', { name: 'Confirm redemption' });
     await expect(sheet).toContainText('Demo voucher for preview only; it cannot be used for payment');
     await sheet.getByRole('button', { name: 'Redeem', exact: true }).click();
-    const done = page.getByRole('dialog', { name: 'Done', exact: true });
+    const done = page.getByRole('dialog', { name: 'Your voucher is ready', exact: true });
     await done.getByRole('button', { name: 'View voucher', exact: true }).click();
     await expect(page.locator('[role="dialog"]')).toHaveCount(0);
     const issued = page.getByTestId('issued-voucher');
