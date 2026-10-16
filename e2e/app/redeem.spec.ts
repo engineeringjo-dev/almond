@@ -105,6 +105,14 @@ test.describe('App: redeeming on the web', () => {
       const image = barcode.getByLabel(copy.loyalty.redemptionBarcodeLabel).locator('svg');
       await expect(image).toHaveCount(1);
       await expect(barcode).toContainText(copy.loyalty.redemptionDemo);
+      // The SVG's stroke is one QR module. Its clear viewBox margin must
+      // remain at least four modules, including on a dark card.
+      const quietModules = await image.evaluate((svg) => {
+        const viewBox = svg.getAttribute('viewBox')!.split(/[ ,]+/).map(Number);
+        const module = Number(svg.querySelector('path[stroke-width]')?.getAttribute('stroke-width'));
+        return -viewBox[0] / module;
+      });
+      expect(quietModules, 'QR must keep the DENSO four-module quiet zone').toBeGreaterThanOrEqual(4);
       const original = page.url();
       await page.clock.fastForward(121_000);
       await expect(image).toHaveCount(0);

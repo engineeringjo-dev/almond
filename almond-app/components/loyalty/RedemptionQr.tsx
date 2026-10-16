@@ -26,7 +26,11 @@ export function RedemptionQr({ redemptionId }: { redemptionId: string }) {
   const invalidateRef = useRef(invalidate);
   invalidateRef.current = invalidate;
   const closedId = useRef<string | null>(null);
-  const size = Math.max(120, Math.min(240, width - spacing.md * 4 - spacing.sm * 3));
+  const size = Math.max(120, Math.min(288, width - spacing.md * 4));
+  // DENSO requires four clear modules per side. Version1 is the smallest
+  // possible QR (21 modules); this conservative margin covers every version.
+  // The installed SVG library includes quietZone INSIDE its fixed-size viewBox.
+  const quietZone = size * 4 / 21;
 
   useEffect(() => {
     if (focused) void presenter.refresh();
@@ -64,7 +68,7 @@ export function RedemptionQr({ redemptionId }: { redemptionId: string }) {
           <Text variant="bodyBold" center>{t('loyalty.redemptionShowAtTill')}</Text>
           <View style={styles.qr} accessible accessibilityRole="image" accessibilityLabel={t('loyalty.redemptionBarcodeLabel')}>
             {/* Scanner contrast is fixed black/white in both schemes. */}
-            <QRCode value={ready.token} size={size} quietZone={spacing.sm * 1.5} color="#000000" backgroundColor="#FFFFFF" />
+            <QRCode value={ready.token} size={size} quietZone={quietZone} color="#000000" backgroundColor="#FFFFFF" />
           </View>
           <Text variant="bodyBold" center>{t('loyalty.redemptionCountdown', { seconds: state.remaining })}</Text>
           {ready.demo ? <Text variant="caption" center selectable>{t('loyalty.redemptionDemo')}</Text> : null}

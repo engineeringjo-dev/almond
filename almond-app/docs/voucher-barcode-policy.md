@@ -45,7 +45,15 @@ a settled reservation. A globally atomic recovery/reconciliation worker is
 outside this batch. See `docs/REDEMPTION-BARCODE-120S.md` for wire, retry and
 cutover details.
 
-Display black code on white with its quiet area intact. Request it only
+Display black code on white with its quiet area intact. The installed SVG
+renderer includes its margin within the requested outer size. The app uses
+four modules of the smallest possible symbol (Version 1, 21 modules) as a
+conservative clear margin for every version, and bounds the outer image to
+the card's width. Runtime checks compare the actual SVG margin to its
+one-module path stroke, including 320px dark mode. This is geometry evidence,
+not proof from a physical scanner.
+
+Request it only
 while the sheet is visible, derive the countdown from server timestamps,
 renew without consuming points again, hide expired codes, and revalidate
 after foreground resume. Foregrounding does not auto-renew. Offer refresh/retry and meaningful accessible
@@ -54,6 +62,9 @@ be forwarded within a valid window; short expiry does not prevent that.
 
 ## Primary references checked on 2026-10-16
 
+- DENSO WAVE: four-module quiet zone on every side; Version1 starts at 21×21.
+  https://www.qrcode.com/en/howto/code.html/index.html
+  https://www.qrcode.com/en/about/version.html
 - OWASP Transaction Authorization: server enforcement, operation binding,
   limited lifetime and protection against downgrade/replay; no fixed 120s.
   https://cheatsheetseries.owasp.org/cheatsheets/Transaction_Authorization_Cheat_Sheet.html
