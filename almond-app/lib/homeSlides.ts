@@ -20,8 +20,8 @@ export type SlideAction =
   | { kind: 'route'; href: Href };
 
 /**
- * One slide of Home's offers carousel, apart from the combo, which is its own
- * component (ComboOfferCard).
+ * One actionable member-offer slide on /campaigns, apart from the stationary
+ * combo campaign, which is its own component (ComboOfferCard).
  *
  * A slide is either a menu item, named by the item's own name, or a programme
  * fact stated by a locale key. It never carries a literal in either language:
@@ -57,10 +57,9 @@ export interface SlideContext {
  *
  * Best sellers are measured (bestSellers in @almond/shared, paid Odoo orders),
  * so «من الأكثر طلباً» under a photograph is true. They lead because a
- * photograph of something to drink is what makes a member want to order, and
- * the menu's own photos are the only photography the app has until the
- * owner's (owner, 2026-10-15: «اسحب الصور من اودو … لنعملها قابلة
- * للاستكشاف»).
+ * photograph of something to drink is what makes a member want to order.
+ * These are actual menu items and prices, separate from price-free campaign
+ * serving suggestions.
  */
 export function buildHomeSlides(ctx: SlideContext): HomeSlide[] {
   const slides: HomeSlide[] = [];
@@ -102,7 +101,7 @@ export function buildHomeSlides(ctx: SlideContext): HomeSlide[] {
       title: { key: 'rewards.headline', params: { max: ctx.range.max } },
       subtitle: { key: 'home.rewardsSlide', params: { low: ctx.range.low, high: ctx.range.high, mult: ctx.range.mult } },
       cta: { key: 'rewards.howItWorks' },
-      icon: 'coins',
+      icon: 'cashback',
       action: { kind: 'route', href: '/(tabs)/rewards' },
     },
   );

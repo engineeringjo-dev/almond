@@ -29,7 +29,7 @@ interface Slide {
 const slides: Slide[] = [
   { icon: 'coffee', titleKey: 'onboarding.slide1Title', bodyKey: 'onboarding.slide1Body' },
   { icon: 'clock', titleKey: 'onboarding.slide2Title', bodyKey: 'onboarding.slide2Body' },
-  { icon: 'coins', titleKey: 'onboarding.slide3Title', bodyKey: 'onboarding.slide3Body' },
+  { icon: 'cashback', titleKey: 'onboarding.slide3Title', bodyKey: 'onboarding.slide3Body' },
 ];
 
 /** How far a finger must travel sideways before it turns the page. */

@@ -49,7 +49,7 @@ export function HowItWorksSheet({ visible, onClose }: { visible: boolean; onClos
       <HowItWorksSteps />
       <View style={styles.facts}>
         <View style={styles.fact}>
-          <Icon name="coins" size={18} color={colors.dark} strokeWidth={1.9} />
+          <Icon name="cashback" size={18} color={colors.dark} strokeWidth={1.9} />
           <Text variant="caption" color={colors.dark} style={styles.flex}>
             {t('rewards.headlineSub', earnRangeCopy(lang))}
           </Text>
