@@ -7,7 +7,7 @@ import { appUrl, seedApp } from './helpers';
  * react-native-web's Alert is an empty function, so this button once asked
  * nothing and redeemed nothing on the web (layout panel, 2026-10-15). The
  * question is now a sheet on the Rewards tab (components/loyalty/RedeemSheet.tsx),
- * the same on every platform: the amount, then «استبدال», then «قسيمتك جاهزة»
+ * the same on every platform: the amount, then «استبدال», then «أصدرنا قسيمتك»
  * with the way to the coupon. The mock seeds 1,240 points (12.400 د.أ); 1.000 د.أ costs
  * 100.
  */
@@ -28,7 +28,7 @@ test.describe('App: redeeming on the web', () => {
     await expect(sheet).toContainText('قسيمة تجريبية للمعاينة فقط؛ لا يمكن استخدامها للدفع');
 
     await sheet.getByRole('button', { name: 'استبدال', exact: true }).click();
-    const done = page.getByRole('dialog', { name: 'قسيمتك جاهزة' });
+    const done = page.getByRole('dialog', { name: 'أصدرنا قسيمتك' });
     await expect(done).toContainText('حوّلنا نقاطك إلى قسيمة رصيد');
     await expect(done).toContainText('قسيمة بقيمة 1.000 د.أ');
     await expect(page.getByText(WORTH_AFTER)).toBeVisible();
@@ -87,7 +87,7 @@ test.describe('App: redeeming on the web', () => {
     const sheet = page.getByRole('dialog', { name: 'Confirm redemption' });
     await expect(sheet).toContainText('Demo voucher for preview only; it cannot be used for payment');
     await sheet.getByRole('button', { name: 'Redeem', exact: true }).click();
-    const done = page.getByRole('dialog', { name: 'Your voucher is ready', exact: true });
+    const done = page.getByRole('dialog', { name: 'Voucher issued', exact: true });
     await done.getByRole('button', { name: 'View voucher', exact: true }).click();
     await expect(page.locator('[role="dialog"]')).toHaveCount(0);
     const issued = page.getByTestId('issued-voucher');

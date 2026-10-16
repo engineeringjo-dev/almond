@@ -431,7 +431,7 @@
     "confirmTitle": "تأكيد الاستبدال",
     "confirmBody": "استبدال {{points}} من نقاطك بقسيمة بقيمة {{jod}}؟",
     "redeemCta": "استبدال",
-    "redeemedTitle": "قسيمتك جاهزة",
+    "redeemedTitle": "أصدرنا قسيمتك",
     "redeemedBody": "حوّلنا نقاطك إلى قسيمة رصيد. افتحها لعرض قيمتها وصلاحيتها وحالة استخدامها.",
     "statusSubBase": "من هنا يبدأ الجميع",
     "statusSubPlus": "{{visits}} زيارات خلال آخر 3 أشهر",

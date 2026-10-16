@@ -431,7 +431,7 @@
     "confirmTitle": "Confirm redemption",
     "confirmBody": "Exchange {{points}} points for a credit voucher worth {{jod}}?",
     "redeemCta": "Redeem",
-    "redeemedTitle": "Your voucher is ready",
+    "redeemedTitle": "Voucher issued",
     "redeemedBody": "Your points became a credit voucher. Open it to see its value, expiry and availability.",
     "statusSubBase": "Where everyone starts",
     "statusSubPlus": "Visits in the last 3 months: {{visits}}",
