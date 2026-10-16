@@ -156,6 +156,27 @@ Continuous corners soften controls without making every surface a floating card.
 
 This direction adds no motion. Existing sheet and QR feedback remain and respect reduced motion. Browser hover/focus CSS in `.impeccable/design.json` is a panel preview affordance; it does not establish additional application states or replace React Native behavior.
 
+### Owner additions, 2026-10-16
+
+The owner requested one illustrated profile-reward moment and a manually
+swiped Home offer collection. The fixed 50-point Almond-cup illustration is
+shown only for a fresh server-confirmed net 50-point profile reward with no
+refund recovery; native text carries the amount and reason. This is a narrow
+exception to the decorative-artwork rule, with no added animation. See
+[the artwork and prompt](docs/profile-bonus-illustration.md).
+
+Home keeps membership, ordering and the usual order first. The campaign
+collection uses owned product and gift-card photography, manual swipe and
+visible previous/next controls, without automatic rotation. Price and
+ordering controls remain neutral. The owner's requested red Cash back label
+is confined to the combo photograph and retains the configured point amount
+and eligible-purchase terms.
+
+The app-opening motion remains a proposal. Its revised brief requires no
+artificial wait before membership or ordering; it does not authorize a video
+download or motion sequence to block launch. See
+[the revised opening proposal](../docs/design/OPENING-REVISION-2026-10.ar.md).
+
 ## Do's and Don'ts
 
 ### Do:

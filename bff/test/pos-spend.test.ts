@@ -98,9 +98,20 @@ describe.each([
     }
   });
 
-  it('P2.2 a legacy redeem QR is a READ of a code already paid for — no tickets of either kind', async () => {
+  it('P2.2 a bound redeem QR reads its paid-for code — no tickets of either kind', async () => {
     const token = await signIn(app, freshPhone());
-    const s = (await pos('/v1/pos/scan', { token: await code(token, { mode: 'redeem' }) })).json();
+    const id = subOf(token);
+    await backend.addPoints(id, 100, 'test', 'test');
+    const redemption = await backend.createRedemption(id, 50);
+    const qr = await app.inject({
+      method: 'POST', url: '/v1/me/redemption/qr',
+      headers: { authorization: `Bearer ${token}` }, payload: { redemptionId: redemption.id },
+    });
+    expect(qr.statusCode, qr.body).toBe(201);
+    const scanned = await pos('/v1/pos/scan', { token: qr.json().token });
+    expect(scanned.statusCode, scanned.body).toBe(200);
+    const s = scanned.json();
+    expect(s.redemption.id).toBe(redemption.id);
     expect(s.earnTicket).toBeNull();
     expect(s.spendTicket).toBeNull();
     expect(s.spendTicketExpiresIn).toBeNull();
@@ -243,7 +254,8 @@ describe.each([
     expect((await unspend({ posOrderRef: ref, reason: 'void' }, null)).statusCode).toBe(401);
     const r = await unspend({ posOrderRef: ref, reason: 'void' });
     expect(r.statusCode).toBe(201);
-    expect(r.json()).toEqual({ posOrderRef: ref, pointsReturned: 75, pointsExpired: 0, pointsBalance: 75, replay: false });
+    expect(r.json()).toEqual({ posOrderRef: ref, pointsReturned: 75, pointsExpired: 0,
+      pointsRecovered: 0, pointsBalance: 75, replay: false });
     const again = await unspend({ posOrderRef: ref, reason: 'void' });
     expect([again.statusCode, again.json()]).toEqual([200, { ...r.json(), replay: true }]);
     expect(await points(id)).toBe(75);

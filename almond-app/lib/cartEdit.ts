@@ -1,4 +1,5 @@
 import { cartLineFor, lineUnitPrice } from '@almond/shared/cart';
+import { resolveItemSize } from '@almond/shared/menu';
 import type { CartCustomization, CartItem, ItemSize, MenuItem } from '@/types';
 
 /** An edit is a draft until Save. Keep even choices no longer in the menu so
@@ -49,7 +50,7 @@ export function resolveCartEdit(item: MenuItem | null | undefined, draft: CartEd
   }
   const fail = (issue: CartEditIssue) => ({ line: null, issue, unavailable });
   if (!item || item.inStock === false) return fail('itemUnavailable');
-  const size = item.sizes.find((s) => s.id === draft.sizeId);
+  const size = resolveItemSize(item, draft.sizeId);
   if (!size) return fail('sizeUnavailable');
   if (unavailable.length) return fail('optionsUnavailable');
   // A menu may change a checkbox group into a radio group. Preserve all of

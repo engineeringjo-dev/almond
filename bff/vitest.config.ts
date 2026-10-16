@@ -16,6 +16,11 @@ const shared = path.resolve(root, '../packages/shared/src');
 
 export default defineConfig({
   test: {
+    // Each PGlite financial fixture owns a Postgres WASM instance. Bound file
+    // concurrency so a host with many visible CPUs cannot exhaust memory and
+    // terminate a worker. Within-test transaction/race checks stay parallel.
+    maxWorkers: 2,
+    minWorkers: 1,
     // Empties the double-points calendar so a run on a holiday computes what
     // any other day does, and switches the welcome gift off so a first
     // purchase leaves the balance a test asserts — see each file.

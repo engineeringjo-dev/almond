@@ -17,6 +17,9 @@ import type { SpendEntry, TierStanding, Evaluation } from '@almond/shared/loyalt
 export interface Member {
   id: string;
   phone: string;
+  /** Successful OTP ownership proof for this immutable phone. Never inferred
+   * from its shape, imports, paid orders or an existing session. */
+  phoneVerifiedAt: string | null;
   name: string;
   /**
    * 🔴 THE POINT LEDGER. This replaced `points: number`.
@@ -34,6 +37,8 @@ export interface Member {
    * Nothing here or anywhere else may write `remaining` by hand.
    */
   lots: PointLot[];
+  /** Unrecovered purchase points from refunds. Points only: never cash or wallet. */
+  purchasePointsDebt: number;
   /**
    * The Amman day key through which expiry has been BOOKED into `history`.
    *
@@ -142,6 +147,8 @@ export interface Member {
 
 export interface HistoryEntry {
   deltaPoints: number;
+  /** Gross purchase credit used to recover a prior points shortfall. */
+  purchasePointsRecovered?: number;
   reasonAr: string;
   reasonEn: string;
   createdAt: string;
@@ -337,6 +344,10 @@ export interface TillSale {
    *  a reversal. */
   spendDay: string | null;
   pointsEarned: number;
+  pointsAvailable?: number;
+  pointsRecovered?: number;
+  /** New purchase lots have immutable sale provenance; legacy rows do not. */
+  purchaseOriginKnown?: boolean;
   /** The member's live balance right after the grant — what a replay returns. */
   pointsBalanceAfter: number;
   /** The breakdown the grant was computed from (§5b), or null for a 0 grant
@@ -349,9 +360,11 @@ export interface TillSale {
   refundedFils: number;
   /** Filled only once reversed — in full, or by partial refunds that covered
    *  every fils. TOTALS across every refund of the sale:
-   *  `reversedPoints + shortfall === pointsEarned`. */
+   *  `reversedPoints + shortfall + expiredReservedPoints === pointsEarned`. */
   reversedPoints: number | null;
   shortfall: number | null;
+  /** Proven expired, unused purchase points, including retained direct lots. */
+  expiredReservedPoints?: number;
   reverseBalanceAfter: number | null;
   reverseReason: string | null;
   reversedAt: string | null;
@@ -405,8 +418,11 @@ export interface TillRefund {
   targetPoints: number;
   /** What was actually taken back — never more than the member held live. */
   reversedPoints: number;
-  /** `targetPoints − reversedPoints`: already spent; recorded, not clawed. */
+  /** Unrecovered purchase points persisted for settlement from later credits. */
   shortfall: number;
+  expiredReservedPoints?: number;
+  /** Legacy/invalid lineage requires evidence-based reconciliation. */
+  reconciliationRequired?: boolean;
   balanceAfter: number;
   reason: string;
   createdAt: string;
@@ -443,10 +459,11 @@ export interface TillSpend {
   slices: SpentSlice[];
   pointsBalanceAfter: number;
   status: 'spent' | 'reversed';
-  /** Filled only once reversed. `returnedPoints + expiredPoints === points`:
+  /** Filled only once reversed. `returnedPoints + recoveredPoints + expiredPoints === points`:
    *  a slice whose expiry passed before the void is not resurrected. */
   returnedPoints: number | null;
   expiredPoints: number | null;
+  recoveredPoints?: number;
   reverseBalanceAfter: number | null;
   reverseReason: string | null;
   reversedAt: string | null;
@@ -568,6 +585,8 @@ export interface TransferResult {
 
 export interface CheckoutResult {
   order: OrderRecord;
+  pointsAvailable: number;
+  pointsRecovered: number;
   pointsBalance: number;
   walletBalanceFils: number;
   /** Only an ISSUED voucher — null for every other outcome, as ever. */
@@ -579,6 +598,9 @@ export interface CheckoutResult {
 
 export interface Backend {
   findOrCreateByPhone(phone: string, name?: string): Promise<Member>;
+  /** AUTH ONLY, immediately after OTP verification, before issuing a session.
+   * The verified canonical phone must still belong to this member. */
+  verifyMemberPhone(id: string, verifiedPhone: string, at: Date): Promise<void>;
   getMember(id: string): Promise<Member>;
   /**
    * The member holding this CANONICAL phone (+9627XXXXXXXX), or null — a READ
@@ -620,17 +642,17 @@ export interface Backend {
   /**
    * Write the member's own details, and pay the completion bonus AT MOST ONCE.
    *
-   * 🔴 THE GRANT DECISION IS HERE, NOT ON THE CLIENT. The phone may compute the
-   * same answer with @almond/shared/loyalty/profile to render an accurate "+50"
-   * before saving, but what it sends is a NAME — never a points figure and
-   * never a claim of eligibility. `bonusGranted` in the reply is what actually
-   * happened, and re-saving an unchanged name pays nothing while still
+   * 🔴 THE GRANT DECISION IS HERE, NOT ON THE CLIENT. The phone sends the
+   * member's profile facts — never a points figure and
+   * never a claim of eligibility. `bonusGranted` is gross; the server reports
+   * actual spendable `bonusAvailablePoints` and `bonusRecoveredPoints`.
+   * Re-saving an unchanged name pays nothing while still
    * succeeding: editing your own profile twice is ordinary, not an error.
    */
   setProfile(
     id: string,
     profile: MemberProfile,
-  ): Promise<{ profile: MemberProfile; bonusGranted: number; pointsBalance: number }>;
+  ): Promise<{ profile: MemberProfile; bonusGranted: number; bonusAvailablePoints: number; bonusRecoveredPoints: number; pointsBalance: number }>;
   /**
    * Record one qualifying purchase against the rolling window.
    *
@@ -728,11 +750,14 @@ export interface Backend {
    * 🔴 THE POINTS ARE SPENT HERE, AT CREATION. That is what makes a
    * double-spend impossible and what keeps the balance honest the moment the
    * member acts. The other half of the bargain is `sweepRedemptions`: if this
-   * code is never used, the points come back in full.
+   * code is never used, its original still-live FIFO slices return unchanged.
    */
   createRedemption(memberId: string, points: number): Promise<RedemptionRow>;
   /** By code, across all members — how the till resolves a code read aloud. */
   findRedemptionByCode(code: string): Promise<RedemptionRow | null>;
+  /** Exact owned row in any status: a signed voucher never resolves to the
+   * latest redemption for a member. */
+  getRedemption(memberId: string, redemptionId: string): Promise<RedemptionRow | null>;
   /** The member's own live redemption, if any. */
   activeRedemption(memberId: string): Promise<RedemptionRow | null>;
   /**
@@ -741,16 +766,17 @@ export interface Backend {
    * notFound — never returns a row it did not just settle.
    */
   settleRedemption(id: string, via: 'pos' | 'web', at: Date): Promise<RedemptionRow>;
-  /** The member changed their mind. Points return immediately. */
+  /** Live slices return with original dates; expired slices and legacy rows
+   * needing reconciliation are reported on the row. */
   cancelRedemption(memberId: string, id: string, at: Date): Promise<RedemptionRow>;
   /**
-   * Return the points of every expired, unused redemption, and say how many.
+   * Close each expired unused redemption, returning its original live slices,
+   * and say how many codes were closed (including legacy rows sent to review).
    *
    * Called on the member's own reads rather than by a cron, because the BFF has
    * none — the same lazy-settlement shape as point-lot expiry. A member who
-   * never comes back is not refunded until they do, which costs them nothing:
-   * the points are theirs either way and the balance is correct the instant it
-   * is read.
+   * never comes back is not refunded until they do. Original lot expiry still
+   * applies: returning later never grants a fresh lifetime.
    */
   sweepRedemptions(memberId: string, at: Date): Promise<number>;
 

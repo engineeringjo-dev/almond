@@ -113,8 +113,11 @@ export interface TransferReceipt {
 /** What the server did with a profile save. */
 export interface ProfileSaveResult {
   profile: MemberProfile;
-  /** Points actually granted — 0 on every save after the first. */
+  /** Gross once-only grant — 0 on every save after the first. */
   bonusGranted: number;
+  /** Server-computed portion newly available after purchase-point adjustment. */
+  bonusAvailablePoints: number;
+  bonusRecoveredPoints: number;
   pointsBalance: number;
 }
 

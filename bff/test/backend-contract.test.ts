@@ -43,8 +43,13 @@ describe.each(BACKENDS)('T37 backend contract — %s', (_name, make) => {
   let backend: Backend;
   beforeEach(async () => { backend = await make(); });
 
-  const newMember = async (phone = '+962791234567') =>
-    (await backend.findOrCreateByPhone(phone)).id;
+  const newMember = async (phone = '+962791234567') => {
+    const m = await backend.findOrCreateByPhone(phone);
+    // This helper represents an enrolled member. Imported/unverified rows
+    // are created directly in referral-security.test.ts and must not earn.
+    await backend.verifyMemberPhone(m.id, phone, new Date());
+    return m.id;
+  };
   const points = async (id: string) => liveBalance((await backend.getMember(id)).lots);
 
   it('creates a member once, and finds the same one again', async () => {
@@ -530,7 +535,8 @@ describe.each(BACKENDS)('T37 backend contract — %s', (_name, make) => {
     expect(h[0]).toMatchObject({ branchId: 'b7', sourceRef: `pos:${till.posOrderRef}` });   // the refund names the sale
     expect(h[3].sourceRef).toBe(`pos:${till.posOrderRef}`);
     expect(h[4].sourceRef).toMatch(/^order:/);
-    expect(h[2].sourceRef).toBeNull();
+    expect(h[2].sourceRef).toBe(`redemption:${code.id}`);
+    expect(h[1].sourceRef).toBe(`redemption:${code.id}`); // return traces the same spend
     // Every line has its own id, so a screen can key its rows.
     expect(new Set(h.map((e) => e.id)).size).toBe(h.length);
     expect(h.every((e) => typeof e.id === 'string' && e.id.length > 0)).toBe(true);

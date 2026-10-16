@@ -93,8 +93,10 @@ export function syntheticFullRefund(sale: TillSale): TillRefund {
   return {
     refundRef: null, posOrderRef: sale.posOrderRef, memberId: sale.memberId,
     refundedFils: sale.paidFils - sale.refundedFils,
-    targetPoints: (sale.reversedPoints ?? 0) + (sale.shortfall ?? 0),
+    targetPoints: (sale.reversedPoints ?? 0) + (sale.shortfall ?? 0) + (sale.expiredReservedPoints ?? 0),
     reversedPoints: sale.reversedPoints ?? 0, shortfall: sale.shortfall ?? 0,
+    expiredReservedPoints: sale.expiredReservedPoints ?? 0,
+    reconciliationRequired: sale.purchaseOriginKnown !== true && (sale.shortfall ?? 0) > 0,
     balanceAfter: sale.reverseBalanceAfter ?? 0, reason: sale.reverseReason ?? '',
     createdAt: sale.reversedAt ?? sale.createdAt,
   };

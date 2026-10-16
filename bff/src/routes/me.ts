@@ -31,7 +31,8 @@ export function registerMeRoutes(app: FastifyInstance, backend: Backend): void {
    * CARRY "I DESERVE THE BONUS". Both would be self-crediting vectors of
    * exactly the kind the static POS QR was. The backend holds the once-only
    * stamp, decides the grant, and reports what it actually did in
-   * `bonusGranted` — the client renders that number, it never proposes one.
+   * gross `bonusGranted` and net `bonusAvailablePoints`; the client renders
+   * the server-computed available/recovered amounts, never proposes them.
    *
    * Not idempotency-keyed like the financial POSTs: it does not need to be. The
    * stamp makes a repeat save pay 0 rather than pay twice, so a retried request

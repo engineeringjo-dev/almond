@@ -2,7 +2,7 @@ import { randomInt, randomUUID } from 'node:crypto';
 import { config as loyalty } from '@almond/shared/config';
 import { ammanDayKey } from '@almond/shared/lib/ammanWeekday';
 import {
-  consumeFifo, expiredBetween, grantLot, liveBalance, lotRulesFromConfig,
+  consumeFifo, expiredBetween, grantLot, liveBalance,
   pruneLots, restoreSlices, spentSlices, walletLotRulesFromConfig, type SpentSlice,
 } from '@almond/shared/loyalty/lots';
 import { jodFromPoints } from '@almond/shared/loyalty/earn';
@@ -19,12 +19,12 @@ import {
   type CompanyDiscount, type CorporateMemberEntry,
 } from '@almond/shared/loyalty/corporate';
 import {
-  isRedeemable, normalizeRedemptionCode, redemptionExpiresAt, shouldRefund,
+  isRedeemable, normalizeRedemptionCode, redemptionExpiresAt, restoreRedemptionPoints, shouldRefund,
   REDEMPTION_ALPHABET, REDEMPTION_CODE_LENGTH, type RedemptionRow,
 } from '@almond/shared/loyalty/redemption';
 import type { TierId } from '@almond/shared/types';
 import type { Gender } from '@almond/shared/loyalty/profile';
-import { referralAttachError, referralRewardFor } from '@almond/shared/loyalty/referral';
+import { referralAttachError, referralRewardFor, verifiedReferralPhone } from '@almond/shared/loyalty/referral';
 import { transferRefusal, type TransferKind } from '@almond/shared/loyalty/transfer';
 import { normalizeComment, pendingVisit } from '@almond/shared/loyalty/visitRating';
 import { newDeletion, type AccountDeletion } from '@almond/shared/loyalty/accountDeletion';
@@ -44,6 +44,8 @@ import {
   spendTicketUsed, syntheticFullRefund, ticketRefusalError,
 } from '../pos/sales';
 import { applyTillRefund } from '@almond/shared/loyalty';
+import { creditPointSlices, expiredUnusedPurchasePoints, expiredUnusedPurchaseLotPoints, recoverPurchasePoints } from '@almond/shared/loyalty';
+import { grantPointCredit, logPointsRecovery, prunePointEvidence, unusedTenderEvidence } from './pointsCredit';
 import { assertIntentSpendable, nextIntentStatus } from '../payments/intent';
 import { toFils, toJod } from '../money';
 import {
@@ -76,7 +78,6 @@ import {
  * invent anyone.
  */
 
-const LOTS = lotRulesFromConfig();
 const WALLET_LOTS = walletLotRulesFromConfig();
 const WINDOW = windowRulesFromConfig();
 const todayKey = () => ammanDayKey(new Date());
@@ -89,6 +90,8 @@ const iso = (v: unknown): string | null =>
 
 interface MemberRow {
   id: string; phone: string; name: string; birthday: string | null;
+  phone_verified_at: Date | string | null;
+  purchase_points_debt?: number;
   gender: string | null; first_paid_at: Date | string | null;
   profile_bonus_at: Date | string | null;
   welcome_bonus_at?: Date | string | null;
@@ -100,6 +103,8 @@ interface MemberRow {
 function toMember(r: MemberRow): Member {
   return {
     id: r.id, phone: r.phone, name: r.name, birthday: r.birthday,
+    phoneVerifiedAt: iso(r.phone_verified_at),
+    purchasePointsDebt: Number(r.purchase_points_debt ?? 0),
     gender: (r.gender ?? null) as Gender | null,
     firstPaidAt: iso(r.first_paid_at),
     profileBonusAt: iso(r.profile_bonus_at),
@@ -126,12 +131,16 @@ function toTillSale(row: Record<string, unknown>): TillSale {
     paidAt: iso(row.paid_at)!,
     spendDay: (row.spend_day ?? null) as string | null,
     pointsEarned: Number(row.points_earned),
+    pointsAvailable: Number(row.points_available ?? row.points_earned),
+    pointsRecovered: Number(row.points_recovered ?? 0),
+    purchaseOriginKnown: row.purchase_origin_known === true,
     pointsBalanceAfter: Number(row.points_balance_after),
     earn: (row.earn_breakdown ?? null) as EarnBreakdown | null,
     status: row.status as TillSale['status'],
     refundedFils: toFils(num(row.refunded_total)),
     reversedPoints: intOrNull(row.reversed_points),
     shortfall: intOrNull(row.shortfall),
+    expiredReservedPoints: Number(row.expired_reserved_points ?? 0),
     reverseBalanceAfter: intOrNull(row.reverse_balance_after),
     reverseReason: (row.reverse_reason ?? null) as string | null,
     reversedAt: iso(row.reversed_at),
@@ -149,6 +158,8 @@ function toTillRefund(row: Record<string, unknown>): TillRefund {
     targetPoints: Number(row.target_points),
     reversedPoints: Number(row.reversed_points),
     shortfall: Number(row.shortfall),
+    expiredReservedPoints: Number(row.expired_reserved_points ?? 0),
+    reconciliationRequired: row.reconciliation_required === true,
     balanceAfter: Number(row.balance_after),
     reason: row.reason as string,
     createdAt: iso(row.created_at)!,
@@ -168,6 +179,7 @@ function toTillSpend(row: Record<string, unknown>): TillSpend {
     status: row.status as TillSpend['status'],
     returnedPoints: intOrNull(row.returned_points),
     expiredPoints: intOrNull(row.expired_points),
+    recoveredPoints: Number(row.recovered_points ?? 0),
     reverseBalanceAfter: intOrNull(row.reverse_balance_after),
     reverseReason: (row.reverse_reason ?? null) as string | null,
     reversedAt: iso(row.reversed_at),
@@ -259,10 +271,10 @@ export function createPostgresBackend(db: Db): Backend {
   async function insertHistory(t: Db, memberId: string, e: HistoryEntry): Promise<void> {
     await t.query(
       `insert into point_history
-         (member_id, delta_points, reason_ar, reason_en, created_at, kind, branch_id, expires_on, source_ref, delta_fils)
-       values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`,
+         (member_id, delta_points, reason_ar, reason_en, created_at, kind, branch_id, expires_on, source_ref, delta_fils, purchase_points_recovered)
+       values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)`,
       [memberId, e.deltaPoints, e.reasonAr, e.reasonEn, e.createdAt,
-        e.kind, e.branchId ?? null, e.expiresOn ?? null, e.sourceRef ?? null, e.deltaFils ?? null],
+        e.kind, e.branchId ?? null, e.expiresOn ?? null, e.sourceRef ?? null, e.deltaFils ?? null, e.purchasePointsRecovered ?? 0],
     );
   }
 
@@ -308,11 +320,21 @@ export function createPostgresBackend(db: Db): Backend {
     const ref = rows[0] ? toReferral(rows[0]) : null;
     if (!ref || ref.rewardedAt !== null) return;
     const referrer = await lockMember(t, ref.referrerId);
-    const points = referralRewardFor(await isCorporateIn(t, referrer.phone));
+    // The inviter is locked BEFORE reading their lifetime paid total: orders
+    // from different friends serialize on this one budget, across processes.
+    const totals = await t.query<{ n: string }>(
+      'select coalesce(sum(reward_points),0)::text as n from referrals where referrer_id = $1 and rewarded_at is not null',
+      [referrer.id],
+    );
+    const points = referralRewardFor({
+      referrerIsCorporate: await isCorporateIn(t, referrer.phone),
+      referrerPhone: referrer.phone, referrerPhoneVerifiedAt: referrer.phoneVerifiedAt,
+      referredPhone: m.phone, referredPhoneVerifiedAt: m.phoneVerifiedAt,
+      pointsEarned: Number(totals[0]?.n ?? 0),
+    });
     const lines: HistoryEntry[] = [];
     settleExpiry(referrer, at, (e) => lines.push(e));
-    const reward = grantLot(referrer.lots, points, 'bonus', at, LOTS);
-    referrer.lots = reward.lots;
+    const reward = grantPointCredit(referrer, points, 'bonus', at, (e) => lines.push(e));
     if (points > 0) lines.push(referralRewardLine(points, at, reward.lot));
     await saveMember(t, referrer);
     for (const e of lines) await insertHistory(t, referrer.id, e);
@@ -336,8 +358,7 @@ export function createPostgresBackend(db: Db): Backend {
     const points = welcomeBonusFor(false, await isCorporateIn(t, m.phone));
     m.welcomeBonusAt = at.toISOString();
     if (points <= 0) return;
-    const grant = grantLot(m.lots, points, 'bonus', at, LOTS);
-    m.lots = grant.lots;
+    const grant = grantPointCredit(m, points, 'bonus', at, log);
     log(welcomeGiftLine(points, at, grant.lot, branchId));
   }
 
@@ -356,13 +377,13 @@ export function createPostgresBackend(db: Db): Backend {
       `update members set name=$2, birthday=$3, profile_bonus_at=$4, lots=$5,
          expiry_settled_through=$6, wallet_lots=$7, wallet_expiry_settled_through=$8,
          spend=$9, held_tier_id=$10, evaluated_through=$11, gender=$12, first_paid_at=$13,
-         welcome_bonus_at=$14
+         welcome_bonus_at=$14, phone_verified_at=$15, purchase_points_debt=$16
        where id=$1`,
       [
         m.id, m.name, m.birthday, m.profileBonusAt, JSON.stringify(m.lots),
         m.expirySettledThrough, JSON.stringify(m.walletLots), m.walletExpirySettledThrough,
         JSON.stringify(m.spend), m.heldTierId, m.evaluatedThrough, m.gender, m.firstPaidAt,
-        m.welcomeBonusAt,
+        m.welcomeBonusAt, m.phoneVerifiedAt, m.purchasePointsDebt,
       ],
     );
   }
@@ -379,7 +400,7 @@ export function createPostgresBackend(db: Db): Backend {
       });
     }
     m.expirySettledThrough = today;
-    m.lots = pruneLots(m.lots, at, LOTS);
+    m.lots = prunePointEvidence(m.lots, at);
   };
 
   const settleWalletExpiry = (m: Member, at: Date, log: (e: HistoryEntry) => void): void => {
@@ -483,6 +504,11 @@ export function createPostgresBackend(db: Db): Backend {
   const toRedemption = (r: Record<string, unknown>): RedemptionRow => ({
     id: r.id as string, memberId: r.member_id as string, code: r.code as string,
     points: Number(r.points), valueJod: num(r.value_jod),
+    slices: (r.slices ?? null) as SpentSlice[] | null,
+    returnedPoints: r.returned_points == null ? null : Number(r.returned_points),
+    expiredPoints: r.expired_points == null ? null : Number(r.expired_points),
+    recoveredPoints: Number(r.recovered_points ?? 0),
+    refundReviewRequired: r.refund_review_required === true,
     createdAt: iso(r.created_at)!, expiresAt: iso(r.expires_at)!,
     settledAt: iso(r.settled_at), cancelledAt: iso(r.cancelled_at),
     settledVia: (r.settled_via ?? null) as RedemptionRow['settledVia'],
@@ -494,24 +520,35 @@ export function createPostgresBackend(db: Db): Backend {
     const rows = await t.query(
       `select * from redemptions
        where member_id = $1 and settled_at is null and cancelled_at is null
-       for update`,
+       order by id for update`,
       [m.id],
     );
     let n = 0;
     for (const raw of rows) {
       const row = toRedemption(raw);
       if (!shouldRefund(row, at)) continue;
-      await t.query('update redemptions set cancelled_at = $2 where id = $1', [row.id, at.toISOString()]);
-      const back = grantLot(m.lots, row.points, 'earn', at, LOTS);
-      m.lots = back.lots;
-      log({
-        deltaPoints: row.points, reasonAr: 'إرجاع نقاط استبدال لم يُستخدم',
-        reasonEn: 'Redemption expired', createdAt: at.toISOString(),
-        kind: 'return', expiresOn: back.lot?.expiresOn ?? null,
-      });
+      await closeRedemption(t, m, row, at, log, 'Redemption expired');
       n += 1;
     }
     return n;
+  }
+
+  async function closeRedemption(
+    t: Db, m: Member, row: RedemptionRow, at: Date, log: (e: HistoryEntry) => void, reasonEn: string,
+  ): Promise<RedemptionRow> {
+    const back = restoreRedemptionPoints(m.lots, row, at, m.purchasePointsDebt);
+    await t.query(
+      `update redemptions set cancelled_at=$2, returned_points=$3, expired_points=$4,
+        refund_review_required=$5, recovered_points=$6 where id=$1`,
+      [row.id, at.toISOString(), back.returnedPoints, back.expiredPoints, back.refundReviewRequired, back.recoveredPoints],
+    );
+    m.lots = back.lots;
+    m.purchasePointsDebt = back.debtAfter;
+    log({ deltaPoints: back.returnedPoints + back.recoveredPoints, reasonAr: 'إرجاع نقاط استبدال لم يُستخدم',
+      reasonEn, createdAt: at.toISOString(), kind: 'return', sourceRef: `redemption:${row.id}` });
+    logPointsRecovery(log, back.recoveredPoints, at, `redemption:${row.id}`);
+    return { ...row, cancelledAt: at.toISOString(), returnedPoints: back.returnedPoints,
+      expiredPoints: back.expiredPoints, recoveredPoints: back.recoveredPoints, refundReviewRequired: back.refundReviewRequired };
   }
 
   const newCode = async (t: Db): Promise<string> => {
@@ -532,6 +569,8 @@ export function createPostgresBackend(db: Db): Backend {
         if (found[0]) return toMember(found[0]);
         const m: Member = {
           id: `m_${randomUUID()}`, phone, name: normalizeName(name), birthday: null,
+          phoneVerifiedAt: null,
+          purchasePointsDebt: 0,
           gender: null, firstPaidAt: null,
           profileBonusAt: null,
           // On offer until the first paid purchase settles it; the column's
@@ -565,6 +604,16 @@ export function createPostgresBackend(db: Db): Backend {
         const winner = await t.query<MemberRow>('select * from members where phone = $1', [phone]);
         if (!winner[0]) throw new Error(`findOrCreateByPhone: lost the insert race for ${phone} but found no row`);
         return toMember(winner[0]);
+      });
+    },
+
+    async verifyMemberPhone(id, verifiedPhone, at) {
+      await withMember(id, (m) => {
+        const stamp = at.toISOString();
+        if (m.phone !== verifiedPhone || !verifiedReferralPhone(verifiedPhone, stamp)) {
+          throw conflict('phone_verification_mismatch', 'the verified Jordanian phone must belong to this member');
+        }
+        m.phoneVerifiedAt = stamp;
       });
     },
 
@@ -606,8 +655,7 @@ export function createPostgresBackend(db: Db): Backend {
       return withMember(id, (m, log) => {
         const at = new Date();
         settleExpiry(m, at, log);
-        const grant = grantLot(m.lots, delta, 'earn', at, LOTS);
-        m.lots = grant.lots;
+        const grant = grantPointCredit(m, delta, 'earn', at, log);
         log({
           deltaPoints: delta, reasonAr, reasonEn, createdAt: at.toISOString(),
           kind, expiresOn: grant.lot?.expiresOn ?? null,
@@ -641,13 +689,14 @@ export function createPostgresBackend(db: Db): Backend {
         m.gender = profile.gender;
         const at = new Date();
         let pointsBalance = liveBalance(m.lots, at);
+        let bonusRecoveredPoints = 0;
         if (bonus > 0) {
           // Stamp first, then grant — an over-stamped member is merely unpaid
           // and visible; an unstamped one can be paid twice on retry.
           m.profileBonusAt = at.toISOString();
           settleExpiry(m, at, log);
-          const grant = grantLot(m.lots, bonus, 'earn', at, LOTS);
-          m.lots = grant.lots;
+          const grant = grantPointCredit(m, bonus, 'earn', at, log);
+          bonusRecoveredPoints = grant.recoveredPoints;
           log({
             deltaPoints: bonus, reasonAr: 'إكمال بياناتك',
             reasonEn: 'Profile completed', createdAt: at.toISOString(),
@@ -655,7 +704,8 @@ export function createPostgresBackend(db: Db): Backend {
           });
           pointsBalance = liveBalance(m.lots, at);
         }
-        return { profile: { name, birthday: m.birthday, gender: m.gender }, bonusGranted: bonus, pointsBalance };
+        return { profile: { name, birthday: m.birthday, gender: m.gender }, bonusGranted: bonus,
+          bonusAvailablePoints: bonus - bonusRecoveredPoints, bonusRecoveredPoints, pointsBalance };
       });
     },
 
@@ -693,13 +743,14 @@ export function createPostgresBackend(db: Db): Backend {
     async getHistory(id) {
       await api.getMember(id);           // notFound for an unknown member, as memory does
       const rows = await db.query(
-        `select id, delta_points, reason_ar, reason_en, created_at, kind, branch_id, expires_on, source_ref, delta_fils
+        `select id, delta_points, reason_ar, reason_en, created_at, kind, branch_id, expires_on, source_ref, delta_fils, purchase_points_recovered
          from point_history where member_id = $1 order by id desc`,
         [id],
       );
       return rows.map((r): HistoryEntry => ({
         id: String(r.id),
         deltaPoints: Number(r.delta_points),
+        purchasePointsRecovered: Number(r.purchase_points_recovered ?? 0),
         reasonAr: r.reason_ar as string,
         reasonEn: r.reason_en as string,
         createdAt: iso(r.created_at)!,
@@ -716,7 +767,7 @@ export function createPostgresBackend(db: Db): Backend {
       // The shared rule looks at the NEWEST rateable purchase only, so that is
       // all this reads; whether it is rated is one more indexed lookup.
       const lines = await db.query(
-        `select kind, source_ref, branch_id, delta_points, created_at from point_history
+        `select kind, source_ref, branch_id, delta_points, created_at, purchase_points_recovered from point_history
          where member_id = $1 and kind = $2 and source_ref is not null and branch_id is not null
          order by created_at desc, id desc limit 1`,
         [id, 'purchase'],
@@ -725,6 +776,7 @@ export function createPostgresBackend(db: Db): Backend {
       const line = {
         kind: 'purchase' as const, sourceRef: lines[0].source_ref as string,
         branchId: lines[0].branch_id as string, deltaPoints: Number(lines[0].delta_points),
+        purchasePointsRecovered: Number(lines[0].purchase_points_recovered ?? 0),
         createdAt: iso(lines[0].created_at)!,
       };
       const done = await db.query('select 1 from visit_ratings where member_id = $1 and visit_ref = $2', [id, line.sourceRef]);
@@ -890,22 +942,25 @@ export function createPostgresBackend(db: Db): Backend {
         settleExpiry(m, at, log);
         const res = consumeFifo(m.lots, points, at);
         if (!res.ok) throw conflict('insufficient_points', 'Not enough points');
+        const slices = spentSlices(m.lots, res.consumed);
         m.lots = res.lots;
-        log({
-          deltaPoints: -points, reasonAr: 'استبدال نقاط',
-          reasonEn: 'Points redeemed', createdAt: at.toISOString(), kind: 'redeem',
-        });
         const row: RedemptionRow = {
           id: `rdm_${randomUUID()}`, memberId: id, code: await newCode(t), points,
+          slices, returnedPoints: null, expiredPoints: null, recoveredPoints: 0, refundReviewRequired: false,
           valueJod: jodFromPoints(points),
           createdAt: at.toISOString(),
           expiresAt: redemptionExpiresAt(at, loyalty.REDEMPTION_TTL_SECONDS),
           settledAt: null, cancelledAt: null, settledVia: null,
         };
+        log({
+          deltaPoints: -points, reasonAr: 'استبدال نقاط',
+          reasonEn: 'Points redeemed', createdAt: at.toISOString(), kind: 'redeem',
+          sourceRef: `redemption:${row.id}`,
+        });
         await t.query(
-          `insert into redemptions (id, member_id, code, points, value_jod, created_at, expires_at)
-           values ($1,$2,$3,$4,$5,$6,$7)`,
-          [row.id, row.memberId, row.code, row.points, row.valueJod, row.createdAt, row.expiresAt],
+          `insert into redemptions (id, member_id, code, points, value_jod, created_at, expires_at, slices)
+           values ($1,$2,$3,$4,$5,$6,$7,$8)`,
+          [row.id, row.memberId, row.code, row.points, row.valueJod, row.createdAt, row.expiresAt, JSON.stringify(slices)],
         );
         return row;
       });
@@ -947,6 +1002,11 @@ export function createPostgresBackend(db: Db): Backend {
       });
     },
 
+    async getRedemption(memberId, redemptionId) {
+      const rows = await db.query('select * from redemptions where id = $1 and member_id = $2', [redemptionId, memberId]);
+      return rows[0] ? toRedemption(rows[0]) : null;
+    },
+
     async cancelRedemption(id, rid, at) {
       return withMember(id, async (m, log, t) => {
         const rows = await t.query('select * from redemptions where id = $1 for update', [rid]);
@@ -954,16 +1014,8 @@ export function createPostgresBackend(db: Db): Backend {
         const row = toRedemption(rows[0]);
         if (row.settledAt) throw conflict('redemption_already_settled', 'This code has already been used');
         if (row.cancelledAt) return row;                       // idempotent
-        await t.query('update redemptions set cancelled_at = $2 where id = $1', [rid, at.toISOString()]);
         settleExpiry(m, at, log);
-        const back = grantLot(m.lots, row.points, 'earn', at, LOTS);
-        m.lots = back.lots;
-        log({
-          deltaPoints: row.points, reasonAr: 'إلغاء استبدال',
-          reasonEn: 'Redemption cancelled', createdAt: at.toISOString(),
-          kind: 'return', expiresOn: back.lot?.expiresOn ?? null,
-        });
-        return { ...row, cancelledAt: at.toISOString() };
+        return closeRedemption(t, m, row, at, log, 'Redemption cancelled');
       });
     },
 
@@ -1149,21 +1201,26 @@ export function createPostgresBackend(db: Db): Backend {
           );
         }
         if (input.pointsEarned < 0) throw conflict('negative_grant', 'A grant cannot be negative');
-        const grant = grantLot(m.lots, input.pointsEarned, 'earn', at, LOTS);
-        m.lots = grant.lots;
+        const grant = grantPointCredit(m, input.pointsEarned, 'earn', at, log, `order:${order.id}`);
         log({
           deltaPoints: input.pointsEarned, reasonAr: input.pointsReasonAr,
           reasonEn: input.pointsReasonEn, createdAt: at.toISOString(),
           kind: 'purchase', branchId: input.order.branchId, sourceRef: `order:${order.id}`,
+          purchasePointsRecovered: grant.recoveredPoints,
           expiresOn: grant.lot?.expiresOn ?? null,
         });
         // A paid order settles the welcome gift, beside its own points.
-        if (input.spendJod !== null) await settleWelcomeIn(t, m, at, log, input.order.branchId);
+        if (input.spendJod !== null && Number.isFinite(input.spendJod) && input.spendJod > 0) {
+          await settleWelcomeIn(t, m, at, log, input.order.branchId);
+        }
         if (input.spendJod !== null) applySpend(m, input.spendJod, at, log);
         // A PAID order is the referral rail's trigger — in this transaction.
-        if (input.spendJod !== null) await settlePaidOrderIn(t, m, at);
+        if (input.spendJod !== null && Number.isFinite(input.spendJod) && input.spendJod > 0) {
+          await settlePaidOrderIn(t, m, at);
+        }
         return {
           order,
+          pointsAvailable: grant.creditedPoints, pointsRecovered: grant.recoveredPoints,
           pointsBalance: liveBalance(m.lots, at),
           walletBalanceFils: liveBalance(m.walletLots, at),
           secondVisitVoucher,
@@ -1202,12 +1259,12 @@ export function createPostgresBackend(db: Db): Backend {
         if (input.ticketRefusal) throw ticketRefusalError(input.ticketRefusal);
         if (input.pointsEarned < 0) throw conflict('negative_grant', 'A grant cannot be negative');
         settleExpiry(m, at, log);
-        const grant = grantLot(m.lots, input.pointsEarned, 'earn', at, LOTS);
-        m.lots = grant.lots;
+        const grant = grantPointCredit(m, input.pointsEarned, 'earn', at, log, `pos:${input.posOrderRef}`);
         log({
           deltaPoints: input.pointsEarned, reasonAr: input.reasonAr,
           reasonEn: input.reasonEn, createdAt: at.toISOString(),
           kind: 'purchase', branchId: input.branchId, sourceRef: `pos:${input.posOrderRef}`,
+          purchasePointsRecovered: grant.recoveredPoints,
           expiresOn: grant.lot?.expiresOn ?? null,
         });
         // Money was collected: the welcome gift is settled with this sale, and
@@ -1220,7 +1277,9 @@ export function createPostgresBackend(db: Db): Backend {
           posOrderRef: input.posOrderRef, memberId: m.id, branchId: input.branchId,
           paidFils: input.paidFils, paidAt: input.paidAt.toISOString(), spendDay,
           pointsEarned: input.pointsEarned, pointsBalanceAfter: liveBalance(m.lots, at),
-          earn: input.earn, status: 'earned', refundedFils: 0,
+          pointsAvailable: grant.creditedPoints, pointsRecovered: grant.recoveredPoints,
+          earn: input.earn, status: 'earned', refundedFils: 0, expiredReservedPoints: 0,
+          purchaseOriginKnown: true,
           reversedPoints: null, shortfall: null, reverseBalanceAfter: null,
           reverseReason: null, reversedAt: null, createdAt: at.toISOString(),
         };
@@ -1231,13 +1290,13 @@ export function createPostgresBackend(db: Db): Backend {
         // does nothing — and this sale is refused, its grant rolled back.
         const inserted = await t.query(
           `insert into pos_sales (pos_order_ref, member_id, branch_id, earn_ticket_jti, paid_total,
-             paid_at, spend_day, points_earned, points_balance_after, earn_breakdown, status, created_at)
-           values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
+             paid_at, spend_day, points_earned, points_balance_after, earn_breakdown, status, created_at, points_available, points_recovered, purchase_origin_known)
+           values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)
            on conflict do nothing
            returning pos_order_ref`,
           [sale.posOrderRef, sale.memberId, sale.branchId, input.ticketJti, toJod(sale.paidFils),
             sale.paidAt, sale.spendDay, sale.pointsEarned, sale.pointsBalanceAfter,
-            sale.earn ? JSON.stringify(sale.earn) : null, sale.status, sale.createdAt],
+            sale.earn ? JSON.stringify(sale.earn) : null, sale.status, sale.createdAt, grant.creditedPoints, grant.recoveredPoints, true],
         );
         if (!inserted[0]) throw posOrderConflict();
         // Money was collected: a PAID order for the referral rail, exactly as
@@ -1272,9 +1331,25 @@ export function createPostgresBackend(db: Db): Backend {
         }
         const plan = planOrRefuse(sale, refund);
         settleExpiry(m, at, log);
-        const back = applyTillRefund(m.lots, m.spend, refundable(sale), plan, at);
+        // Same owner -> redemption lock order as cancel/sweep. Stable order
+        // makes multiple pending rows deterministic across processes.
+        const held = await t.query(`select * from redemptions where member_id=$1
+          and settled_at is null and cancelled_at is null order by id for update`, [m.id]);
+        for (const raw of held) await closeRedemption(t, m, toRedemption(raw), at, log, 'Purchase refunded');
+        const closed = await t.query('select * from redemptions where member_id=$1 and cancelled_at is not null', [m.id]);
+        const voided = await t.query("select * from pos_point_spends where member_id=$1 and status='reversed'", [m.id]);
+        const evidence = expiredUnusedPurchasePoints([
+          ...closed.map(toRedemption), ...voided.map(toTillSpend).flatMap(unusedTenderEvidence),
+        ], `pos:${posOrderRef}`);
+        const lotEvidence = expiredUnusedPurchaseLotPoints(m.lots, `pos:${posOrderRef}`, at);
+        const prior = await t.query<{ n: string }>(`select coalesce(sum(expired_reserved_points),0)::text as n
+          from pos_sale_refunds where pos_order_ref=$1`, [posOrderRef]);
+        const expiredReservedPoints = Math.min(plan.targetPoints,
+          Math.max(0, Math.min(sale.pointsEarned, evidence.points + lotEvidence.points) - Number(prior[0]?.n ?? 0)));
+        const back = applyTillRefund(m.lots, m.spend, refundable(sale), { ...plan, targetPoints: plan.targetPoints - expiredReservedPoints }, at);
         m.lots = back.lots;
         m.spend = back.spend;
+        m.purchasePointsDebt = recoverPurchasePoints(m.purchasePointsDebt + back.shortfall, 0).debtAfter;
         const { reasonAr, reasonEn } = refundReasons(!!refund);
         log({
           deltaPoints: -back.reversedPoints, reasonAr, reasonEn, createdAt: at.toISOString(),
@@ -1285,6 +1360,8 @@ export function createPostgresBackend(db: Db): Backend {
           refundRef: refund ? refund.refundRef : null, posOrderRef, memberId: m.id,
           refundedFils: plan.refundFils, targetPoints: plan.targetPoints,
           reversedPoints: back.reversedPoints, shortfall: back.shortfall,
+          expiredReservedPoints, reconciliationRequired: evidence.reviewRequired || lotEvidence.reviewRequired
+            || (sale.purchaseOriginKnown !== true && back.shortfall > 0),
           balanceAfter, reason, createdAt: at.toISOString(),
         };
         // ON CONFLICT DO NOTHING: the same refund reference reported for
@@ -1292,31 +1369,32 @@ export function createPostgresBackend(db: Db): Backend {
         // refused here and this refund rolled back whole.
         const inserted = await t.query(
           `insert into pos_sale_refunds (refund_ref, pos_order_ref, member_id, refunded_total, target_points,
-             reversed_points, shortfall, balance_after, reason, created_at)
-           values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
+             reversed_points, shortfall, balance_after, reason, created_at, expired_reserved_points, reconciliation_required)
+           values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
            on conflict do nothing
            returning id`,
           [row.refundRef, posOrderRef, m.id, toJod(row.refundedFils), row.targetPoints,
-            row.reversedPoints, row.shortfall, row.balanceAfter, row.reason, row.createdAt],
+            row.reversedPoints, row.shortfall, row.balanceAfter, row.reason, row.createdAt, expiredReservedPoints, row.reconciliationRequired],
         );
         if (!inserted[0]) throw refundConflict();
         let next: TillSale = { ...sale, refundedFils: plan.refundedFilsAfter };
         if (plan.completes) {
           // Totals across EVERY refund of the sale, this one included.
-          const all = await t.query('select reversed_points, shortfall from pos_sale_refunds where pos_order_ref = $1', [posOrderRef]);
+          const all = await t.query('select reversed_points, shortfall, expired_reserved_points from pos_sale_refunds where pos_order_ref = $1', [posOrderRef]);
           next = {
             ...next, status: 'reversed',
             reversedPoints: all.reduce((n, r) => n + Number(r.reversed_points), 0),
             shortfall: all.reduce((n, r) => n + Number(r.shortfall), 0),
+            expiredReservedPoints: all.reduce((n, r) => n + Number(r.expired_reserved_points), 0),
             reverseBalanceAfter: balanceAfter, reverseReason: reason, reversedAt: at.toISOString(),
           };
         }
         await t.query(
           `update pos_sales set refunded_total = $2, status = $3, reversed_points = $4, shortfall = $5,
-             reverse_balance_after = $6, reverse_reason = $7, reversed_at = $8
+             reverse_balance_after = $6, reverse_reason = $7, reversed_at = $8, expired_reserved_points = $9
            where pos_order_ref = $1`,
           [posOrderRef, toJod(next.refundedFils), next.status, next.reversedPoints, next.shortfall,
-            next.reverseBalanceAfter, next.reverseReason, next.reversedAt],
+            next.reverseBalanceAfter, next.reverseReason, next.reversedAt, next.expiredReservedPoints ?? 0],
         );
         return { sale: next, refund: row, replay: false };
       });
@@ -1357,7 +1435,7 @@ export function createPostgresBackend(db: Db): Backend {
         const spend: TillSpend = {
           posOrderRef: input.posOrderRef, memberId: m.id, points: input.points, valueJod: input.valueJod,
           slices, pointsBalanceAfter: liveBalance(m.lots, at), status: 'spent',
-          returnedPoints: null, expiredPoints: null, reverseBalanceAfter: null,
+          returnedPoints: null, expiredPoints: null, recoveredPoints: 0, reverseBalanceAfter: null,
           reverseReason: null, reversedAt: null, createdAt: at.toISOString(),
         };
         // ON CONFLICT DO NOTHING: the same reference reported for a DIFFERENT
@@ -1389,23 +1467,26 @@ export function createPostgresBackend(db: Db): Backend {
         const spend = toTillSpend(rows[0]);
         if (spend.status === 'reversed') return { spend, replay: true };
         settleExpiry(m, at, log);
-        const back = restoreSlices(m.lots, spend.slices, at);
+        const back = creditPointSlices(m.lots, spend.slices, m.purchasePointsDebt, at);
         m.lots = back.lots;
+        m.purchasePointsDebt = back.debtAfter;
         log({
-          deltaPoints: back.restored, reasonAr: 'إرجاع نقاط دفعة ملغاة في الفرع',
+          deltaPoints: back.returnedPoints + back.recoveredPoints, reasonAr: 'إرجاع نقاط دفعة ملغاة في الفرع',
           reasonEn: 'Points returned: in-store payment voided', createdAt: at.toISOString(),
           kind: 'return',
         });
+        logPointsRecovery(log, back.recoveredPoints, at, `pos-spend:${posOrderRef}`);
         const reversed: TillSpend = {
-          ...spend, status: 'reversed', returnedPoints: back.restored, expiredPoints: back.expired,
+          ...spend, status: 'reversed', returnedPoints: back.returnedPoints, expiredPoints: back.expiredPoints,
+          recoveredPoints: back.recoveredPoints,
           reverseBalanceAfter: liveBalance(m.lots, at), reverseReason: reason, reversedAt: at.toISOString(),
         };
         await t.query(
           `update pos_point_spends set status = $2, returned_points = $3, expired_points = $4,
-             reverse_balance_after = $5, reverse_reason = $6, reversed_at = $7
+             reverse_balance_after = $5, reverse_reason = $6, reversed_at = $7, recovered_points = $8
            where pos_order_ref = $1`,
           [posOrderRef, reversed.status, reversed.returnedPoints, reversed.expiredPoints,
-            reversed.reverseBalanceAfter, reversed.reverseReason, reversed.reversedAt],
+            reversed.reverseBalanceAfter, reversed.reverseReason, reversed.reversedAt, back.recoveredPoints],
         );
         return { spend: reversed, replay: false };
       });
@@ -1561,13 +1642,14 @@ export function createPostgresBackend(db: Db): Backend {
         const found = await t.query('select * from referrals where referred_id = $1', [m.id]);
         const existing = found[0] ? toReferral(found[0]) : null;
         if (existing && existing.code === code) return { referral: existing, replay: true };
-        const ref = await t.query<{ id: string; phone: string }>(
-          'select id, phone from members where id = $1', [owner[0].member_id],
+        const ref = await t.query<{ id: string; phone: string; phone_verified_at: Date | string | null }>(
+          'select id, phone, phone_verified_at from members where id = $1', [owner[0].member_id],
         );
         if (!ref[0]) throw referralCodeNotFound();
         const refusal = referralAttachError({
-          memberId: m.id, memberPhone: m.phone, memberFirstPaidAt: m.firstPaidAt,
-          alreadyAttached: existing !== null, referrer: { id: ref[0].id, phone: ref[0].phone },
+          memberId: m.id, memberPhone: m.phone, memberPhoneVerifiedAt: m.phoneVerifiedAt,
+          memberFirstPaidAt: m.firstPaidAt, alreadyAttached: existing !== null,
+          referrer: { id: ref[0].id, phone: ref[0].phone, phoneVerifiedAt: iso(ref[0].phone_verified_at) },
         });
         if (refusal) throw attachRefused(refusal);
         const row: ReferralRow = {
@@ -1621,7 +1703,10 @@ export function createPostgresBackend(db: Db): Backend {
           slices = spentSlices(from.lots, res.consumed);
           from.lots = res.lots;
           settleExpiry(to, at, (e) => rLines.push(e));
-          to.lots = restoreSlices(to.lots, slices, at).lots;
+          const credit = creditPointSlices(to.lots, slices, to.purchasePointsDebt, at);
+          to.lots = credit.lots;
+          to.purchasePointsDebt = credit.debtAfter;
+          logPointsRecovery((e) => rLines.push(e), credit.recoveredPoints, at);
         } else {
           settleWalletExpiry(from, at, (e) => sLines.push(e));
           const res = consumeFifo(from.walletLots, amount, at);

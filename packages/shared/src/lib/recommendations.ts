@@ -1,4 +1,5 @@
 import { getMenu } from '../menu/store';
+import { resolveItemSize } from '../menu/sizes';
 import { itemInsights } from '../menu/menu.insights.generated';
 import { categoryKind, itemKind, type CategoryKind } from './categoryKind';
 import type { MenuItem, CartItem, ItemSize } from '../types';
@@ -335,8 +336,9 @@ export function getSizeUpsell(item: MenuItem, currentSizeId: ItemSize['id']): Si
   if (item.sizes.length < 2) return null;
   // Offer the NEXT size up (smaller price jump = higher accept rate), not the
   // largest outright.
-  const byPrice = [...item.sizes].sort((a, b) => a.price - b.price);
-  const current = byPrice.find((s) => s.id === currentSizeId) ?? byPrice[0];
+  const current = resolveItemSize(item, currentSizeId);
+  if (!current) return null;
+  const byPrice = item.sizes.filter((s) => resolveItemSize(item, s.id)).sort((a, b) => a.price - b.price);
   const next = byPrice.find((s) => s.price > current.price);
   if (!next) return null;
   return { size: next, delta: Math.max(0, next.price - current.price) };

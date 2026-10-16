@@ -11,6 +11,8 @@ import type {
   PaymentMethodId,
 } from '@almond/shared/types';
 import { buildLineId } from '@almond/shared/cart';
+import { withReorderedLines } from '@almond/shared/menu';
+import { getMenu } from '@almond/shared/menu/store';
 
 interface CartState {
   items: CartItem[];
@@ -32,6 +34,7 @@ interface CartState {
     qty: number,
   ) => void;
   addLine: (line: CartItem) => void;
+  addOrder: (lines: readonly CartItem[]) => boolean;
   incLine: (lineId: string) => void;
   decLine: (lineId: string) => void;
   removeLine: (lineId: string) => void;
@@ -106,6 +109,17 @@ export const useCartStore = create<CartState>()(
           }
           return { items: [...state.items, line] };
         }),
+
+      addOrder: (lines) => {
+        let added = false;
+        set((state) => {
+          const items = withReorderedLines(state.items, lines, getMenu().items);
+          if (!items) return state;
+          added = true;
+          return { items };
+        });
+        return added;
+      },
 
       incLine: (lineId) =>
         set((state) => ({

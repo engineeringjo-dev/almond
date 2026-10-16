@@ -1,5 +1,7 @@
 import { View, StyleSheet, Pressable } from 'react-native';
+import { useState } from 'react';
 import { router, Stack } from 'expo-router';
+import { canReorderSizes } from '@almond/shared/menu';
 
 import { Screen } from '@/components/ui/Screen';
 import { Text } from '@/components/ui/Text';
@@ -10,16 +12,20 @@ import { colors, spacing } from '@/constants/theme';
 import { useI18n } from '@/hooks/useI18n';
 import { formatJOD, formatDate } from '@/lib/format';
 import { useOrderHistory } from '@/hooks/useOrder';
+import { useMenuState } from '@/hooks/useMenuState';
 import { useCartStore } from '@/stores/cartStore';
-import type { Order, CartItem } from '@/types';
+import type { Order } from '@/types';
 
 export default function OrdersHistory() {
   const { t, lang } = useI18n();
   const { data, isLoading, isError, refetch } = useOrderHistory();
-  const addLine = useCartStore((s) => s.addLine);
+  const addOrder = useCartStore((s) => s.addOrder);
+  const menu = useMenuState();
+  const [sizeIssue, setSizeIssue] = useState<string | null>(null);
 
   const reorder = (order: Order) => {
-    order.items.forEach((line: CartItem) => addLine({ ...line }));
+    if (sizeIssue === order.id || !canReorderSizes(order.items, menu.items)) { router.push({ pathname: '/(tabs)/order', params: { tab: 'menu' } }); return; }
+    if (!addOrder(order.items)) { setSizeIssue(order.id); return; }
     router.push('/cart');
   };
 
@@ -48,9 +54,10 @@ export default function OrdersHistory() {
                 <Pressable onPress={() => reorder(o)} style={styles.reorder} hitSlop={6} accessibilityRole="button">
                   <Icon name="reorder" size={16} color={colors.dark} />
                   <Text variant="bodyBold" color={colors.dark}>
-                    {t('track.reorder')}
+                    {t(sizeIssue === o.id || !canReorderSizes(o.items, menu.items) ? 'tabs.order' : 'track.reorder')}
                   </Text>
                 </Pressable>
+                {sizeIssue === o.id || !canReorderSizes(o.items, menu.items) ? <Text variant="caption" selectable>{t('cart.reorderSizeUnavailable')}</Text> : null}
               </Card>
             ))}
           </View>

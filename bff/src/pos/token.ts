@@ -1,5 +1,6 @@
 import { createHmac, randomUUID, timingSafeEqual } from 'node:crypto';
 import { POS_MODES, type PosMode } from '@almond/shared/pos/tokenWire';
+import type { RedemptionRow } from '@almond/shared/loyalty/redemption';
 import { config } from '../config';
 import { HttpError, conflict } from '../http-error';
 
@@ -51,6 +52,9 @@ interface PosTokenPayload {
 }
 
 export function issuePosToken(memberId: string, mode: PosMode = 'pay'): { token: string; expiresIn: number; mode: PosMode } {
+  // A member-wide redeem token could silently follow a newer redemption.
+  // Only issueRedemptionToken may authorize one, with its exact id signed.
+  if (mode === 'redeem') throw tokenInvalid('redemption QR requires a specific redemption');
   const payload: PosTokenPayload = {
     sub: memberId,
     mode,
@@ -61,6 +65,42 @@ export function issuePosToken(memberId: string, mode: PosMode = 'pay'): { token:
   };
   const body = b64u(JSON.stringify(payload));
   return { token: `${body}.${sign(body)}`, expiresIn: config.POS_TOKEN_TTL_SECONDS, mode };
+}
+
+const REDEMPTION_QR_DOMAIN = 'almond.pos.redemption-qr.v1\n';
+const signRedemptionQr = (body: string): string =>
+  createHmac('sha256', config.POS_TOKEN_SECRET).update(REDEMPTION_QR_DOMAIN + body).digest('base64url');
+
+interface RedemptionQrPayload extends PosTokenPayload {
+  purpose: 'redemption';
+  mode: 'redeem';
+  redemptionId: string;
+  iat: number;
+}
+
+/** A voucher-specific authorization, not another membership QR. The owner,
+ *  exact redemption and purpose are signed together; no client field can
+ *  redirect it. The underlying entitlement can expire sooner than its QR. */
+export function issueRedemptionToken(
+  row: Pick<RedemptionRow, 'id' | 'memberId' | 'expiresAt'>,
+  nowMs: number = Date.now(),
+) {
+  const iat = Math.floor(nowMs / 1000);
+  const exp = Math.min(iat + config.REDEMPTION_QR_TTL_SECONDS, Math.floor(Date.parse(row.expiresAt) / 1000));
+  if (!Number.isSafeInteger(exp) || exp <= iat) throw conflict('redemption_expired', 'This redemption has expired');
+  const payload: RedemptionQrPayload = {
+    sub: row.memberId, mode: 'redeem', purpose: 'redemption',
+    redemptionId: row.id, jti: randomUUID(), iat, exp,
+  };
+  const body = b64u(JSON.stringify(payload));
+  return {
+    token: `${body}.${signRedemptionQr(body)}`,
+    mode: 'redeem' as const,
+    redemptionId: row.id,
+    expiresIn: exp - iat,
+    issuedAt: new Date(iat * 1000).toISOString(),
+    expiresAt: new Date(exp * 1000).toISOString(),
+  };
 }
 
 /**
@@ -80,14 +120,36 @@ function sigMatches(presented: string, expected: string): boolean {
   return a.length === b.length && timingSafeEqual(a, b);
 }
 
-export function verifyPosToken(token: string): { memberId: string; mode: PosMode } {
-  const [body, sig] = (token ?? '').split('.');
-  if (!body || !sig) throw tokenInvalid('malformed pos token');
-  if (!sigMatches(sig, sign(body))) throw tokenInvalid('bad pos signature');
-  let payload: PosTokenPayload;
+export type VerifiedPosToken =
+  | { memberId: string; mode: Exclude<PosMode, 'redeem'> }
+  | { memberId: string; mode: 'redeem'; redemptionId: string };
+
+export function verifyPosToken(token: string): VerifiedPosToken {
+  const [body, sig, extra] = (token ?? '').split('.');
+  if (!body || !sig || extra !== undefined) throw tokenInvalid('malformed pos token');
+  // Select a MAC domain from untrusted syntax, then verify it before using
+  // any claim. The purpose cannot be added to an old member token's MAC.
+  let payload: PosTokenPayload & { purpose?: unknown; redemptionId?: unknown; iat?: unknown };
   try { payload = JSON.parse(Buffer.from(body, 'base64url').toString()); } catch { throw tokenInvalid('bad pos token'); }
+  const redemption = payload?.purpose === 'redemption';
+  if (!sigMatches(sig, redemption ? signRedemptionQr(body) : sign(body))) throw tokenInvalid('bad pos signature');
+  if (typeof payload?.sub !== 'string' || !payload.sub || typeof payload.jti !== 'string' || !payload.jti
+    || !Number.isSafeInteger(payload.exp)) throw tokenInvalid('bad pos token claims');
   const nowSec = Math.floor(Date.now() / 1000);
-  if (payload.exp < nowSec) throw new HttpError(401, 'token_expired', 'pos token expired');
+  // The new presentation window ends AT exp; no extra second at its boundary.
+  if (redemption ? payload.exp <= nowSec : payload.exp < nowSec) throw new HttpError(401, 'token_expired', 'pos token expired');
+  const mode = payload.mode ?? 'pay';
+  const redemptionId = typeof payload.redemptionId === 'string' ? payload.redemptionId : '';
+  const issuedAt = typeof payload.iat === 'number' ? payload.iat : Number.NaN;
+  if (!POS_MODES.includes(mode)) throw tokenInvalid('unknown pos token mode');
+  if (redemption) {
+    if (mode !== 'redeem' || !redemptionId
+      || !Number.isSafeInteger(issuedAt) || issuedAt > nowSec || payload.exp <= issuedAt) {
+      throw tokenInvalid('bad redemption QR claims');
+    }
+  } else if (mode === 'redeem' || payload.purpose !== undefined) {
+    throw tokenInvalid('unbound redemption QR — request a new redemption code');
+  }
   for (const [jti, exp] of usedJti) if (exp < nowSec) usedJti.delete(jti);
   if (usedJti.has(payload.jti)) throw conflict('pos_token_replay', 'pos token already used');
   usedJti.set(payload.jti, payload.exp);
@@ -96,9 +158,9 @@ export function verifyPosToken(token: string): { memberId: string; mode: PosMode
   // not touched the toggle. An unknown value is NOT coerced silently to 'pay':
   // it is the signature holder's own word for what the member asked for, so a
   // value this build cannot name is a refusal, not a guess.
-  const mode = payload.mode ?? 'pay';
-  if (!POS_MODES.includes(mode)) throw tokenInvalid('unknown pos token mode');
-  return { memberId: payload.sub, mode };
+  return mode === 'redeem'
+    ? { memberId: payload.sub, mode, redemptionId }
+    : { memberId: payload.sub, mode };
 }
 
 // ---------------------------------------------------------------------------

@@ -59,11 +59,13 @@ describe.each([
     const saleB = await backend.getTillSale('Shop/FLOW-1-B');
     expect(saleB?.paidFils).toBe(5_500);
     // The void: the 50 come back on their original clock, then the grant goes.
-    expect(r.unspent).toEqual({ posOrderRef: 'Shop/FLOW-1-B', pointsReturned: 50, pointsExpired: 0, pointsBalance: 50 + earnedB, replay: false });
+    expect(r.unspent).toEqual({ posOrderRef: 'Shop/FLOW-1-B', pointsReturned: 50, pointsExpired: 0,
+      pointsRecovered: 0, pointsBalance: 50 + earnedB, replay: false });
     expect(r.reversal).toMatchObject({ posOrderRef: 'Shop/FLOW-1-B', reversedPoints: earnedB, shortfall: 0, pointsBalance: 50, replay: false });
     // Later, 5 of visit A's 25 JOD come back: 5/25 of its 50 points, no more.
     expect(r.partialRefund).toEqual({
       posOrderRef: 'Shop/FLOW-1', refundRef: 'Shop/FLOW-1/R1', reversedPoints: 10, shortfall: 0, pointsBalance: 40,
+      expiredReservedPoints: 0, reconciliationRequired: false,
       refundedTotal: 5, fullyReversed: false, replay: false,
     });
     const m = await backend.getMember(r.memberId);

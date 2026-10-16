@@ -8,7 +8,6 @@ import { useLaunchSheets } from '@/hooks/useLaunchSheets';
 import { LoyaltyCard } from '@/components/home/LoyaltyCard';
 import { OrderNowButton } from '@/components/home/OrderNowButton';
 import { PromoCarousel } from '@/components/home/PromoCarousel';
-import { CateringEntry } from '@/components/home/CateringEntry';
 import { UsualOrderCard } from '@/components/home/UsualOrderCard';
 import { ActiveOrderBanner } from '@/components/home/ActiveOrderBanner';
 import { ChallengeBanner } from '@/components/home/ChallengeBanner';
@@ -30,7 +29,7 @@ import type { Branch } from '@/types';
  *      code (owner: «نفذ ظهور الرمز أولاً», the code first).
  *   2. Order: «اطلب الآن», or «أكمل طلبك» when the cart holds something.
  *   3. «طلبك المعتاد», with a photograph, once there is one.
- *   4. A stationary campaign entry, followed by a compact catering contact.
+ *   4. Manual campaign discovery, including the catering contact handoff.
  *
  * What it replaced was fourteen sections: the wallet, gift-card, nearest-
  * branch, «الأكثر طلباً» and offers cards and a list of three branches. The
@@ -119,7 +118,6 @@ export default function HomeScreen() {
         <UsualOrderCard />
 
         <PromoCarousel />
-        <CateringEntry />
 
         {/* The first-week ladder (fill in your details, then invite a friend),
             then the day's nudge. Both unwrapped, both nothing once done. */}

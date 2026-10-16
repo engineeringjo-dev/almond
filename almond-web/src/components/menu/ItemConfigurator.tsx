@@ -6,6 +6,7 @@ import { useLocale, useTranslations } from 'next-intl';
 import { ArrowRight, Check, ChevronLeft, ChevronRight } from 'lucide-react';
 import type { CartCustomization, ItemSize, MenuItem } from '@almond/shared/types';
 import { getSizeUpsell } from '@almond/shared/lib/recommendations';
+import { resolveItemSize } from '@almond/shared/menu';
 import { applyItemPatch } from '@/data/menu';
 import { useMenuOverlay } from '@/store/menuOverlayStore';
 import { Link } from '@/i18n/navigation';
@@ -37,7 +38,8 @@ export function ItemConfigurator({ item: baseItem }: { item: MenuItem }) {
   const [qty, setQty] = useState(1);
   const [added, setAdded] = useState(false);
 
-  const size = item.sizes.find((s) => s.id === sizeId) ?? item.sizes[0];
+  const size = resolveItemSize(item, sizeId);
+  const hasUnavailableSizes = item.sizes.some((choice) => !resolveItemSize(item, choice.id));
   const chosen: CartCustomization[] = useMemo(() => {
     const out: CartCustomization[] = [];
     for (const g of item.customizations) {
@@ -124,23 +126,30 @@ export function ItemConfigurator({ item: baseItem }: { item: MenuItem }) {
                 {t('size')}
               </h2>
               <div className="mt-3 flex flex-wrap gap-2">
-                {item.sizes.map((s) => (
-                  <button
-                    key={s.id}
-                    type="button"
-                    onClick={() => setSizeId(s.id)}
-                    aria-pressed={s.id === sizeId}
-                    className={cn(
-                      'rounded-pill border px-4 py-2 text-sm font-bold transition-colors',
-                      s.id === sizeId
-                        ? 'border-primary bg-primary text-white'
-                        : 'border-neutral-warm hover:border-primary',
-                    )}
-                  >
-                    {tr(s.nameAr, s.nameEn)} · {formatJOD(s.price, lang)}
-                  </button>
-                ))}
+                {item.sizes.map((s, index) => {
+                  const available = !!resolveItemSize(item, s.id);
+                  const active = available && s.id === sizeId;
+                  return (
+                    <button
+                      key={`${s.id}:${index}`}
+                      type="button"
+                      disabled={!available}
+                      onClick={() => setSizeId(s.id)}
+                      aria-pressed={active}
+                      className={cn(
+                        'rounded-pill border px-4 py-2 text-sm font-bold transition-colors disabled:cursor-not-allowed',
+                        active
+                          ? 'border-primary bg-primary text-white'
+                          : 'border-neutral-warm hover:border-primary',
+                      )}
+                    >
+                      {tr(s.nameAr, s.nameEn)} · {formatJOD(s.price, lang)}
+                      {!available && <span className="block font-normal">{t('sizeUnavailable')}</span>}
+                    </button>
+                  );
+                })}
               </div>
+              {hasUnavailableSizes && <p className="mt-3 text-sm text-text-secondary">{t('sizeUnavailableNotice')}</p>}
             </div>
           )}
 
@@ -228,12 +237,12 @@ export function ItemConfigurator({ item: baseItem }: { item: MenuItem }) {
               <button
                 type="button"
                 onClick={add}
-                disabled={soldOut}
+                disabled={soldOut || !size}
                 className="flex h-12 flex-1 items-center justify-center gap-2 rounded-pill bg-primary px-6 font-bold text-white transition-colors hover:bg-primary/85 disabled:opacity-50"
               >
                 {soldOut ? (
                   t('soldOut')
-                ) : added ? (
+                ) : !size ? t('sizeUnavailable') : added ? (
                   <>
                     <Check className="h-5 w-5" aria-hidden /> {t('added')}
                   </>

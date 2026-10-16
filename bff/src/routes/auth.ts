@@ -75,6 +75,9 @@ export function registerAuthRoutes(app: FastifyInstance, backend: Backend): void
       throw e;
     }
     const member = await backend.findOrCreateByPhone(p, name);
+    // Persist proof only after OTP succeeds. Imported/existing member rows do
+    // not establish phone ownership, and cannot earn referral grants by shape.
+    await backend.verifyMemberPhone(member.id, p, new Date());
     // Signing in again during the grace period withdraws a deletion request
     // (loyalty/accountDeletion.ts; Instagram and X do the same). The app says
     // so, so a member who only wanted to look is not surprised later.

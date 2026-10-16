@@ -17,6 +17,7 @@ import { iconForCategory } from '@/lib/productIcon';
 import { secondaryName } from '@/lib/itemName';
 import { tagsFor } from '@almond/shared/menu/publicFeed';
 import { getMenu } from '@almond/shared/menu/store';
+import { resolveItemSize } from '@almond/shared/menu';
 import { getSizeUpsell, getItemPairings } from '@/lib/recommendations';
 import { addSheetToCart, quickAddPrice, sheetTotal, stagedPairingsLine, togglePairing } from '@/lib/pairings';
 import { choiceA11y, choiceGroupA11y, MIN_TOUCH_TARGET } from '@/lib/a11y';
@@ -70,8 +71,8 @@ function ItemSheet({ item, visible, onClose, editingLine }: Props) {
   const hasPhoto = !!item?.imageUrl && failedImage !== item.imageUrl;
 
   const size = useMemo(
-    () => item?.sizes.find((s) => s.id === sizeId) ?? (editingLine ? undefined : item?.sizes[0]),
-    [item, sizeId, editingLine],
+    () => resolveItemSize(item, sizeId),
+    [item, sizeId],
   );
 
   const resolved = editingLine ? resolveCartEdit(item, { sizeId, customizations: selected, qty }) : null;
@@ -93,7 +94,7 @@ function ItemSheet({ item, visible, onClose, editingLine }: Props) {
       <Text variant="body" accessibilityRole="alert" selectable>{t('cart.editItemUnavailable')}</Text>
     </BottomSheet>
   );
-  if (!size && !editingLine) return null;
+  const hasUnavailableSizes = item.sizes.some((choice) => !resolveItemSize(item, choice.id));
 
   // Upsell + cross-sell (Starbucks-style).
   const upsell = getSizeUpsell(item, sizeId);
@@ -178,9 +179,9 @@ function ItemSheet({ item, visible, onClose, editingLine }: Props) {
             <Button
               title={editingLine
                 ? `${t('cart.saveChanges')}${resolved?.line ? ` · ${formatJOD(total, lang)}` : ''}`
-                : `${t('menu.addToCart')} · ${formatJOD(total, lang)}`}
+                : size ? `${t('menu.addToCart')} · ${formatJOD(total, lang)}` : t('menu.sizeUnavailable')}
               onPress={onAdd}
-              disabled={!!editingLine && !resolved?.line}
+              disabled={!size || (!!editingLine && !resolved?.line)}
               fullWidth={stackFooter}
               style={stackFooter ? styles.addButtonStacked : styles.addButton}
             />
@@ -300,29 +301,37 @@ function ItemSheet({ item, visible, onClose, editingLine }: Props) {
       {item.sizes.length > 1 || (editingLine && !size) ? (
         <Section title={t('menu.size')}>
           <View style={styles.optionRow} {...choiceGroupA11y(false, t('menu.size'))}>
-            {item.sizes.map((s) => (
-              <Pressable
-                key={s.id}
-                style={({ pressed }) => [styles.sizeChip, s.id === sizeId && styles.sizeChipActive, pressed && styles.pressed]}
-                onPress={() => chooseSize(s.id)}
-                {...choiceA11y(
-                  'radio',
-                  s.id === sizeId,
-                  t('common.withPrice', {
-                    name: lang === 'ar' ? s.nameAr : s.nameEn,
-                    price: formatJOD(s.price, lang),
-                  }),
-                )}
-              >
-                <Text variant="bodyBold" color={s.id === sizeId ? colors.onInk : colors.dark} center>
-                  {lang === 'ar' ? s.nameAr : s.nameEn}
-                </Text>
-                <Text variant="caption" color={s.id === sizeId ? colors.onInk : colors.warmGray} center>
-                  {formatJOD(s.price, lang)}
-                </Text>
-              </Pressable>
-            ))}
+            {item.sizes.map((s, index) => {
+              const available = !!resolveItemSize(item, s.id);
+              const active = available && s.id === sizeId;
+              return (
+                <Pressable
+                  key={`${s.id}:${index}`}
+                  style={({ pressed }) => [styles.sizeChip, active && styles.sizeChipActive, pressed && styles.pressed]}
+                  disabled={!available}
+                  aria-disabled={!available}
+                  onPress={() => chooseSize(s.id)}
+                  {...choiceA11y(
+                    'radio',
+                    active,
+                    `${t('common.withPrice', {
+                      name: lang === 'ar' ? s.nameAr : s.nameEn,
+                      price: formatJOD(s.price, lang),
+                    })}${available ? '' : `, ${t('menu.sizeUnavailable')}`}`,
+                  )}
+                >
+                  <Text variant="bodyBold" color={active ? colors.onInk : colors.dark} center>
+                    {lang === 'ar' ? s.nameAr : s.nameEn}
+                  </Text>
+                  <Text variant="caption" color={active ? colors.onInk : colors.warmGray} center>
+                    {formatJOD(s.price, lang)}
+                  </Text>
+                  {!available ? <Text variant="caption" center>{t('menu.sizeUnavailable')}</Text> : null}
+                </Pressable>
+              );
+            })}
           </View>
+          {hasUnavailableSizes ? <Text variant="caption" selectable>{t('menu.sizeUnavailableNotice')}</Text> : null}
         </Section>
       ) : null}
 

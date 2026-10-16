@@ -47,9 +47,8 @@ describe('Campaigns show the current points offer, without a poster price', () =
       expect(homeCampaignEntry(points)).toEqual({ kind: 'combo', href: '/campaigns' });
     }
     const homeEntry = code('components/home/PromoCarousel.tsx');
-    expect(homeEntry).toContain('homeCampaignEntry(config.COMBO_BONUS_POINTS)');
-    expect(homeEntry).toContain('title={t(entry.labelKey)}');
-    expect(homeEntry).toContain('router.push(entry.href)');
+    expect(homeEntry).toContain('campaignSlides(config.COMBO_BONUS_POINTS, extraPercent, !!collection)');
+    expect(homeEntry).toContain('<CampaignPager');
     expect(code('app/campaigns.tsx')).toContain('<MemberOffers');
   });
 

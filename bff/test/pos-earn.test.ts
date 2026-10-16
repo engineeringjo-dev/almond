@@ -45,7 +45,7 @@ function tillOf(app: FastifyInstance) {
     method: 'POST', url, payload: payload as Record<string, unknown>, headers: key === null ? {} : { 'x-pos-key': key },
   });
   return {
-    qr: async (member: string, mode: 'pay' | 'earn' | 'redeem' | 'corporate' = 'earn') =>
+    qr: async (member: string, mode: 'pay' | 'earn' | 'corporate' = 'earn') =>
       (await app.inject({ method: 'POST', url: '/v1/pos/token', headers: { authorization: `Bearer ${member}` }, payload: { mode } })).json().token as string,
     scan: (token: string) => pos('/v1/pos/scan', { token }),
     earn: (body: Record<string, unknown>, key?: string | null) => pos('/v1/pos/earn', body, key),
@@ -87,7 +87,15 @@ describe.each([
     // member code: the ROSTER decides who earns, not a mode the phone chose. A
     // member who is on no roster earns whatever their app minted.
     const token = await signIn(app, freshPhone());
-    const redeem = (await till.scan(await till.qr(token, 'redeem'))).json();
+    const id = subOf(token);
+    await backend.addPoints(id, 100, 'test', 'test');
+    const row = await backend.createRedemption(id, 50);
+    const qr = await app.inject({
+      method: 'POST', url: '/v1/me/redemption/qr',
+      headers: { authorization: `Bearer ${token}` }, payload: { redemptionId: row.id },
+    });
+    expect(qr.statusCode, qr.body).toBe(201);
+    const redeem = (await till.scan(qr.json().token)).json();
     expect(redeem.earnTicket).toBeNull();
     expect(redeem.earnTicketExpiresIn).toBeNull();
     const notOnARoster = (await till.scan(await till.qr(token, 'corporate'))).json();
@@ -135,7 +143,8 @@ describe.each([
     const ref = `Shop/${randomUUID()}`;
     const r = await till.earn({ earnTicket: ticket, posOrderRef: ref, branchId: 'b1', paidTotal: 12.75, paidAt: paidAt.toISOString() });
     expect(r.statusCode).toBe(201);
-    expect(r.json()).toEqual({ posOrderRef: ref, pointsEarned: expected, pointsBalance: expected, replay: false });
+    expect(r.json()).toEqual({ posOrderRef: ref, pointsEarned: expected,
+      pointsAvailable: expected, pointsRecovered: 0, pointsBalance: expected, replay: false });
     expect(await points(id)).toBe(expected);
     expect((await backend.getStanding(id)).windowSpend).toBe(12.75);
     expect((await backend.getTillSale(ref))?.earn?.points).toBe(expected);
@@ -316,6 +325,7 @@ describe.each([
     expect(r.statusCode).toBe(201);
     expect(r.json()).toEqual({
       posOrderRef: ref, refundRef: null, reversedPoints: earned.pointsEarned, shortfall: 0, pointsBalance: 0,
+      expiredReservedPoints: 0, reconciliationRequired: false,
       refundedTotal: 25, fullyReversed: true, replay: false,
     });
     const again = await till.reverse({ posOrderRef: ref, reason: 'refund' });
@@ -342,6 +352,7 @@ describe.each([
     expect(r.statusCode).toBe(201);
     expect(r.json()).toEqual({
       posOrderRef: ref, refundRef: `${ref}/R1`, reversedPoints: 5, shortfall: 0, pointsBalance: 35,
+      expiredReservedPoints: 0, reconciliationRequired: false,
       refundedTotal: 2.5, fullyReversed: false, replay: false,
     });
     expect((await backend.getStanding(id)).windowSpend).toBe(17.5);
@@ -364,6 +375,7 @@ describe.each([
     const full = await till.reverse({ posOrderRef: ref, reason: 'rest' });
     expect(full.json()).toEqual({
       posOrderRef: ref, refundRef: null, reversedPoints: 35, shortfall: 0, pointsBalance: 0,
+      expiredReservedPoints: 0, reconciliationRequired: false,
       refundedTotal: 20, fullyReversed: true, replay: false,
     });
     const after = await till.reverse({ ...part, refundRef: `${ref}/R4` });

@@ -60,10 +60,10 @@ test.describe('App cart', () => {
     await page.goto(appUrl('/cart'));
     // It states the order's points with the item and without (CrossSellRow,
     // lib/earnEstimate.ts comboGain): a 2% member's latte alone earns 7.
-    const banner = page.getByRole('button', { name: /^أضف .+ بسعر \d+\.\d{3} د\.أ فتكسب \d+ نقطة بدل \d+$/ });
+    const banner = page.getByRole('button', { name: /^أضف .+ بسعر \d+\.\d{2} د\.أ فتكسب \d+ نقطة بدل \d+$/ });
     await expect(banner).toBeVisible();
     const label = (await banner.getAttribute('aria-label')) ?? '';
-    const [, name, price] = /^أضف (.+) بسعر (\d+\.\d{3}) د\.أ/.exec(label) ?? [];
+    const [, name, price] = /^أضف (.+) بسعر (\d+\.\d{2}) د\.أ/.exec(label) ?? [];
     // The name and the price are on screen, not only in the accessible name.
     await expect(banner).toContainText(name);
     await expect(banner).toContainText(price);
@@ -138,7 +138,7 @@ test.describe('App item sheet', () => {
     await expect(sizes.getByRole('radio', { checked: true })).toHaveCount(1);
     // «إضافات» takes many answers: checkboxes, priced in the name.
     const extras = sheet.getByRole('group', { name: 'إضافات' });
-    await expect(extras.getByRole('checkbox').first()).toHaveAccessibleName(/، \+\d+\.\d{3} د\.أ$/);
+    await expect(extras.getByRole('checkbox').first()).toHaveAccessibleName(/، \+\d+\.\d{2} د\.أ$/);
   });
 });
 

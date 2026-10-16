@@ -42,6 +42,10 @@ export const config = {
   // can shorten the window without an app release: the app reads the TTL off
   // each response (`expiresIn`), never off its own copy of the constant.
   POS_TOKEN_TTL_SECONDS: Number(process.env.POS_TOKEN_TTL_SECONDS ?? shared.POS_TOKEN_TTL_SECONDS),
+  /** Presentation window for a QR authorizing ONE specific redemption.
+   *  Separate from membership QR (60s) and the redemption entitlement (15min).
+   *  This does not shorten the legacy typed-code settlement path. */
+  REDEMPTION_QR_TTL_SECONDS: envInt('REDEMPTION_QR_TTL_SECONDS', 120),
   /**
    * How long the EARN TICKET /v1/pos/scan hands the till stays DELIVERABLE
    * (pos/token.ts). Default SEVEN DAYS.

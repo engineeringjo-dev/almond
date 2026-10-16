@@ -1,4 +1,4 @@
-import { menuItems } from '@almond/shared/menu';
+import { menuItems, resolveItemSize } from '@almond/shared/menu';
 import { computeTotals, buildLineId, type CartTotals } from '@almond/shared/cart';
 import { basketHasDrink, comboBasket } from '@almond/shared/lib/combo';
 import type { ComboBasket } from '@almond/shared/loyalty/earn';
@@ -35,7 +35,8 @@ export function reprice(lines: CheckoutLine[], discountFor?: (subtotal: number) 
     const item = menuItems.find((m) => m.id === l.itemId);
     if (!item) throw badRequest(`unknown item: ${l.itemId}`);
     if (item.inStock === false) throw badRequest(`out of stock: ${l.itemId}`);
-    const size = item.sizes.find((s) => s.id === l.sizeId) ?? item.sizes[0];
+    const size = resolveItemSize(item, l.sizeId);
+    if (!size) throw new HttpError(400, 'size_unavailable', `unknown or ambiguous size ${l.sizeId} for ${l.itemId}`);
     const customizations: CartCustomization[] = (l.optionIds ?? []).map((optId) => {
       for (const g of item.customizations) {
         const opt = g.options.find((o) => o.id === optId);

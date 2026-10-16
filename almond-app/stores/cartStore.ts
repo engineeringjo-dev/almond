@@ -12,6 +12,7 @@ import type {
 } from '@/types';
 import { cartLineFor } from '@almond/shared/cart';
 import { getMenu } from '@almond/shared/menu/store';
+import { withReorderedLines } from '@almond/shared/menu';
 import { useToastStore } from './toastStore';
 import { branchRef, type BranchNames, type BranchRef, type BranchSwitch } from '@/lib/cartBranch';
 import { saveCartEdit, type CartEditCollision, type CartEditDraft, type CartEditResult } from '@/lib/cartEdit';
@@ -49,6 +50,8 @@ interface CartState {
     qty: number,
   ) => void;
   addLine: (line: CartItem) => void;
+  /** A previous order is never partly added when a size needs reselection. */
+  addOrder: (lines: readonly CartItem[]) => boolean;
   editLine: (original: CartItem, draft: CartEditDraft, quotedUnitPrice: number, quotedCollision: CartEditCollision | null) => CartEditResult;
   incLine: (lineId: string) => void;
   decLine: (lineId: string) => void;
@@ -111,6 +114,17 @@ export const useCartStore = create<CartState>()(
       }
       return { items: [...state.items, line] };
     }),
+
+  addOrder: (lines) => {
+    let added = false;
+    set((state) => {
+      const items = withReorderedLines(state.items, lines, getMenu().items);
+      if (!items) return state;
+      added = true;
+      return { items };
+    });
+    return added;
+  },
 
   editLine: (original, draft, quotedUnitPrice, quotedCollision) => {
     let result: CartEditResult = { saved: false, issue: 'lineChanged' };

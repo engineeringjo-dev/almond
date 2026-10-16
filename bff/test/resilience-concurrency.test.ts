@@ -106,7 +106,12 @@ describe.each(HARNESSES)('R1 concurrency — %s', (_name, make) => {
   beforeAll(async () => { h = await make(); }, 60_000);
   afterAll(async () => { await h?.close(); });
 
-  const member = async () => (await h.backend.findOrCreateByPhone(newPhone().canonical)).id;
+  const member = async () => {
+    const phone = newPhone().canonical;
+    const m = await h.backend.findOrCreateByPhone(phone);
+    await h.backend.verifyMemberPhone(m.id, phone, new Date());
+    return m.id;
+  };
   const balance = async (id: string) => liveBalance((await h.backend.getMember(id)).lots);
   const ledgerSum = async (id: string) =>
     (await h.backend.getHistory(id)).reduce((s, e) => s + e.deltaPoints, 0);
@@ -515,6 +520,25 @@ describe.each(HARNESSES)('R1 concurrency — %s', (_name, make) => {
     expect(await ledgerSum(referrer)).toBe(loyalty.REFERRAL_REWARD_POINTS);
   }, 60_000);
 
+  it('R1.31 different friends settling concurrently share one lifetime referral budget', async () => {
+    const referrer = await member();
+    const friends = await Promise.all(Array.from({ length: 14 }, () => member()));
+    const { code } = await h.backend.getReferral(referrer);
+    for (const friend of friends) await h.backend.attachReferral(friend, code, new Date());
+    const { ok, errs } = await burst(friends.length, (i) => h.backend.checkout(friends[i], {
+      order: { branchId: 'b1', type: 'pickup', paymentMethod: 'cash', subtotal: 3, tax: 0, total: 3 },
+      walletDebitFils: 0, pointsEarned: 0, pointsReasonAr: 'شراء', pointsReasonEn: 'Purchase',
+      earn: null, spendJod: 3, corporateUse: null,
+      secondVisit: { basketHasDrink: false, arm: assignHoldout(friends[i], holdoutSpecFromConfig('secondVisitVoucher')) },
+      at: new Date(),
+    }));
+    expect(errs).toEqual([]);
+    expect(ok).toHaveLength(friends.length);
+    expect(await balance(referrer)).toBe(loyalty.REFERRAL_LIFETIME_CAP_POINTS);
+    expect(await ledgerSum(referrer)).toBe(loyalty.REFERRAL_LIFETIME_CAP_POINTS);
+    expect((await h.backend.getReferral(referrer)).pointsEarned).toBe(loyalty.REFERRAL_LIFETIME_CAP_POINTS);
+  }, 60_000);
+
   it('R1.9 two parallel first sign-ins with one phone create ONE member', async () => {
     const p = newPhone().canonical;
     const { ok, errs } = await burst(6, () => h.backend.findOrCreateByPhone(p));
@@ -693,6 +717,8 @@ describe('R1.8 🔴 postgres.ts takes a row lock (FOR NO KEY UPDATE on members) 
   it('every money-moving method locks the member row first, in ONE transaction', async () => {
     const id = (await b.findOrCreateByPhone(newPhone().canonical)).id;
     const referrerId = (await b.findOrCreateByPhone(newPhone().canonical)).id;
+    await b.verifyMemberPhone(id, (await b.getMember(id)).phone, new Date());
+    await b.verifyMemberPhone(referrerId, (await b.getMember(referrerId)).phone, new Date());
     const cases: [string, () => Promise<unknown>][] = [
       ['addPoints', () => b.addPoints(id, 500, 'أ', 'A')],
       ['spendPoints', () => b.spendPoints(id, 10, 'ب', 'B')],

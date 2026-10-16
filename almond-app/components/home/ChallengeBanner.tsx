@@ -1,4 +1,4 @@
-import { StyleSheet, Pressable, View, Share } from 'react-native';
+import { StyleSheet, Pressable, View } from 'react-native';
 import { router } from 'expo-router';
 
 import { Text } from '@/components/ui/Text';
@@ -7,6 +7,7 @@ import { colors, spacing, radius } from '@/constants/theme';
 import { useI18n } from '@/hooks/useI18n';
 import { useReferral } from '@/hooks/useLoyalty';
 import { formatNumber } from '@/lib/format';
+import { referralRewardState } from '@/lib/referralInvite';
 import { useUser } from '@/stores/authStore';
 import { nextChallenge, type ChallengeId } from '@almond/shared/loyalty/challenges';
 
@@ -25,9 +26,8 @@ import { nextChallenge, type ChallengeId } from '@almond/shared/loyalty/challeng
  * offer is honoured every time it is taken up and there is no spent state to
  * hide it on (config.REFERRAL_REWARD_POINTS, loyalty/challenges.ts).
  *
- * The referral row SHARES rather than navigating: the whole mechanic is the
- * member handing a link to somebody, so the tap does the thing. The referral
- * screen still exists behind Profile for the code and the terms.
+ * The referral row opens the invitation screen, where the member explicitly
+ * chooses WhatsApp or copies the link. It never opens a generic share chooser.
  */
 export function ChallengeBanner() {
   const { t, lang } = useI18n();
@@ -48,6 +48,12 @@ export function ChallengeBanner() {
   if (!challenge) return null;
 
   const points = formatNumber(challenge.points, lang);
+  const rewardState = referralRewardState(referral);
+  const unavailable = challenge.id === 'referral' && rewardState !== 'eligible';
+  const title = unavailable ? t('referral.title') : t(`challenge.${challenge.id}`, { points });
+  const subline = unavailable
+    ? t(rewardState === 'limit-reached' ? 'referral.capReachedShort' : 'referral.rewardConditions')
+    : t(`challenge.${challenge.id}Sub`);
 
   const ICON: Record<ChallengeId, IconName> = { profile: 'user', referral: 'gift' };
 
@@ -56,18 +62,14 @@ export function ChallengeBanner() {
       router.push('/profile/details');
       return;
     }
-    // Fire-and-forget: a share sheet the member dismisses is not an error, and
-    // there is nothing to report either way. The REWARD is not granted here —
-    // the server grants it when a friend who used the code makes their FIRST
-    // PAID order, which is why sharing ten times cannot pay ten times.
-    void Share.share({ message: t('referral.shareMessage', { link: referral.link, code: referral.code }) });
+    router.push('/referral');
   };
 
   return (
     <Pressable
       onPress={onPress}
       accessibilityRole="button"
-      accessibilityLabel={t(`challenge.${challenge.id}`, { points })}
+      accessibilityLabel={title}
       style={styles.wrap}
     >
       <View style={styles.icon}>
@@ -75,10 +77,10 @@ export function ChallengeBanner() {
       </View>
       <View style={styles.body}>
         <Text variant="bodyBold" color={colors.primary}>
-          {t(`challenge.${challenge.id}`, { points })}
+          {title}
         </Text>
         <Text variant="caption" color={colors.warmGray}>
-          {t(`challenge.${challenge.id}Sub`)}
+          {subline}
         </Text>
       </View>
       <Icon name={lang === 'ar' ? 'chevron-left' : 'chevron-right'} size={20} color={colors.dark} />

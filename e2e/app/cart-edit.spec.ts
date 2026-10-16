@@ -86,8 +86,8 @@ test.describe('App cart: edit a configured item', () => {
     await sheet.getByRole('radiogroup', { name: 'Size' }).getByRole('radio').last().click();
     const notice = sheet.getByText(/matches another item in your cart/);
     await expect(notice).toContainText('5');
-    await expect(notice).toContainText('4.000');
-    await expect(notice).toContainText('20.000');
+    await expect(notice).toContainText('4.00');
+    await expect(notice).toContainText('20.00');
     await expect(notice).toContainText('full quantity');
     // The Save amount includes the existing three units being repriced,
     // rather than showing only the edited two units at the new price (8).

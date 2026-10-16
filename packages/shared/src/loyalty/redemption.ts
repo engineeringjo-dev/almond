@@ -28,10 +28,14 @@
  * 🔴 THE MONEY INVARIANT: POINTS ARE NEVER LOST WITHOUT VALUE DELIVERED.
  * Points are spent when the redemption is CREATED — that is what makes a
  * double-spend impossible, and it keeps the member's balance honest the moment
- * they act. If the redemption then expires unused, the points are RETURNED, in
- * full. The alternative (hold without spending) leaves a balance that says one
+ * they act. If it expires unused, its still-live FIFO slices return with their
+ * original dates. A cancellation never renews an expiry or resurrects points
+ * that have expired meanwhile. The alternative (hold without spending) leaves a balance that says one
  * thing and buys another.
  */
+
+import { type PointLot, type SpentSlice } from './lots';
+import { creditPointSlices } from './clawback';
 
 /**
  * The code alphabet: digits and uppercase letters, MINUS the four pairs a human
@@ -86,8 +90,18 @@ export interface RedemptionRow {
   id: string;
   memberId: string;
   code: string;
-  /** Whole points spent to create it. What is returned if it expires. */
+  /** Whole points spent to create it. */
   points: number;
+  /** Original FIFO spend lineage. NULL means legacy/unrecoverable, never a
+   * licence to invent a fresh twelve-month grant on cancellation. */
+  slices: SpentSlice[] | null;
+  /** Recorded refund outcome; null until cancelled or swept. */
+  returnedPoints: number | null;
+  expiredPoints: number | null;
+  /** Live returned points applied to an outstanding purchase-point adjustment. */
+  recoveredPoints?: number;
+  /** Missing/invalid lineage needs evidence-based reconciliation, not a new grant. */
+  refundReviewRequired: boolean;
   /** What it takes off a bill — `jodFromPoints(points)`, computed ONCE at
    *  creation and stored, so a later change to the redemption rate cannot
    *  revalue a code already in a member's hand. */
@@ -122,13 +136,13 @@ export function isRedeemable(row: RedemptionRow, now: Date): boolean {
 }
 
 /**
- * 🔴 SHOULD THE POINTS GO BACK? True for a redemption that ran out of time or
- * was cancelled and has not already been refunded.
+ * 🔴 SHOULD THIS UNUSED CODE BE CLOSED? True once its time runs out, unless
+ * settlement or cancellation already consumed/closed it. The actual return is
+ * limited to its original still-live slices (restoreRedemptionPoints).
  *
  * The refund is what makes spending-at-creation honest. Without it a member who
- * opened the redeem screen, was called away, and came back an hour later would
- * simply be poorer — and the app would have taken the points for a code that
- * never bought anything.
+ * opened the screen and was called away must not lose still-live points for a
+ * code that bought nothing. Their original expiry remains binding.
  */
 export function shouldRefund(row: RedemptionRow, now: Date): boolean {
   if (row.settledAt) return false;          // it bought something
@@ -138,6 +152,33 @@ export function shouldRefund(row: RedemptionRow, now: Date): boolean {
 
 export function redemptionExpiresAt(at: Date, ttlSeconds: number): string {
   return new Date(at.getTime() + ttlSeconds * 1000).toISOString();
+}
+
+/** Undo a redemption using the SAME date-preserving restoration as a voided
+ * points tender. Legacy rows cannot be reconstructed from today's balance:
+ * other spends may have consumed the same lots. Keep their money unchanged,
+ * close the unused code, and explicitly report the need for reconciliation. */
+export function restoreRedemptionPoints(
+  lots: readonly PointLot[],
+  row: Pick<RedemptionRow, 'points' | 'slices'>,
+  at: Date,
+  debt = 0,
+): { lots: PointLot[]; returnedPoints: number; expiredPoints: number; recoveredPoints: number; debtAfter: number; refundReviewRequired: boolean } {
+  const review = () => ({
+    lots: lots.map((l) => ({ ...l })), returnedPoints: 0, expiredPoints: 0,
+    recoveredPoints: 0, debtAfter: debt, refundReviewRequired: true,
+  });
+  if (!Array.isArray(row.slices) || row.slices.length === 0
+    || row.slices.some((s) => !s || !Number.isSafeInteger(s.points) || s.points <= 0)
+    || row.slices.reduce((sum, s) => sum + s.points, 0) !== row.points) return review();
+  try {
+    const back = creditPointSlices(lots, row.slices, debt, at);
+    return { ...back, refundReviewRequired: false };
+  } catch {
+    // Invalid lineage is not grounds for minting value or blocking every
+    // future balance read. The stored flag keeps the exception reviewable.
+    return review();
+  }
 }
 
 /** What the member's screen shows. `code` is formatted for reading aloud. */
@@ -150,6 +191,10 @@ export interface RedemptionView {
   expiresAt: string;
   /** Whole seconds left, floored at 0 — what the countdown renders. */
   expiresIn: number;
+  returnedPoints: number | null;
+  expiredPoints: number | null;
+  recoveredPoints?: number;
+  refundReviewRequired: boolean;
 }
 
 export function toRedemptionView(row: RedemptionRow, now: Date): RedemptionView {
@@ -161,5 +206,9 @@ export function toRedemptionView(row: RedemptionRow, now: Date): RedemptionView 
     status: redemptionStatus(row, now),
     expiresAt: row.expiresAt,
     expiresIn: Math.max(0, Math.floor((Date.parse(row.expiresAt) - now.getTime()) / 1000)),
+    returnedPoints: row.returnedPoints,
+    expiredPoints: row.expiredPoints,
+    recoveredPoints: row.recoveredPoints ?? 0,
+    refundReviewRequired: row.refundReviewRequired,
   };
 }

@@ -132,6 +132,7 @@ export default function ProfileScreen() {
             onPress={() => setLangOpen(true)}
           />
           <ListRow icon="help" label={t('profile.help')} onPress={() => router.push('/profile/help')} />
+          <ListRow icon="menu" label={t('policies.title')} onPress={() => router.push('/profile/policies')} />
         </Card>
 
         <Card padded={false} style={styles.menu}>

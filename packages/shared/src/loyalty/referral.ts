@@ -5,8 +5,10 @@
  * day as: reward the REFERRER only, config.REFERRAL_REWARD_POINTS, ONCE PER
  * REFERRED ACCOUNT, and only when that friend's FIRST PAID order is confirmed —
  * not at signup. A signup costs an attacker a phone number; a paid order costs
- * them money. That is the whole anti-abuse argument, and it is why the grant is
- * inside the transaction that confirms the order rather than anywhere else.
+ * them money. Owner, 2026-10-16: both phones must be OTP-verified Jordanian
+ * mobiles, and the inviter's total grants have a 500-point lifetime ceiling.
+ * The grant is inside the transaction that confirms the order, with that
+ * inviter locked, so different friends cannot race past the same budget.
  *
  * What lives here: the code's shape, the share link, the attach rule and the
  * reward amount — everything the BFF's two backends must agree on. What does
@@ -58,6 +60,14 @@ export interface ReferralWire {
   pointsEarned: number;
   /** What the NEXT friend's first paid order pays — config, never a literal. */
   rewardPoints: number;
+  /** Total referral budget, independent of spending or point expiry. */
+  capPoints: number;
+  capPeriod: 'lifetime';
+  /** Remaining referral budget reported by the server, not the live balance. */
+  remainingPoints: number;
+  /** This member's own phone/corporate eligibility. A friend's eligibility
+   * is independently checked when attaching and settling their first order. */
+  eligibleForRewards: boolean;
   /** The code THIS member attached as someone's friend, or null. */
   attachedCode: string | null;
   /** May this member still attach a friend's code? True only while nothing is
@@ -72,7 +82,26 @@ export type ReferralAttachError =
   | 'referral_self'
   | 'referral_same_phone'
   | 'referral_already_attached'
-  | 'referral_too_late';
+  | 'referral_too_late'
+  | 'referral_phone_unverified';
+
+/** A country code alone is not ownership. Only the auth route stamps this
+ * after a successful OTP check; migration/import must leave it null. */
+export function verifiedReferralPhone(phone: string, verifiedAt: string | null | undefined): boolean {
+  return normalizeJordanPhone(phone) === phone
+    && verifiedAt != null && Number.isFinite(Date.parse(verifiedAt));
+}
+
+/** A lifetime budget is computed from grants already paid, never spendable
+ * points. Nonsense inputs fail closed rather than restore an allowance. */
+export function referralRemainingPoints(
+  pointsEarned: number,
+  cap: number = config.REFERRAL_LIFETIME_CAP_POINTS,
+): number {
+  if (!Number.isSafeInteger(pointsEarned) || pointsEarned < 0
+    || !Number.isSafeInteger(cap) || cap <= 0) return 0;
+  return Math.max(0, cap - pointsEarned);
+}
 
 /**
  * May `member` attach `referrer`'s code? `null` = yes. Checked by the backend
@@ -92,11 +121,12 @@ export type ReferralAttachError =
 export function referralAttachError(input: {
   memberId: string;
   memberPhone: string;
+  memberPhoneVerifiedAt: string | null;
   /** When the member's first PAID order was confirmed, or null if never. */
   memberFirstPaidAt: string | null;
   /** Does this member already have a referral attached (any code)? */
   alreadyAttached: boolean;
-  referrer: { id: string; phone: string };
+  referrer: { id: string; phone: string; phoneVerifiedAt: string | null };
 }): ReferralAttachError | null {
   if (input.referrer.id === input.memberId) return 'referral_self';
   const a = normalizeJordanPhone(input.memberPhone);
@@ -104,6 +134,10 @@ export function referralAttachError(input: {
   if (a !== null && a === b) return 'referral_same_phone';
   if (input.alreadyAttached) return 'referral_already_attached';
   if (input.memberFirstPaidAt !== null) return 'referral_too_late';
+  if (!verifiedReferralPhone(input.memberPhone, input.memberPhoneVerifiedAt)
+    || !verifiedReferralPhone(input.referrer.phone, input.referrer.phoneVerifiedAt)) {
+    return 'referral_phone_unverified';
+  }
   return null;
 }
 
@@ -124,11 +158,23 @@ export function referralAttachError(input: {
  * A dial that is 0 or nonsense pays 0, fail-closed like every other grant.
  */
 export function referralRewardFor(
-  referrerIsCorporate: boolean,
+  input: {
+    referrerIsCorporate: boolean;
+    referrerPhone: string;
+    referrerPhoneVerifiedAt: string | null;
+    referredPhone: string;
+    referredPhoneVerifiedAt: string | null;
+    /** Persisted total referral grants, including spent/expired lots. */
+    pointsEarned: number;
+  },
   rewardPoints: number = config.REFERRAL_REWARD_POINTS,
+  cap: number = config.REFERRAL_LIFETIME_CAP_POINTS,
 ): number {
   // The SAME question the earn engine asks, answered in the same place.
-  if (referrerIsCorporate && !corporateEarnsPoints()) return 0;
+  if (input.referrerIsCorporate && !corporateEarnsPoints()) return 0;
+  if (!verifiedReferralPhone(input.referrerPhone, input.referrerPhoneVerifiedAt)
+    || !verifiedReferralPhone(input.referredPhone, input.referredPhoneVerifiedAt)
+    || input.referrerPhone === input.referredPhone) return 0;
   if (!Number.isFinite(rewardPoints) || rewardPoints <= 0) return 0;
-  return Math.floor(rewardPoints);
+  return Math.min(Math.floor(rewardPoints), referralRemainingPoints(input.pointsEarned, cap));
 }

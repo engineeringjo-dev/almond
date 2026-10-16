@@ -60,9 +60,9 @@ export async function addLatte(page: Page): Promise<void> {
   await expect(page.getByRole('dialog')).toBeHidden();
 }
 
-/** «أضف للسلة · 3.500 د.أ» → 3.5 */
+/** «أضف للسلة · 3.50 د.أ» → 3.5. Reject a stale three-decimal label. */
 export function ctaAmount(text: string): number {
-  const m = /(\d+\.\d{3})/.exec(text);
+  const m = /(?:^|[^\d.])(\d+\.\d{2})(?!\d)/.exec(text);
   if (!m) throw new Error(`no amount in "${text}"`);
   return Number(m[1]);
 }

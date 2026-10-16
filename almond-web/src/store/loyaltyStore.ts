@@ -8,6 +8,7 @@ import { genGiftCode } from '@/data/loyalty';
 import type { RedeemOption } from '@almond/shared/loyalty/redeem';
 import { lotExpiresOn } from '@almond/shared/loyalty/lots';
 import { ammanDayKey } from '@almond/shared/lib/ammanWeekday';
+import { formatJOD } from '@almond/shared/lib/format';
 import { branches } from '@almond/shared/menu';
 
 export interface WalletTxn {
@@ -98,8 +99,8 @@ export const useLoyaltyStore = create<LoyaltyState>()(
           vouchers: [
             {
               id: rid('v'),
-              titleAr: `خصم ${jod.toFixed(3)} د.أ من فاتورتك`,
-              titleEn: `${jod.toFixed(3)} JOD off your bill`,
+              titleAr: `خصم ${formatJOD(jod, 'ar')} من فاتورتك`,
+              titleEn: `${formatJOD(jod, 'en')} off your bill`,
               // A credit, always. Points are money now; they do not buy a named
               // free item capped at a value.
               type: 'credit',
@@ -113,8 +114,8 @@ export const useLoyaltyStore = create<LoyaltyState>()(
             {
               id: rid('p'),
               deltaPoints: -option.points,
-              reasonAr: `استبدال نقاط: ${jod.toFixed(3)} د.أ`,
-              reasonEn: `Points redeemed: ${jod.toFixed(3)} JOD`,
+              reasonAr: `استبدال نقاط: ${formatJOD(jod, 'ar')}`,
+              reasonEn: `Points redeemed: ${formatJOD(jod, 'en')}`,
               createdAt: new Date().toISOString(),
               kind: 'redeem',
             },

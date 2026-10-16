@@ -9,7 +9,7 @@ import { requireMember, memberId } from '../plugins/auth';
 import {
   issueEarnTicket, issuePosToken, issueSpendTicket, readEarnTicket, readSpendTicket, verifyPosToken,
 } from '../pos/token';
-import { toRedemptionView } from '@almond/shared/loyalty/redemption';
+import { isRedeemable, toRedemptionView } from '@almond/shared/loyalty/redemption';
 import { liveBalance } from '@almond/shared/loyalty/lots';
 import { jodFromPoints, spendableJod } from '@almond/shared/loyalty/earn';
 import { maskedDisplayName } from '@almond/shared/loyalty/profile';
@@ -141,6 +141,7 @@ export function registerPosRoutes(app: FastifyInstance, backend: Backend): void 
     // the old barcode did not have: it was built client-side out of a member id
     // that is printed under the QR, so anyone who could read one could mint one.
     const { mode } = parse(tokenBody, req.body ?? {});
+    if (mode === 'redeem') throw badRequest('Use /v1/me/redemption/qr for a specific redemption');
     return issuePosToken(memberId(req), mode ?? 'pay');
   });
 
@@ -157,7 +158,8 @@ export function registerPosRoutes(app: FastifyInstance, backend: Backend): void 
     // An unconfigured key is now a closed door, not an open one.
     requirePosKey(req);
     const { token } = parse(z.object({ token: z.string() }), req.body);
-    const { memberId: id, mode } = verifyPosToken(token); // single-use + expiry enforced
+    const claim = verifyPosToken(token); // single-use + expiry enforced
+    const { memberId: id, mode } = claim;
 
     /**
      * 🔴 THE STANDING DISCOUNT TRAVELS WITH THE SCAN, AND IT IS RESOLVED HERE.
@@ -179,7 +181,10 @@ export function registerPosRoutes(app: FastifyInstance, backend: Backend): void 
     // A `redeem` scan carries the member's live code, so the till learns what
     // to take off the bill from the same scan that identified them.
     await backend.sweepRedemptions(id, new Date());
-    const redemption = mode === 'redeem' ? await backend.activeRedemption(id) : null;
+    const redemption = claim.mode === 'redeem' ? await backend.getRedemption(id, claim.redemptionId) : null;
+    if (claim.mode === 'redeem' && (!redemption || !isRedeemable(redemption, new Date()))) {
+      throw notFound('redemption not found');
+    }
     /**
      * 🔴 ONE CODE, ONE SCAN, BOTH TICKETS (owner, 2026-09-24: «كسب وصرف النقاط
      * بدي يكون باركود مباشر نفسه»). The member no longer picks a mode on the
@@ -200,9 +205,10 @@ export function registerPosRoutes(app: FastifyInstance, backend: Backend): void 
      *
      * `mode` is still read, for backward compatibility with apps that mint
      * 'pay'/'earn'/'corporate' codes — all three are the member code now. The
-     * one exception is a legacy 'redeem' QR: that is a READ of a redemption
-     * code the member already paid for (the typed/web fallback), not the
-     * member code, and it carries no tickets.
+     * one exception is a bound 'redeem' QR: that reads the EXACT redemption
+     * the member already paid for, not the member code, and carries no tickets.
+     * INTEGRATION BOUNDARY: its returned typed code still follows the legacy
+     * redemption lifetime. A120s QR is not a120s end-to-end settlement policy.
      */
     const earnsPoints = !entitlement;
     const memberCode = mode !== 'redeem';
@@ -335,6 +341,7 @@ export function registerPosRoutes(app: FastifyInstance, backend: Backend): void 
       posOrderRef: spend.posOrderRef,
       pointsReturned: spend.returnedPoints ?? 0,
       pointsExpired: spend.expiredPoints ?? 0,
+      pointsRecovered: spend.recoveredPoints ?? 0,
       pointsBalance: spend.reverseBalanceAfter ?? 0,
       replay,
     });
@@ -368,7 +375,8 @@ export function registerPosRoutes(app: FastifyInstance, backend: Backend): void 
     const at = new Date();
     let row = null;
     if (body.token) {
-      const { memberId: id, mode } = verifyPosToken(body.token);
+      const claim = verifyPosToken(body.token);
+      const { memberId: id, mode } = claim;
       // 🔴 ONLY A `redeem` QR SPENDS A REDEMPTION. The mode is a signed claim of
       // what the member asked for (pos/token.ts); a pay or earn QR — the one a
       // member shows to collect points — is not consent to consume the code
@@ -376,7 +384,7 @@ export function registerPosRoutes(app: FastifyInstance, backend: Backend): void 
       // could settle their live redemption onto whatever bill it chose.
       if (mode !== 'redeem') throw badRequest('this QR is not a redemption — ask the member to open their redemption code');
       await backend.sweepRedemptions(id, at);
-      row = await backend.activeRedemption(id);
+      row = await backend.getRedemption(id, claim.redemptionId);
     } else {
       row = await backend.findRedemptionByCode(body.code!);
       // Sweep the OWNER of the code, so an expired one is refunded and refused
@@ -467,6 +475,8 @@ export function registerPosRoutes(app: FastifyInstance, backend: Backend): void 
     return reply.code(replay ? 200 : 201).send({
       posOrderRef: sale.posOrderRef,
       pointsEarned: sale.pointsEarned,
+      pointsAvailable: sale.pointsAvailable ?? sale.pointsEarned,
+      pointsRecovered: sale.pointsRecovered ?? 0,
       pointsBalance: sale.pointsBalanceAfter,
       replay,
     });
@@ -501,6 +511,8 @@ export function registerPosRoutes(app: FastifyInstance, backend: Backend): void 
       refundRef: refund.refundRef,
       reversedPoints: refund.reversedPoints,
       shortfall: refund.shortfall,
+      expiredReservedPoints: refund.expiredReservedPoints ?? 0,
+      reconciliationRequired: refund.reconciliationRequired ?? false,
       pointsBalance: refund.balanceAfter,
       // Money refunded on this sale so far — all of it once fully reversed.
       refundedTotal: toJod(fullyReversed ? sale.paidFils : sale.refundedFils),

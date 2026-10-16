@@ -21,12 +21,12 @@ import {
   type CompanyDiscount, type CorporateMemberEntry,
 } from '@almond/shared/loyalty/corporate';
 import {
-  isRedeemable, normalizeRedemptionCode, redemptionExpiresAt, shouldRefund,
+  isRedeemable, normalizeRedemptionCode, redemptionExpiresAt, restoreRedemptionPoints, shouldRefund,
   REDEMPTION_ALPHABET, REDEMPTION_CODE_LENGTH,
   type RedemptionRow,
 } from '@almond/shared/loyalty/redemption';
 import type { TierId } from '@almond/shared/types';
-import { referralAttachError, referralRewardFor } from '@almond/shared/loyalty/referral';
+import { referralAttachError, referralRewardFor, verifiedReferralPhone } from '@almond/shared/loyalty/referral';
 import { transferRefusal } from '@almond/shared/loyalty/transfer';
 import {
   isRateableVisit, normalizeComment, pendingVisit, type VisitRating,
@@ -46,6 +46,8 @@ import {
   saleAlreadyReversed, spendTicketExpired, spendTicketUsed, syntheticFullRefund, ticketRefusalError,
 } from '../pos/sales';
 import { applyTillRefund } from '@almond/shared/loyalty';
+import { creditPointSlices, expiredUnusedPurchasePoints, expiredUnusedPurchaseLotPoints, recoverPurchasePoints } from '@almond/shared/loyalty';
+import { grantPointCredit, logPointsRecovery, prunePointEvidence, unusedTenderEvidence } from './pointsCredit';
 import { assertIntentSpendable, nextIntentStatus } from '../payments/intent';
 import {
   attachRefused, insufficientFor, newReferralCode, referralCodeNotFound, referralRewardLine, welcomeGiftLine,
@@ -102,24 +104,22 @@ export function createMemoryBackend(): Backend {
     let n = 0;
     for (const row of redemptions.values()) {
       if (row.memberId !== m.id || !shouldRefund(row, at)) continue;
-      row.cancelledAt = at.toISOString();
-      // Back onto the ledger as a FRESH lot with its own 12-month clock, and
-      // logged, so the member can see the points returned. A fresh clock is the
-      // honest choice: the original lot was consumed, and reviving it would
-      // hand back points that expire on a date the member can no longer see.
-      const back = grantLot(m.lots, row.points, 'earn', at, LOTS);
-      m.lots = back.lots;
-      log(m.id, {
-        deltaPoints: row.points,
-        reasonAr: 'إرجاع نقاط استبدال لم يُستخدم',
-        reasonEn: 'Redemption expired',
-        createdAt: at.toISOString(),
-        kind: 'return',
-        expiresOn: back.lot?.expiresOn ?? null,
-      });
+      closeRedemption(m, row, at, 'Redemption expired');
       n += 1;
     }
     return n;
+  };
+
+  const closeRedemption = (m: Member, row: RedemptionRow, at: Date, reasonEn: string): void => {
+    const back = restoreRedemptionPoints(m.lots, row, at, m.purchasePointsDebt);
+    m.lots = back.lots;
+    m.purchasePointsDebt = back.debtAfter;
+    Object.assign(row, { cancelledAt: at.toISOString(), returnedPoints: back.returnedPoints,
+      expiredPoints: back.expiredPoints, recoveredPoints: back.recoveredPoints,
+      refundReviewRequired: back.refundReviewRequired });
+    log(m.id, { deltaPoints: back.returnedPoints + back.recoveredPoints, reasonAr: 'إرجاع نقاط استبدال لم يُستخدم',
+      reasonEn, createdAt: at.toISOString(), kind: 'return', sourceRef: `redemption:${row.id}` });
+    logPointsRecovery((line) => log(m.id, line), back.recoveredPoints, at, `redemption:${row.id}`);
   };
 
   // ---- Corporate discount register ----
@@ -199,6 +199,8 @@ export function createMemoryBackend(): Backend {
   // second-visit voucher's 19,040 JOD guard armed for this fixture.
   const demo: Member = {
     id: 'demo', phone: '+962790000000', name: 'Almond Member',
+    phoneVerifiedAt: null,
+    purchasePointsDebt: 0,
     birthday: null, gender: null,
     // A mature member: they have paid before, so no referral code can be
     // attached to them now (loyalty/referral.ts).
@@ -287,7 +289,7 @@ export function createMemoryBackend(): Backend {
     m.expirySettledThrough = today;
     // Only AFTER the loss is booked: pruning first would take the rows the
     // history row is derived from with it.
-    m.lots = pruneLots(m.lots, at, LOTS);
+    m.lots = prunePointEvidence(m.lots, at);
   };
 
   /**
@@ -428,6 +430,7 @@ export function createMemoryBackend(): Backend {
     const ordersLen = orders.length;
     const usesLen = corporateUses.length;
     const voucher = vouchers.get(m.id);
+    const ownedRedemptions = [...redemptions.values()].filter((r) => r.memberId === m.id).map((r) => structuredClone(r));
     return () => {
       Object.assign(m, before);
       // `log` unshifts, so the lines that existed before are the LAST ones.
@@ -436,6 +439,7 @@ export function createMemoryBackend(): Backend {
       orders.length = ordersLen;
       corporateUses.splice(0, corporateUses.length - usesLen);
       if (voucher) vouchers.set(m.id, voucher); else vouchers.delete(m.id);
+      for (const row of ownedRedemptions) redemptions.set(row.id, row);
     };
   };
 
@@ -460,10 +464,16 @@ export function createMemoryBackend(): Backend {
     const referrer = must(ref.referrerId);
     const undoReferrer = begin(referrer);
     const refBefore = { ...ref };
-    const points = referralRewardFor(entitlementFor(referrer.phone, companies, roster) !== null);
+    const pointsEarned = [...referrals.values()]
+      .filter((r) => r.referrerId === referrer.id && r.rewardedAt !== null)
+      .reduce((n, r) => n + (r.rewardPoints ?? 0), 0);
+    const points = referralRewardFor({
+      referrerIsCorporate: entitlementFor(referrer.phone, companies, roster) !== null,
+      referrerPhone: referrer.phone, referrerPhoneVerifiedAt: referrer.phoneVerifiedAt,
+      referredPhone: m.phone, referredPhoneVerifiedAt: m.phoneVerifiedAt, pointsEarned,
+    });
     settleExpiry(referrer, at);
-    const reward = grantLot(referrer.lots, points, 'bonus', at, LOTS);
-    referrer.lots = reward.lots;
+    const reward = grantPointCredit(referrer, points, 'bonus', at, (line) => log(referrer.id, line));
     if (points > 0) log(referrer.id, referralRewardLine(points, at, reward.lot));
     ref.rewardedAt = at.toISOString();
     ref.rewardPoints = points;
@@ -486,8 +496,7 @@ export function createMemoryBackend(): Backend {
     const points = welcomeBonusFor(false, entitlementFor(m.phone, companies, roster) !== null);
     m.welcomeBonusAt = at.toISOString();
     if (points <= 0) return;
-    const grant = grantLot(m.lots, points, 'bonus', at, LOTS);
-    m.lots = grant.lots;
+    const grant = grantPointCredit(m, points, 'bonus', at, (line) => log(m.id, line));
     log(m.id, welcomeGiftLine(points, at, grant.lot, branchId));
   };
 
@@ -499,10 +508,7 @@ export function createMemoryBackend(): Backend {
   let idemSweptAt = 0;
   const idemSlot = (memberId: string, key: string) => `${memberId}\u0000${key}`;
 
-  /** Named so a method can call a sibling — `createRedemption` spends points
-   *  through `spendPoints` rather than reimplementing the FIFO consume, and
-   *  `cancelRedemption` returns them through `addPoints` so the refund is
-   *  logged in the member's history like any other grant. */
+  /** Named so operations can call the same store's read helpers. */
   const api: Backend = {
     async findOrCreateByPhone(phone, name) {
       const existing = byPhone.get(phone);
@@ -514,6 +520,8 @@ export function createMemoryBackend(): Backend {
         // either theirs or empty. Empty is what makes them eligible for the
         // profile bonus, which is correct — they have told us nothing yet.
         id: `m_${randomUUID()}`, phone, name: normalizeName(name),
+        phoneVerifiedAt: null,
+        purchasePointsDebt: 0,
         birthday: null, gender: null,
         // Never paid for anything yet — the referral rail's clock starts here.
         firstPaidAt: null,
@@ -536,6 +544,14 @@ export function createMemoryBackend(): Backend {
       byPhone.set(phone, m.id);
       history.set(m.id, []);
       return m;
+    },
+    async verifyMemberPhone(id, verifiedPhone, at) {
+      const m = must(id);
+      const stamp = at.toISOString();
+      if (m.phone !== verifiedPhone || !verifiedReferralPhone(verifiedPhone, stamp)) {
+        throw conflict('phone_verification_mismatch', 'the verified Jordanian phone must belong to this member');
+      }
+      m.phoneVerifiedAt = stamp;
     },
     async getMember(id) { return must(id); },
     async findMemberByPhone(phone) {
@@ -574,8 +590,7 @@ export function createMemoryBackend(): Backend {
       // «ولا تتجدد بشراء جديد» — a new purchase renews nothing. `delta === 0`
       // (a small invoice) writes no lot but still logs, so `history` stays the
       // complete ledger `unexplainedPoints` subtracts.
-      const grant = grantLot(m.lots, delta, 'earn', at, LOTS);
-      m.lots = grant.lots;
+      const grant = grantPointCredit(m, delta, 'earn', at, (line) => log(id, line));
       log(id, {
         deltaPoints: delta, reasonAr, reasonEn, createdAt: at.toISOString(),
         kind, expiresOn: grant.lot?.expiresOn ?? null,
@@ -614,14 +629,22 @@ export function createMemoryBackend(): Backend {
       m.gender = profile.gender;
 
       let pointsBalance = liveBalance(m.lots, new Date());
+      let bonusRecoveredPoints = 0;
       if (bonus > 0) {
         // Stamp FIRST. If the grant threw between the two, an unstamped member
         // could be paid twice on retry; an over-stamped one is merely unpaid,
         // and that is the failure a human can see and fix. Fail closed.
-        m.profileBonusAt = new Date().toISOString();
-        pointsBalance = await this.addPoints(id, bonus, 'إكمال بياناتك', 'Profile completed');
+        const at = new Date();
+        m.profileBonusAt = at.toISOString();
+        settleExpiry(m, at);
+        const grant = grantPointCredit(m, bonus, 'earn', at, (line) => log(id, line));
+        bonusRecoveredPoints = grant.recoveredPoints;
+        log(id, { deltaPoints: bonus, reasonAr: 'إكمال بياناتك', reasonEn: 'Profile completed',
+          createdAt: at.toISOString(), kind: 'bonus', expiresOn: grant.lot?.expiresOn ?? null });
+        pointsBalance = liveBalance(m.lots, at);
       }
-      return { profile: { name, birthday: m.birthday, gender: m.gender }, bonusGranted: bonus, pointsBalance };
+      return { profile: { name, birthday: m.birthday, gender: m.gender }, bonusGranted: bonus,
+        bonusAvailablePoints: bonus - bonusRecoveredPoints, bonusRecoveredPoints, pointsBalance };
     },
     async recordSpend(id, jod, occurredOn) {
       applySpend(must(id), jod, new Date(), occurredOn);
@@ -821,22 +844,27 @@ export function createMemoryBackend(): Backend {
         }
         if (input.pointsEarned < 0) throw conflict('negative_grant', 'A grant cannot be negative');
         settleExpiry(m, at);
-        const grant = grantLot(m.lots, input.pointsEarned, 'earn', at, LOTS);
-        m.lots = grant.lots;
+        const grant = grantPointCredit(m, input.pointsEarned, 'earn', at, (line) => log(id, line), `order:${order.id}`);
         log(id, {
           deltaPoints: input.pointsEarned, reasonAr: input.pointsReasonAr,
           reasonEn: input.pointsReasonEn, createdAt: at.toISOString(),
           kind: 'purchase', branchId: input.order.branchId, sourceRef: `order:${order.id}`,
+          purchasePointsRecovered: grant.recoveredPoints,
           expiresOn: grant.lot?.expiresOn ?? null,
         });
         // A paid order settles the welcome gift, beside its own points.
-        if (input.spendJod !== null) settleWelcome(m, at, input.order.branchId);
+        if (input.spendJod !== null && Number.isFinite(input.spendJod) && input.spendJod > 0) {
+          settleWelcome(m, at, input.order.branchId);
+        }
         if (input.spendJod !== null) applySpend(m, input.spendJod, at);
         // LAST, after every step that can refuse: a paid order is the
         // referral rail's trigger (settlePaidOrder).
-        if (input.spendJod !== null) undoReferral = settlePaidOrder(m, at);
+        if (input.spendJod !== null && Number.isFinite(input.spendJod) && input.spendJod > 0) {
+          undoReferral = settlePaidOrder(m, at);
+        }
         return {
           order,
+          pointsAvailable: grant.creditedPoints, pointsRecovered: grant.recoveredPoints,
           pointsBalance: liveBalance(m.lots, at),
           walletBalanceFils: liveBalance(m.walletLots, at),
           secondVisitVoucher,
@@ -882,12 +910,12 @@ export function createMemoryBackend(): Backend {
       let undoReferral = (): void => {};
       try {
         settleExpiry(m, at);
-        const grant = grantLot(m.lots, input.pointsEarned, 'earn', at, LOTS);
-        m.lots = grant.lots;
+        const grant = grantPointCredit(m, input.pointsEarned, 'earn', at, (line) => log(m.id, line), `pos:${input.posOrderRef}`);
         log(m.id, {
           deltaPoints: input.pointsEarned, reasonAr: input.reasonAr,
           reasonEn: input.reasonEn, createdAt: at.toISOString(),
           kind: 'purchase', branchId: input.branchId, sourceRef: `pos:${input.posOrderRef}`,
+          purchasePointsRecovered: grant.recoveredPoints,
           expiresOn: grant.lot?.expiresOn ?? null,
         });
         // Money was collected: the welcome gift is settled with this sale, and
@@ -900,7 +928,9 @@ export function createMemoryBackend(): Backend {
           posOrderRef: input.posOrderRef, memberId: m.id, branchId: input.branchId,
           paidFils: input.paidFils, paidAt: input.paidAt.toISOString(), spendDay,
           pointsEarned: input.pointsEarned, pointsBalanceAfter: liveBalance(m.lots, at),
-          earn: input.earn, status: 'earned', refundedFils: 0,
+          pointsAvailable: grant.creditedPoints, pointsRecovered: grant.recoveredPoints,
+          earn: input.earn, status: 'earned', refundedFils: 0, expiredReservedPoints: 0,
+          purchaseOriginKnown: true,
           reversedPoints: null, shortfall: null, reverseBalanceAfter: null,
           reverseReason: null, reversedAt: null, createdAt: at.toISOString(),
         };
@@ -935,9 +965,24 @@ export function createMemoryBackend(): Backend {
       const rollback = begin(m);
       try {
         settleExpiry(m, at);
-        const back = applyTillRefund(m.lots, m.spend, refundable(sale), plan, at);
+        // Owner is the critical section: invalidate held value before reading
+        // available points, so a later cancel cannot resurrect this earning.
+        for (const row of redemptions.values()) {
+          if (row.memberId === m.id && !row.settledAt && !row.cancelledAt) closeRedemption(m, row, at, 'Purchase refunded');
+        }
+        const evidence = expiredUnusedPurchasePoints([
+          ...[...redemptions.values()].filter((r) => r.memberId === m.id),
+          ...[...posSpends.values()].filter((s) => s.memberId === m.id).flatMap(unusedTenderEvidence),
+        ], `pos:${posOrderRef}`);
+        const lotEvidence = expiredUnusedPurchaseLotPoints(m.lots, `pos:${posOrderRef}`, at);
+        const prior = [...partialRefunds.values(), ...fullRefunds.values()].filter((r) => r.posOrderRef === posOrderRef);
+        const alreadyExempt = prior.reduce((n, r) => n + (r.expiredReservedPoints ?? 0), 0);
+        const expiredReservedPoints = Math.min(plan.targetPoints,
+          Math.max(0, Math.min(sale.pointsEarned, evidence.points + lotEvidence.points) - alreadyExempt));
+        const back = applyTillRefund(m.lots, m.spend, refundable(sale), { ...plan, targetPoints: plan.targetPoints - expiredReservedPoints }, at);
         m.lots = back.lots;
         m.spend = back.spend;
+        m.purchasePointsDebt = recoverPurchasePoints(m.purchasePointsDebt + back.shortfall, 0).debtAfter;
         const { reasonAr, reasonEn } = refundReasons(!!refund);
         log(m.id, {
           deltaPoints: -back.reversedPoints, reasonAr, reasonEn, createdAt: at.toISOString(),
@@ -948,6 +993,8 @@ export function createMemoryBackend(): Backend {
           refundRef: refund ? refund.refundRef : null, posOrderRef, memberId: m.id,
           refundedFils: plan.refundFils, targetPoints: plan.targetPoints,
           reversedPoints: back.reversedPoints, shortfall: back.shortfall,
+          expiredReservedPoints, reconciliationRequired: evidence.reviewRequired || lotEvidence.reviewRequired
+            || (sale.purchaseOriginKnown !== true && back.shortfall > 0),
           balanceAfter, reason, createdAt: at.toISOString(),
         };
         // Totals across EVERY refund of the sale, this one included — what the
@@ -960,6 +1007,7 @@ export function createMemoryBackend(): Backend {
             status: 'reversed',
             reversedPoints: all.reduce((n, x) => n + x.reversedPoints, 0),
             shortfall: all.reduce((n, x) => n + x.shortfall, 0),
+            expiredReservedPoints: all.reduce((n, x) => n + (x.expiredReservedPoints ?? 0), 0),
             reverseBalanceAfter: balanceAfter, reverseReason: reason, reversedAt: at.toISOString(),
           });
         }
@@ -1009,7 +1057,7 @@ export function createMemoryBackend(): Backend {
         const spend: TillSpend = {
           posOrderRef: input.posOrderRef, memberId: m.id, points: input.points, valueJod: input.valueJod,
           slices, pointsBalanceAfter: liveBalance(m.lots, at), status: 'spent',
-          returnedPoints: null, expiredPoints: null, reverseBalanceAfter: null,
+          returnedPoints: null, expiredPoints: null, recoveredPoints: 0, reverseBalanceAfter: null,
           reverseReason: null, reversedAt: null, createdAt: at.toISOString(),
         };
         posSpends.set(spend.posOrderRef, spend);
@@ -1028,15 +1076,18 @@ export function createMemoryBackend(): Backend {
       const rollback = begin(m);
       try {
         settleExpiry(m, at);
-        const back = restoreSlices(m.lots, spend.slices, at);
+        const back = creditPointSlices(m.lots, spend.slices, m.purchasePointsDebt, at);
         m.lots = back.lots;
+        m.purchasePointsDebt = back.debtAfter;
         log(m.id, {
-          deltaPoints: back.restored, reasonAr: 'إرجاع نقاط دفعة ملغاة في الفرع',
+          deltaPoints: back.returnedPoints + back.recoveredPoints, reasonAr: 'إرجاع نقاط دفعة ملغاة في الفرع',
           reasonEn: 'Points returned: in-store payment voided', createdAt: at.toISOString(),
           kind: 'return',
         });
+        logPointsRecovery((line) => log(m.id, line), back.recoveredPoints, at, `pos-spend:${posOrderRef}`);
         Object.assign(spend, {
-          status: 'reversed', returnedPoints: back.restored, expiredPoints: back.expired,
+          status: 'reversed', returnedPoints: back.returnedPoints, expiredPoints: back.expiredPoints,
+          recoveredPoints: back.recoveredPoints,
           reverseBalanceAfter: liveBalance(m.lots, at), reverseReason: reason, reversedAt: at.toISOString(),
         });
         return { spend: structuredClone(spend), replay: false };
@@ -1115,15 +1166,17 @@ export function createMemoryBackend(): Backend {
       // Refund anything already dead BEFORE spending again, so a member whose
       // last code lapsed can immediately re-spend those same points.
       sweep(m, now);
-      // 🔴 SPEND FIRST. spendPoints checks the LIVE balance and throws without
-      // touching a lot when it is short, so a redemption row can never exist
-      // against points the member did not have.
-      await api.spendPoints(id, points, 'استبدال نقاط', 'Points redeemed');
+      // No await between debit and row: one in-memory money movement, with
+      // the ORIGINAL slices kept for a cancellation or unused expiry.
+      settleExpiry(m, now);
+      const res = consumeFifo(m.lots, points, now);
+      if (!res.ok) throw conflict('insufficient_points', 'Not enough points');
+      const slices = spentSlices(m.lots, res.consumed);
       const row: RedemptionRow = {
         id: `rdm_${randomUUID()}`,
         memberId: id,
         code: newRedemptionCode(),
-        points,
+        points, slices, returnedPoints: null, expiredPoints: null, recoveredPoints: 0, refundReviewRequired: false,
         // Computed ONCE and stored: a later change to the redemption rate must
         // not revalue a code already in a member's hand.
         valueJod: jodFromPoints(points),
@@ -1131,15 +1184,23 @@ export function createMemoryBackend(): Backend {
         expiresAt: redemptionExpiresAt(now, loyalty.REDEMPTION_TTL_SECONDS),
         settledAt: null, cancelledAt: null, settledVia: null,
       };
+      m.lots = res.lots;
+      log(id, { deltaPoints: -points, reasonAr: 'استبدال نقاط', reasonEn: 'Points redeemed',
+        createdAt: now.toISOString(), kind: 'redeem', sourceRef: `redemption:${row.id}` });
       redemptions.set(row.id, row);
-      return { ...row };
+      return structuredClone(row);
     },
 
     async findRedemptionByCode(code) {
       const c = normalizeRedemptionCode(code);
       if (!c) return null;
       const row = [...redemptions.values()].find((r) => r.code === c);
-      return row ? { ...row } : null;
+      return row ? structuredClone(row) : null;
+    },
+
+    async getRedemption(memberId, redemptionId) {
+      const row = redemptions.get(redemptionId);
+      return row?.memberId === memberId ? structuredClone(row) : null;
     },
 
     async activeRedemption(id) {
@@ -1147,7 +1208,7 @@ export function createMemoryBackend(): Backend {
       sweep(must(id), now);
       const row = [...redemptions.values()]
         .find((r) => r.memberId === id && isRedeemable(r, now));
-      return row ? { ...row } : null;
+      return row ? structuredClone(row) : null;
     },
 
     async settleRedemption(rid, via, at) {
@@ -1162,18 +1223,18 @@ export function createMemoryBackend(): Backend {
       if (!isRedeemable(row, at)) throw conflict('redemption_expired', 'This code has expired');
       row.settledAt = at.toISOString();
       row.settledVia = via;
-      return { ...row };
+      return structuredClone(row);
     },
 
     async cancelRedemption(id, rid, at) {
       const row = redemptions.get(rid);
       if (!row || row.memberId !== id) throw notFound('redemption not found');
       if (row.settledAt) throw conflict('redemption_already_settled', 'This code has already been used');
-      if (row.cancelledAt) return { ...row };            // idempotent
-      row.cancelledAt = at.toISOString();
-      // The points come straight back — the member gave up the code unused.
-      await api.addPoints(id, row.points, 'إلغاء استبدال', 'Redemption cancelled', 'return');
-      return { ...row };
+      if (row.cancelledAt) return structuredClone(row); // idempotent
+      const m = must(id);
+      settleExpiry(m, at);
+      closeRedemption(m, row, at, 'Redemption cancelled');
+      return structuredClone(row);
     },
 
     async sweepRedemptions(id, at) { return sweep(must(id), at); },
@@ -1254,8 +1315,9 @@ export function createMemoryBackend(): Backend {
       if (existing && existing.code === code) return { referral: { ...existing }, replay: true };
       const referrer = must(ownerId);
       const refusal = referralAttachError({
-        memberId: m.id, memberPhone: m.phone, memberFirstPaidAt: m.firstPaidAt,
-        alreadyAttached: existing !== undefined, referrer: { id: referrer.id, phone: referrer.phone },
+        memberId: m.id, memberPhone: m.phone, memberPhoneVerifiedAt: m.phoneVerifiedAt,
+        memberFirstPaidAt: m.firstPaidAt, alreadyAttached: existing !== undefined,
+        referrer: { id: referrer.id, phone: referrer.phone, phoneVerifiedAt: referrer.phoneVerifiedAt },
       });
       if (refusal) throw attachRefused(refusal);
       const row: ReferralRow = {
@@ -1300,7 +1362,10 @@ export function createMemoryBackend(): Backend {
           settleExpiry(r, at);
           // The points arrive with the dates they left with — never a fresh
           // twelve months (restoreSlices; loyalty/transfer.ts).
-          r.lots = restoreSlices(r.lots, slices, at).lots;
+          const credit = creditPointSlices(r.lots, slices, r.purchasePointsDebt, at);
+          r.lots = credit.lots;
+          r.purchasePointsDebt = credit.debtAfter;
+          logPointsRecovery((line) => log(r.id, line), credit.recoveredPoints, at);
         } else {
           settleWalletExpiry(s, at);
           const res = consumeFifo(s.walletLots, amount, at);

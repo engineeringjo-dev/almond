@@ -26,6 +26,7 @@ import { signIn } from './lib/signIn';
 
 const row = (over: Partial<RedemptionRow> = {}): RedemptionRow => ({
   id: 'r1', memberId: 'm1', code: 'ABCD2345', points: 300, valueJod: 3,
+  slices: null, returnedPoints: null, expiredPoints: null, refundReviewRequired: false,
   createdAt: '2026-09-09T10:00:00.000Z',
   expiresAt: '2026-09-09T10:15:00.000Z',
   settledAt: null, cancelledAt: null, settledVia: null,
@@ -156,15 +157,14 @@ describe('T36d the redemption rail, end to end', () => {
     expect(b.redemption.expiresIn).toBeGreaterThan(loyalty.REDEMPTION_TTL_SECONDS - 10);
   });
 
-  it('the member can read their live code back, and mint a 60-second QR from it', async () => {
+  it('the member can read their live code back, and mint a separately timed, bound QR', async () => {
     const live = await app.inject({ method: 'GET', url: '/v1/me/redemption', headers: auth() });
     expect(live.json().redemption.status).toBe('pending');
 
     const qr = await app.inject({ method: 'POST', url: '/v1/me/redemption/qr', headers: auth() });
     expect(qr.statusCode, qr.body).toBe(201);
-    // 🔴 «صلاحيته دقيقة منذ انشاءه» — minted on demand, so the code held up to
-    // the scanner is never older than a minute however long the queue was.
-    expect(qr.json().expiresIn).toBe(config.POS_TOKEN_TTL_SECONDS);
+    expect(qr.json().expiresIn).toBe(config.REDEMPTION_QR_TTL_SECONDS);
+    expect(config.REDEMPTION_QR_TTL_SECONDS).toBe(120);
     expect(config.POS_TOKEN_TTL_SECONDS).toBe(60);
     expect(qr.json().mode).toBe('redeem');
   });

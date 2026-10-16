@@ -1,5 +1,5 @@
 import type { Lang } from '../types';
-import { toWesternDigits } from './phone';
+import { ltrIsolate, toWesternDigits } from './phone';
 
 /**
  * Almond operates in Jordan — Asia/Amman, permanently UTC+3 (no DST since 2022).
@@ -60,26 +60,33 @@ export function toAmmanISO(date: Date | number | string = new Date()): string {
 export const toFils = (jod: number): number => Math.round(jod * 1000);
 export const toJod = (fils: number): number => Math.round(fils) / 1000;
 
+// Reuse the fixed display formatter across menu rows and re-renders.
+const JOD_DISPLAY = new Intl.NumberFormat('en-US', {
+  useGrouping: false, minimumFractionDigits: 2, maximumFractionDigits: 2,
+});
+
 /**
- * Format JOD with 3 decimals (fils). AR: `X.XXX د.أ` | EN: `JOD X.XXX` (section 10).
+ * Customer display uses two decimals: AR `X.XX د.أ` | EN `JOD X.XX`.
+ * Intl rounds decimal half boundaries consistently (1.005 → 1.01). This is
+ * presentation only: raw JOD, integer fils and accounting keep their precision.
  */
 export function formatJOD(amount: number, lang: Lang): string {
-  const value = amount.toFixed(3);
+  const value = JOD_DISPLAY.format(amount === 0 ? 0 : amount);
   return lang === 'ar' ? `${value} د.أ` : `JOD ${value}`;
 }
 
 /**
- * A MOVEMENT of money, signed: «+20.000 د.أ», «−3.250 د.أ» / "+JOD 20.000".
+ * A MOVEMENT of money, signed: «+20.00 د.أ», «−3.25 د.أ» / "+JOD 20.00".
  *
  * In an Arabic line the sign and the digits must be one left-to-right run (an
  * isolate), or the bidi algorithm puts the sign on the number's far side
- * («3.250−»). Only the signed NUMBER is isolated: isolating the currency with
+ * («3.25−»). Only the signed NUMBER is isolated: isolating the currency with
  * it put «د.أ» before the number for an Arabic reader (the wallet statement,
  * 2026-10-15). Zero has no sign.
  */
 export function formatSignedJOD(amount: number, lang: Lang): string {
   const sign = amount > 0 ? '+' : amount < 0 ? '\u2212' : '';
-  const value = Math.abs(amount).toFixed(3);
+  const value = JOD_DISPLAY.format(Math.abs(amount));
   return lang === 'ar' ? `\u2066${sign}${value}\u2069 د.أ` : `${sign}JOD ${value}`;
 }
 
@@ -99,7 +106,8 @@ export function formatNumber(value: number, _lang: Lang): string {
  * «٣٠ أيلول» beside «3.500 د.أ» (audit P2). Dates and times now ask for the
  * Latin numbering system explicitly (`-u-nu-latn` + `numberingSystem`), and
  * the output is folded to Latin as well, for any engine that ignores both
- * (older Hermes/ICU builds). Month and AM/PM words stay Arabic.
+ * (older Hermes/ICU builds). AM/PM words stay Arabic; dates below use the
+ * owner's fixed day/month/year order rather than locale-dependent ordering.
  */
 export const DATE_LOCALE: Record<Lang, string> = { ar: 'ar-JO-u-nu-latn', en: 'en-US' };
 
@@ -117,7 +125,21 @@ export function formatTime(date: string | Date, lang: Lang): string {
 
 export function formatDate(date: string | Date, lang: Lang): string {
   const d = typeof date === 'string' ? new Date(date) : date;
-  return formatDateTime(d, lang, { timeZone: AMMAN_TZ, day: 'numeric', month: 'short' });
+  return formatCalendarDate(d, lang, AMMAN_TZ);
+}
+
+/** Full dates always read DD/MM/YYYY, even when the locale orders month
+ * first. Parts retain the correct calendar/time zone without borrowing the
+ * host's ordering, separators or digits. Arabic embeds one LTR date run. */
+function formatCalendarDate(d: Date, lang: Lang, timeZone: string, year = true): string {
+  const parts = new Intl.DateTimeFormat(DATE_LOCALE[lang], {
+    timeZone, calendar: 'gregory', numberingSystem: 'latn',
+    day: '2-digit', month: '2-digit', year: 'numeric',
+  }).formatToParts(d);
+  const part = (type: 'day' | 'month' | 'year', width: number) =>
+    toWesternDigits(parts.find((p) => p.type === type)!.value).padStart(width, '0');
+  const date = `${part('day', 2)}/${part('month', 2)}${year ? `/${part('year', 4)}` : ''}`;
+  return lang === 'ar' ? ltrIsolate(date) : date;
 }
 
 /**
@@ -133,9 +155,5 @@ export function formatDate(date: string | Date, lang: Lang): string {
  */
 export function formatDayKey(day: string, lang: Lang, opts: { year?: boolean } = {}): string {
   const [y, m, d] = day.split('-').map(Number);
-  return formatDateTime(new Date(Date.UTC(y, m - 1, d)), lang, {
-    timeZone: 'UTC', day: 'numeric', month: 'short',
-    // An expiry a year out needs its year: «15 أكتوبر» alone reads as this one.
-    ...(opts.year ? { year: 'numeric' as const } : {}),
-  });
+  return formatCalendarDate(new Date(Date.UTC(y, m - 1, d)), lang, 'UTC', opts.year !== false);
 }

@@ -124,6 +124,20 @@ export function walletRateName(
   return rateName((rules.pointsPerJod * stack * 100) / rules.pointsPerJodRedeem, lang);
 }
 
+/** Ordinary-purchase wallet uplift that every configured rung can receive.
+ * Presentation only: loading money earns nothing, flat combo points are not
+ * multiplied, and corporate-discount purchases remain ineligible. Floor the
+ * displayed percentage so a future ceiling cannot make copy over-promise. */
+export function walletExtraPercentage(rules: EarnRules = earnRulesFromConfig()): number {
+  const ratios = rules.tierRamp.map((tier) => {
+    const ordinary = Math.min(tier.multiplier, rules.maxEarnMultiplier);
+    const wallet = Math.min(tier.multiplier * rules.walletMultiplier, rules.maxEarnMultiplier);
+    return ordinary > 0 ? wallet / ordinary : 1;
+  });
+  const ratio = Math.min(...ratios);
+  return Number.isFinite(ratio) ? Math.max(0, Math.floor((ratio - 1) * 10000 + 1e-8) / 100) : 0;
+}
+
 /**
  * THE WHOLE PROGRAMME IN ONE SENTENCE'S NUMBERS: the lowest and highest rung
  * ("2%" … "6%") and what paying from the wallet multiplies them by ("1.5").

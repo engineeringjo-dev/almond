@@ -57,6 +57,7 @@ interface VisitLine {
   sourceRef?: string | null;
   branchId?: string | null;
   deltaPoints: number;
+  purchasePointsRecovered?: number;
   createdAt: string;
 }
 
@@ -94,7 +95,8 @@ export function pendingVisit(
   if (age < 0 || age > rules.promptDays * 86_400_000) return null;
   // An app order not yet collected: not yet — and not an older visit instead.
   if (newest.sourceRef.startsWith('order:') && age < rules.orderDelayMinutes * 60_000) return null;
-  return { ref: newest.sourceRef, branchId: newest.branchId, points: Math.max(0, newest.deltaPoints), at: newest.createdAt };
+  return { ref: newest.sourceRef, branchId: newest.branchId,
+    points: Math.max(0, newest.deltaPoints - (newest.purchasePointsRecovered ?? 0)), at: newest.createdAt };
 }
 
 /** Stars are a whole number from 1 to 5. */
