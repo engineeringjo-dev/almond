@@ -13,13 +13,14 @@
 
 </div>
 
-**Counts.** Top-level `docs/*.md`: 38 — **9 Current**, **15 Reference**, **14 Historical**. 19 of them carry a "⚠️ Historical" banner (20 with `ishbek/README.md`) (some Current and Reference documents carry one for specific outdated passages). Plus two non-Markdown files and seven sub-folders, classified below.
+**Counts.** Top-level `docs/*.md`: 39 — **10 Current**, **15 Reference**, **14 Historical**. 19 of them carry a "⚠️ Historical" banner (20 with `ishbek/README.md`) (some Current and Reference documents carry one for specific outdated passages). Plus two non-Markdown files and seven sub-folders, classified below.
 
 ## Current
 
 | Document | What it is | Banner |
 |---|---|---|
 | [`HANDOVER.md`](HANDOVER.md) | **Start here.** Handover pack (Arabic): what is live/mocked/missing, blockers, configuration, gate, decisions, day-one checklist. | — |
+| [`HANDOFF-CODEX.md`](HANDOFF-CODEX.md) | The handoff to Codex or any other agent (2026-10-16): state, the access the owner grants, every secret **by name and home only**, links, how to run, open work. Read with [`../AGENTS.md`](../AGENTS.md). | — |
 | [`INTEGRATIONS.md`](INTEGRATIONS.md) | Payments, POS & redeem, SMS, delivery via Ishbek, Odoo menu pull — files, status, what is left, env vars, tests. | — |
 | [`README.md`](README.md) | This index. | — |
 | [`DEPLOY.md`](DEPLOY.md) | The Vercel decision (project `almond`, root directory, why `outputDirectory` is required). Read before touching `vercel.json`. | yes — its opening "all five projects fail" is historical |
