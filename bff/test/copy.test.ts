@@ -550,7 +550,7 @@ describe('C14 the combo offer is surfaced, and its count comes from the dial', (
   const DECIDER = 'almond-app/lib/comboOffer.ts';
 
   const comboKeys = (rel: string): string[] =>
-    Object.keys(load(rel)).filter((k) => /^(offers|cart)\.combo/.test(k)).sort();
+    Object.keys(load(rel)).filter((k) => /^(offers|cart|campaign)\.combo/.test(k)).sort();
 
   it('C14a every combo string interpolates the count and states no number', () => {
     /**
@@ -685,7 +685,10 @@ describe('C14 the combo offer is surfaced, and its count comes from the dial', (
     expect(card, `${CARD} must decide through comboOfferCopy()`).toContain('comboOfferCopy(');
     expect(card, `${CARD} must read the count from config`).toContain('config.COMBO_BONUS_POINTS');
     expect(card, `${CARD} must pair through @almond/shared`).toContain('getComboStarter(');
-    expect(card).toMatch(/t\(\s*copy\.titleKey/);
+    // The owner-supplied photography has serving examples. Its visible and
+    // spoken summary now qualifies eligibility instead of claiming every
+    // physical food/drink qualifies; the count still uses the same params.
+    expect(card).toMatch(/t\(\s*'campaign\.comboSummary'\s*,\s*copy\.params/);
     expect(card).toMatch(/t\(\s*copy\.bodyKey/);
 
     // ... and it is mounted on the offers surface, which is mounted on Home.
@@ -765,7 +768,7 @@ describe('C20 no emoji in any customer string', () => {
   });
 });
 
-describe('C21 «كاش باك» in the headline only, and only with the computed ceiling', () => {
+describe('C21 cashback is a computed ceiling headline or the owner-approved points badge', () => {
   // The morning of 2026-10-15 this was a ban: 1 point = 1 qirsh, so "cashback"
   // is not wrong, but a member told «نقاط» on one screen and «الكاش باك» on the
   // next reads two programmes. That evening the owner chose the word for the
@@ -773,6 +776,10 @@ describe('C21 «كاش باك» in the headline only, and only with the computed
   // allowed in exactly the headline keys. Everywhere else what the member holds
   // is points and a rung is named by its rate.
   const CASHBACK = /كاش\s?باك|\bcash\s?back\b/i;
+  // Owner, 2026-10-16: show exactly “Cash back” / “50 points” in red on
+  // the price-free combo campaign. Only this app key may use that wording;
+  // its count remains dynamic, and the campaign explains these are points.
+  const COMBO_BADGE = 'Cash back\n{{points}} points';
   const HEADLINES: Record<string, readonly string[]> = {
     [APP_LOCALES.ar]: ['rewards.headline', 'onboarding.slide3Title'],
     [APP_LOCALES.en]: ['rewards.headline', 'onboarding.slide3Title'],
@@ -780,14 +787,25 @@ describe('C21 «كاش باك» in the headline only, and only with the computed
     [WEB_LOCALES.en]: ['Home.loyalty.title'],
   };
 
-  it('nowhere but the headline keys, in all four locale files', () => {
+  it('nowhere but the headline keys and the exact app points badge', () => {
     const offenders: string[] = [];
     for (const rel of ALL_LOCALES) {
       for (const [k, v] of Object.entries(load(rel))) {
-        if (CASHBACK.test(v) && !HEADLINES[rel]!.includes(k)) offenders.push(`${rel} ${k}: ${v}`);
+        const approvedPointsBadge = Object.values(APP_LOCALES).some((appRel) => appRel === rel)
+          && k === 'campaign.comboBadge' && v === COMBO_BADGE;
+        if (CASHBACK.test(v) && !HEADLINES[rel]!.includes(k) && !approvedPointsBadge) offenders.push(`${rel} ${k}: ${v}`);
       }
     }
     expect(offenders).toEqual([]);
+  });
+
+  it('the app combo badge names dynamic points in both languages, never an embedded price or rate', () => {
+    for (const rel of Object.values(APP_LOCALES)) {
+      const value = load(rel)['campaign.comboBadge'];
+      expect(value).toBe(COMBO_BADGE);
+      expect(placeholders(value!)).toEqual(['points']);
+      expect(value).not.toMatch(/\d|JOD|د\.أ|[%٪]/);
+    }
   });
 
   it('each headline says it with {max}, read off the dials, never a typed rate', () => {

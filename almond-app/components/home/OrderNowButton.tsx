@@ -1,13 +1,13 @@
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { router } from 'expo-router';
 
 import { PhotoTile } from '@/components/home/PhotoTile';
+import { campaignPhotos } from '@/components/home/campaignPhotos';
 import { OrderTypeSheet } from '@/components/order/OrderTypeSheet';
 import { useI18n } from '@/hooks/useI18n';
 import { useMenuState } from '@/hooks/useMenuState';
 import { formatJOD } from '@/lib/format';
 import { useCartStore, useCartCount, computeTotals } from '@/stores/cartStore';
-import { bestSellers } from '@almond/shared/lib/recommendations';
 import type { Branch } from '@/types';
 
 /**
@@ -21,9 +21,10 @@ import type { Branch } from '@/types';
  * it offers the order instead: the chooser first (pickup here, delivery
  * outside), as before.
  *
- * The photograph is the second most ordered drink. The first is already the
- * carousel's best-seller slide just below, and the same cup twice on one
- * screen reads as a mistake.
+ * The empty-order action uses the owner's extracted Almond cup: recognisable
+ * brand art for the whole menu, without implying the pictured combo is the
+ * only way to order. The existing 72pt action is not made taller. A live cart
+ * still shows its own first item and opens the existing cart review.
  */
 export function OrderNowButton({ branch }: { branch?: Branch }) {
   const { t, lang } = useI18n();
@@ -31,11 +32,6 @@ export function OrderNowButton({ branch }: { branch?: Branch }) {
   const menu = useMenuState();
   const items = useCartStore((s) => s.items);
   const count = useCartCount();
-
-  const photo = useMemo(() => {
-    const [first, second] = bestSellers(2, { kind: 'drink', items: menu.items });
-    return (second ?? first)?.imageUrl;
-  }, [menu.items]);
 
   if (count > 0) {
     const total = computeTotals(items, 0).total;
@@ -62,7 +58,7 @@ export function OrderNowButton({ branch }: { branch?: Branch }) {
         variant="order"
         title={t('home.quickOrder')}
         subtitle={branchName ? t('home.pickupAt', { branch: branchName }) : undefined}
-        photos={[photo]}
+        artwork={campaignPhotos.cup}
         icon="coffee"
         plate={72}
         onPress={() => setOpen(true)}

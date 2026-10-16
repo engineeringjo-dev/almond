@@ -59,9 +59,22 @@ import {
   Tag,
   Inbox,
   ArrowUpRight,
+  createLucideIcon,
   type LucideIcon,
 } from 'lucide-react-native';
 import { colors } from '@/constants/theme';
+
+/**
+ * Money coming back: a currency-neutral coin inside a return arrow.
+ * Uses the installed Lucide RotateCcw geometry and Coins' numeral treatment,
+ * through its native factory, so size, rounded strokes and color stay shared.
+ */
+const Cashback = createLucideIcon('Cashback', [
+  ['circle', { cx: '13', cy: '13', r: '4.5', key: 'coin' }],
+  ['path', { d: 'M12 11h1v4', key: 'coin-value' }],
+  ['path', { d: 'M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8', key: 'return' }],
+  ['path', { d: 'M3 3v5h5', key: 'return-head' }],
+]);
 
 /**
  * Unified icon set (Revision Pack §M): one consistent line-icon family
@@ -103,6 +116,7 @@ export type IconName =
   | 'search'
   | 'sparkles'
   | 'coins'
+  | 'cashback'
   | 'cash'
   | 'cliq'
   | 'plus'
@@ -169,6 +183,7 @@ const REGISTRY: Record<IconName, LucideIcon> = {
   search: Search,
   sparkles: Sparkles,
   coins: Coins,
+  cashback: Cashback,
   cash: Banknote,
   cliq: Smartphone,
   plus: Plus,

@@ -659,5 +659,27 @@
   "welcomeGift": {
     "pending": "{{points}} gift points, added to your balance with your first purchase",
     "pendingA11y": "Welcome gift: {{points}} points, added with your first purchase"
+  },
+  "campaign": {
+    "title": "From Almond",
+    "comboName": "Almond Combo",
+    "comboBadge": "Cash back\n{{points}} points",
+    "comboSummary": "A drink + food = {{points}} points instead of those items’ usual points.",
+    "viewCombos": "Explore Almond Combo",
+    "chooseCombo": "Choose your drink and food",
+    "exampleNote": "Photos are serving suggestions. Choose your drink and food from eligible menu items.",
+    "pointsNote": "Once per invoice: loyalty points, not cash or wallet credit.",
+    "comboCookie": "Americano & cookie",
+    "comboCroissant": "Americano & croissant",
+    "comboEggBagel": "Americano & egg bagel",
+    "comboCheeseBagel": "Americano & cheese bagel",
+    "cateringTitle": "Catering & group orders",
+    "cateringAction": "Contact us for catering",
+    "cateringBody": "A mini selection to share. Contact us to arrange your order.",
+    "cafeTitle": "Coffee at Almond",
+    "cafeBody": "Choose a drink and something to enjoy with it from the menu.",
+    "browseMenu": "Browse the menu",
+    "moreOffers": "More from Almond",
+    "comboEligibility": "For eligible menu drink and food items."
   }
 }
