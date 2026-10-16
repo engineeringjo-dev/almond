@@ -208,7 +208,7 @@ test.describe('App design system: targets, digits, direction, names', () => {
     for (let i = 0; i < Math.min(3, await milk.count()); i += 1) {
       expect(Math.round((await box(milk.nth(i))).height), `milk option ${i}`).toBeGreaterThanOrEqual(44);
     }
-    const plus = sheet.getByRole('button', { name: 'زيادة الكمية' });
+    const plus = sheet.getByRole('button', { name: `زيادة كمية ${LATTE}`, exact: true });
     const p = await box(plus);
     expect(Math.round(Math.min(p.width, p.height))).toBeGreaterThanOrEqual(44);
     await sheet.getByRole('button', { name: 'إغلاق' }).click();
@@ -318,7 +318,11 @@ test.describe('App design system: wide windows', () => {
     await openItem(page, LATTE);
     const sheetBtn = await box(page.getByRole('dialog').getByRole('button', { name: /أضف للسلة/ }));
     expect(sheetBtn.width).toBeLessThanOrEqual(640);
-    expect(centred(sheetBtn, page)).toBeLessThan(2);
+    // Direction A puts quantity beside Add. Their shared action row, rather
+    // than the individual button, is the centred, width-capped sheet content.
+    const actions = await box(page.getByRole('dialog').getByRole('button', { name: /أضف للسلة/ }).locator('..'));
+    expect(actions.width).toBeLessThanOrEqual(640);
+    expect(centred(actions, page)).toBeLessThan(2);
     await page.getByRole('dialog').getByRole('button', { name: 'إغلاق' }).click();
 
     // The Order column: its sub-tab strip spans it edge to edge.

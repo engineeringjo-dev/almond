@@ -1,5 +1,5 @@
 import { useMemo, useState, useEffect } from 'react';
-import { View, StyleSheet, Pressable, Image } from 'react-native';
+import { View, StyleSheet, Pressable, Image, useWindowDimensions } from 'react-native';
 
 import { BottomSheet } from '@/components/ui/BottomSheet';
 import { Text } from '@/components/ui/Text';
@@ -32,6 +32,8 @@ interface Props {
 /** Item customization bottom sheet (section 4.5). */
 export function ItemModal({ item, visible, onClose }: Props) {
   const { t, lang } = useI18n();
+  const { width, fontScale } = useWindowDimensions();
+  const stackFooter = width < 360 || fontScale > 1.2;
   const addItem = useCartStore((s) => s.addItem);
   const favIds = useFavouritesStore((s) => s.ids);
   const toggleFav = useFavouritesStore((s) => s.toggle);
@@ -41,6 +43,8 @@ export function ItemModal({ item, visible, onClose }: Props) {
   const [qty, setQty] = useState(1);
   // Pairings the customer ticked; they join the cart with «أضف للسلة», not before.
   const [staged, setStaged] = useState<string[]>([]);
+  const [failedImage, setFailedImage] = useState<string | null>(null);
+  const hasPhoto = !!item?.imageUrl && failedImage !== item.imageUrl;
 
   // Reset state whenever a new item opens; default single-choice to first option.
   useEffect(() => {
@@ -119,17 +123,25 @@ export function ItemModal({ item, visible, onClose }: Props) {
       label={lang === 'ar' ? item.nameAr : item.nameEn}
       footer={
         <View style={styles.footer}>
-          <View aria-live="polite">
-            {includes ? (
+          {includes ? (
+            <View aria-live="polite">
               <Text variant="caption" color={colors.dark} center>
                 {t('menu.totalIncludes', {
                   items: includes.names,
                   price: formatJOD(includes.total, lang),
                 })}
               </Text>
-            ) : null}
+            </View>
+          ) : null}
+          <View style={[styles.footerActions, stackFooter && styles.footerActionsStacked]}>
+            <Stepper value={qty} onChange={setQty} label={lang === 'ar' ? item.nameAr : item.nameEn} />
+            <Button
+              title={`${t('menu.addToCart')} · ${formatJOD(total, lang)}`}
+              onPress={onAdd}
+              fullWidth={stackFooter}
+              style={stackFooter ? styles.addButtonStacked : styles.addButton}
+            />
           </View>
-          <Button title={`${t('menu.addToCart')} · ${formatJOD(total, lang)}`} onPress={onAdd} />
         </View>
       }
     >
@@ -137,10 +149,10 @@ export function ItemModal({ item, visible, onClose }: Props) {
         {/* Favourite ♥ — saves the drink to the Order › Favourites sub-tab (§2.4). */}
         <Pressable
           onPress={() => toggleFav(item.id)}
-          style={styles.favBtn}
-          hitSlop={8}
+          style={({ pressed }) => [styles.favBtn, pressed && styles.pressed]}
           accessibilityRole="button"
           accessibilityLabel={isFav ? t('order.favRemove') : t('order.favAdd')}
+          aria-pressed={isFav}
         >
           <Icon name="heart" size={22} color={isFav ? colors.red : colors.warmGray} strokeWidth={2} />
         </Pressable>
@@ -149,31 +161,33 @@ export function ItemModal({ item, visible, onClose }: Props) {
             panel, 2026-10-15). Precedent: Talabat and Starbucks open an item
             on its photo. White in both schemes: the menu photos are shot on
             white. */}
-        <View style={[styles.hero, item.imageUrl ? styles.heroPhoto : styles.heroIcon]}>
-          {item.imageUrl ? (
+        <View style={[styles.hero, hasPhoto ? styles.heroPhoto : styles.heroIcon]}>
+          {hasPhoto ? (
             <Image
               source={{ uri: menuImage(item.imageUrl, 720) }}
               style={styles.photo}
               resizeMode="contain"
               accessibilityIgnoresInvertColors
+              onError={() => setFailedImage(item.imageUrl ?? null)}
             />
           ) : (
             <Icon name={iconForCategory(item.categoryId)} size={72} color={colors.dark} strokeWidth={1.4} />
           )}
-          {item.imageUrl ? <PhotoDim /> : null}
+          {hasPhoto ? <PhotoDim /> : null}
         </View>
-        <Text variant="h2" center>{lang === 'ar' ? item.nameAr : item.nameEn}</Text>
+        <Text variant="h2">{lang === 'ar' ? item.nameAr : item.nameEn}</Text>
         {secondaryName(item, lang) ? (
-          <Text variant="caption" color={colors.warmGray} center>
+          <Text variant="caption" color={colors.warmGray}>
             {secondaryName(item, lang)}
           </Text>
         ) : null}
+        <Text variant="price" style={styles.unitPrice}>{formatJOD(unit, lang)}</Text>
         {/* The description in the reader's language, gated on THAT field: the
             gate read `descAr` in English too, so an English description with
             no Arabic one never showed, and an Arabic one with no English one
             printed an empty line. */}
         {desc ? (
-          <Text variant="body" color={colors.warmGray} center style={styles.desc}>
+          <Text variant="body" color={colors.warmGray} style={styles.desc}>
             {desc}
           </Text>
         ) : null}
@@ -224,7 +238,7 @@ export function ItemModal({ item, visible, onClose }: Props) {
             {item.sizes.map((s) => (
               <Pressable
                 key={s.id}
-                style={[styles.sizeChip, s.id === sizeId && styles.sizeChipActive]}
+                style={({ pressed }) => [styles.sizeChip, s.id === sizeId && styles.sizeChipActive, pressed && styles.pressed]}
                 onPress={() => setSizeId(s.id)}
                 {...choiceA11y(
                   'radio',
@@ -235,10 +249,10 @@ export function ItemModal({ item, visible, onClose }: Props) {
                   }),
                 )}
               >
-                <Text variant="bodyBold" color={s.id === sizeId ? colors.dark : colors.warmGray}>
+                <Text variant="bodyBold" color={s.id === sizeId ? colors.onInk : colors.dark} center>
                   {lang === 'ar' ? s.nameAr : s.nameEn}
                 </Text>
-                <Text variant="caption" color={s.id === sizeId ? colors.dark : colors.warmGray}>
+                <Text variant="caption" color={s.id === sizeId ? colors.onInk : colors.warmGray} center>
                   {formatJOD(s.price, lang)}
                 </Text>
               </Pressable>
@@ -249,9 +263,9 @@ export function ItemModal({ item, visible, onClose }: Props) {
 
       {/* Size upsell (Starbucks "upsize") */}
       {upsell ? (
-        <Pressable style={styles.upsell} onPress={() => setSizeId(upsell.size.id)} accessibilityRole="button">
+        <Pressable style={({ pressed }) => [styles.upsell, pressed && styles.pressed]} onPress={() => setSizeId(upsell.size.id)} accessibilityRole="button">
           <Icon name="arrow-up" size={18} color={colors.dark} strokeWidth={2.2} />
-          <Text variant="bodyBold" color={colors.dark} style={styles.flex}>
+          <Text variant="caption" color={colors.dark} style={styles.flex}>
             {t('menu.upsize', {
               size: lang === 'ar' ? upsell.size.nameAr : upsell.size.nameEn,
               delta: formatJOD(upsell.delta, lang),
@@ -265,14 +279,14 @@ export function ItemModal({ item, visible, onClose }: Props) {
           {/* One answer (milk, size-like choices) is a radiogroup; many
               («إضافات», flavours) are checkboxes — so a screen reader says
               which, and which are on. */}
-          <View style={styles.optionWrap} {...choiceGroupA11y(g.multiple, lang === 'ar' ? g.nameAr : g.nameEn)}>
+          <View style={styles.optionList} {...choiceGroupA11y(g.multiple, lang === 'ar' ? g.nameAr : g.nameEn)}>
             {g.options.map((o) => {
               const isSel = (selected[g.id] ?? []).includes(o.id);
               const name = lang === 'ar' ? o.nameAr : o.nameEn;
               return (
                 <Pressable
                   key={o.id}
-                  style={[styles.optChip, isSel && styles.optChipActive]}
+                  style={({ pressed }) => [styles.optionItem, styles.optChip, pressed && styles.optionPressed]}
                   onPress={() => toggle(g.id, o.id, g.multiple)}
                   {...choiceA11y(
                     g.multiple ? 'checkbox' : 'radio',
@@ -282,10 +296,15 @@ export function ItemModal({ item, visible, onClose }: Props) {
                       : name,
                   )}
                 >
-                  <Text variant="caption" color={isSel ? colors.dark : colors.warmGray}>
+                  <ChoiceMark selected={isSel} multiple={g.multiple} />
+                  <Text variant="body" style={styles.flex}>
                     {lang === 'ar' ? o.nameAr : o.nameEn}
-                    {o.priceDelta > 0 ? ` +${formatJOD(o.priceDelta, lang)}` : ''}
                   </Text>
+                  {o.priceDelta > 0 ? (
+                    <Text variant="caption" color={colors.warmGray} style={styles.optionPrice}>
+                      +{formatJOD(o.priceDelta, lang)}
+                    </Text>
+                  ) : null}
                 </Pressable>
               );
             })}
@@ -293,14 +312,10 @@ export function ItemModal({ item, visible, onClose }: Props) {
         </Section>
       ))}
 
-      <Section title={t('menu.quantity')}>
-        <Stepper value={qty} onChange={setQty} />
-      </Section>
-
       {/* Cross-sell: goes great with */}
       {pairings.length > 0 ? (
         <Section title={t('menu.pairsWith')}>
-          <View style={styles.pairWrap} {...choiceGroupA11y(true, t('menu.pairsWith'))}>
+          <View style={styles.optionList} {...choiceGroupA11y(true, t('menu.pairsWith'))}>
             {pairings.map((p) => {
               // A tick, not an add: a second tap takes it back off, and nothing
               // reaches the cart until «أضف للسلة» (which now counts it).
@@ -310,20 +325,15 @@ export function ItemModal({ item, visible, onClose }: Props) {
               return (
                 <Pressable
                   key={p.id}
-                  style={[styles.pairChip, isStaged && styles.pairChipAdded]}
+                  style={({ pressed }) => [styles.optionItem, styles.pairChip, pressed && styles.optionPressed]}
                   onPress={() => setStaged((prev) => togglePairing(prev, p.id))}
                   {...choiceA11y('checkbox', isStaged, t('common.withPrice', { name, price }))}
                 >
-                  <Icon
-                    name={isStaged ? 'check' : iconForCategory(p.categoryId)}
-                    size={18}
-                    color={isStaged ? colors.onInk : colors.primary}
-                    strokeWidth={isStaged ? 2.4 : 1.8}
-                  />
-                  <Text variant="caption" color={isStaged ? colors.onInk : colors.dark}>
+                  <ChoiceMark selected={isStaged} multiple />
+                  <Text variant="body" style={styles.flex}>
                     {name}
                   </Text>
-                  <Text variant="caption" color={isStaged ? colors.onInk : colors.gold}>
+                  <Text variant="caption" color={colors.warmGray} style={styles.optionPrice}>
                     {price}
                   </Text>
                 </Pressable>
@@ -333,6 +343,25 @@ export function ItemModal({ item, visible, onClose }: Props) {
         </Section>
       ) : null}
     </BottomSheet>
+  );
+}
+
+/** Selection is visible in the control itself, alongside the spoken state. */
+function ChoiceMark({ selected, multiple }: { selected: boolean; multiple: boolean }) {
+  return (
+    <View
+      aria-hidden
+      style={[
+        styles.choiceMark,
+        multiple ? styles.checkMark : styles.radioMark,
+        selected && styles.choiceMarkSelected,
+        selected && multiple && styles.checkMarkSelected,
+      ]}
+    >
+      {selected ? (
+        multiple ? <Icon name="check" size={14} color={colors.onInk} strokeWidth={2.4} /> : <View style={styles.radioDot} />
+      ) : null}
+    </View>
   );
 }
 
@@ -348,25 +377,29 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 }
 
 const styles = StyleSheet.create({
-  header: { alignItems: 'center', gap: 2, marginBottom: spacing.md },
+  header: { gap: 2, marginBottom: spacing.lg },
   footer: { gap: spacing.sm },
+  footerActions: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  footerActionsStacked: { flexDirection: 'column', alignItems: 'stretch' },
+  addButton: { flex: 1, paddingHorizontal: spacing.sm },
+  addButtonStacked: { paddingHorizontal: spacing.md },
+  pressed: { opacity: 0.75 },
   // Inside the photograph's corner, where Talabat and Starbucks put it.
   favBtn: {
     position: 'absolute',
     top: spacing.sm,
     end: spacing.sm,
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: colors.neutralWarm,
+    width: MIN_TOUCH_TARGET,
+    height: MIN_TOUCH_TARGET,
+    borderRadius: radius.pill,
+    backgroundColor: colors.surface,
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 2,
   },
   hero: {
     alignSelf: 'stretch',
-    height: 240,
-    borderRadius: radius.lg,
+    height: 248,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: spacing.md,
@@ -376,11 +409,12 @@ const styles = StyleSheet.create({
   // No photo: a quiet fill under an ink icon, which is light in dark mode
   // and would vanish on white.
   heroIcon: { backgroundColor: colors.neutralWarm },
-  // The product fills about half of each square frame; the zoom crops the
-  // white margin so the product, not the paper, fills the frame.
-  photo: { width: '100%', height: '100%', transform: [{ scale: 1.3 }] },
+  // Trim only the photograph's white margin; the product and handle remain
+  // inside the frame at every sheet width.
+  photo: { width: '100%', height: '100%', transform: [{ scale: 1.15 }] },
+  unitPrice: { marginTop: spacing.xs },
   desc: { marginTop: spacing.sm },
-  diet: { flexDirection: 'row', justifyContent: 'center', marginTop: spacing.md },
+  diet: { flexDirection: 'row', marginTop: spacing.md },
   // On the quiet fill, not the selection fill: green on `neutralWarm` is
   // 4.57:1 (7.6:1 dark); on `lightGold` it was 4.21:1 and read as selected.
   dietPill: {
@@ -396,7 +430,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
-    backgroundColor: colors.lightGold,
+    backgroundColor: colors.surface,
     borderRadius: radius.md,
     padding: spacing.md,
     marginBottom: spacing.md,
@@ -411,43 +445,39 @@ const styles = StyleSheet.create({
     padding: spacing.md,
     marginBottom: spacing.lg,
   },
-  pairWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
-  pairChip: {
+  optionList: { alignSelf: 'stretch' },
+  optionItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.xs,
-    minHeight: MIN_TOUCH_TARGET,
-    backgroundColor: colors.surface,
-    borderWidth: 1.5,
-    borderColor: colors.outline,
-    borderRadius: radius.pill,
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.md,
-  },
-  pairChipAdded: { backgroundColor: colors.green, borderColor: colors.green },
-  section: { marginBottom: spacing.lg },
-  sectionTitle: { marginBottom: spacing.sm },
-  optionRow: { flexDirection: 'row', gap: spacing.sm },
-  optionWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
-  sizeChip: {
-    flex: 1,
-    alignItems: 'center',
+    gap: spacing.sm,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: colors.neutralWarm,
     paddingVertical: spacing.md,
-    borderRadius: radius.md,
-    backgroundColor: colors.surface,
-    borderWidth: 1.5,
-    borderColor: colors.outline,
   },
-  sizeChipActive: { borderColor: colors.gold, backgroundColor: colors.lightGold },
-  optChip: {
-    minHeight: MIN_TOUCH_TARGET,
-    justifyContent: 'center',
-    paddingHorizontal: spacing.md,
+  optChip: { minHeight: MIN_TOUCH_TARGET },
+  pairChip: { minHeight: MIN_TOUCH_TARGET },
+  optionPressed: { backgroundColor: colors.surface },
+  optionPrice: { flexShrink: 0, fontVariant: ['tabular-nums'] },
+  choiceMark: { width: 18, height: 18, borderWidth: 1, borderColor: colors.outline, alignItems: 'center', justifyContent: 'center' },
+  radioMark: { borderRadius: radius.pill },
+  checkMark: { borderRadius: spacing.xs },
+  choiceMarkSelected: { borderColor: colors.primary },
+  checkMarkSelected: { backgroundColor: colors.primary },
+  radioDot: { width: 10, height: 10, borderRadius: radius.pill, backgroundColor: colors.primary },
+  section: { marginBottom: spacing.xl },
+  sectionTitle: { marginBottom: spacing.sm },
+  optionRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
+  sizeChip: {
+    flexBasis: 0,
+    flexGrow: 1,
+    minWidth: 80,
+    alignItems: 'center',
     paddingVertical: spacing.sm,
-    borderRadius: radius.pill,
-    backgroundColor: colors.surface,
-    borderWidth: 1.5,
+    paddingHorizontal: spacing.xs,
+    borderRadius: radius.md,
+    backgroundColor: colors.cream,
+    borderWidth: 1,
     borderColor: colors.outline,
   },
-  optChipActive: { borderColor: colors.gold, backgroundColor: colors.lightGold },
+  sizeChipActive: { borderColor: colors.primary, backgroundColor: colors.primary },
 });

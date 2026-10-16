@@ -3,7 +3,7 @@ import { Pressable, StyleSheet, View } from 'react-native';
 import { Text } from '@/components/ui/Text';
 import { Icon, type IconName } from '@/components/ui/Icon';
 import { Skeleton } from '@/components/ui/Skeleton';
-import { colors, radius, spacing } from '@/constants/theme';
+import { colors, fontSize, radius, spacing } from '@/constants/theme';
 import { MIN_TOUCH_TARGET } from '@/lib/a11y';
 
 interface Props {
@@ -40,14 +40,14 @@ export function RewardsTile({ icon, title, subline, onPress }: Props) {
     >
       <View style={styles.head}>
         <Icon name={icon} size={20} color={colors.dark} strokeWidth={1.9} />
-        <Text variant="bodyBold" numberOfLines={1} style={styles.title}>
+        <Text variant="bodyBold" style={styles.title}>
           {title}
         </Text>
       </View>
       {subline === undefined ? (
         <Skeleton width="60%" height={20} />
       ) : (
-        <Text variant="caption" color={colors.warmGray} numberOfLines={2}>
+        <Text variant="caption" color={colors.warmGray} style={styles.subline}>
           {subline}
         </Text>
       )}
@@ -63,10 +63,12 @@ const styles = StyleSheet.create({
     minHeight: MIN_TOUCH_TARGET,
     gap: spacing.xs,
     padding: spacing.md,
-    borderRadius: radius.lg,
+    borderRadius: radius.md,
+    borderCurve: 'continuous',
     backgroundColor: colors.surface,
   },
   pressed: { opacity: 0.85 },
   head: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
-  title: { flex: 1 },
+  title: { flex: 1, minWidth: 0 },
+  subline: { fontSize: fontSize.xs, lineHeight: 20 },
 });

@@ -19,6 +19,7 @@ export function HeroCard({ style, children }: { style?: StyleProp<ViewStyle>; ch
 const styles = StyleSheet.create({
   hero: {
     backgroundColor: colors.hero,
+    borderCurve: 'continuous',
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: colors.heroEdge,
   },

@@ -8,6 +8,7 @@ import { Skeleton } from '@/components/ui/Skeleton';
 import { colors, spacing, radius } from '@/constants/theme';
 import { useI18n } from '@/hooks/useI18n';
 import { useEarnSheetStore } from '@/stores/earnSheetStore';
+import { MIN_TOUCH_TARGET } from '@/lib/a11y';
 import type { Branch } from '@/types';
 
 interface Props {
@@ -47,7 +48,7 @@ export function HomeTopBar({ branch, loading, error, onRetry, onBranchPress }: P
       </View>
 
       {error && !branch ? (
-        <Pressable style={styles.chip} onPress={onRetry} accessibilityRole="button">
+        <Pressable style={({ pressed }) => [styles.chip, pressed && styles.pressed]} onPress={onRetry} accessibilityRole="button">
           <Icon name="alert" size={15} color={colors.dark} />
           <Text variant="caption" color={colors.dark} numberOfLines={1} style={styles.chipText}>
             {t('home.branchesError')}
@@ -59,7 +60,7 @@ export function HomeTopBar({ branch, loading, error, onRetry, onBranchPress }: P
           <Skeleton width="60%" height={12} />
         </View>
       ) : (
-        <Pressable style={styles.chip} onPress={onBranchPress} accessibilityRole="button">
+        <Pressable style={({ pressed }) => [styles.chip, pressed && styles.pressed]} onPress={onBranchPress} accessibilityRole="button">
           <Icon name="map-pin" size={15} color={colors.dark} />
           <Text variant="caption" color={colors.dark} numberOfLines={1} style={styles.chipText}>
             {branchName}
@@ -73,7 +74,7 @@ export function HomeTopBar({ branch, loading, error, onRetry, onBranchPress }: P
             tap away from Home at any time (owner, 2026-10-15, after Al Ameed). */}
         <Pressable
           onPress={() => openEarnSheet()}
-          style={styles.iconBtn}
+          style={({ pressed }) => [styles.iconBtn, pressed && styles.pressed]}
           accessibilityRole="button"
           accessibilityLabel={t('earnSheet.open')}
         >
@@ -81,7 +82,7 @@ export function HomeTopBar({ branch, loading, error, onRetry, onBranchPress }: P
         </Pressable>
         <Pressable
           onPress={() => router.push('/notifications')}
-          style={styles.iconBtn}
+          style={({ pressed }) => [styles.iconBtn, pressed && styles.pressed]}
           accessibilityRole="button"
           accessibilityLabel={t('notifications.title')}
         >
@@ -105,7 +106,7 @@ const styles = StyleSheet.create({
    *  plain text with an arrow. */
   chip: {
     flex: 1,
-    minHeight: 40,
+    minHeight: MIN_TOUCH_TARGET,
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.xs,
@@ -115,5 +116,6 @@ const styles = StyleSheet.create({
   },
   chipText: { flex: 1 },
   actions: { flexDirection: 'row' },
-  iconBtn: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
+  iconBtn: { width: MIN_TOUCH_TARGET, height: MIN_TOUCH_TARGET, alignItems: 'center', justifyContent: 'center' },
+  pressed: { opacity: 0.7 },
 });

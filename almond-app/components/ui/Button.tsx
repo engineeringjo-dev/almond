@@ -48,7 +48,8 @@ export function Button({
         style,
       ]}
       accessibilityRole="button"
-      accessibilityState={{ disabled: isDisabled }}
+      accessibilityLabel={title}
+      accessibilityState={{ disabled: isDisabled, busy: !!loading }}
     >
       {loading ? (
         <ActivityIndicator color={labelColor[variant].color} />
@@ -83,9 +84,11 @@ const styles = StyleSheet.create({
   base: {
     minHeight: 52,
     borderRadius: radius.md,
+    borderCurve: 'continuous',
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: spacing.xl,
+    paddingVertical: spacing.md,
   },
   fullWidth: { alignSelf: 'stretch' },
   row: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },

@@ -1,12 +1,10 @@
 import { useEffect, useRef } from 'react';
 import { ScrollView, Pressable, StyleSheet, Platform, type View } from 'react-native';
 import { Text } from '@/components/ui/Text';
-import { Icon } from '@/components/ui/Icon';
 import { colors, radius, spacing } from '@/constants/theme';
 import { useI18n } from '@/hooks/useI18n';
 import { useReducedMotion } from '@/hooks/useReducedMotion';
 import { MIN_TOUCH_TARGET, navItemA11y } from '@/lib/a11y';
-import { iconForCategory } from '@/lib/productIcon';
 import type { Category } from '@/types';
 
 interface Props {
@@ -76,16 +74,10 @@ export function CategoryChips({ categories, activeId, onSelect }: Props) {
             }}
             onLayout={(e) => xs.current.set(c.id, e.nativeEvent.layout.x)}
             onPress={() => onSelect(c.id)}
-            style={[styles.chip, active && styles.chipActive]}
+            style={({ pressed }) => [styles.chip, active && styles.chipActive, pressed && styles.pressed]}
             {...navItemA11y(active, name)}
           >
-            <Icon
-              name={iconForCategory(c.id)}
-              size={16}
-              color={active ? colors.onInk : colors.warmGray}
-              strokeWidth={2}
-            />
-            <Text variant="bodyBold" color={active ? colors.onInk : colors.warmGray}>
+            <Text variant="caption" color={active ? colors.onInk : colors.dark}>
               {name}
             </Text>
           </Pressable>
@@ -102,13 +94,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: spacing.xs,
     minHeight: MIN_TOUCH_TARGET,
-    paddingHorizontal: spacing.lg,
+    paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
     borderRadius: radius.pill,
     // A resting chip is a control: its own fill and a ≥3:1 edge, not white on white.
-    backgroundColor: colors.surface,
+    backgroundColor: colors.cream,
     borderWidth: 1,
     borderColor: colors.outline,
   },
   chipActive: { backgroundColor: colors.primary, borderColor: colors.primary },
+  pressed: { opacity: 0.75 },
 });

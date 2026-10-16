@@ -8,7 +8,7 @@ import {
   Platform,
 } from 'react-native';
 import { SafeAreaView, Edge } from 'react-native-safe-area-context';
-import { colors, radius, spacing } from '@/constants/theme';
+import { colors, layout, radius, spacing } from '@/constants/theme';
 import { Text } from './Text';
 import { Button } from './Button';
 import { Icon } from './Icon';
@@ -137,9 +137,22 @@ export function Screen({
 const styles = StyleSheet.create({
   safe: { flex: 1 },
   flex: { flex: 1 },
-  content: { padding: spacing.lg, paddingBottom: spacing.xxl * 2 },
+  content: {
+    width: '100%',
+    maxWidth: layout.contentMaxWidth,
+    alignSelf: 'center',
+    padding: spacing.lg,
+    paddingBottom: spacing.xxl * 2,
+  },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: spacing.xl },
-  skeleton: { flex: 1, alignSelf: 'stretch', gap: spacing.md, padding: spacing.lg },
+  skeleton: {
+    flex: 1,
+    width: '100%',
+    maxWidth: layout.contentMaxWidth,
+    alignSelf: 'center',
+    gap: spacing.md,
+    padding: spacing.lg,
+  },
   skeletonHero: { borderRadius: radius.lg },
   errorIcon: { marginBottom: spacing.md },
   errorBody: { marginVertical: spacing.md },

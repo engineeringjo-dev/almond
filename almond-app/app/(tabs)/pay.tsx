@@ -6,7 +6,7 @@ import { Screen } from '@/components/ui/Screen';
 import { Text } from '@/components/ui/Text';
 import { Icon } from '@/components/ui/Icon';
 import { EarnQr } from '@/components/pay/EarnQr';
-import { colors, spacing, radius, shadow } from '@/constants/theme';
+import { colors, spacing, radius } from '@/constants/theme';
 import { useI18n } from '@/hooks/useI18n';
 import { useMaxBrightness } from '@/hooks/useMaxBrightness';
 import { formatNumber } from '@/lib/format';
@@ -83,7 +83,7 @@ export default function PayScreen() {
   return (
     <Screen contentStyle={styles.content}>
       <View style={styles.titleRow}>
-        <Text variant="h1">{t('pay.title')}</Text>
+        <Text variant="h1" center accessibilityRole="header">{t('pay.title')}</Text>
       </View>
       <Text variant="body" color={colors.warmGray} center style={styles.instruction}>
         {t('pay.instruction')}
@@ -98,18 +98,22 @@ export default function PayScreen() {
         {t('pay.memberId')}: {userId.slice(-8).toUpperCase()}
       </Text>
       <View style={styles.earnRate}>
-        <Icon name="bean" size={14} color={colors.primary} strokeWidth={2} />
-        <Text variant="caption" color={colors.primary}>
+        <Icon name="bean" size={14} color={colors.reward} strokeWidth={2} />
+        <Text variant="caption" color={colors.reward}>
           {t('pay.earnRate', { rate: tierName(tierDef, lang) })}
         </Text>
       </View>
 
       {/* Beans balance — redemption happens in the Rewards screen (no cash) */}
-      <Pressable style={styles.pointsCard} onPress={() => router.push('/(tabs)/rewards')}>
+      <Pressable
+        style={({ pressed }) => [styles.pointsCard, pressed && styles.pointsPressed]}
+        onPress={() => router.push('/(tabs)/rewards')}
+        accessibilityRole="button"
+      >
         <Text variant="caption" color={colors.warmGray}>
           {t('pay.yourPoints')}
         </Text>
-        <Text variant="display" color={colors.primary}>
+        <Text variant="display" color={colors.primary} style={styles.points}>
           {formatNumber(points, lang)}
         </Text>
         <Text variant="caption" color={colors.brown}>
@@ -125,18 +129,20 @@ export default function PayScreen() {
 
 const styles = StyleSheet.create({
   content: { alignItems: 'center', paddingTop: spacing.md },
-  titleRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginBottom: spacing.sm },
+  titleRow: { alignSelf: 'stretch', alignItems: 'center', marginBottom: spacing.sm },
   instruction: { marginBottom: spacing.lg, maxWidth: 300 },
   earnRate: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs, marginTop: spacing.xs },
   memberId: { marginTop: spacing.xs },
   pointsCard: {
     alignSelf: 'stretch',
-    backgroundColor: colors.cardBg,
-    borderRadius: radius.lg,
+    backgroundColor: colors.surface,
+    borderRadius: radius.xl,
+    borderCurve: 'continuous',
     padding: spacing.lg,
     alignItems: 'center',
     gap: spacing.xs,
     marginTop: spacing.xl,
-    ...shadow.card,
   },
+  pointsPressed: { opacity: 0.85 },
+  points: { fontVariant: ['tabular-nums'] },
 });
