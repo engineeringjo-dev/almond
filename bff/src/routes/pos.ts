@@ -8,6 +8,7 @@ import { parse } from '../validate';
 import { requireMember, memberId } from '../plugins/auth';
 import {
   issueEarnTicket, issuePosToken, issueSpendTicket, readEarnTicket, readSpendTicket, verifyPosToken,
+  issueRedemptionSettlementToken, readRedemptionAuthorization, type RedemptionAuthorizationClaim,
 } from '../pos/token';
 import { isRedeemable, toRedemptionView } from '@almond/shared/loyalty/redemption';
 import { liveBalance } from '@almond/shared/loyalty/lots';
@@ -18,6 +19,7 @@ import { HttpError, badRequest, notFound } from '../http-error';
 import { computeEarn } from '../earn';
 import { toFils, toJod } from '../money';
 import { limiter } from '../plugins/rateLimit';
+import { idempotency } from '../plugins/idempotency';
 import type { Backend } from '../backend';
 
 /** Constant-time shared-key comparison — `!==` on a secret leaks its prefix. */
@@ -207,8 +209,8 @@ export function registerPosRoutes(app: FastifyInstance, backend: Backend): void 
      * 'pay'/'earn'/'corporate' codes — all three are the member code now. The
      * one exception is a bound 'redeem' QR: that reads the EXACT redemption
      * the member already paid for, not the member code, and carries no tickets.
-     * INTEGRATION BOUNDARY: its returned typed code still follows the legacy
-     * redemption lifetime. A120s QR is not a120s end-to-end settlement policy.
+     * The redeem scan returns a settlement receipt with the ORIGINAL QR
+     * expiry. No typed reservation code can extend this authorization.
      */
     const earnsPoints = !entitlement;
     const memberCode = mode !== 'redeem';
@@ -220,7 +222,7 @@ export function registerPosRoutes(app: FastifyInstance, backend: Backend): void 
     return reply.send({
       memberId: id,
       mode,
-      redemption: redemption && toRedemptionView(redemption, new Date()),
+      redemption: redemption && { ...toRedemptionView(redemption, new Date()), ...issueRedemptionSettlementToken(token) },
       corporate: entitlement && {
         companyId: entitlement.company.id,
         nameAr: entitlement.company.nameAr,
@@ -347,60 +349,46 @@ export function registerPosRoutes(app: FastifyInstance, backend: Backend): void 
     });
   });
 
-  /**
-   * SETTLE a redemption — the till has given the member their discount, so the
-   * code is now spent.
-   *
-   * 🔴 SEPARATE FROM /v1/pos/scan, AND THAT IS THE POINT. Scanning is a READ:
-   * it tells the cashier what the member holds. Settling is the write that
-   * consumes it. Folding them together would burn a code the moment it was
-   * looked at — so a scan that a cashier then cancelled, or a scanner that
-   * fired twice, would cost the member their points with nothing to show.
-   *
-   * Accepts EITHER a scanned POS token (the QR) or the code read aloud, because
-   * a scanner that will not read a cracked screen is an ordinary Tuesday and
-   * the member should not lose their redemption to it.
-   */
-  app.post('/v1/pos/redemption/settle', async (req, reply) => {
-    requirePosKey(req);
-    // A code read aloud is 8 characters: the per-key ceiling is what keeps a
-    // leaked key from guessing them, from however many addresses.
-    limitTill(req, tillSettles, keySettles);
-    const body = parse(z.object({
-      token: z.string().optional(),
-      code: z.string().optional(),
-    }), req.body);
-    if (!body.token && !body.code) throw badRequest('token or code is required');
-
-    const at = new Date();
-    let row = null;
-    if (body.token) {
-      const claim = verifyPosToken(body.token);
-      const { memberId: id, mode } = claim;
-      // 🔴 ONLY A `redeem` QR SPENDS A REDEMPTION. The mode is a signed claim of
-      // what the member asked for (pos/token.ts); a pay or earn QR — the one a
-      // member shows to collect points — is not consent to consume the code
-      // they are saving. Without this, a till holding ANY of a member's QRs
-      // could settle their live redemption onto whatever bill it chose.
-      if (mode !== 'redeem') throw badRequest('this QR is not a redemption — ask the member to open their redemption code');
-      await backend.sweepRedemptions(id, at);
-      row = await backend.getRedemption(id, claim.redemptionId);
-    } else {
-      row = await backend.findRedemptionByCode(body.code!);
-      // Sweep the OWNER of the code, so an expired one is refunded and refused
-      // here rather than settled a fortnight late.
-      if (row) await backend.sweepRedemptions(row.memberId, at);
-    }
-    // One answer for "no such code" and "not this member's" — a till must not
-    // be able to probe which codes exist.
+  const settlementBody = z.object({
+    token: z.string().min(1).max(4096).optional(),
+    settlementToken: z.string().min(1).max(4096).optional(),
+    posOrderRef: z.string().min(1).max(128),
+  }).refine((value) => Boolean(value.token) !== Boolean(value.settlementToken), 'exactly one redemption credential is required');
+  type Settlement = { claim: RedemptionAuthorizationClaim; input: z.infer<typeof settlementBody> };
+  const verifiedSettlements = new WeakMap<FastifyRequest, Settlement>();
+  const settleIdem = idempotency(backend, (req) => {
+    const verified = verifiedSettlements.get(req);
+    if (!verified) throw new Error('redemption credential was not verified');
+    return verified.claim.memberId;
+  });
+  // Signature and POS authorization precede durable retry lookup. An expired
+  // credential may replay ONLY an already-completed identical key/body/order;
+  // every new settlement still ends exactly at the original QR expiry.
+  app.post('/v1/pos/redemption/settle', {
+    preHandler: [async (req) => {
+      requirePosKey(req);
+      limitTill(req, tillSettles, keySettles);
+      if (req.body && typeof req.body === 'object' && 'code' in req.body) {
+        throw new HttpError(400, 'redemption_barcode_required', 'Typed points-redemption codes are no longer accepted');
+      }
+      const input = parse(settlementBody, req.body);
+      const claim = readRedemptionAuthorization(input.token ?? input.settlementToken!, input.token ? 'presentation' : 'settlement');
+      verifiedSettlements.set(req, { claim, input });
+    }, settleIdem.preHandler],
+    onSend: [settleIdem.onSend],
+  }, async (req, reply) => {
+    const { claim, input } = verifiedSettlements.get(req)!;
+    if (Math.floor(Date.now() / 1000) >= claim.exp) throw new HttpError(401, 'token_expired', 'redemption authorization expired');
+    await backend.sweepRedemptions(claim.memberId, new Date());
+    const row = await backend.getRedemption(claim.memberId, claim.redemptionId);
     if (!row) throw notFound('redemption not found');
-
+    // Re-check after reads: a slow lookup must not extend the presentation.
+    const at = new Date();
+    if (at.getTime() >= claim.exp * 1000) throw new HttpError(401, 'token_expired', 'redemption authorization expired');
     const settled = await backend.settleRedemption(row.id, 'pos', at);
-    return reply.code(201).send({
-      settled: true,
-      memberId: settled.memberId,
-      valueJod: settled.valueJod,
-      points: settled.points,
+    return reply.header('Cache-Control', 'private, no-store').code(201).send({
+      settled: true, posOrderRef: input.posOrderRef,
+      memberId: settled.memberId, valueJod: settled.valueJod, points: settled.points,
       redemption: toRedemptionView(settled, at),
     });
   });

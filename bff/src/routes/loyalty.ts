@@ -1,9 +1,9 @@
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { liveBalance } from '@almond/shared/loyalty/lots';
-import { isRedeemable, isRedemptionCodeShape, toRedemptionView } from '@almond/shared/loyalty/redemption';
+import { isRedeemable, toRedemptionView } from '@almond/shared/loyalty/redemption';
 import { issueRedemptionToken } from '../pos/token';
-import { notFound } from '../http-error';
+import { HttpError, notFound } from '../http-error';
 import { toSecondVisitView } from '@almond/shared/loyalty/secondVisit';
 import { parse } from '../validate';
 import { requireMember, memberId } from '../plugins/auth';
@@ -85,6 +85,16 @@ export function registerLoyaltyRoutes(app: FastifyInstance, backend: Backend): v
     return { redemption: row ? toRedemptionView(row, new Date()) : null };
   });
 
+  app.get('/v1/me/redemption/:redemptionId', { preHandler: [requireMember] }, async (req, reply) => {
+    const id = memberId(req);
+    const { redemptionId } = parse(z.object({ redemptionId: z.string().min(1).max(128) }), req.params);
+    const at = new Date();
+    await backend.sweepRedemptions(id, at);
+    const row = await backend.getRedemption(id, redemptionId);
+    if (!row) throw notFound('redemption not found');
+    return reply.header('Cache-Control', 'private, no-store').send({ redemption: toRedemptionView(row, at) });
+  });
+
   /**
    * A fresh, exact-redemption QR, with its own presentation TTL (default120s).
    * An explicit id selects the voucher the member is viewing. Empty-body old
@@ -99,7 +109,7 @@ export function registerLoyaltyRoutes(app: FastifyInstance, backend: Backend): v
       ? await backend.getRedemption(id, redemptionId)
       : await backend.activeRedemption(id);
     if (!row || !isRedeemable(row, at)) throw notFound('no active redemption');
-    return reply.code(201).send(issueRedemptionToken(row));
+    return reply.header('Cache-Control', 'private, no-store').code(201).send(issueRedemptionToken(row));
   });
 
   /** The member gave up on it. Points return immediately, not at expiry. */
@@ -117,36 +127,14 @@ export function registerLoyaltyRoutes(app: FastifyInstance, backend: Backend): v
     });
   });
 
-  /**
-   * SETTLE a redemption from the website — «او رمز سري اذا كان يشتري من الموقع».
-   *
-   * 🔴 THE CODE MUST BELONG TO THE MEMBER PRESENTING IT. The till may settle
-   * anyone's code (it has the member in front of it and a shared POS key); a
-   * website caller may settle only their OWN, or a member could spend a code
-   * they shoulder-surfed off the next table. `memberId` comes from the JWT, and
-   * a code belonging to someone else answers with the SAME not-found as a code
-   * that does not exist — so this cannot be used to discover live codes either.
-   */
+  /** Retired points-code path. A member-typed 15-minute code would bypass the
+   * owner's two-minute barcode authorization. Gift-card claims are a separate
+   * purpose and are not changed by this closed endpoint. */
   app.post('/v1/loyalty/redemption/settle', {
     preHandler: [requireMember, rateLimit(settles, memberId), idem.preHandler],
     onSend: [idem.onSend],
-  }, async (req, reply) => {
-    const id = memberId(req);
-    const { code } = parse(z.object({ code: z.string().min(1).max(32) }), req.body);
-    if (!isRedemptionCodeShape(code)) throw notFound('redemption not found');
-
-    const at = new Date();
-    await backend.sweepRedemptions(id, at);
-    const row = await backend.findRedemptionByCode(code);
-    if (!row || row.memberId !== id) throw notFound('redemption not found');
-
-    const settled = await backend.settleRedemption(row.id, 'web', at);
-    return reply.code(201).send({
-      settled: true,
-      valueJod: settled.valueJod,
-      points: settled.points,
-      redemption: toRedemptionView(settled, at),
-    });
+  }, async () => {
+    throw new HttpError(400, 'redemption_barcode_required', 'Show a fresh redemption barcode at the till');
   });
 
   // ---- The second-visit voucher ----

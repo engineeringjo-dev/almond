@@ -25,7 +25,7 @@
                     Redeemed on this order: <strong><t t-esc="formatJod(settledTotal)"/> JOD</strong>
                 </div>
 
-                <!-- One input: scanner types here, or the cashier types the code -->
+                <!-- QR scanner/paste only. No typed points-redemption codes. -->
                 <div class="form-check form-switch">
                     <input class="form-check-input" type="checkbox" id="almond_redeem_qr"
                            t-model="state.redeemQr"/>
@@ -34,7 +34,8 @@
                 <input t-ref="input" class="form-control form-control-lg" type="text" dir="ltr"
                        autocomplete="off" spellcheck="false"
                        t-model="state.input" t-on-keydown="onKeydown"
-                       placeholder="Scan the member QR or type the code (AB2C-D3EF)"/>
+                       placeholder="Scan or paste the member's current QR"/>
+                <div class="text-muted">Use the current redemption QR before it expires. Ask the member to refresh it if needed.</div>
                 <div t-if="state.error" class="text-danger" t-esc="state.error"/>
             </div>
             <t t-set-slot="footer">

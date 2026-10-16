@@ -6,5 +6,6 @@ from . import almond_loyalty_ledger
 from . import almond_loyalty_outbox
 from . import pos_config
 from . import pos_payment_method
+from . import pos_payment
 from . import pos_order
 from . import res_config_settings

@@ -17,7 +17,7 @@ every route   key first, fail closed        401 pos_key_invalid
               rate limit (settle/earn/rev)  429 rate_limited      (via /__mock/config)
               body schema                   400 bad_request
 /scan         QR malformed / mis-signed     401 token_invalid
-              QR past 60 s                  401 token_expired
+              QR past signed deadline       401 token_expired (member60s, redemption120s)
               QR already scanned            409 pos_token_replay
               earnTicket only for pay/earn QR of a member who earns (never corporate,
               never redeem), with earnTicketExpiresIn (7 days)
@@ -31,13 +31,17 @@ every route   key first, fail closed        401 pos_key_invalid
               paidAt outside [scan − 30 min, scan + 6 h]  400 paid_at_outside_ticket_window
               else                          201 grant
 /earn/reverse unknown ref 404 not_found; first 201; again 200 replay:true
-/settle       one answer for every refusal  404 not_found; success 201
+/settle       typed code                    400 redemption_barcode_required
+              bad/expired receipt            401 token_invalid / token_expired
+              identical order/key/body       201 original cached reply, including after expiry
+              different body under key       422 idempotency_key_reused
+              new attempt on settled row     409; absent/cancelled/expired reservation404
 
 Mock-only control endpoints (no key needed; NEVER exist on the real BFF):
 
     POST /__mock/token      {"memberId":"m1","mode":"pay|earn|corporate|redeem",
                              "percentOff":10,            # corporate member
-                             "redemptionValueJod":2.5,   # gives the member a live code
+                             "redemptionValueJod":2.5,   # creates an exactly bound reservation
                              "ttl":60}                   # QR lifetime (negative = already expired)
                             -> {"token": "...", "code": "AB2C-D3EF"|null}
     POST /__mock/age_ticket {"earnTicket":"...","seconds":N}  # pretend it was scanned N s earlier
@@ -52,10 +56,11 @@ import re
 import secrets
 import threading
 import time
-from datetime import datetime
+from datetime import datetime, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 TOKEN_TTL_SECONDS = 60                     # POS_TOKEN_TTL_SECONDS
+REDEMPTION_QR_TTL_SECONDS = 120           # POS_REDEMPTION_TOKEN_TTL_SECONDS
 EARN_TICKET_TTL_SECONDS = 7 * 24 * 3600    # POS_EARN_TICKET_TTL_SECONDS
 SALE_WINDOW_SECONDS = 6 * 3600             # POS_EARN_SALE_WINDOW_SECONDS
 PAID_BEFORE_SCAN_SECONDS = 30 * 60         # POS_EARN_PAID_BEFORE_SCAN_SECONDS
@@ -67,6 +72,14 @@ _ISO_OFFSET = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?(Z|[+-]\d
 
 def _parse_iso(value):
     return datetime.fromisoformat(value.replace("Z", "+00:00")).timestamp()
+
+
+def _now():
+    return time.time()
+
+
+def _utc_iso(value):
+    return datetime.fromtimestamp(value, timezone.utc).isoformat().replace("+00:00", "Z")
 
 
 class HttpErr(Exception):
@@ -86,6 +99,8 @@ class MockState:
         self.tokens = {}        # token -> {memberId, mode, exp, used}
         self.members = {}       # memberId -> {percentOff, points}
         self.redemptions = {}   # CODE -> {memberId, valueJod, points, settled}
+        self.receipts = {}      # opaque receipt -> exact member/redemption/original deadline
+        self.settlements = {}   # idempotency key -> exact request body and completed reply
         self.tickets = {}       # earnTicket -> {memberId, jti, iat, exp}
         self.sales = {}         # posOrderRef -> sale row
         self.sale_by_jti = {}   # ticket jti -> posOrderRef   (UNIQUE on the real table)
@@ -98,7 +113,7 @@ class MockState:
         with self.lock:
             self.requests[path] = self.requests.get(path, 0) + 1
 
-    def issue_token(self, member_id, mode="pay", percent_off=None, redemption_value=None, ttl=TOKEN_TTL_SECONDS):
+    def issue_token(self, member_id, mode="pay", percent_off=None, redemption_value=None, ttl=None):
         with self.lock:
             member = self.members.setdefault(member_id, {"percentOff": None, "points": 0.0})
             if percent_off is not None:
@@ -108,11 +123,15 @@ class MockState:
                 raw = "".join(secrets.choice(_CODE_ALPHABET) for _ in range(8))
                 code = raw[:4] + "-" + raw[4:]
                 self.redemptions[code] = {
+                    "id": secrets.token_hex(16), "expiresAt": _now() + 900,
                     "memberId": member_id, "valueJod": float(redemption_value),
                     "points": int(float(redemption_value) * 100), "settled": False,
                 }
             token = secrets.token_urlsafe(24) + "." + secrets.token_urlsafe(24)
-            self.tokens[token] = {"memberId": member_id, "mode": mode, "exp": time.time() + ttl, "used": False}
+            _, redemption = (code, self.redemptions[code]) if code else self.active_redemption(member_id)
+            lifetime = float(ttl) if ttl is not None else (REDEMPTION_QR_TTL_SECONDS if mode == "redeem" else TOKEN_TTL_SECONDS)
+            self.tokens[token] = {"memberId": member_id, "mode": mode, "exp": _now() + lifetime, "used": False,
+                                  "redemptionId": redemption["id"] if mode == "redeem" and redemption else None}
             return token, code
 
     def active_redemption(self, member_id):
@@ -122,9 +141,10 @@ class MockState:
         return None, None
 
 
-def _redemption_view(code, row):
-    return {"code": code, "points": row["points"], "valueJod": row["valueJod"],
-            "status": "settled" if row["settled"] else "pending", "expiresIn": 600}
+def _redemption_view(row):
+    return {"id": row["id"], "points": row["points"], "valueJod": row["valueJod"],
+            "status": "settled" if row["settled"] else "pending", "expiresIn": max(0, int(row["expiresAt"] - _now())),
+            "expiresAt": _utc_iso(row["expiresAt"])}
 
 
 def _is_str(value, lo, hi):
@@ -166,7 +186,7 @@ class Handler(BaseHTTPRequestHandler):
                 parts = (token or "").split(".")
                 msg = "malformed pos token" if len(parts) != 2 or not all(parts) else "bad pos signature"
                 raise HttpErr(401, "token_invalid", msg)
-            if row["exp"] < time.time():
+            if row["exp"] <= _now():
                 raise HttpErr(401, "token_expired", "pos token expired")
             if row["used"]:
                 raise HttpErr(409, "pos_token_replay", "pos token already used")
@@ -230,7 +250,7 @@ class Handler(BaseHTTPRequestHandler):
             token, code = st.issue_token(
                 body.get("memberId") or "member-1", body.get("mode") or "pay",
                 body.get("percentOff"), body.get("redemptionValueJod"),
-                float(body.get("ttl") or TOKEN_TTL_SECONDS),
+                body.get("ttl"),
             )
             return self._send(200, {"token": token, "code": code})
         if self.path == "/__mock/age_ticket":
@@ -267,11 +287,20 @@ class Handler(BaseHTTPRequestHandler):
                 now = time.time()
                 st.tickets[ticket] = {"memberId": member_id, "jti": secrets.token_hex(8),
                                       "iat": now, "exp": now + EARN_TICKET_TTL_SECONDS}
-            code, red = st.active_redemption(member_id) if mode == "redeem" else (None, None)
+            red = next((red for red in st.redemptions.values() if red["id"] == row.get("redemptionId")
+                        and red["memberId"] == member_id), None) if mode == "redeem" else None
+            redemption = None
+            if mode == "redeem":
+                if not red or red["settled"] or red.get("cancelled") or red["expiresAt"] <= _now():
+                    raise HttpErr(404, "not_found", "redemption not found")
+                receipt = secrets.token_urlsafe(24) + "." + secrets.token_urlsafe(24)
+                st.receipts[receipt] = {"memberId": member_id, "redemptionId": red["id"], "exp": row["exp"]}
+                redemption = {**_redemption_view(red), "settlementToken": receipt,
+                              "presentationExpiresAt": _utc_iso(row["exp"])}
         return 200, {
             "memberId": member_id,
             "mode": mode,
-            "redemption": _redemption_view(code, red) if red else None,
+            "redemption": redemption,
             "corporate": ({"companyId": "c1", "nameAr": "شركة تجريبية", "nameEn": "Mock Co",
                            "percentOff": pct} if pct else None),
             "earnsPoints": earns,
@@ -362,25 +391,42 @@ class Handler(BaseHTTPRequestHandler):
 
     def _settle(self, body):
         st = self.state
-        token, code = body.get("token"), body.get("code")
-        if (token is not None and not isinstance(token, str)) or (code is not None and not isinstance(code, str)):
-            raise bad_request("token / code")
-        if not token and not code:
-            raise bad_request("token or code is required")
+        if "code" in body:
+            raise HttpErr(400, "redemption_barcode_required", "scan the current redemption QR")
+        token, receipt = body.get("token"), body.get("settlementToken")
+        ref, key = body.get("posOrderRef"), self.headers.get("Idempotency-Key")
+        if not _is_str(ref, 1, 64) or not _is_str(key, 1, 128):
+            raise bad_request("posOrderRef and Idempotency-Key required")
+        if bool(token) == bool(receipt) or not _is_str(token or receipt, 1, 4096):
+            raise bad_request("exactly one token or settlementToken required")
+        with st.lock:
+            completed = st.settlements.get(key)
+            if completed:
+                if completed[0] != body:
+                    raise HttpErr(422, "idempotency_key_reused", "key belongs to another request")
+                return 201, completed[1]
         if token:
             row = self._verify_token(token)
             if row["mode"] != "redeem":
-                raise bad_request("this QR is not a redemption — ask the member to open their redemption code")
-            code, red = st.active_redemption(row["memberId"])
+                raise bad_request("this QR is not a redemption")
         else:
-            code = "".join(str(code).split()).upper()
-            red = st.redemptions.get(code)
+            row = st.receipts.get(receipt)
+            if not row:
+                raise HttpErr(401, "token_invalid", "invalid settlement receipt")
+            if row["exp"] <= _now():
+                raise HttpErr(401, "token_expired", "settlement receipt expired")
         with st.lock:
-            if not red or red["settled"]:
+            red = next((red for red in st.redemptions.values() if red["id"] == row.get("redemptionId")
+                        and red["memberId"] == row["memberId"]), None)
+            if not red or red.get("cancelled") or red["expiresAt"] <= _now():
                 raise HttpErr(404, "not_found", "redemption not found")
+            if red["settled"]:
+                raise HttpErr(409, "redemption_already_settled", "redemption already settled")
             red["settled"] = True
-        return 201, {"settled": True, "memberId": red["memberId"], "valueJod": red["valueJod"],
-                     "points": red["points"], "redemption": _redemption_view(code, red)}
+            response = {"settled": True, "posOrderRef": ref, "memberId": red["memberId"], "valueJod": red["valueJod"],
+                        "points": red["points"], "redemption": _redemption_view(red)}
+            st.settlements[key] = (dict(body), response)
+        return 201, response
 
 
 def make_server(host="127.0.0.1", port=0, pos_key="mock-pos-key"):

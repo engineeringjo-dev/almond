@@ -1,7 +1,6 @@
 /*
  * The «ألموند» dialog: one input for everything the cashier can be handed.
  *   - a member QR (scanner or paste)  -> attach member (scan)
- *   - a redemption code AB2C-D3EF     -> settle it and take it off the bill
  * plus buttons for the redemption carried by a "redeem" scan and for removing
  * the member. Built like point_of_sale's TextInputPopup (Odoo 19.0).
  */
@@ -62,7 +61,7 @@ export class AlmondLoyaltyDialog extends Component {
         const value = this.state.input.trim();
         const kind = classifyAlmondInput(value);
         if (!kind) {
-            this.state.error = _t("This is not an Almond QR or redemption code.");
+            this.state.error = _t("Scan the member's current Almond QR. Typed points codes are not accepted.");
             return;
         }
         if (kind === "token" && this.state.redeemQr) {
@@ -71,7 +70,6 @@ export class AlmondLoyaltyDialog extends Component {
         if (kind === "token") {
             return this._run(() => this.pos.almondScanMember(value));
         }
-        return this._run(() => this.pos.almondSettleRedemption({ code: value }));
     }
 
     redeemFromScan() {

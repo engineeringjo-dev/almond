@@ -1,13 +1,13 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Platform, Pressable, ScrollView, StyleSheet, View, type LayoutChangeEvent, type NativeScrollEvent, type NativeSyntheticEvent } from 'react-native';
+import { useIsFocused } from 'expo-router';
 
 import { Icon } from '@/components/ui/Icon';
 import { Text } from '@/components/ui/Text';
 import { colors, spacing } from '@/constants/theme';
 import { useI18n } from '@/hooks/useI18n';
-import { useReducedMotion } from '@/hooks/useReducedMotion';
 import { MIN_TOUCH_TARGET } from '@/lib/a11y';
-import { logicalSlide, physicalSlide } from '@/lib/campaignSlides';
+import { CAMPAIGN_GAP, campaignGeometry, campaignOffset, campaignPages, createCampaignVisitPicker, settledCampaign, wrapCampaign } from '@/lib/campaignPager';
 import { createScrollSettlement } from '@/lib/scrollSettlement';
 
 /** A native manual pager: scrolling owns direct manipulation. No autoplay or
@@ -19,44 +19,51 @@ export function CampaignPager({ ids, renderSlide }: {
   renderSlide: (logicalIndex: number, active: boolean) => ReactNode;
 }) {
   const { t, isRTL } = useI18n();
-  const reduced = useReducedMotion();
+  const focused = useIsFocused();
   const scroll = useRef<ScrollView>(null);
   const [width, setWidth] = useState(0);
   const [index, setIndex] = useState(0);
   const indexRef = useRef(0);
+  const [pickVisit] = useState(() => createCampaignVisitPicker());
   const count = ids.length;
   const current = Math.min(index, Math.max(0, count - 1));
-  const order = Array.from({ length: count }, (_, i) => physicalSlide(i, count, isRTL));
+  const { card, inset, step } = campaignGeometry(width);
+  const pages = campaignPages(count, isRTL);
   const webSettlement = useMemo(() => createScrollSettlement((offset, requested) => {
-    // A late scroll/snap observation must not overrule a newer button intent.
-    if (requested) scroll.current?.scrollTo({ x: offset, animated: false });
-    const next = logicalSlide(offset, width, count, isRTL);
-    if (next === indexRef.current) return;
-    indexRef.current = next;
-    setIndex(next);
-  }), [width, count, isRTL]);
+    const settled = settledCampaign(offset, step, count, isRTL);
+    // Rebase an end copy to its identical original. A late observation must
+    // also never overrule the latest rapid-button destination.
+    if (requested || settled.clone) scroll.current?.scrollTo({ x: settled.offset, animated: false });
+    if (settled.logical === indexRef.current) return;
+    indexRef.current = settled.logical;
+    setIndex(settled.logical);
+  }), [step, count, isRTL]);
   useEffect(() => () => webSettlement.cancel(), [webSettlement]);
 
   useEffect(() => {
-    const valid = Math.min(indexRef.current, Math.max(0, count - 1));
+    const valid = pickVisit(focused, count) ?? Math.min(indexRef.current, Math.max(0, count - 1));
+    webSettlement.cancel();
     indexRef.current = valid;
     setIndex(valid);
-    scroll.current?.scrollTo({ x: physicalSlide(valid, count, isRTL) * width, animated: false });
-  }, [width, count, isRTL]);
+    scroll.current?.scrollTo({ x: campaignOffset(valid, step, count, isRTL), animated: false });
+  }, [focused, step, count, isRTL, pickVisit, webSettlement]);
 
   const go = (delta: -1 | 1) => {
-    const valid = Math.max(0, Math.min(count - 1, indexRef.current + delta));
-    const offset = physicalSlide(valid, count, isRTL) * width;
+    const valid = wrapCampaign(indexRef.current + delta, count);
+    const offset = campaignOffset(valid, step, count, isRTL);
     if (Platform.OS === 'web') webSettlement.request(offset);
     else webSettlement.cancel();
     indexRef.current = valid;
     setIndex(valid);
-    scroll.current?.scrollTo({ x: offset, animated: Platform.OS !== 'web' && !reduced });
+    // Buttons are instantaneous on both platforms, including circular jumps.
+    // Direct finger scrolling keeps the platform's own movement and snap.
+    scroll.current?.scrollTo({ x: offset, animated: false });
   };
   const settle = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
-    const next = logicalSlide(event.nativeEvent.contentOffset.x, width, count, isRTL);
-    indexRef.current = next;
-    setIndex(next);
+    const settled = settledCampaign(event.nativeEvent.contentOffset.x, step, count, isRTL);
+    if (settled.clone) scroll.current?.scrollTo({ x: settled.offset, animated: false });
+    indexRef.current = settled.logical;
+    setIndex(settled.logical);
   };
   const measure = (event: LayoutChangeEvent) => setWidth(Math.round(event.nativeEvent.layout.width));
 
@@ -68,7 +75,10 @@ export function CampaignPager({ ids, renderSlide }: {
           <ScrollView
             ref={scroll}
             horizontal
-            pagingEnabled
+            snapToInterval={step}
+            snapToAlignment="start"
+            decelerationRate="fast"
+            disableIntervalMomentum
             directionalLockEnabled
             showsHorizontalScrollIndicator={false}
             onMomentumScrollEnd={settle}
@@ -76,24 +86,24 @@ export function CampaignPager({ ids, renderSlide }: {
             onTouchStart={Platform.OS === 'web' ? webSettlement.cancel : undefined}
             {...(Platform.OS === 'web' ? { onWheel: webSettlement.cancel } : {})}
             scrollEventThrottle={32}
-            contentOffset={{ x: physicalSlide(current, count, isRTL) * width, y: 0 }}
+            contentOffset={{ x: campaignOffset(current, step, count, isRTL), y: 0 }}
             style={styles.track}
-            contentContainerStyle={styles.row}
+            contentContainerStyle={[styles.row, { paddingHorizontal: inset }]}
             testID="home-campaign-track"
           >
-            {order.map((logicalIndex) => {
-              const active = logicalIndex === current;
+            {pages.map(({ slot, logical, clone }) => {
+              const active = !clone && logical === current;
               return (
                 <View
-                  key={ids[logicalIndex]}
-                  style={{ width }}
+                  key={`${ids[logical]}-${slot}`}
+                  style={[{ width: card }, Platform.OS === 'web' && styles.webPage]}
                   aria-hidden={!active}
                   accessibilityElementsHidden={!active}
                   importantForAccessibility={active ? 'auto' : 'no-hide-descendants'}
                   pointerEvents={active ? 'auto' : 'none'}
-                  testID={`campaign-slide-${ids[logicalIndex]}`}
+                  testID={clone ? `campaign-clone-${slot}` : `campaign-slide-${ids[logical]}`}
                 >
-                  {renderSlide(logicalIndex, active)}
+                  {renderSlide(logical, active)}
                 </View>
               );
             })}
@@ -103,16 +113,16 @@ export function CampaignPager({ ids, renderSlide }: {
       <View style={styles.navigation}>
         <Pressable
           onPress={() => go(-1)}
-          disabled={current === 0}
+          disabled={count < 2}
           accessibilityRole="button"
           aria-label={t('common.previous')}
-          aria-disabled={current === 0}
+          aria-disabled={count < 2}
           style={({ pressed }) => [styles.arrow, pressed && styles.pressed]}
         >
-          <Icon name={isRTL ? 'chevron-right' : 'chevron-left'} color={current === 0 ? colors.outline : colors.dark} size={22} />
+          <Icon name={isRTL ? 'chevron-right' : 'chevron-left'} color={colors.dark} size={22} />
         </Pressable>
         <View style={styles.position}>
-          <Text variant="caption" center accessibilityLiveRegion="polite">
+          <Text variant="caption" center accessibilityLiveRegion="polite" testID="home-campaign-position">
             {t('campaignSlides.position', { current: current + 1, total: count })}
           </Text>
           <Text variant="caption" center color={colors.warmGray}>
@@ -121,13 +131,13 @@ export function CampaignPager({ ids, renderSlide }: {
         </View>
         <Pressable
           onPress={() => go(1)}
-          disabled={current === count - 1}
+          disabled={count < 2}
           accessibilityRole="button"
           aria-label={t('common.next')}
-          aria-disabled={current === count - 1}
+          aria-disabled={count < 2}
           style={({ pressed }) => [styles.arrow, pressed && styles.pressed]}
         >
-          <Icon name={isRTL ? 'chevron-left' : 'chevron-right'} color={current === count - 1 ? colors.outline : colors.dark} size={22} />
+          <Icon name={isRTL ? 'chevron-left' : 'chevron-right'} color={colors.dark} size={22} />
         </Pressable>
       </View>
     </View>
@@ -138,8 +148,9 @@ const styles = StyleSheet.create({
   root: { marginBottom: spacing.lg },
   viewport: { overflow: 'hidden' },
   // Explicit LTR track + reversed Arabic data avoids negative RTL offsets.
-  track: { direction: 'ltr', flexGrow: 0 },
-  row: { flexDirection: 'row', alignItems: 'stretch', direction: 'ltr' },
+  track: { direction: 'ltr', flexGrow: 0, ...Platform.select({ web: { scrollSnapType: 'x mandatory' } }) },
+  webPage: { scrollSnapAlign: 'center' } as object,
+  row: { flexDirection: 'row', alignItems: 'stretch', direction: 'ltr', gap: CAMPAIGN_GAP },
   navigation: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.sm, marginTop: spacing.xs },
   position: { flex: 1, gap: spacing.xs },
   arrow: { minWidth: MIN_TOUCH_TARGET, minHeight: MIN_TOUCH_TARGET, alignItems: 'center', justifyContent: 'center' },

@@ -181,10 +181,10 @@ export function restoreRedemptionPoints(
   }
 }
 
-/** What the member's screen shows. `code` is formatted for reading aloud. */
+/** Public reservation metadata. The internal lookup code is never a customer
+ * credential: points redemption requires a separately signed short-lived QR. */
 export interface RedemptionView {
   id: string;
-  code: string;
   points: number;
   valueJod: number;
   status: RedemptionStatus;
@@ -200,7 +200,6 @@ export interface RedemptionView {
 export function toRedemptionView(row: RedemptionRow, now: Date): RedemptionView {
   return {
     id: row.id,
-    code: formatRedemptionCode(row.code),
     points: row.points,
     valueJod: row.valueJod,
     status: redemptionStatus(row, now),

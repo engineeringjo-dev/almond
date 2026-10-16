@@ -36,6 +36,13 @@ export default function PoliciesScreen() {
           </View>
 
           <View style={styles.section}>
+            <Text variant="h2" role="heading" aria-level={2}>{t('policies.redemptionTitle')}</Text>
+            <Text selectable>{t('policies.redemptionLifetime', { seconds: formatNumber(config.REDEMPTION_QR_TTL_SECONDS, lang) })}</Text>
+            <Text selectable>{t('policies.redemptionRefresh')}</Text>
+            <Text selectable>{t('policies.redemptionSharing')}</Text>
+          </View>
+
+          <View style={styles.section}>
             <Text variant="h2" role="heading" aria-level={2}>{t('policies.referralTitle')}</Text>
             <Text selectable>
               {t('policies.referralReward', { points: formatNumber(config.REFERRAL_REWARD_POINTS, lang) })}

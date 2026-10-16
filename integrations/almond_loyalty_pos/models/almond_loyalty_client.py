@@ -17,7 +17,8 @@ The four calls (contract: ``bff/src/routes/pos.ts``, ``bff/src/pos/*.ts``):
         -> 201 new grant | 200 replay  {posOrderRef, pointsEarned, pointsBalance, replay}
     POST /v1/pos/earn/reverse         {posOrderRef, reason}
         -> 201 | 200 replay  {posOrderRef, reversedPoints, shortfall, pointsBalance, replay}
-    POST /v1/pos/redemption/settle    {token} | {code}
+    POST /v1/pos/redemption/settle    {posOrderRef, token} | {posOrderRef, settlementToken}
+        Idempotency-Key: stable for this order and original credential
         -> 201 {settled, memberId, valueJod, points, redemption}
 
 Every error body is ``{error: <machine code>, message}``. The client maps the
@@ -29,7 +30,7 @@ Every request carries ``x-pos-key``. That key is the till's credential:
 * it is never logged, never put in an exception message, never in ``repr``;
 * it is only sent over HTTPS (plain http is refused except to localhost, so the
   mock works) — a key in a header over plain http is a key given away;
-* the member's QR token / redemption code / earn ticket are ALSO never logged
+* the member's QR token / settlement receipt / earn ticket are ALSO never logged
   (they are bearer values for that member).
 
 No retries happen here. Scan/settle are interactive (the cashier retries), and
@@ -38,6 +39,7 @@ earn/reverse are retried by the Odoo outbox with backoff
 409 conflict behind a loop.
 """
 import logging
+import hashlib
 import re
 import time
 from dataclasses import dataclass, field
@@ -140,7 +142,7 @@ class TokenInvalidError(AuthError):
 
 
 class TokenExpiredError(AuthError):
-    """401 ``token_expired`` — member QR past its 60 s."""
+    """401 ``token_expired`` — QR or receipt past its signed deadline."""
 
     code = "token_expired"
 
@@ -206,7 +208,7 @@ __all__ = [
     "TokenReplayError", "TicketInvalidError", "TicketExpiredError", "TicketUsedError",
     "PosOrderConflictError", "PaidAtOutsideWindowError", "RateLimitedError",
     "ScanResult", "EarnResult", "ReverseResult", "SettleResult", "SCAN_MODES",
-    "is_iso_with_offset", "normalize_redemption_code",
+    "is_iso_with_offset", "redemption_attempt_key",
 ]
 
 
@@ -224,7 +226,7 @@ class ScanResult:
     corporate: Optional[Dict[str, Any]] = None
     raw: Dict[str, Any] = field(default_factory=dict, repr=False)
 
-    def __repr__(self):  # never print the earn ticket / redemption code
+    def __repr__(self):  # never print the earn ticket / settlement receipt
         return "ScanResult(member_id=%r, mode=%r, earns_points=%r, ticket=%s, corporate=%r, redemption=%s)" % (
             self.member_id, self.mode, self.earns_points, "yes" if self.earn_ticket else "no",
             bool(self.corporate), "yes" if self.redemption else "no",
@@ -256,20 +258,21 @@ class SettleResult:
     points: Optional[float]
     member_id: Optional[str]
     code: Optional[str]
+    redemption_id: str
     raw: Dict[str, Any] = field(default_factory=dict, repr=False)
 
     def __repr__(self):
         return "SettleResult(value_jod=%r, points=%r)" % (self.value_jod, self.points)
 
 
-def normalize_redemption_code(code):
-    """'ab2c d3ef' / ' AB2C-D3EF ' -> 'AB2C-D3EF'. Whitespace removed, upper
-    case, dash kept as typed (the BFF formats codes with it)."""
-    return "".join((code or "").split()).upper()
-
-
 def is_iso_with_offset(value):
     return isinstance(value, str) and bool(_ISO_WITH_OFFSET.match(value))
+
+
+def redemption_attempt_key(order_uuid, kind, credential):
+    """Stable per order and ORIGINAL credential, never a key for a new QR.
+    This digest is server-only; it is not an alternate spend credential."""
+    return hashlib.sha256((order_uuid + "\0" + kind + "\0" + credential).encode("utf-8")).hexdigest()
 
 
 def _num(value, name):
@@ -314,7 +317,7 @@ class AlmondLoyaltyClient:
 
     # ------------------------------------------------------------------ calls
     def scan(self, token):
-        """Resolve a member QR. The token is SINGLE-USE (60 s): call once and
+        """Resolve a member QR. The token is SINGLE-USE: call once and
         keep the result — a second scan of the same token is TokenReplayError.
 
         ``earn_ticket`` is present only for a pay/earn QR of a member who earns
@@ -339,6 +342,14 @@ class AlmondLoyaltyClient:
             if not isinstance(redemption, dict):
                 raise ProtocolError("Almond API scan response: redemption is not an object")
             _num(redemption.get("valueJod"), "redemption.valueJod")
+        if mode == "redeem":
+            # Old servers returned a long-lived typed code. Never turn that
+            # response into a new authorization beyond the QR's 120 seconds.
+            receipt = redemption.get("settlementToken") if redemption else None
+            if not isinstance(receipt, str) or not receipt.strip() or len(receipt) > 4096 \
+                    or "code" in redemption or not isinstance(redemption.get("id"), str) \
+                    or not redemption["id"] or not is_iso_with_offset(redemption.get("presentationExpiresAt")):
+                raise ProtocolError("Almond API redemption scan is missing its settlement receipt")
         ticket = data.get("earnTicket")
         ticket = ticket if isinstance(ticket, str) and ticket else None
         expires_in = data.get("earnTicketExpiresIn")
@@ -402,14 +413,26 @@ class AlmondLoyaltyClient:
             raw=data,
         )
 
-    def settle_redemption(self, token=None, code=None):
+    def settle_redemption(self, token=None, settlement_token=None, pos_order_ref=None, idempotency_key=None, code=None):
         """Consume a redemption ONCE. Pass exactly one of ``token`` (a
-        redeem-mode QR that has NOT been scanned) or ``code``."""
-        if bool(token) == bool(code):
-            raise ClientValidationError("settle needs exactly one of token or code")
-        body = {"token": token} if token else {"code": normalize_redemption_code(code)}
-        data = self._post("/v1/pos/redemption/settle", body)
+        fresh redeem QR) or ``settlement_token`` (the server-kept scan receipt).
+        Both expire at the original QR deadline. Typed codes fail closed."""
+        if code is not None:
+            raise ClientValidationError("Points redemption requires the member's current QR")
+        if bool(token) == bool(settlement_token):
+            raise ClientValidationError("settle needs exactly one QR or settlement receipt")
+        credential = token if token else settlement_token
+        _check_len(credential, "redemption credential", 4096)
+        _check_len(pos_order_ref, "posOrderRef", MAX_POS_ORDER_REF)
+        _check_len(idempotency_key, "Idempotency-Key", 128)
+        body = {"token": token} if token else {"settlementToken": settlement_token}
+        body["posOrderRef"] = pos_order_ref
+        data = self._post("/v1/pos/redemption/settle", body, idempotency_key=idempotency_key)
+        if data.get("posOrderRef") != pos_order_ref:
+            raise ProtocolError("Almond API settlement response does not match this order")
         redemption = data.get("redemption") if isinstance(data.get("redemption"), dict) else {}
+        if not isinstance(redemption.get("id"), str) or not redemption["id"]:
+            raise ProtocolError("Almond API settlement response is missing redemption identity")
         value = data.get("valueJod", redemption.get("valueJod"))
         points = data.get("points", redemption.get("points"))
         return SettleResult(
@@ -417,18 +440,22 @@ class AlmondLoyaltyClient:
             points=float(points) if isinstance(points, (int, float)) and not isinstance(points, bool) else None,
             member_id=data.get("memberId") if isinstance(data.get("memberId"), str) else None,
             code=redemption.get("code") if isinstance(redemption.get("code"), str) else None,
+            redemption_id=redemption["id"],
             raw=data,
         )
 
     # -------------------------------------------------------------- transport
-    def _post(self, path, body):
+    def _post(self, path, body, idempotency_key=None):
         url = self._base_url + path
         started = time.monotonic()
+        headers = {"x-pos-key": self.__key, "Accept": "application/json"}
+        if idempotency_key:
+            headers["Idempotency-Key"] = idempotency_key
         try:
             resp = self._session.post(
                 url,
                 json=body,
-                headers={"x-pos-key": self.__key, "Accept": "application/json"},
+                headers=headers,
                 timeout=self._timeout,
             )
         except requests.Timeout:

@@ -23,6 +23,7 @@
     "./loyalty/profile": "./src/loyalty/profile.ts",
     "./loyalty/redeem": "./src/loyalty/redeem.ts",
     "./loyalty/redemption": "./src/loyalty/redemption.ts",
+    "./loyalty/redemptionPresentation": "./src/loyalty/redemptionPresentation.ts",
     "./loyalty/secondVisit": "./src/loyalty/secondVisit.ts",
     "./loyalty/corporate": "./src/loyalty/corporate.ts",
     "./loyalty/referral": "./src/loyalty/referral.ts",

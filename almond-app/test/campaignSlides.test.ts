@@ -48,7 +48,8 @@ describe('The Home campaign pager is manual, directional and actionable', () => 
   it('uses native paging, hides inactive content and does not render inactive actions', () => {
     const pager = source('components/home/CampaignPager.tsx');
     expect(pager).toContain('<ScrollView');
-    expect(pager).toContain('pagingEnabled');
+    expect(pager).toContain('snapToInterval={step}');
+    expect(pager).toContain("scrollSnapAlign: 'center'");
     expect(pager).toContain('directionalLockEnabled');
     expect(pager).toContain('aria-hidden={!active}');
     expect(pager).toContain("importantForAccessibility={active ? 'auto' : 'no-hide-descendants'}");
@@ -57,7 +58,8 @@ describe('The Home campaign pager is manual, directional and actionable', () => 
     expect(pager).toContain("onScroll={Platform.OS === 'web' ? (event) => webSettlement.update(event.nativeEvent.contentOffset.x) : undefined}");
     expect(pager).toContain('onMomentumScrollEnd={settle}');
     expect(source('components/home/CampaignSlideCard.tsx')).toContain('if (!active) return <View');
-    expect(source('components/home/PromoCarousel.tsx')).toContain("slides[index].id === 'combo' && active");
+    expect(source('components/home/PromoCarousel.tsx')).toContain('interactive={active}');
+    expect(source('components/home/ComboOfferCard.tsx')).toContain('if (!interactive) return <View');
     expect(source('app/(tabs)/index.tsx')).not.toContain('<CateringEntry');
   });
 
@@ -99,7 +101,7 @@ describe('Web scroll settlement commits only after actual scroll events pause', 
       expect(committed).toEqual([[900, true], [1500, false]]);
       const pager = source('components/home/CampaignPager.tsx');
       expect(pager).toContain('indexRef.current + delta');
-      expect(pager).toContain("animated: Platform.OS !== 'web' && !reduced");
+      expect(pager).toContain('scrollTo({ x: offset, animated: false })');
       expect(pager).toContain('onTouchStart={Platform.OS');
       expect(pager).toContain('onWheel: webSettlement.cancel');
     } finally {

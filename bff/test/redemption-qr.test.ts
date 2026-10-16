@@ -48,9 +48,14 @@ describe.each([
     method: 'POST', url: '/v1/me/redemption/qr',
     headers: { authorization: `Bearer ${jwt}` }, payload: redemptionId ? { redemptionId } : {},
   });
-  const pos = (path: 'scan' | 'redemption/settle', token: string) => app.inject({
-    method: 'POST', url: `/v1/pos/${path}`, headers: { 'x-pos-key': KEY }, payload: { token },
+  const settle = (credential: { token: string } | { settlementToken: string }) => app.inject({
+    method: 'POST', url: '/v1/pos/redemption/settle',
+    headers: { 'x-pos-key': KEY, 'idempotency-key': randomUUID() },
+    payload: { ...credential, posOrderRef: `bound/${randomUUID()}` },
   });
+  const pos = (path: 'scan' | 'redemption/settle', token: string) => path === 'scan'
+    ? app.inject({ method: 'POST', url: '/v1/pos/scan', headers: { 'x-pos-key': KEY }, payload: { token } })
+    : settle({ token });
   const made = async () => {
     const m = await member();
     const a = await backend.createRedemption(m.id, 100);
@@ -80,11 +85,19 @@ describe.each([
     expect(result.statusCode, result.body).toBe(path === 'scan' ? 200 : 201);
     expect(result.json().redemption.id).toBe(a.id);
     expect(result.json().redemption.valueJod).toBe(a.valueJod);
+    expect(result.json().redemption).not.toHaveProperty('code');
     expect((await backend.getRedemption(id, b.id))?.settledAt).toBeNull();
     if (path === 'scan') {
       expect(result.json().earnTicket).toBeNull();
       expect(result.json().spendTicket).toBeNull();
       expect((await backend.getRedemption(id, a.id))?.settledAt).toBeNull();
+      expect(result.json().redemption.settlementToken).toEqual(expect.any(String));
+      expect(result.json().redemption.presentationExpiresAt).toBe(qr.expiresAt);
+      const applied = await settle({ settlementToken: result.json().redemption.settlementToken });
+      expect(applied.statusCode, applied.body).toBe(201);
+      expect(applied.json().redemption.id).toBe(a.id);
+      expect(applied.json().valueJod).toBe(a.valueJod);
+      expect((await backend.getRedemption(id, b.id))?.settledAt).toBeNull();
     }
   });
 
@@ -146,7 +159,8 @@ describe.each([
     expect((await pos('scan', `${body}.${signature}`)).statusCode).toBe(401);
     expect((await pos('redemption/settle', `${body}.${signature}`)).statusCode).toBe(401);
     for (const mode of ['pay', 'earn', 'corporate'] as const) {
-      expect((await pos('redemption/settle', issuePosToken(id, mode).token)).statusCode).toBe(400);
+      const result = await pos('redemption/settle', issuePosToken(id, mode).token);
+      expect([result.statusCode, result.json().error]).toEqual([401, 'token_invalid']);
     }
     expect((await backend.getRedemption(id, a.id))?.settledAt).toBeNull();
   });

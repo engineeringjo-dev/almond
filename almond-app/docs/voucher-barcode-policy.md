@@ -1,6 +1,6 @@
 # Voucher presentation policy — 2026-10-16
 
-Owner request: a voucher barcode with an approximately 120-second lifetime.
+Owner request: a points-redemption barcode with a120-second lifetime.
 Use a server-issued credential bound to one owned redemption, not a voucher
 ID rendered as an invented payment code. 120 seconds is Almond's configurable
 starting policy, not a universal industry standard.
@@ -16,33 +16,39 @@ starting policy, not a universal industry standard.
   QR, and older unbound redemption QRs fail closed.
 - Scan and direct-token settlement resolve the exact owned pending row.
   Issuance does not deduct points again; database settlement remains atomic.
+- The app now consumes the reservation/presentation contract and renders only
+  the API token, with a countdown, manual refresh, expiry/failure states and
+  no customer-typed points handoff. Demo tokens are visibly unsigned and cannot
+  pass live validation. Reservation and presentation deadlines stay separate.
+- Scan returns a purpose-separated signed receipt retaining the original
+  presentation expiry. Both typed-points settlement endpoints fail closed;
+  gift-card claim codes are a distinct purpose and remain supported.
+- POS settlement requires a stable order reference and keyed request. Only a
+  recorded identical key/body/order response can replay after expiry; no new
+  financial settlement can. The addon source has been updated for this wire.
 
 ## Remaining integration boundary
 
-The app's current `Voucher`/legacy live service does not consume this BFF
-credential contract. Its cards remain explicitly unavailable for POS use;
-this work does not turn IDs into codes or present a timer as authorization.
-The development BFF is not evidence of production deployment.
+The live app still needs the actual deployed BFF base host and a per-member JWT
+session. Missing API/auth fails closed; no client-built live barcode is used.
+Addon19.0.1.1.0 must be upgraded at cutover. Neither that upgrade nor production
+BFF/database/Odoo writes were performed. Source tests do not demonstrate a
+real deployed scanner-to-register transaction.
 
-The existing Odoo path scans a QR, stores the returned typed redemption code
-and may settle that code for the underlying 15-minute redemption lifetime.
-Keeping that compatibility means **the entire settlement flow is not yet
-restricted to 120 seconds**. A known typed code plus the authenticated POS key
-still authorizes that legacy path; rate limits do not fix known-code misuse.
-The in-process QR replay map is also not a distributed nonce store, although
-same-row financial settlement is protected by the database transaction.
-
-Before releasing a real mobile spend QR, replace that handoff with an
-order-bound authorization/receipt: scan or preview, explicit apply with
-stable POS order and attempt IDs, atomic consume, same-attempt retry/status
-after a lost response, and recovery if adding the POS payment line fails or
-the order is cancelled. Manual fallback must share the same lifetime and
-consume record; a longer-lived static code must not bypass the rule.
+The in-process scan nonce map is not a distributed nonce store. Financial
+same-row settlement is database-protected, but claim, settlement, response
+recording and the POS receipt are not one distributed transaction. A crash
+after settlement commits and before the response is recorded may leave a
+pending key or absent local receipt. Retry refuses to create a second value;
+manual reconciliation of exact row/order/attempt is required. Never auto-refund
+a settled reservation. A globally atomic recovery/reconciliation worker is
+outside this batch. See `docs/REDEMPTION-BARCODE-120S.md` for wire, retry and
+cutover details.
 
 Display black code on white with its quiet area intact. Request it only
 while the sheet is visible, derive the countdown from server timestamps,
 renew without consuming points again, hide expired codes, and revalidate
-after foreground resume. Offer refresh/retry and meaningful accessible
+after foreground resume. Foregrounding does not auto-renew. Offer refresh/retry and meaningful accessible
 status changes, rather than announcing every second. Screenshots can still
 be forwarded within a valid window; short expiry does not prevent that.
 

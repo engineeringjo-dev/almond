@@ -76,7 +76,8 @@ describe('DG3 no screen reaches past the helper', () => {
     expect(rewards).not.toMatch(/\.mutate\(|confirmAction|notify\(/);
     const sheet = readFileSync(join(root, 'components/loyalty/RedeemSheet.tsx'), 'utf8');
     expect(sheet.match(/\bredeem\.mutate\(/g)).toHaveLength(1);
-    expect(sheet).toMatch(/const confirm = \(\) => \{\s*if \(!shown \|\| redeem\.isPending\) return;/);
+    expect(sheet).toMatch(/const confirm = \(\) => \{\s*if \(!shown \|\| redeem\.isPending \|\| !intent\.current\) return;/);
+    expect(sheet).toContain('idempotencyKey: attempt.key');
     expect(sheet.match(/onPress=\{confirm\}/g)).toHaveLength(1);
     const details = readFileSync(join(root, 'app/profile/details.tsx'), 'utf8');
     expect(details.match(/\bnotify\(/g)?.length).toBe(4);

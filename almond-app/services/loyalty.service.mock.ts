@@ -9,7 +9,9 @@ import type { GiftCard, TierId } from '@/types';
 import type { LoyaltyService, EarnInput } from './loyalty.service';
 import { config } from '@/constants/config';
 import { ApiError } from '@/lib/apiClient';
-import { computeEarn } from '@almond/shared/loyalty/earn';
+import { computeEarn, jodFromPoints } from '@almond/shared/loyalty/earn';
+import { isRedeemable, redemptionExpiresAt, restoreRedemptionPoints, shouldRefund, toRedemptionView, type RedemptionRow } from '@almond/shared/loyalty/redemption';
+import { parseRedemptionPresentation, voucherForRedemption } from '@almond/shared/loyalty/redemptionPresentation';
 import { maskedDisplayName, normalizeName, profileBonusFor, type Gender } from '@almond/shared/loyalty/profile';
 import { WELCOME_BONUS_REASON, welcomeBonusFor } from '@almond/shared/loyalty/welcome';
 import { WALLET_LINE_REASON, WALLET_LINE_SIGN, type WalletLineKind } from '@almond/shared/loyalty/history';
@@ -90,6 +92,8 @@ export interface LoyaltyUser {
   evaluatedThrough: string;
   walletBalance: number;
   vouchers: Voucher[];
+  redemptions: RedemptionRow[];
+  redemptionIntents: Record<string, { points: number; result: { points: number | null; voucher: Voucher } }>;
   history: PointsLogEntry[];
   visits: number;
   spinsAvailable: number;
@@ -238,6 +242,8 @@ function ensureUser(userId: string): LoyaltyUser {
       // the server no longer makes. Vouchers here now come only from redeeming
       // points, as they do for real.
       vouchers: [],
+      redemptions: [],
+      redemptionIntents: {},
       history: [
         // The seeded balance is points this system did not grant (see `lots`
         // above), so its line says so. It used to read «مكافأة ترحيبية» —
@@ -360,7 +366,24 @@ const refuse = (status: number, code: string): Promise<never> => Promise.reject(
  * lives in @almond/shared/loyalty/lots.ts, which does not import the tier table
  * at all. «لا إعفاء — القاعدة للجميع».
  */
+function returnMockRedemption(u: LoyaltyUser, row: RedemptionRow, at: Date) {
+  const back = restoreRedemptionPoints(u.lots, row, at);
+  u.lots = back.lots;
+  row.cancelledAt = at.toISOString();
+  row.returnedPoints = back.returnedPoints;
+  row.expiredPoints = back.expiredPoints;
+  row.recoveredPoints = back.recoveredPoints;
+  row.refundReviewRequired = back.refundReviewRequired;
+  const voucher = u.vouchers.find((value) => value.redemptionId === row.id);
+  if (voucher) voucher.used = true;
+  if (back.returnedPoints > 0) u.history.unshift({
+    id: genId('log'), deltaPoints: back.returnedPoints, kind: 'return', sourceRef: `redemption:${row.id}`, createdAt: at.toISOString(),
+    reasonAr: 'إرجاع نقاط استبدال غير مستخدم', reasonEn: 'Unused redemption points returned',
+  });
+}
+
 export function settleExpiry(u: LoyaltyUser, at: Date = new Date()): number {
+  for (const row of u.redemptions) if (shouldRefund(row, at)) returnMockRedemption(u, row, at);
   const today = ammanDayKey(at);
   const lost = expiredBetween(u.lots, u.expirySettledThrough, today);
   if (lost > 0) {
@@ -459,14 +482,18 @@ function computeEligibility(u: LoyaltyUser): SpinEligibility {
 export const mockLoyaltyService: LoyaltyService = {
   getBalance: (userId) => {
     const u = ensureUser(userId);
+    // A reserve expiring is a financial close, distinct from ordinary point
+    // lot expiry. Its refund preserves the original FIFO dates.
+    for (const row of u.redemptions) if (shouldRefund(row, new Date())) returnMockRedemption(u, row, new Date());
     // Nothing to run first. A dead lot is already worth 0 to buildBalance, so
     // this GET reads the right number while mutating nothing at all (D11).
     return delay(buildBalance(userId, u));
   },
 
-  getVouchers: (userId) => {
+  getVouchers: (userId, redemptionId) => {
     const u = ensureUser(userId);
-    const active = u.vouchers.filter((v) => !v.used && new Date(v.expiresAt) > new Date());
+    settleExpiry(u);
+    const active = u.vouchers.filter((v) => (redemptionId !== undefined && v.redemptionId === redemptionId) || (!v.used && new Date(v.expiresAt) > new Date()));
     return delay(active);
   },
 
@@ -476,21 +503,26 @@ export const mockLoyaltyService: LoyaltyService = {
   redeemReward: (userId, input) => {
     const u = ensureUser(userId);
     settleExpiry(u);
+    const previous = u.redemptionIntents[input.idempotencyKey];
+    if (previous) return previous.points === input.beans ? delay(previous.result) : refuse(422, 'idempotency_key_reused');
+    if (!input.idempotencyKey) return refuse(400, 'idempotency_key_required');
     // 🔴 OLDEST LOT FIRST, AND THE SHORTFALL IS FOUND BEFORE ANY DEBIT.
     // consumeFifo checks the live total first and returns a refusal that has
     // written nothing; a lot consumed only in part keeps its own grant date and
     // its own expiry day, so the remainder dies when it was always going to.
     const spend = consumeFifo(u.lots, input.beans, new Date());
     if (!spend.ok) return Promise.reject(new Error('Not enough beans'));
-    u.lots = spend.lots;
-    const voucher: Voucher = {
-      id: genId('vch'),
-      titleAr: input.titleAr,
-      titleEn: input.titleEn,
-      type: input.type,
-      value: input.value,
-      expiresAt: new Date(Date.now() + 86400000 * 30).toISOString(),
+    const at = new Date();
+    const row: RedemptionRow = {
+      id: genId('demo_redemption'), memberId: userId, code: genId('demo_internal'),
+      points: input.beans, valueJod: jodFromPoints(input.beans), slices: spentSlices(u.lots, spend.consumed),
+      returnedPoints: null, expiredPoints: null, recoveredPoints: 0, refundReviewRequired: false,
+      createdAt: at.toISOString(), expiresAt: redemptionExpiresAt(at, config.REDEMPTION_TTL_SECONDS),
+      settledAt: null, cancelledAt: null, settledVia: null,
     };
+    u.lots = spend.lots;
+    u.redemptions.unshift(row);
+    const voucher = voucherForRedemption(toRedemptionView(row, at), { titleAr: input.titleAr, titleEn: input.titleEn });
     u.vouchers.unshift(voucher);
     u.history.unshift({
       id: genId('log'), deltaPoints: -input.beans,
@@ -499,7 +531,38 @@ export const mockLoyaltyService: LoyaltyService = {
       createdAt: new Date().toISOString(),
       kind: 'redeem',
     });
-    return delay({ points: liveBalance(u.lots), voucher });
+    const result = { points: liveBalance(u.lots), voucher };
+    u.redemptionIntents[input.idempotencyKey] = { points: input.beans, result };
+    return delay(result);
+  },
+
+  getRedemption: (userId, redemptionId) => {
+    const u = ensureUser(userId);
+    settleExpiry(u);
+    const row = u.redemptions.find((value) => value.id === redemptionId && value.memberId === userId);
+    return row ? delay(toRedemptionView(row, new Date())) : refuse(404, 'not_found');
+  },
+  getRedemptionPresentation: (userId, redemptionId) => {
+    const u = ensureUser(userId);
+    settleExpiry(u);
+    const row = u.redemptions.find((value) => value.id === redemptionId && value.memberId === userId);
+    const at = new Date();
+    if (!row || !isRedeemable(row, at)) return refuse(404, 'not_found');
+    const issued = Math.floor(at.getTime() / 1000);
+    const expires = Math.min(issued + config.REDEMPTION_QR_TTL_SECONDS, Math.floor(Date.parse(row.expiresAt) / 1000));
+    return delay(parseRedemptionPresentation({
+      token: `ALMOND-DEMO-REDEMPTION:${genId('presentation')}`, demo: true,
+      mode: 'redeem', redemptionId, issuedAt: new Date(issued * 1000).toISOString(),
+      expiresAt: new Date(expires * 1000).toISOString(), expiresIn: expires - issued,
+    }, redemptionId, true));
+  },
+  cancelRedemption: (userId, redemptionId, _idempotencyKey) => {
+    const u = ensureUser(userId);
+    settleExpiry(u);
+    const row = u.redemptions.find((value) => value.id === redemptionId && value.memberId === userId);
+    if (!row) return refuse(404, 'not_found');
+    if (isRedeemable(row, new Date())) returnMockRedemption(u, row, new Date());
+    return delay(toRedemptionView(row, new Date()));
   },
 
   // The profile, and the once-only bonus. A FAITHFUL MIRROR of

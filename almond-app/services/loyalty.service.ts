@@ -13,6 +13,8 @@ import type {
   GiftCard,
 } from '@/types';
 import type { PosTokenWire } from '@almond/shared/pos/tokenWire';
+import type { RedemptionView } from '@almond/shared/loyalty/redemption';
+import type { RedemptionPresentation } from '@almond/shared/loyalty/redemptionPresentation';
 import type { ComboBasket } from '@almond/shared/loyalty/earn';
 import type { TransferKind } from '@almond/shared/loyalty/transfer';
 import { config } from '@/constants/config';
@@ -141,6 +143,8 @@ export interface ScanStatus {
  * free drink is a real free item), not because this call should produce one.
  */
 export interface RedeemRewardInput {
+  /** One member intent; every uncertain retry reuses this key. */
+  idempotencyKey: string;
   beans: number;
   titleAr: string;
   titleEn: string;
@@ -153,7 +157,7 @@ export interface RedeemRewardInput {
 
 export interface LoyaltyService {
   getBalance(userId: string): Promise<LoyaltyBalance>;
-  getVouchers(userId: string): Promise<Voucher[]>;
+  getVouchers(userId: string, redemptionId?: string): Promise<Voucher[]>;
   /**
    * Redeem points → issues a credit voucher worth jodFromPoints(beans), which
    * the member shows at the till to reduce (or clear) their bill.
@@ -162,7 +166,10 @@ export interface LoyaltyService {
    * member topped up with; points are a discount the house grants. Crediting
    * one from the other would make points refundable, which they are not.
    */
-  redeemReward(userId: string, input: RedeemRewardInput): Promise<{ points: number; voucher: Voucher }>;
+  redeemReward(userId: string, input: RedeemRewardInput): Promise<{ points: number | null; voucher: Voucher }>;
+  getRedemption(userId: string, redemptionId: string): Promise<RedemptionView>;
+  getRedemptionPresentation(userId: string, redemptionId: string): Promise<RedemptionPresentation>;
+  cancelRedemption(userId: string, redemptionId: string, idempotencyKey: string): Promise<RedemptionView>;
   /**
    * Save the member's own details, and collect the one-time completion bonus.
    *
