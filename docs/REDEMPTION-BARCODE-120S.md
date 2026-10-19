@@ -44,6 +44,14 @@ fresh application rejects at `now >= exp`, including after a slow row read.
 It resolves only the signed owned row; it never substitutes the latest row.
 Backend row locking makes that reservation settle at most once.
 
+A QR that `/v1/pos/scan` already read settles only with that scan's
+`settlementToken`. Its raw `{token}` on any order is refused with
+`409 pos_token_replay`, so another till cannot spend what this till scanned
+(review item 6, `docs/CODEX-LOYALTY-REVIEW-2026-10-19.ar.md`). The check refuses
+only a new settlement: it runs after the retry lookup, and settling by raw
+token does not burn the QR, so an identical recorded retry still replays. The
+scanned mark is per BFF process, like the scan's own replay guard.
+
 Only an already-recorded response for the identical key, full body and POS order
 can replay after expiry. Changing the body/order under the same key is422;
 a fresh key cannot spend an expired authorization or settle an already-settled
@@ -95,4 +103,7 @@ cancel-A/create-B, tampering, wrong purpose and expiry boundaries. App
 responses, background invalidation and demo reservation lineage;
 `test/redemptionLive.test.ts` verifies the live wire and failure behavior.
 Addon tests exercise receipt forwarding, retry identity and one-tender guards.
+They run against the Python mock, so `bff/test/pos-mock-parity.test.ts` runs
+the same single-use sequence (scan, raw token after a scan, receipt, retries)
+against the real routes and the mock process and requires the same answers.
 Browser runtime checks are separate from native/device and production cutover.

@@ -8,7 +8,8 @@ import { parse } from '../validate';
 import { requireMember, memberId } from '../plugins/auth';
 import {
   issueEarnTicket, issuePosToken, issueSpendTicket, readEarnTicket, readSpendTicket, verifyPosToken,
-  issueRedemptionSettlementToken, readRedemptionAuthorization, type RedemptionAuthorizationClaim,
+  issueRedemptionSettlementToken, readRedemptionAuthorization, refuseScannedRedemptionQr,
+  type RedemptionAuthorizationClaim,
 } from '../pos/token';
 import { isRedeemable, toRedemptionView } from '@almond/shared/loyalty/redemption';
 import { liveBalance } from '@almond/shared/loyalty/lots';
@@ -379,6 +380,9 @@ export function registerPosRoutes(app: FastifyInstance, backend: Backend): void 
   }, async (req, reply) => {
     const { claim, input } = verifiedSettlements.get(req)!;
     if (Math.floor(Date.now() / 1000) >= claim.exp) throw new HttpError(401, 'token_expired', 'redemption authorization expired');
+    // A NEW settlement only: an identical recorded retry was answered by the
+    // idempotency preHandler before this, even if the QR was scanned since.
+    if (input.token) refuseScannedRedemptionQr(claim);
     await backend.sweepRedemptions(claim.memberId, new Date());
     const row = await backend.getRedemption(claim.memberId, claim.redemptionId);
     if (!row) throw notFound('redemption not found');

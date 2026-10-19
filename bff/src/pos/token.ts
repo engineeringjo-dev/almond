@@ -14,7 +14,9 @@ import { HttpError, conflict } from '../http-error';
  *   pos_key_invalid   x-pos-key missing, wrong, or no key configured (routes/pos.ts)
  *   token_invalid     the member QR is malformed, mis-signed or of an unknown mode
  *   token_expired     the member QR is past its 60 s
- *   pos_token_replay  (409) the member QR was already scanned — unchanged
+ *   pos_token_replay  (409) the member QR was already scanned — unchanged; at
+ *                     /redemption/settle, the raw token of a redemption QR a
+ *                     scan already read (settle it with that scan's receipt)
  *   ticket_invalid    the earn/spend ticket was not signed by this server AS
  *                     THAT KIND (an earn ticket offered to /points/spend is this)
  *   ticket_expired    the earn/spend ticket is past its lifetime (and this is a
@@ -158,6 +160,28 @@ export function issueRedemptionSettlementToken(presentation: string): { settleme
  * same Redis change `bff/src/auth/otp.ts` needs and they should move together.
  */
 const usedJti = new Map<string, number>();
+
+/**
+ * A redemption QR that /v1/pos/scan already read settles ONLY with the receipt
+ * that scan returned (`settlementToken`), which stays on the till that scanned
+ * it. Its raw token is refused 409 `pos_token_replay` on any order.
+ *
+ * Review item 6 (docs/CODEX-LOYALTY-REVIEW-2026-10-19.ar.md): settlement by raw
+ * token checked signature, purpose and expiry only, so a scanned QR could be
+ * settled by another till within its 120 s and the scanning till's receipt was
+ * then refused. The scan carries no POS order, so "the order that scanned it"
+ * cannot be named here; the receipt is that order's credential.
+ *
+ * READ, NEVER RECORDED. Settling by raw token does not burn the QR: the row
+ * lock already settles a reservation once, and a burn would turn a recorded
+ * identical retry into a refusal. routes/pos.ts calls this only for a NEW
+ * settlement, after the idempotency lookup. Per process, like `usedJti`.
+ */
+export function refuseScannedRedemptionQr(claim: Pick<RedemptionAuthorizationClaim, 'jti'>): void {
+  if (usedJti.has(claim.jti)) {
+    throw conflict('pos_token_replay', 'this redemption QR was already scanned; settle it with that scan\'s receipt');
+  }
+}
 
 /** Constant-time signature compare — `!==` on an HMAC leaks it byte by byte. */
 function sigMatches(presented: string, expected: string): boolean {

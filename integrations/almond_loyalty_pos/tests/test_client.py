@@ -353,10 +353,30 @@ class TestSettle(MockServerCase):
         self.assertEqual(res.value_jod, 3.0)
 
     def test_scanned_redeem_token_cannot_settle_again(self):
+        # Review item 6 (docs/CODEX-LOYALTY-REVIEW-2026-10-19.ar.md): a scanned
+        # QR's raw token on another order is refused; the scanning till's
+        # receipt still settles. The same sequence runs on the real server in
+        # bff/test/pos-mock-parity.test.ts.
         minted = self.mint("m-scan-then-settle", "redeem", redemptionValueJod=1.0)
-        self.client().scan(minted["token"])
-        with self.assertRaises(C.TokenReplayError):
-            self.settle(token=minted["token"])
+        receipt = self.client().scan(minted["token"]).redemption["settlementToken"]
+        for ref in ("TILL/SETTLE", "other-till/1"):
+            with self.assertRaises(C.TokenReplayError):
+                self.settle(token=minted["token"], ref=ref)
+        self.assertFalse(self.server.state.redemptions[minted["code"]]["settled"])
+        self.assertEqual(self.settle(settlement_token=receipt, ref="till/1").value_jod, 1.0)
+
+    def test_settling_by_raw_token_does_not_burn_the_qr(self):
+        minted = self.mint("m-raw-no-burn", "redeem", redemptionValueJod=2.0)
+        first = self.settle(token=minted["token"], ref="till/raw")
+        self.assertEqual(self.settle(token=minted["token"], ref="till/raw").redemption_id, first.redemption_id)
+        self.assertFalse(self.server.state.tokens[minted["token"]]["used"])
+        with self.assertRaises(C.ConflictError) as ctx:
+            self.settle(token=minted["token"], ref="other-till/raw")
+        self.assertEqual(ctx.exception.api_code, "redemption_already_settled")
+
+    def test_member_qr_offered_as_a_redemption_is_token_invalid(self):
+        with self.assertRaises(C.TokenInvalidError):
+            self.settle(token=self.mint("m-pay-as-redeem", "pay")["token"])
 
     def test_settle_needs_exactly_one(self):
         with self.assertRaises(C.ClientValidationError):

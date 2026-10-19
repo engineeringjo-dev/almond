@@ -208,8 +208,11 @@ class AlmondLoyaltyController(http.Controller):
 
         * ``from_scan``: the redemption carried by this order's latest
           ``redeem`` scan — settled with the signed receipt the SERVER kept. (The QR
-          itself cannot be reused: /scan already spent the single-use token.)
-        * ``token``: a redeem-mode QR that has NOT been scanned yet.
+          itself cannot settle again: the API refuses the raw token of a QR that
+          /scan already read with 409 ``pos_token_replay``, on any order; only
+          this receipt settles it.)
+        * ``token``: a redeem-mode QR that has NOT been scanned yet. Settling it
+          does not burn it, so the same order, token and key replay the answer.
 
         Typed points-redemption codes are refused, including old clients.
         """

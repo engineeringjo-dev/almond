@@ -89,6 +89,49 @@ describe.each([
     expect(liveBalance((await backend.getMember(id)).lots)).toBe(900);
   });
 
+  // Review item 6 (docs/CODEX-LOYALTY-REVIEW-2026-10-19.ar.md, P2): «باركود
+  // الاستبدال الممسوح يمكن تسويته مرة ثانية بالرمز الخام على طلب آخر». The
+  // till that scanned the QR holds its receipt; the raw token is no longer a
+  // second key to the same reservation for another order.
+  it('a scanned QR settles only with its receipt: its raw token on another order is refused', async () => {
+    const { id, reserve, qr } = await made();
+    const scanned = await scan(qr.token);
+    expect(scanned.statusCode, scanned.body).toBe(200);
+    const again = await scan(qr.token);
+    expect([again.statusCode, again.json().error]).toEqual([409, 'pos_token_replay']);
+    const elsewhere = await apply({ token: qr.token, posOrderRef: 'other-till/1' });
+    expect([elsewhere.statusCode, elsewhere.json().error]).toEqual([409, 'pos_token_replay']);
+    expect(elsewhere.json()).not.toHaveProperty('valueJod');
+    expect((await backend.getRedemption(id, reserve.id))?.settledAt).toBeNull();
+    const own = await apply({ settlementToken: scanned.json().redemption.settlementToken, posOrderRef: 'till/1' });
+    expect(own.statusCode, own.body).toBe(201);
+    expect(own.json()).toMatchObject({ posOrderRef: 'till/1', memberId: id, points: 100, valueJod: 1 });
+    expect(liveBalance((await backend.getMember(id)).lots)).toBe(900);
+  });
+
+  it('the scanned check refuses only a NEW settlement: a recorded raw-token retry still replays after a later scan', async () => {
+    const { id, reserve, qr } = await made();
+    const body = { token: qr.token, posOrderRef: `sale/${randomUUID()}` };
+    const key = randomUUID();
+    const first = await apply(body, key);
+    expect(first.statusCode, first.body).toBe(201);
+    // Settling by raw token does not burn the QR: another order meets the
+    // settled row, never a second value.
+    const other = await apply({ ...body, posOrderRef: 'other-till/2' });
+    expect([other.statusCode, other.json().error]).toEqual([409, 'redemption_already_settled']);
+    // A scan now marks the QR scanned (the row is already settled).
+    const late = await scan(qr.token);
+    expect([late.statusCode, late.json().error]).toEqual([404, 'not_found']);
+    const retry = await apply(body, key);
+    expect(retry.statusCode, retry.body).toBe(201);
+    expect(retry.body).toBe(first.body);
+    expect(retry.headers['idempotent-replay']).toBe('true');
+    const fresh = await apply({ ...body, posOrderRef: 'other-till/3' });
+    expect([fresh.statusCode, fresh.json().error]).toEqual([409, 'pos_token_replay']);
+    expect((await backend.getRedemption(id, reserve.id))?.settledAt).not.toBeNull();
+    expect(liveBalance((await backend.getMember(id)).lots)).toBe(900);
+  });
+
   it('signature, purpose and POS authorization precede any retry claim', async () => {
     const { id, qr } = await made();
     const claim = vi.spyOn(backend, 'claimIdempotencyKey');

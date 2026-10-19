@@ -32,8 +32,11 @@ every route   key first, fail closed        401 pos_key_invalid
               else                          201 grant
 /earn/reverse unknown ref 404 not_found; first 201; again 200 replay:true
 /settle       typed code                    400 redemption_barcode_required
-              bad/expired receipt            401 token_invalid / token_expired
+              bad/expired receipt or QR      401 token_invalid / token_expired (a member QR
+                                            offered as a redemption is token_invalid)
               identical order/key/body       201 original cached reply, including after expiry
+              raw QR that /scan already read 409 pos_token_replay (settle with the receipt);
+                                            settling by raw QR never burns it
               different body under key       422 idempotency_key_reused
               new attempt on settled row     409; absent/cancelled/expired reservation404
 
@@ -193,6 +196,30 @@ class Handler(BaseHTTPRequestHandler):
             row["used"] = True
             if row["mode"] not in ("pay", "earn", "corporate", "redeem"):
                 raise HttpErr(401, "token_invalid", "unknown pos token mode")
+            return row
+
+    def _read_redemption_token(self, token):
+        """Mirror of the real settle-by-raw-token checks (readRedemptionAuthorization,
+        then refuseScannedRedemptionQr): token_invalid / token_expired (401), and
+        409 pos_token_replay for a QR that /scan already read (that till settles
+        with the scan's receipt). READ, NEVER RECORDED: settling does not burn the
+        QR, exactly as on the real server."""
+        st = self.state
+        with st.lock:
+            row = st.tokens.get(token or "")
+            if not row:
+                parts = (token or "").split(".")
+                msg = "malformed redemption authorization" if len(parts) != 2 or not all(parts) \
+                    else "bad redemption authorization signature"
+                raise HttpErr(401, "token_invalid", msg)
+            if row["mode"] != "redeem":
+                # A member QR is signed in another domain: its MAC fails here.
+                raise HttpErr(401, "token_invalid", "bad redemption authorization signature")
+            if row["exp"] <= _now():
+                raise HttpErr(401, "token_expired", "redemption authorization expired")
+            if row["used"]:
+                raise HttpErr(409, "pos_token_replay",
+                              "this redemption QR was already scanned; settle it with that scan's receipt")
             return row
 
     def log_message(self, *args):  # keep test output clean; never echo bodies
@@ -406,9 +433,7 @@ class Handler(BaseHTTPRequestHandler):
                     raise HttpErr(422, "idempotency_key_reused", "key belongs to another request")
                 return 201, completed[1]
         if token:
-            row = self._verify_token(token)
-            if row["mode"] != "redeem":
-                raise bad_request("this QR is not a redemption")
+            row = self._read_redemption_token(token)
         else:
             row = st.receipts.get(receipt)
             if not row:
