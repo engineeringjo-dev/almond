@@ -67,6 +67,7 @@ const JOD_DISPLAY = new Intl.NumberFormat('en-US', {
 
 /**
  * Customer display uses two decimals: AR `X.XX د.أ` | EN `JOD X.XX`.
+ * Owner, 2026-10-19: «خانتان (كما بناه Codex)» (docs/HANDOVER.md §7).
  * Intl rounds decimal half boundaries consistently (1.005 → 1.01). This is
  * presentation only: raw JOD, integer fils and accounting keep their precision.
  */

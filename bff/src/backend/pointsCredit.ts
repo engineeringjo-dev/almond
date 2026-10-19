@@ -22,7 +22,8 @@ export function prunePointEvidence(lots: readonly PointLot[], at: Date): PointLo
 }
 
 /** Every positive points credit uses this adjustment, including gifts. Gross
- * grant/reward history stays immutable; only the net becomes spendable. */
+ * grant/reward history stays immutable; only the net becomes spendable.
+ * Owner, 2026-10-19: «من كل النقاط القادمة (كما بناه Codex)» (docs/HANDOVER.md §7). */
 export function grantPointCredit(
   m: Member, points: number, source: LotSource, at: Date,
   log: (line: HistoryEntry) => void, originRef?: string,

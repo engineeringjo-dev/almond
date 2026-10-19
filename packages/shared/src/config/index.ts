@@ -709,7 +709,8 @@ export const config = {
    */
   REDEMPTION_TTL_SECONDS: 15 * 60,
   /** Points stay reserved above; a fresh barcode may authorize settlement for
-   * at most two minutes. Refresh never spends points or renews the reserve. */
+   * at most two minutes. Refresh never spends points or renews the reserve.
+   * Owner, 2026-10-19: «120 ثانية (كما بناه Codex)» (docs/HANDOVER.md §7). */
   REDEMPTION_QR_TTL_SECONDS: 120,
   // The profile bonus (its long comment sits above REDEMPTION_TTL_SECONDS).
   // 🔴 Owner, 2026-09-24: it now needs NAME + BIRTH DATE + GENDER + PHONE, not
@@ -735,6 +736,8 @@ export const config = {
    *   - the friend gets nothing from it (referrer-only, §8.1.1).
    * Owner, 2026-10-16: both parties must own an OTP-verified Jordanian mobile,
    * and the referrer may earn at most REFERRAL_LIFETIME_CAP_POINTS in total.
+   * The cap confirmed by the owner, 2026-10-19: «نبقيه 500» (docs/HANDOVER.md §7).
+   * The two-phone OTP rule is still open there.
    * The cap is LIFETIME, not a daily/monthly allowance; spending, expiry,
    * refunds and account deletion never replenish it. Existing referral rows
    * are the durable paid-total ledger, not the member's live point balance.
