@@ -13,7 +13,7 @@
 
 </div>
 
-**Counts.** Top-level `docs/*.md`: 40 — **11 Current**, **15 Reference**, **14 Historical**. 19 of them carry a "⚠️ Historical" banner (20 with `ishbek/README.md`) (some Current and Reference documents carry one for specific outdated passages). Plus two non-Markdown files and eight sub-folders, classified below.
+**Counts.** Top-level `docs/*.md`: 41 — **11 Current**, **16 Reference**, **14 Historical**. 19 of them carry a "⚠️ Historical" banner (20 with `ishbek/README.md`) (some Current and Reference documents carry one for specific outdated passages). Plus two non-Markdown files and eight sub-folders, classified below.
 
 ## Current
 
@@ -35,6 +35,7 @@
 
 | Document | What it is | Banner |
 |---|---|---|
+| [`CODEX-LOYALTY-REVIEW-2026-10-19.ar.md`](CODEX-LOYALTY-REVIEW-2026-10-19.ar.md) | Review of Codex's PRs #103 and #104 to the loyalty app (2026-10-19): seven independent reviews, each finding tried twice for refutation; 45 confirmed (P0 0, P1 5, P2 19, P3 21), the owner decisions they need (refund-debt recovery, the 500-point inviter cap, the 120 s barcode, two-decimal prices), and the fixes before the server is hosted. | — |
 | [`LOYALTY-MEASURED-TRUTH.ar.md`](LOYALTY-MEASURED-TRUTH.ar.md) | Measurements of the live «Wafii» programme (171,291 transactions, 980 days): flat 4/6/8/10 per tier, 1 point = 1 qirsh, 6.2 % coverage. | — |
 | [`LOYALTY-WAFII-LIVE-AUDIT.ar.md`](LOYALTY-WAFII-LIVE-AUDIT.ar.md) | Audit of the 47,720-member Wafii table (aggregated, phones masked). | — |
 | [`LOYALTY-VERIFICATION-CHECKLIST.ar.md`](LOYALTY-VERIFICATION-CHECKLIST.ar.md) | Questions for Moaz (BI/Odoo) on the live programme, by priority. | — |
