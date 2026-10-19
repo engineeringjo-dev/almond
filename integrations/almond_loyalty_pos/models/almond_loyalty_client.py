@@ -179,6 +179,15 @@ class PosOrderConflictError(ConflictError):
     code = "pos_order_conflict"
 
 
+class RequestInProgressError(ConflictError):
+    """409 ``request_in_progress`` — the SAME Idempotency-Key is still being
+    processed, or its process died mid-flight. On /settle the redemption may
+    already be spent: retry the same credential, order and key, never a new
+    QR. Only settle sends a key, so the outbox never meets this code."""
+
+    code = "request_in_progress"
+
+
 class PaidAtOutsideWindowError(BadRequestError):
     """400 ``paid_at_outside_ticket_window`` — paidAt is not within
     [scan − 30 min, scan + 6 h] of the member's scan."""
@@ -197,7 +206,7 @@ _ERRORS_BY_CODE = {
     for cls in (
         PosKeyInvalidError, TokenInvalidError, TokenExpiredError, TokenReplayError,
         TicketInvalidError, TicketExpiredError, TicketUsedError, PosOrderConflictError,
-        PaidAtOutsideWindowError, RateLimitedError,
+        RequestInProgressError, PaidAtOutsideWindowError, RateLimitedError,
     )
 }
 
@@ -206,7 +215,7 @@ __all__ = [
     "AuthError", "ConflictError", "BadRequestError", "NotFoundError", "UnavailableError",
     "ProtocolError", "PosKeyInvalidError", "TokenInvalidError", "TokenExpiredError",
     "TokenReplayError", "TicketInvalidError", "TicketExpiredError", "TicketUsedError",
-    "PosOrderConflictError", "PaidAtOutsideWindowError", "RateLimitedError",
+    "PosOrderConflictError", "RequestInProgressError", "PaidAtOutsideWindowError", "RateLimitedError",
     "ScanResult", "EarnResult", "ReverseResult", "SettleResult", "SCAN_MODES",
     "is_iso_with_offset", "redemption_attempt_key",
 ]

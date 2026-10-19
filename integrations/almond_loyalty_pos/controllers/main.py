@@ -29,6 +29,7 @@ from ..models.almond_loyalty_client import (
     NotFoundError,
     PosKeyInvalidError,
     RateLimitedError,
+    RequestInProgressError,
     TokenExpiredError,
     TokenInvalidError,
     TokenReplayError,
@@ -88,8 +89,31 @@ class AlmondLoyaltyController(http.Controller):
         if isinstance(exc, (BadRequestError, ClientValidationError)):
             return self._fail("refused", exc.api_message or _("The Almond API refused this request."))
         if isinstance(exc, UnavailableError):
+            # Only where nothing can have been spent. /settle goes through
+            # _settle_error, which never says this.
             return self._fail("unavailable", _("Almond is not reachable right now. Continue the sale without it."))
         return self._fail("error", _("Almond loyalty error."))
+
+    def _settle_error(self, exc, from_scan):
+        """A settle that timed out, lost its connection, read an unreadable
+        reply, got a 5xx or 409 ``request_in_progress`` may come AFTER the
+        server spent the redemption. Telling the cashier to carry on without
+        Almond would lose the member's value. The same order, original
+        credential and key replay the recorded answer
+        (docs/REDEMPTION-BARCODE-120S.md); a new QR is a new key and cannot.
+        The same words live in pos_store_patch.js for when Odoo itself cannot
+        be reached (tests/test_redemption_controller.py checks they match)."""
+        uncertain = isinstance(exc, RequestInProgressError) or (
+            isinstance(exc, UnavailableError) and not isinstance(exc, RateLimitedError))
+        if not uncertain:
+            return self._api_error(exc)
+        if from_scan:
+            return self._fail("unconfirmed", _(
+                "The redemption is not confirmed. Press 'Use it' again on this order before any other payment. "
+                "Do not ask for a new QR. If it keeps failing, ask the manager."))
+        return self._fail("unconfirmed", _(
+            "The redemption is not confirmed. Press 'Apply' again with the same QR on this order before any other "
+            "payment. Do not ask for a new QR. If it keeps failing, ask the manager."))
 
     def _client(self):
         return request.env["almond.loyalty.service"].sudo()._almond_loyalty_client()
@@ -229,7 +253,7 @@ class AlmondLoyaltyController(http.Controller):
                 attempt = redemption_attempt_key(order_uuid, "token", token)
                 res = client.settle_redemption(token=token, pos_order_ref=order_uuid, idempotency_key=attempt)
         except AlmondLoyaltyError as exc:
-            return self._api_error(exc)
+            return self._settle_error(exc, from_scan=method == "scan")
 
         if scan and (res.redemption_id != scan.redemption_id or res.member_id != scan.member_id):
             return self._fail("refused", _("The settlement does not match this scan. Ask the manager."))

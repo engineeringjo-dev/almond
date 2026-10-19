@@ -146,6 +146,13 @@ At the till (scan/settle), the same codes become short cashier messages: expired
 it", replayed QR → "already used", `rate_limited` → "wait a minute", `pos_key_invalid` → "not
 configured, ask the manager" (and an ERROR log line).
 
+A settle that times out, loses its connection, reads an unreadable reply, gets a 5xx or 409
+`request_in_progress` may come after the server spent the redemption. The cashier then sees
+"not confirmed": press 'Use it' (or 'Apply' with the same QR) again on this order before any
+other payment, do not ask for a new QR, and ask the manager if it keeps failing. The till says
+the same when Odoo itself cannot be reached during a settle. Only the member scan, which spends
+nothing, says "continue the sale without Almond".
+
 ---
 
 ## Decisions (visible on purpose — confirm with the ERP/finance team)
@@ -165,8 +172,8 @@ configured, ask the manager" (and an ERROR log line).
 
 - `models/almond_loyalty_client.py` — dependency-free client (only `requests`); **every BFF machine code mapped to a typed error**, status fallback for unknown codes; 200 replay and 201 both success; client-side limits (lengths, paidTotal range, offset-qualified `paidAt`); HTTPS enforced; no secret/token/code/ticket in logs, errors or `repr`; no internal retries.
 - `models/almond_loyalty_policy.py` — `classify` (decision + operator-visible reason), backoff, `paid_total`, redemption mismatch, `payment_time` + `iso_utc`.
-- **55 Python tests and 7 Node frontend tests green**: existing client/policy coverage plus receipt expiry at the original deadline, exact row/credential/order identity, retry recovery, typed-code refusal, purpose separation, missing-receipt refusal, controller ORM doubles, payment field/loader semantics, once-only tender and payment hydration independent of UI hints. The Python gate runs the Node checks too. Controller doubles and VM tests do not establish real Odoo/PostgreSQL or scanner behavior.
-- Guards proven by **deliberate mutation** (each made the tests fail, then reverted). Round 1: logging the key, retrying a 409, counting the redemption in `paidTotal`, printing the redemption in `repr`, plain http to a remote host. Round 2 (final contract): retrying `pos_key_invalid`; retrying `ticket_*`; retrying `pos_order_conflict`; not distinguishing the window error; failing instead of retrying 429/5xx/timeouts; mapping 429 to a bad request; dropping the `ticket_used` mapping; not sending `paidAt`; accepting a naive `paidAt`; dropping the `Z`; using the earliest instead of the latest payment time; treating a replay as an error; classifying an unknown 401 as a member problem.
+- **60 Python tests and 11 Node frontend tests green**: existing client/policy coverage plus receipt expiry at the original deadline, exact row/credential/order identity, retry recovery, typed-code refusal, purpose separation, missing-receipt refusal, controller ORM doubles, payment field/loader semantics, once-only tender and payment hydration independent of UI hints, and an uncertain settle that never says "continue without Almond" on either side. The Python gate runs the Node checks too. Controller doubles and VM tests do not establish real Odoo/PostgreSQL or scanner behavior.
+- Guards proven by **deliberate mutation** (each made the tests fail, then reverted). Round 1: logging the key, retrying a 409, counting the redemption in `paidTotal`, printing the redemption in `repr`, plain http to a remote host. Round 2 (final contract): retrying `pos_key_invalid`; retrying `ticket_*`; retrying `pos_order_conflict`; not distinguishing the window error; failing instead of retrying 429/5xx/timeouts; mapping 429 to a bad request; dropping the `ticket_used` mapping; not sending `paidAt`; accepting a naive `paidAt`; dropping the `Z`; using the earliest instead of the latest payment time; treating a replay as an error; classifying an unknown 401 as a member problem. Round 3 (review 2026-10-19, item 4): the settle mapping its errors through the scan messages; dropping the `request_in_progress` code; the till dropping its "not confirmed" message; the till's words drifting from the server's.
 - `mock/almond_bff_mock.py` — stdlib mock of the 4 endpoints mirroring the BFF's codes, statuses and **order of checks** (key → rate limit → schema → ticket signature → future paidAt → replay/conflict → ticket_used → expired/window → grant).
 - All `.py` compile, all XML well-formed, all JS parses (acorn, ES2022 modules) and passes the repo ESLint.
 

@@ -37,7 +37,12 @@ patch(PosStore.prototype, {
         return this.config.payment_method_ids.find((pm) => pm.almond_is_redemption);
     },
 
-    async _almondCall(route, params) {
+    /**
+     * `unconfirmed` is the message for a call that may already have spent
+     * something on the server (settle): its lost reply must never say
+     * "continue without Almond". Without it, nothing can have been spent.
+     */
+    async _almondCall(route, params, unconfirmed = null) {
         const order = this.getOrder();
         try {
             return await rpc(route, {
@@ -46,6 +51,13 @@ patch(PosStore.prototype, {
                 ...params,
             });
         } catch (error) {
+            if (!(error instanceof ConnectionLostError)) {
+                // Never let a loyalty problem break the sale screen.
+                console.warn("Almond loyalty call failed", route);
+            }
+            if (unconfirmed) {
+                return { ok: false, error: "unconfirmed", message: unconfirmed };
+            }
             if (error instanceof ConnectionLostError) {
                 return {
                     ok: false,
@@ -53,8 +65,6 @@ patch(PosStore.prototype, {
                     message: _t("The till is offline. Continue the sale without Almond."),
                 };
             }
-            // Never let a loyalty problem break the sale screen.
-            console.warn("Almond loyalty call failed", route);
             return { ok: false, error: "error", message: _t("Almond loyalty error.") };
         }
     },
@@ -220,11 +230,19 @@ patch(PosStore.prototype, {
                 return { ok: false };
             }
         }
+        // Once the request leaves the till the server may already have spent
+        // the redemption. The same order and original credential replay the
+        // recorded answer; a new QR cannot (docs/REDEMPTION-BARCODE-120S.md).
+        // The server answers these same words for a timeout, a lost
+        // connection, an unreadable reply, a 5xx or request_in_progress.
+        const unconfirmed = source.fromScan
+            ? _t("The redemption is not confirmed. Press 'Use it' again on this order before any other payment. Do not ask for a new QR. If it keeps failing, ask the manager.")
+            : _t("The redemption is not confirmed. Press 'Apply' again with the same QR on this order before any other payment. Do not ask for a new QR. If it keeps failing, ask the manager.");
         const res = await this._almondCall("/almond_loyalty/settle", {
             order_uuid: order.uuid,
             from_scan: Boolean(source.fromScan),
             token: source.token || null,
-        });
+        }, unconfirmed);
         if (!res.ok) {
             this._almondNotify(res.message);
             return res;
@@ -255,14 +273,19 @@ patch(PosStore.prototype, {
         const amount = roundJod(Math.min(res.valueJod, order.remainingDue));
         const added = order.addPaymentline(method);
         if (!added.status) {
+            // Settled but not on the bill: retrying the same source records no
+            // second value (the server and the ledger replay it).
+            const values = { value: roundJod(res.valueJod), reason: added.data };
             this.dialog.add(AlertDialog, {
                 title: _t("Almond redemption"),
-                body: _t(
-                    "The redemption of %(value)s JOD was settled but could not be added to the bill: %(reason)s. Retry the same QR or ask the manager to check this order.",
-                    { value: roundJod(res.valueJod), reason: added.data }
-                ),
+                body: source.fromScan
+                    ? _t("The redemption of %(value)s JOD was settled but could not be added to the bill: %(reason)s. Press 'Use it' again on this order before any other payment, or ask the manager to check this order.", values)
+                    : _t("The redemption of %(value)s JOD was settled but could not be added to the bill: %(reason)s. Press 'Apply' again with the same QR on this order before any other payment, or ask the manager to check this order.", values),
             });
-            return { ...res, ok: false, message: _t("Retry the same QR or ask the manager to check this order.") };
+            const retry = source.fromScan
+                ? _t("Press 'Use it' again on this order before any other payment, or ask the manager to check this order.")
+                : _t("Press 'Apply' again with the same QR on this order before any other payment, or ask the manager to check this order.");
+            return { ...res, ok: false, message: retry };
         }
         added.data.update({ almond_redemption_id: res.redemptionId });
         added.data.setAmount(amount);

@@ -508,6 +508,7 @@ class TestPolicy(unittest.TestCase):
             (C.TicketUsedError, (F, policy.KIND_TICKET)),
             (C.PosOrderConflictError, (F, policy.KIND_CONFLICT)),
             (C.ConflictError, (F, policy.KIND_CONFLICT)),
+            (C.RequestInProgressError, (F, policy.KIND_CONFLICT)),
             (C.PaidAtOutsideWindowError, (F, policy.KIND_WINDOW)),
             (C.BadRequestError, (F, policy.KIND_REJECTED)),
             (C.NotFoundError, (F, policy.KIND_REJECTED)),
@@ -526,10 +527,10 @@ class TestPolicy(unittest.TestCase):
     def test_every_machine_code_is_mapped(self):
         codes = {"pos_key_invalid", "token_invalid", "token_expired", "pos_token_replay", "ticket_invalid",
                  "ticket_expired", "ticket_used", "pos_order_conflict", "paid_at_outside_ticket_window",
-                 "rate_limited"}
+                 "rate_limited", "request_in_progress"}
         status = {"pos_key_invalid": 401, "token_invalid": 401, "token_expired": 401, "pos_token_replay": 409,
                   "ticket_invalid": 401, "ticket_expired": 401, "ticket_used": 409, "pos_order_conflict": 409,
-                  "paid_at_outside_ticket_window": 400, "rate_limited": 429}
+                  "paid_at_outside_ticket_window": 400, "rate_limited": 429, "request_in_progress": 409}
         for code in codes:
             err = C.AlmondLoyaltyClient._error_for("/x", status[code], {"error": code, "message": "m"})
             self.assertEqual(err.code, code)

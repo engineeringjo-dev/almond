@@ -48,7 +48,11 @@ Only an already-recorded response for the identical key, full body and POS order
 can replay after expiry. Changing the body/order under the same key is422;
 a fresh key cannot spend an expired authorization or settle an already-settled
 row again. A lost/uncertain response must retry the original credential, order
-and key. Do not refresh credentials and reuse that key. Both old typed-points
+and key. Do not refresh credentials and reuse that key. The till tells the
+cashier exactly this: an uncertain settle (timeout, lost connection, unreadable
+reply, 5xx, `409 request_in_progress`) reads "not confirmed: press 'Use it'
+again on this order before any other payment, do not ask for a new QR", never
+"continue without Almond". Both old typed-points
 settlement routes now fail closed with `redemption_barcode_required`; gift-card
 claim codes keep their separate purpose and flow.
 
