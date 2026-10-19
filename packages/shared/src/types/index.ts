@@ -255,6 +255,10 @@ export interface LoyaltyBalance {
    *  absent when there is none (loyalty/welcome.ts, MeBalanceWire). Shown,
    *  never held — it is not part of `points`. */
   welcomeBonusPending?: number;
+  /** Points owed from refunded purchases, taken from the next points the
+   *  member receives; 0 or absent when nothing is owed (MeBalanceWire). Shown
+   *  beside the balance, never subtracted from it. */
+  pointsOwed?: number;
 }
 
 export type VoucherType = 'credit' | 'free-item' | 'discount';
@@ -297,6 +301,11 @@ export interface PointsLogEntry {
    *  every other kind. The wallet's statement is these lines
    *  (loyalty/history.ts walletStatement). */
   deltaFils?: number | null;
+  /** How this line changed the points owed from refunded purchases: plus on a
+   *  refund the points balance did not cover, minus on a line that pays some
+   *  back (its `sourceRef` names that purchase), 0 otherwise. A member's lines
+   *  add up to `LoyaltyBalance.pointsOwed` (loyalty/history.ts owedNote). */
+  pointsOwedChange?: number | null;
 }
 
 export interface EarnResult {

@@ -158,3 +158,44 @@ export function pointsSummary(lines: readonly SummaryLine[]): PointsSummary {
   }
   return { redeemed: Math.max(0, redeemed - returned), visits, expired };
 }
+
+/** A line as the points-owed note reads it. */
+interface OwedLine {
+  kind?: PointsKind | null;
+  sourceRef?: string | null;
+  branchId?: string | null;
+  createdAt: string;
+  pointsOwedChange?: number | null;
+}
+
+/**
+ * What a history line says about points owed from a refund, or null.
+ *
+ * Review 2026-10-19, item 9: a refund the points balance could not cover read
+ * «خصم نقاط طلب مُسترَد» with no figure, and the points it left owed were
+ * later taken on a line tied to nothing. So:
+ *
+ *   left — a refund line that left `points` owed (its own figure is only what
+ *          the balance covered, which may be 0).
+ *   pays — a line that pays some of it back. `purchase` is the refunded
+ *          purchase it names (the purchase line with the same `sourceRef`):
+ *          its date and branch. Null when the line names none, or the
+ *          purchase is not in these lines; the screen then names nothing
+ *          rather than a guess.
+ *
+ * The server writes the figures (bff/src/backend/pointsCredit.ts); this only
+ * reads them, once, for the app and the website.
+ */
+export type OwedNote =
+  | { kind: 'left'; points: number }
+  | { kind: 'pays'; purchase: { createdAt: string; branchId: string | null } | null };
+
+export function owedNote(line: OwedLine, lines: readonly OwedLine[]): OwedNote | null {
+  const change = line.pointsOwedChange ?? 0;
+  if (line.kind !== 'refund' || !Number.isSafeInteger(change) || change === 0) return null;
+  if (change > 0) return { kind: 'left', points: change };
+  const bought = line.sourceRef
+    ? lines.find((l) => l.kind === 'purchase' && l.sourceRef === line.sourceRef)
+    : undefined;
+  return { kind: 'pays', purchase: bought ? { createdAt: bought.createdAt, branchId: bought.branchId ?? null } : null };
+}

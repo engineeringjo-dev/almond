@@ -42,12 +42,14 @@ import type {
 } from './types';
 import { IDEMPOTENCY_SWEEP_EVERY_MS, idempotencyExpired } from './idempotency';
 import {
-  assertSameRefund, assertSameSale, assertSameSpend, earnTicketUsed, planOrRefuse, refundable, refundReasons,
+  assertSameRefund, assertSameSale, assertSameSpend, earnTicketUsed, planOrRefuse, refundable, refundHistoryLine,
   saleAlreadyReversed, spendTicketExpired, spendTicketUsed, syntheticFullRefund, ticketRefusalError,
 } from '../pos/sales';
 import { applyTillRefund } from '@almond/shared/loyalty';
 import { creditPointSlices, expiredUnusedPurchasePoints, expiredUnusedPurchaseLotPoints, recoverPurchasePoints } from '@almond/shared/loyalty';
-import { grantPointCredit, logPointsRecovery, prunePointEvidence, unusedTenderEvidence } from './pointsCredit';
+import {
+  attributeOwedLine, grantPointCredit, logPointsRecovery, prunePointEvidence, unusedTenderEvidence,
+} from './pointsCredit';
 import { assertIntentSpendable, nextIntentStatus } from '../payments/intent';
 import {
   attachRefused, insufficientFor, newReferralCode, referralCodeNotFound, referralRewardLine, welcomeGiftLine,
@@ -119,7 +121,7 @@ export function createMemoryBackend(): Backend {
       refundReviewRequired: back.refundReviewRequired });
     log(m.id, { deltaPoints: back.returnedPoints + back.recoveredPoints, reasonAr: 'إرجاع نقاط استبدال لم يُستخدم',
       reasonEn, createdAt: at.toISOString(), kind: 'return', sourceRef: `redemption:${row.id}` });
-    logPointsRecovery((line) => log(m.id, line), back.recoveredPoints, at, `redemption:${row.id}`);
+    logPointsRecovery((line) => log(m.id, line), back.recoveredPoints, at);
   };
 
   // ---- Corporate discount register ----
@@ -241,12 +243,22 @@ export function createMemoryBackend(): Backend {
   };
   /** Lines get an id the way Postgres's bigserial gives one: increasing,
    *  never reused, so a screen can key its rows on it. A field the writer
-   *  left out reads back as null, as it does from a Postgres column (T37). */
+   *  left out reads back as null, as it does from a Postgres column (T37),
+   *  and `pointsOwedChange` as 0, its column's default.
+   *
+   *  The ONE writer, like postgres.ts insertHistory: a line paying back points
+   *  owed is given the refunded purchase it pays here, from the member's lines
+   *  so far (pointsCredit.ts attributeOwedLine). `h` is newest first. */
   let historySeq = 0;
   const log = (id: string, e: HistoryEntry) => {
     const h = history.get(id) ?? [];
-    historySeq += 1;
-    h.unshift({ branchId: null, expiresOn: null, sourceRef: null, deltaFils: null, ...e, id: String(historySeq) });
+    for (const line of attributeOwedLine(e, [...h].reverse())) {
+      historySeq += 1;
+      h.unshift({
+        branchId: null, expiresOn: null, sourceRef: null, deltaFils: null, pointsOwedChange: 0,
+        ...line, id: String(historySeq),
+      });
+    }
     history.set(id, h);
   };
 
@@ -983,11 +995,7 @@ export function createMemoryBackend(): Backend {
         m.lots = back.lots;
         m.spend = back.spend;
         m.purchasePointsDebt = recoverPurchasePoints(m.purchasePointsDebt + back.shortfall, 0).debtAfter;
-        const { reasonAr, reasonEn } = refundReasons(!!refund);
-        log(m.id, {
-          deltaPoints: -back.reversedPoints, reasonAr, reasonEn, createdAt: at.toISOString(),
-          kind: 'refund', branchId: sale.branchId, sourceRef: `pos:${sale.posOrderRef}`,
-        });
+        log(m.id, refundHistoryLine(sale, back, !!refund, at));
         const balanceAfter = liveBalance(m.lots, at);
         const row: TillRefund = {
           refundRef: refund ? refund.refundRef : null, posOrderRef, memberId: m.id,
@@ -1084,7 +1092,7 @@ export function createMemoryBackend(): Backend {
           reasonEn: 'Points returned: in-store payment voided', createdAt: at.toISOString(),
           kind: 'return',
         });
-        logPointsRecovery((line) => log(m.id, line), back.recoveredPoints, at, `pos-spend:${posOrderRef}`);
+        logPointsRecovery((line) => log(m.id, line), back.recoveredPoints, at);
         Object.assign(spend, {
           status: 'reversed', returnedPoints: back.returnedPoints, expiredPoints: back.expiredPoints,
           recoveredPoints: back.recoveredPoints,

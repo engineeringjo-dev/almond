@@ -6,7 +6,7 @@ import { colors, spacing } from '@/constants/theme';
 import { useI18n } from '@/hooks/useI18n';
 import { formatDate, formatDayKey, formatNumber } from '@/lib/format';
 import { branches } from '@/services/seed';
-import { pointsLines, pointsSummary } from '@almond/shared/loyalty/history';
+import { owedNote, pointsLines, pointsSummary } from '@almond/shared/loyalty/history';
 import { ammanDayKey } from '@almond/shared/lib/ammanWeekday';
 import type { PointsLogEntry } from '@/types';
 
@@ -22,6 +22,11 @@ import type { PointsLogEntry } from '@/types';
  * nothing here re-derives it from today's rules. It is shown while it is still
  * ahead: once it has passed, the points are either spent or written off on
  * their own «انتهاء صلاحية نقاط» line.
+ *
+ * A refund the points balance did not cover says what it left owed, and each
+ * later deduction names the refunded purchase it pays (review 2026-10-19, item
+ * 9; loyalty/history.ts owedNote). A line whose figure is 0 shows no figure:
+ * never «−0» or «+0».
  */
 export function PointsHistory({ entries: ledger }: { entries: readonly PointsLogEntry[] }) {
   const { t, lang } = useI18n();
@@ -72,6 +77,17 @@ export function PointsHistory({ entries: ledger }: { entries: readonly PointsLog
             const expiry = h.deltaPoints > 0 && h.expiresOn && h.expiresOn >= today
               ? t('loyalty.expiresOn', { date: formatDayKey(h.expiresOn, lang, { year: true }) })
               : null;
+            const owed = owedNote(h, entries);
+            const bought = owed?.kind === 'pays' ? owed.purchase : null;
+            const boughtAt = bought?.branchId ? branches.find((b) => b.id === bought.branchId) : undefined;
+            const owedLine = owed?.kind === 'left'
+              ? t('loyalty.refundLeftOwed', { count: owed.points, points: formatNumber(owed.points, lang) })
+              : bought
+                ? [
+                    t('loyalty.owedFromPurchase', { date: formatDate(bought.createdAt, lang) }),
+                    boughtAt ? t('loyalty.historyBranch', { name: lang === 'ar' ? boughtAt.nameAr : boughtAt.nameEn }) : null,
+                  ].filter(Boolean).join(' · ')
+                : null;
             return (
               <View key={h.id} style={[styles.row, i > 0 && styles.border]}>
                 <View style={styles.body}>
@@ -82,6 +98,11 @@ export function PointsHistory({ entries: ledger }: { entries: readonly PointsLog
                   {expiry ? (
                     <Text variant="caption" color={colors.brown}>
                       {expiry}
+                    </Text>
+                  ) : null}
+                  {owedLine ? (
+                    <Text variant="caption" color={colors.warmGray}>
+                      {owedLine}
                     </Text>
                   ) : null}
                 </View>

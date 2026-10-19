@@ -1102,3 +1102,46 @@ describe('R3.21 migration 20261019_wallet_statement.sql', () => {
     expect(await fils()).toEqual(first);
   });
 });
+
+/**
+ * R3.22 — 20261019200000_points_owed_lines.sql: the points a refund left owed,
+ * line by line (review 2026-10-19, item 9). Plus on the refund line its points
+ * balance could not cover, minus on each line that pays it back, and 0 on every
+ * other line, so a member's lines add up to members.purchase_points_debt.
+ */
+describe('R3.22 migration 20261019200000_points_owed_lines.sql', () => {
+  const FILE = '20261019200000_points_owed_lines.sql';
+  it('R3.22 adds a 0 column to old lines, refuses an owed figure off a refund line, and re-applies unchanged', async () => {
+    const pg = await fresh();
+    await pg.exec(LOYALTY_MIGRATIONS.filter((f) => f !== FILE).map(readMigration).join('\n;\n'));
+    await pg.query(`insert into members (id, phone, held_tier_id) values ('m', '+962791111111', 'base')`);
+    await pg.query(`insert into point_history (member_id, delta_points, reason_ar, reason_en, kind)
+      values ('m', 0, 'x', 'Refunded purchase points', 'refund')`);
+    await pg.exec(readMigration(FILE));
+    expect(await rows(pg, 'select points_owed_change from point_history')).toEqual([{ points_owed_change: 0 }]);
+
+    const insert = async (kind: string | null, delta: number, owed: number) => {
+      try {
+        await pg.query(`insert into point_history (member_id, delta_points, reason_ar, reason_en, kind, points_owed_change)
+          values ('m', $1, 'x', 'y', $2, $3)`, [delta, kind, owed]);
+        return 'ok';
+      } catch (e) { return (e as { code?: string }).code ?? 'err'; }
+    };
+    expect(await insert('refund', 0, 40)).toBe('ok');        // a refund the balance could not cover
+    expect(await insert('refund', -10, 30)).toBe('ok');      // partly covered
+    expect(await insert('refund', -25, -25)).toBe('ok');     // a line paying it back
+    expect(await insert('purchase', 40, 0)).toBe('ok');
+    expect(await insert('refund', 0, -25)).toBe('23514');    // paid back, but no points taken
+    expect(await insert('bonus', 50, -25)).toBe('23514');    // owed only on refund lines
+    expect(await insert(null, 0, 5)).toBe('23514');
+
+    const shape = () => rows(pg, `select column_name, data_type, is_nullable, column_default from information_schema.columns
+      where table_name = 'point_history' and column_name = 'points_owed_change'`);
+    const cons = () => rows(pg, `select conname, pg_get_constraintdef(oid) as def from pg_constraint
+      where conrelid = 'point_history'::regclass order by 1`);
+    const before = { shape: await shape(), cons: await cons() };
+    expect(before.shape).toEqual([{ column_name: 'points_owed_change', data_type: 'integer', is_nullable: 'NO', column_default: '0' }]);
+    await pg.exec(readMigration(FILE));
+    expect({ shape: await shape(), cons: await cons() }).toEqual(before);
+  });
+});

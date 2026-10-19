@@ -547,6 +547,7 @@ describe('L11 nextExpiry names the earliest day and sums every lot on it', () =>
       tier: { id: 'base', nameAr: '٢٪', nameEn: '2%', multiplier: 1 },
       nextTier: null,
       nextExpiry: { amount: 80, on: '2027-11-15' },
+      pointsOwed: 0,
     };
     expect(parseMeBalance(wire).nextExpiry).toEqual({ amount: 80, on: '2027-11-15' });
     expect(parseMeBalance({ ...wire, nextExpiry: null }).nextExpiry).toBeNull();

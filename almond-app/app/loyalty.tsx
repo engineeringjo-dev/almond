@@ -5,6 +5,7 @@ import { Screen } from '@/components/ui/Screen';
 import { Text } from '@/components/ui/Text';
 import { BalanceWorth } from '@/components/loyalty/BalanceWorth';
 import { PointsHistory } from '@/components/loyalty/PointsHistory';
+import { PointsOwedNote } from '@/components/loyalty/PointsOwedNote';
 import { colors, spacing, radius } from '@/constants/theme';
 import { useI18n } from '@/hooks/useI18n';
 import { formatNumber } from '@/lib/format';
@@ -49,6 +50,8 @@ export default function LoyaltyScreen() {
             {formatNumber(balance.points, lang)}
           </Text>
           <BalanceWorth points={balance.points} tone="page" />
+          {/* The history below says which refund and which deduction. */}
+          <PointsOwedNote points={balance.pointsOwed} />
         </View>
 
         <PointsHistory entries={historyQ.data ?? []} />

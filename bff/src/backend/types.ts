@@ -149,6 +149,15 @@ export interface HistoryEntry {
   deltaPoints: number;
   /** Gross purchase credit used to recover a prior points shortfall. */
   purchasePointsRecovered?: number;
+  /**
+   * How this line changed what the member owes from refunded purchases
+   * (members.purchase_points_debt): plus on a refund line, the points its
+   * balance did not cover; minus on a line that pays some back, whose
+   * `sourceRef` then names the refunded purchase (pointsCredit.ts
+   * attributeOwedLine); 0 or absent on every other line. A member's lines add
+   * up to the debt (migration 20261019200000_points_owed_lines.sql).
+   */
+  pointsOwedChange?: number;
   reasonAr: string;
   reasonEn: string;
   createdAt: string;

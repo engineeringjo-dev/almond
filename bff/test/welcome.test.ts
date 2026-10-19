@@ -120,7 +120,7 @@ describe('WG3 the wire', () => {
   const body = {
     points: 0, windowSpend: 0, visitDays: 0,
     tier: { id: 'base', nameAr: '2%', nameEn: '2%', multiplier: 1 },
-    nextTier: null, nextExpiry: null,
+    nextTier: null, nextExpiry: null, pointsOwed: 0,
   };
   it('absent is 0 — a server that predates the gift under-promises, it never breaks the app', () => {
     expect(parseMeBalance(body).welcomeBonusPending).toBe(0);

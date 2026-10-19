@@ -123,6 +123,10 @@ export function registerMeRoutes(app: FastifyInstance, backend: Backend): void {
       welcomeBonusPending: welcomeBonusFor(
         m.welcomeBonusAt !== null, (await backend.entitlementFor(id)) !== null,
       ),
+      // What refunds the points balance could not cover left owed, taken from
+      // the next points the member receives (pointsCredit.ts). Shown so it is
+      // not a surprise (review 2026-10-19, item 9); never taken off `points`.
+      pointsOwed: m.purchasePointsDebt,
     };
   });
 

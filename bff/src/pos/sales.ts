@@ -1,6 +1,8 @@
 import { planTillRefund, type RefundableSale } from '@almond/shared/loyalty';
 import { HttpError, conflict } from '../http-error';
-import type { TillEarnInput, TillRefund, TillRefundInput, TillSale, TillSpend, TillSpendInput } from '../backend/types';
+import type {
+  HistoryEntry, TillEarnInput, TillRefund, TillRefundInput, TillSale, TillSpend, TillSpendInput,
+} from '../backend/types';
 
 /**
  * The rules BOTH stores apply to a till's sale — written once, here, so
@@ -110,4 +112,30 @@ export function refundReasons(partial: boolean): { reasonAr: string; reasonEn: s
     // 20261015_point_history_detail.sql labels old rows by it.
     ? { reasonAr: 'خصم نقاط جزء مُسترَد من الطلب', reasonEn: 'Partially refunded purchase points' }
     : { reasonAr: 'خصم نقاط طلب مُسترَد', reasonEn: 'Refunded purchase points' };
+}
+
+/**
+ * THE REFUND'S HISTORY LINE, for both stores.
+ *
+ * Its figure is what the refund took back from the points balance. What the
+ * balance did not cover is owed, and the line says so in `pointsOwedChange`:
+ * before review 2026-10-19 (item 9) a fully spent purchase read «خصم نقاط طلب
+ * مُسترَد» with no figure and no word of the 40 points now owed.
+ *
+ * 0, never -0: `-reversedPoints` is -0 when nothing was covered, and a screen
+ * that formats it without the zero guard prints «-0».
+ */
+export function refundHistoryLine(
+  sale: Pick<TillSale, 'posOrderRef' | 'branchId'>,
+  applied: { reversedPoints: number; shortfall: number },
+  partial: boolean,
+  at: Date,
+): HistoryEntry {
+  return {
+    deltaPoints: applied.reversedPoints === 0 ? 0 : -applied.reversedPoints,
+    pointsOwedChange: applied.shortfall,
+    ...refundReasons(partial),
+    createdAt: at.toISOString(),
+    kind: 'refund', branchId: sale.branchId, sourceRef: `pos:${sale.posOrderRef}`,
+  };
 }

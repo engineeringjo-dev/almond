@@ -438,6 +438,9 @@ function buildBalance(userId: string, u: LoyaltyUser): LoyaltyBalance {
     nextExpiry: nextExpiry(u.lots, at),
     // Shown, not held — the same answer GET /v1/me/balance gives.
     welcomeBonusPending: welcomeBonusFor(u.welcomeBonusAt !== null, false),
+    // Owed from refunds the points balance did not cover. A refund is a till
+    // operation the mock never performs, so it never owes anything.
+    pointsOwed: 0,
   };
 }
 

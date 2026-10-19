@@ -17,6 +17,86 @@ export function recoverPurchasePoints(debt: number, incomingPoints: number): {
   };
 }
 
+/**
+ * A history line as the points owed from refunds read it. `pointsOwedChange`
+ * is plus on a refund line, the points that refund could not take back because
+ * the points balance did not cover them, and minus on a line that pays some of
+ * them back; `sourceRef` names the refunded purchase ('pos:<ref>').
+ */
+export interface OwedLedgerLine {
+  sourceRef?: string | null;
+  pointsOwedChange?: number | null;
+}
+
+/** Points still owed from one refunded purchase. `ref` is null only for a
+ *  debt the ledger cannot place (none is written today). */
+export interface OwedPurchase {
+  ref: string | null;
+  points: number;
+}
+
+/**
+ * WHAT IS STILL OWED, PURCHASE BY PURCHASE, OLDEST REFUND FIRST.
+ *
+ * Review 2026-10-19, item 9: the debt was one number on the member
+ * (members.purchase_points_debt), so a later deduction could not say which
+ * refund it paid. This replays the member's lines, oldest first: a refund
+ * line opens a debt for its purchase, and a line that pays some back reduces
+ * the purchase it names. A paying line that names none is taken from the
+ * oldest refund, never guessed onto a newer one.
+ */
+export function owedByPurchase(linesOldestFirst: readonly OwedLedgerLine[]): OwedPurchase[] {
+  const open: OwedPurchase[] = [];
+  const pay = (points: number, ref: string | null): void => {
+    let left = points;
+    // The purchase the line names first; then, for a line that names none,
+    // the oldest refund.
+    for (const named of [true, false]) {
+      for (const o of open) {
+        if (left === 0) return;
+        if (named && (ref === null || o.ref !== ref)) continue;
+        const take = Math.min(o.points, left);
+        o.points -= take;
+        left -= take;
+      }
+    }
+  };
+  for (const line of linesOldestFirst) {
+    const change = line.pointsOwedChange ?? 0;
+    if (!Number.isSafeInteger(change) || change === 0) continue;
+    const ref = validRef(line.sourceRef) ? line.sourceRef : null;
+    if (change > 0) open.push({ ref, points: change });
+    else pay(-change, ref);
+  }
+  return open.filter((o) => o.points > 0);
+}
+
+/**
+ * Split `points` being recovered now across what is owed, oldest refund
+ * first: one piece per purchase, so each history line names exactly one.
+ * Anything beyond what the ledger shows as owed comes back with ref null,
+ * never pinned on the wrong purchase.
+ */
+export function splitRecovery(owed: readonly OwedPurchase[], points: number): OwedPurchase[] {
+  assertCount(points, 'points');
+  const out: OwedPurchase[] = [];
+  const add = (ref: string | null, n: number): void => {
+    const last = out[out.length - 1];
+    if (last && last.ref === ref) last.points += n;
+    else out.push({ ref, points: n });
+  };
+  let left = points;
+  for (const o of owed) {
+    if (left === 0) break;
+    const take = Math.min(o.points, left);
+    if (take <= 0) continue;
+    add(o.ref, take);
+    left -= take;
+  }
+  if (left > 0) add(null, left);
+  return out;
+}
+
 const POINT_SOURCES = new Set(['earn', 'bonus', 'migration', 'adjustment']);
 function assertCount(value: number, name: string): void {
   if (!Number.isSafeInteger(value) || value < 0) {

@@ -11,6 +11,7 @@ import { Skeleton } from '@/components/ui/Skeleton';
 import { TierBadge } from '@/components/loyalty/TierBadge';
 import { DoubleDayNote } from '@/components/loyalty/DoubleDayNote';
 import { WelcomeGiftNote } from '@/components/loyalty/WelcomeGiftNote';
+import { PointsOwedNote } from '@/components/loyalty/PointsOwedNote';
 import { BalanceWorth } from '@/components/loyalty/BalanceWorth';
 import { RewardsTile } from '@/components/loyalty/RewardsTile';
 import { RedeemSheet } from '@/components/loyalty/RedeemSheet';
@@ -151,6 +152,9 @@ function MemberRewards() {
             <TierBadge tier={balance.tier} onHero />
           </View>
           <WelcomeGiftNote points={balance.welcomeBonusPending} color={colors.onHero} />
+          {/* What a refund left owed, before it is taken from the next points
+              (review 2026-10-19, item 9). Nothing when nothing is owed. */}
+          <PointsOwedNote points={balance.pointsOwed} color={colors.onHero} />
         </HeroCard>
 
         {/* Shared redeem options issue a credit voucher, with confirmation

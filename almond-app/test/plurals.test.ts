@@ -85,6 +85,8 @@ describe('N6 every caller of a counted string passes `count`', () => {
     'cart.readyIn', 'cart.earnEstimate', 'cart.comboAddFood', 'cart.comboAddDrink',
     'cart.comboAddItem', 'menu.brunchOffer', 'order.cartButton',
     'auth.resendIn', 'confirm.cancelWindow', 'rewards.statusSubPlus',
+    // The points a refund left owed (review 2026-10-19, item 9).
+    'loyalty.pointsOwed', 'loyalty.refundLeftOwed',
   ];
   it('holds for every call site in the app', () => {
     const calls: string[] = [];

@@ -38,7 +38,7 @@ describe('WA2 the live client carries the server\'s count to the screen', () => 
     const wire = parseMeBalance({
       points: 0, windowSpend: 0, visitDays: 0,
       tier: { id: 'base', nameAr: '2%', nameEn: '2%', multiplier: 1 },
-      nextTier: null, nextExpiry: null, welcomeBonusPending: 200,
+      nextTier: null, nextExpiry: null, welcomeBonusPending: 200, pointsOwed: 0,
     });
     expect(toLoyaltyBalance(wire, 'u').welcomeBonusPending).toBe(200);
   });

@@ -60,6 +60,7 @@ export default function PoliciesScreen() {
           <View style={styles.section}>
             <Text variant="h2" role="heading" aria-level={2}>{t('policies.refundTitle')}</Text>
             <Text selectable>{t('policies.refundEarned')}</Text>
+            <Text selectable>{t('policies.refundShown')}</Text>
             <Text selectable>{t('policies.refundMoney')}</Text>
             <Text selectable>{t('policies.refundGifts')}</Text>
             <Text selectable>{t('policies.refundExpired')}</Text>

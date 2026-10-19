@@ -40,12 +40,14 @@ import type { EarnBreakdown } from '@almond/shared/loyalty/earn';
 import { IDEMPOTENCY_SWEEP_EVERY_MS, IDEMPOTENCY_TTL_MS } from './idempotency';
 import {
   assertSameRefund, assertSameSale, assertSameSpend, earnTicketUsed, planOrRefuse, posOrderConflict,
-  posSpendConflict, refundConflict, refundable, refundReasons, saleAlreadyReversed, spendTicketExpired,
+  posSpendConflict, refundConflict, refundable, refundHistoryLine, saleAlreadyReversed, spendTicketExpired,
   spendTicketUsed, syntheticFullRefund, ticketRefusalError,
 } from '../pos/sales';
 import { applyTillRefund } from '@almond/shared/loyalty';
 import { creditPointSlices, expiredUnusedPurchasePoints, expiredUnusedPurchaseLotPoints, recoverPurchasePoints } from '@almond/shared/loyalty';
-import { grantPointCredit, logPointsRecovery, prunePointEvidence, unusedTenderEvidence } from './pointsCredit';
+import {
+  attributeOwedLine, grantPointCredit, logPointsRecovery, needsOwedAttribution, prunePointEvidence, unusedTenderEvidence,
+} from './pointsCredit';
 import { assertIntentSpendable, nextIntentStatus } from '../payments/intent';
 import { toFils, toJod } from '../money';
 import {
@@ -267,15 +269,30 @@ export function createPostgresBackend(db: Db): Backend {
   /** THE ONE INSERT into point_history — withMember's lines and the
    *  two-member moves (referral, transfer) both come through here, so a
    *  column added to the ledger cannot be written by one path and not the
-   *  other. */
+   *  other.
+   *
+   *  A line paying back points owed is given the refunded purchase it pays
+   *  HERE, from the member's lines already in the table (this transaction's
+   *  earlier inserts included): pointsCredit.ts attributeOwedLine, the same
+   *  call memory.ts `log` makes. Only such a line costs the extra read. */
   async function insertHistory(t: Db, memberId: string, e: HistoryEntry): Promise<void> {
-    await t.query(
-      `insert into point_history
-         (member_id, delta_points, reason_ar, reason_en, created_at, kind, branch_id, expires_on, source_ref, delta_fils, purchase_points_recovered)
-       values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)`,
-      [memberId, e.deltaPoints, e.reasonAr, e.reasonEn, e.createdAt,
-        e.kind, e.branchId ?? null, e.expiresOn ?? null, e.sourceRef ?? null, e.deltaFils ?? null, e.purchasePointsRecovered ?? 0],
-    );
+    const lines = needsOwedAttribution(e)
+      ? attributeOwedLine(e, (await t.query(
+        `select source_ref, points_owed_change from point_history
+         where member_id = $1 and points_owed_change <> 0 order by id`, [memberId],
+      )).map((r) => ({ sourceRef: (r.source_ref ?? null) as string | null, pointsOwedChange: Number(r.points_owed_change) })))
+      : [e];
+    for (const line of lines) {
+      await t.query(
+        `insert into point_history
+           (member_id, delta_points, reason_ar, reason_en, created_at, kind, branch_id, expires_on, source_ref, delta_fils,
+            purchase_points_recovered, points_owed_change)
+         values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)`,
+        [memberId, line.deltaPoints, line.reasonAr, line.reasonEn, line.createdAt,
+          line.kind, line.branchId ?? null, line.expiresOn ?? null, line.sourceRef ?? null, line.deltaFils ?? null,
+          line.purchasePointsRecovered ?? 0, line.pointsOwedChange ?? 0],
+      );
+    }
   }
 
   /** Is this phone on an ACTIVE company's roster right now? Read on the
@@ -546,7 +563,7 @@ export function createPostgresBackend(db: Db): Backend {
     m.purchasePointsDebt = back.debtAfter;
     log({ deltaPoints: back.returnedPoints + back.recoveredPoints, reasonAr: 'إرجاع نقاط استبدال لم يُستخدم',
       reasonEn, createdAt: at.toISOString(), kind: 'return', sourceRef: `redemption:${row.id}` });
-    logPointsRecovery(log, back.recoveredPoints, at, `redemption:${row.id}`);
+    logPointsRecovery(log, back.recoveredPoints, at);
     return { ...row, cancelledAt: at.toISOString(), returnedPoints: back.returnedPoints,
       expiredPoints: back.expiredPoints, recoveredPoints: back.recoveredPoints, refundReviewRequired: back.refundReviewRequired };
   }
@@ -743,7 +760,8 @@ export function createPostgresBackend(db: Db): Backend {
     async getHistory(id) {
       await api.getMember(id);           // notFound for an unknown member, as memory does
       const rows = await db.query(
-        `select id, delta_points, reason_ar, reason_en, created_at, kind, branch_id, expires_on, source_ref, delta_fils, purchase_points_recovered
+        `select id, delta_points, reason_ar, reason_en, created_at, kind, branch_id, expires_on, source_ref, delta_fils,
+           purchase_points_recovered, points_owed_change
          from point_history where member_id = $1 order by id desc`,
         [id],
       );
@@ -751,6 +769,7 @@ export function createPostgresBackend(db: Db): Backend {
         id: String(r.id),
         deltaPoints: Number(r.delta_points),
         purchasePointsRecovered: Number(r.purchase_points_recovered ?? 0),
+        pointsOwedChange: Number(r.points_owed_change ?? 0),
         reasonAr: r.reason_ar as string,
         reasonEn: r.reason_en as string,
         createdAt: iso(r.created_at)!,
@@ -1350,11 +1369,7 @@ export function createPostgresBackend(db: Db): Backend {
         m.lots = back.lots;
         m.spend = back.spend;
         m.purchasePointsDebt = recoverPurchasePoints(m.purchasePointsDebt + back.shortfall, 0).debtAfter;
-        const { reasonAr, reasonEn } = refundReasons(!!refund);
-        log({
-          deltaPoints: -back.reversedPoints, reasonAr, reasonEn, createdAt: at.toISOString(),
-          kind: 'refund', branchId: sale.branchId, sourceRef: `pos:${sale.posOrderRef}`,
-        });
+        log(refundHistoryLine(sale, back, !!refund, at));
         const balanceAfter = liveBalance(m.lots, at);
         const row: TillRefund = {
           refundRef: refund ? refund.refundRef : null, posOrderRef, memberId: m.id,
@@ -1475,7 +1490,7 @@ export function createPostgresBackend(db: Db): Backend {
           reasonEn: 'Points returned: in-store payment voided', createdAt: at.toISOString(),
           kind: 'return',
         });
-        logPointsRecovery(log, back.recoveredPoints, at, `pos-spend:${posOrderRef}`);
+        logPointsRecovery(log, back.recoveredPoints, at);
         const reversed: TillSpend = {
           ...spend, status: 'reversed', returnedPoints: back.returnedPoints, expiredPoints: back.expiredPoints,
           recoveredPoints: back.recoveredPoints,

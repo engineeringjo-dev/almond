@@ -86,6 +86,19 @@ export interface MeBalanceWire {
    * it — so an app that ships before its server keeps working.
    */
   welcomeBonusPending?: number;
+  /**
+   * Points the member owes from refunded purchases: a refund the points
+   * balance could not cover (members.purchase_points_debt). We take them from
+   * the next points the member receives, any kind (owner, 2026-10-19: «من كل
+   * النقاط القادمة», docs/HANDOVER.md §7). 0 when nothing is owed. NOT part of
+   * `points` and never below it: the balance stays what can be spent.
+   *
+   * REQUIRED, for the reason `nextExpiry` is: it warns the member about points
+   * they are about to lose. A server that dropped it would show nothing and
+   * then take the points, which is the defect it exists to end (review
+   * 2026-10-19, item 9).
+   */
+  pointsOwed: number;
 }
 
 /** Thrown by `parseMeBalance` when the body is not the contract above. Named,
@@ -197,6 +210,8 @@ export function parseMeBalance(raw: unknown): MeBalanceWire {
       ? { amount: num(expiry, 'amount', 'nextExpiry.'), on: dayKey(expiry, 'on', 'nextExpiry.') }
       : null,
     welcomeBonusPending: raw.welcomeBonusPending === undefined ? 0 : wholePoints(raw, 'welcomeBonusPending'),
+    // ABSENT IS NOT 0: see the field.
+    pointsOwed: wholePoints(raw, 'pointsOwed'),
   };
 }
 
@@ -242,5 +257,6 @@ export function toLoyaltyBalance(wire: MeBalanceWire, userId: string): LoyaltyBa
     // screen — see LoyaltyBalance.nextExpiry and lib/format.ts formatDayKey.
     nextExpiry: wire.nextExpiry,
     welcomeBonusPending: wire.welcomeBonusPending ?? 0,
+    pointsOwed: wire.pointsOwed,
   };
 }
