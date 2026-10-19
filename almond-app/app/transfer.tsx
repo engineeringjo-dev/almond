@@ -13,7 +13,7 @@ import { useI18n } from '@/hooks/useI18n';
 import { useLoyaltyBalance, usePreviewTransfer, useSendTransfer, useWallet } from '@/hooks/useLoyalty';
 import { apiErrorCode, newIdempotencyKey } from '@/lib/apiClient';
 import { choiceA11y, choiceGroupA11y } from '@/lib/a11y';
-import { formatJOD, formatNumber } from '@/lib/format';
+import { formatJOD, formatJODHeld, formatNumber } from '@/lib/format';
 import { toWesternDigits } from '@almond/shared/lib/phone';
 import type { TransferKind } from '@almond/shared/loyalty/transfer';
 import type { TransferPreview, TransferReceipt } from '@/services/loyalty.service';
@@ -85,7 +85,7 @@ export default function TransferScreen() {
   const remaining = who
     ? (kind === 'points'
       ? t('transfer.remainingPoints', { points: formatNumber(who.remainingToday.points, lang) })
-      : t('transfer.remainingWallet', { jod: formatJOD(who.remainingToday.walletJod, lang) }))
+      : t('transfer.remainingWallet', { jod: formatJODHeld(who.remainingToday.walletJod, lang) }))
     : null;
   const friendName = who?.displayName ?? t('transfer.aMember');
 
@@ -118,7 +118,7 @@ export default function TransferScreen() {
             <Text variant="caption" color={colors.warmGray}>
               {kind === 'points'
                 ? t('transfer.havePoints', { points: formatNumber(balance?.points ?? 0, lang) })
-                : t('transfer.haveWallet', { jod: formatJOD(wallet ?? 0, lang) })}
+                : t('transfer.haveWallet', { jod: formatJODHeld(wallet ?? 0, lang) })}
             </Text>
             <Text variant="bodyBold">{t('transfer.phoneLabel')}</Text>
             <TextInput
@@ -207,7 +207,7 @@ export default function TransferScreen() {
             <Text variant="body" center color={colors.warmGray}>
               {receipt.kind === 'points'
                 ? t('transfer.nowPoints', { points: formatNumber(receipt.pointsBalance, lang) })
-                : t('transfer.nowWallet', { jod: formatJOD(receipt.walletBalance, lang) })}
+                : t('transfer.nowWallet', { jod: formatJODHeld(receipt.walletBalance, lang) })}
             </Text>
             <Button title={t('transfer.done')} onPress={() => router.back()} />
           </Card>

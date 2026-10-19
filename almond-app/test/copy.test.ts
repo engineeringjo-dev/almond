@@ -248,6 +248,34 @@ describe('C8 tierProgressCopy', () => {
       }
     }
   });
+
+  it('C8i the figure rounds UP: spending exactly what is shown always reaches the rung', () => {
+    // Review of PRs #103/#104, item 5 (P1): «إنفاق 1.488 يترك 18.512، فتقول
+    // الشاشة "اصرف 18.51 د.أ إضافية"» — and after spending exactly 18.51 the
+    // member is on 19.998, still paid 2%, and told «اصرف 0.00 د.أ إضافية».
+    // Literal strings, not formatJOD(...): C8b compared the copy with the very
+    // function that rounded it, and so could not see this.
+    const standingAt = (spend: number) => ({
+      windowSpend: spend,
+      nextTier: { id: 'plus' as TierId, jodRemaining: 20 - spend, visitsRemaining: 3, visitsGuaranteed: true, step: 2 },
+    });
+    for (const [spend, shown] of [[1.488, '18.52'], [19.998, '0.01'], [19.991, '0.01'], [1.49, '18.51']] as const) {
+      for (const input of [{ windowSpend: spend }, standingAt(spend)]) {
+        expect(tierProgressCopy(input, 'en')!.params.jod, `${spend}`).toBe(`JOD ${shown}`);
+        expect(tierProgressCopy(input, 'ar')!.params.jod, `${spend}`).toBe(`${shown} د.أ`);
+      }
+    }
+    // Every whole-fils spend below the doubling, on both paths.
+    const offenders: string[] = [];
+    for (let fils = 0; fils < 20_000; fils += 1) {
+      const spend = fils / 1000;
+      for (const input of [{ windowSpend: spend }, standingAt(spend)]) {
+        const shown = Number(tierProgressCopy(input, 'en')!.params.jod.replace('JOD ', ''));
+        if (fils + Math.round(shown * 1000) < 20_000) offenders.push(`${spend} → ${shown}`);
+      }
+    }
+    expect(offenders.slice(0, 10)).toEqual([]);
+  });
 });
 
 // ---------------------------------------------------------------------------

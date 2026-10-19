@@ -77,6 +77,37 @@ export function formatJOD(amount: number, lang: Lang): string {
 }
 
 /**
+ * TWO DECIMALS, ROUNDED TOWARD WHAT THE MEMBER CAN ACT ON. formatJOD rounds
+ * half up both ways, which is right for a price and wrong for these two:
+ *
+ * - An amount the member still NEEDS («اصرف X إضافية») rounds UP to the next
+ *   0.01. Rounded to nearest, 18.512 read 18.51; a member who spent exactly
+ *   that stayed on 19.998, below the 20 JOD rung, and was then told «0.00»
+ *   (review of PRs #103 and #104, item 5).
+ * - Money the member HOLDS (a wallet balance, what points are worth, what is
+ *   left to send today) rounds DOWN, so a screen never shows more than can be
+ *   paid: a balance of 7.448 read 7.45, and a transfer of 7.45 was refused
+ *   (the same review, item 7).
+ *
+ * Both work in integer fils (toFils), never `jod * 100`: 1.1 * 100 is
+ * 110.00000000000001 and 0.57 * 100 is 56.99999999999999, so a float ceil or
+ * floor would move an amount that is already a whole qirsh (0.01 JOD).
+ * Display only, like formatJOD: what is charged and compared stays in fils.
+ */
+export const roundUpToQirsh = (jod: number): number => Math.ceil(toFils(jod) / 10) / 100;
+export const roundDownToQirsh = (jod: number): number => Math.floor(toFils(jod) / 10) / 100;
+
+/** An amount the member still needs, never shown short: 18.512 → «18.52». */
+export function formatJODNeeded(amount: number, lang: Lang): string {
+  return formatJOD(roundUpToQirsh(amount), lang);
+}
+
+/** Money the member holds, never shown above what it pays: 1.005 → «1.00». */
+export function formatJODHeld(amount: number, lang: Lang): string {
+  return formatJOD(roundDownToQirsh(amount), lang);
+}
+
+/**
  * A MOVEMENT of money, signed: «+20.00 د.أ», «−3.25 د.أ» / "+JOD 20.00".
  *
  * In an Arabic line the sign and the digits must be one left-to-right run (an

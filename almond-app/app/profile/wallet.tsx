@@ -10,7 +10,7 @@ import { Skeleton } from '@/components/ui/Skeleton';
 import { GiftClaimForm } from '@/components/gift/GiftClaimForm';
 import { colors, spacing, radius, shadow } from '@/constants/theme';
 import { useI18n } from '@/hooks/useI18n';
-import { formatDate, formatJOD, formatSignedJOD } from '@/lib/format';
+import { formatDate, formatJOD, formatJODHeld, formatSignedJOD } from '@/lib/format';
 import { MIN_TOUCH_TARGET } from '@/lib/a11y';
 import { useWallet, useTopUp, usePointsHistory } from '@/hooks/useLoyalty';
 import { useWalletRate } from '@/hooks/useWalletRate';
@@ -50,7 +50,7 @@ export default function WalletScreen() {
             {t('profile.walletBalance')}
           </Text>
           <Text variant="display" color={colors.onHero} testID="wallet-balance">
-            {formatJOD(balance ?? 0, lang)}
+            {formatJODHeld(balance ?? 0, lang)}
           </Text>
           {/* The wallet's bonus is for SPENDING it (owner, 2026-10-15: «لا يوجد
               بونص شحن، البونص للانفاق فقط»): the member's rate from the

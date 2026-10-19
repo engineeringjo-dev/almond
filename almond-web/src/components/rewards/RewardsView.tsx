@@ -9,7 +9,7 @@ import { tierProgress } from '@/data/loyalty';
 import { redeemOptions } from '@almond/shared/loyalty/redeem';
 // earn-arith-exempt: points→JOD for DISPLAY, via the one shared conversion. §7 T7.
 import { jodFromPoints } from '@almond/shared/loyalty/earn';
-import { asLang, formatDate, formatDayKey, formatJOD, formatNumber } from '@/lib/format';
+import { asLang, formatDate, formatDayKey, formatJOD, formatJODHeld, formatJODNeeded, formatNumber } from '@/lib/format';
 import { pointsSummary } from '@almond/shared/loyalty/history';
 import { ammanDayKey } from '@almond/shared/lib/ammanWeekday';
 import { branches } from '@almond/shared/menu';
@@ -78,7 +78,7 @@ export function RewardsView() {
                     // that chose it are both gone: a hedge with nothing to hedge
                     // is a second sentence waiting to drift from the first.
                     t('toNextTier', {
-                      jod: formatJOD(tp.remaining, lang),
+                      jod: formatJODNeeded(tp.remaining, lang),
                       tier: tierName(tp.next, lang),
                     })
                   : t('topTier', { tier: tierName(tp.current, lang) })}
@@ -106,7 +106,7 @@ export function RewardsView() {
       <div className="mt-4 rounded-xl border border-neutral-warm bg-card p-6 shadow-card">
         <p className="text-sm text-text-secondary">{t('worthNow')}</p>
         <p className="mt-1 text-display font-bold leading-none">
-          {formatJOD(jodFromPoints(points), lang)}
+          {formatJODHeld(jodFromPoints(points), lang)}
         </p>
 
         {options.length === 0 ? (

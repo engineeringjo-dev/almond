@@ -3,7 +3,8 @@ import type { Branch } from '@almond/shared/types';
 import { branches } from '@almond/shared/menu';
 import { resolvePromo } from '@/lib/promo';
 import { haversineKm, withDistances } from '@/lib/distance';
-import { asLang, formatDate, formatJOD, formatTime } from '@/lib/format';
+import { asLang, formatDate, formatJOD, formatJODHeld, formatJODNeeded, formatTime } from '@/lib/format';
+import { tierProgress } from '@/data/loyalty';
 import { cn } from '@/lib/cn';
 
 /**
@@ -135,5 +136,16 @@ describe('customer money display', () => {
     expect(formatJOD(1.005, 'en')).toBe('JOD 1.01');
     expect(formatJOD(2.675, 'ar')).toBe('2.68 د.أ');
     expect(formatJOD(1.2346, 'en')).toBe('JOD 1.23');
+  });
+
+  // Review of PRs #103 and #104, item 5: the spend still needed for the next
+  // rung rounds UP, and a wallet balance rounds DOWN, the same functions the
+  // app uses (packages/shared/src/lib/format.ts). RewardsView and WalletView
+  // call them; almond-app/test/moneyRounding.test.ts MR2 checks both files.
+  it('the spend still needed rounds up, and a balance held rounds down', () => {
+    expect(formatJODNeeded(tierProgress(1.488).remaining, 'ar')).toBe('18.52 د.أ');
+    expect(formatJODNeeded(tierProgress(19.998).remaining, 'en')).toBe('JOD 0.01');
+    expect(formatJODHeld(1.005, 'en')).toBe('JOD 1.00');
+    expect(formatJODHeld(7.448, 'ar')).toBe('7.44 د.أ');
   });
 });

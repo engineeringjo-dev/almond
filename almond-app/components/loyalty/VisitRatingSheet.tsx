@@ -13,7 +13,7 @@ import { useToastStore } from '@/stores/toastStore';
 import { apiErrorCode } from '@/lib/apiClient';
 import { choiceA11y, choiceGroupA11y, MIN_TOUCH_TARGET } from '@/lib/a11y';
 import { inputTextAlign } from '@/lib/inputAlign';
-import { formatJOD, formatNumber } from '@/lib/format';
+import { formatJODHeld, formatNumber } from '@/lib/format';
 import { tierProgressCopy } from '@/lib/tierCopy';
 import { useLoyaltyBalance } from '@/hooks/useLoyalty';
 import { config } from '@/constants/config';
@@ -120,7 +120,7 @@ export function VisitRatingSheet({ visible, onClose, visitRef, branchName, point
                 <Text variant="body" center color={colors.dark}>
                   {t('visit.balanceNow', {
                     points: formatNumber(balance.points, lang),
-                    jod: formatJOD(jodFromPoints(balance.points), lang),
+                    jod: formatJODHeld(jodFromPoints(balance.points), lang),
                   })}
                 </Text>
               ) : null}

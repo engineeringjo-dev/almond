@@ -1,6 +1,6 @@
 import type { Lang, LoyaltyBalance, Tier, TierId } from '@/types';
 import { progressToNextTier, tierName, tiers } from '@almond/shared/loyalty';
-import { formatJOD, formatNumber } from '@almond/shared/lib/format';
+import { formatJODNeeded, formatNumber } from '@almond/shared/lib/format';
 
 /**
  * THE ONE PLACE THAT DECIDES WHICH PROGRESS SENTENCE A MEMBER SEES.
@@ -85,7 +85,10 @@ export function tierProgressCopy(
     jodRemaining = projected.jodRemaining;
   }
 
-  const params = { jod: formatJOD(jodRemaining, lang), tier: tierName(next, lang) };
+  // Rounded UP (formatJODNeeded): spending exactly the figure shown must reach
+  // the rung. Rounded to nearest, 18.512 read 18.51 and left the member on
+  // 19.998 at 2% (review of PRs #103 and #104, item 5).
+  const params = { jod: formatJODNeeded(jodRemaining, lang), tier: tierName(next, lang) };
   const actual = balance.nextTier;
   const visitsAlternative: TierProgressCopy['visitsAlternative'] =
     next.id === tiers[1].id && actual?.visitsGuaranteed === true &&

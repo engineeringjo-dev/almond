@@ -9,7 +9,7 @@ import { GiftCardTile } from './GiftCardTile';
 import { GiftEnvelope } from './GiftEnvelope';
 import { colors, spacing, radius } from '@/constants/theme';
 import { useI18n } from '@/hooks/useI18n';
-import { formatJOD } from '@/lib/format';
+import { formatJOD, formatJODHeld } from '@/lib/format';
 import { useSendGift, useWallet } from '@/hooks/useLoyalty';
 import type { GiftDesign } from '@almond/shared/gifts';
 import type { GiftCard } from '@/types';
@@ -191,7 +191,7 @@ export function GiftSendSheet({ design, visible, onClose }: Props) {
       />
 
       <Text variant="caption" color={colors.warmGray} style={styles.payNote}>
-        {t('gift.payNote', { jod: formatJOD(wallet ?? 0, lang) })}
+        {t('gift.payNote', { jod: formatJODHeld(wallet ?? 0, lang) })}
       </Text>
     </BottomSheet>
   );

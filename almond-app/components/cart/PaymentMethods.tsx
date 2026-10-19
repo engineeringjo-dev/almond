@@ -3,7 +3,7 @@ import { Text } from '@/components/ui/Text';
 import { Icon } from '@/components/ui/Icon';
 import { colors, radius, spacing } from '@/constants/theme';
 import { useI18n } from '@/hooks/useI18n';
-import { formatJOD } from '@/lib/format';
+import { formatJODHeld } from '@/lib/format';
 import { paymentIcon } from '@/lib/paymentIcon';
 import { choiceA11y, choiceGroupA11y } from '@/lib/a11y';
 import { paymentMethods } from '@/services/seed';
@@ -27,11 +27,14 @@ export function PaymentMethods({ value, onChange, walletBalance, total }: Props)
         const disabled =
           m.id === 'wallet' && walletBalance != null && total != null && walletBalance < total;
         const name = lang === 'ar' ? m.nameAr : m.nameEn;
+        // Shown rounded DOWN (formatJODHeld): the line never reads more than
+        // the wallet pays. `disabled` above compares the exact balance.
+        const shownBalance = walletBalance != null ? formatJODHeld(walletBalance, lang) : null;
         const detail =
-          m.id === 'wallet' && walletBalance != null
+          m.id === 'wallet' && shownBalance != null
             ? disabled
-              ? `${formatJOD(walletBalance, lang)} · ${t('cart.walletShort')}`
-              : formatJOD(walletBalance, lang)
+              ? `${shownBalance} · ${t('cart.walletShort')}`
+              : shownBalance
             : null;
         return (
           <Pressable

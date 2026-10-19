@@ -6,7 +6,7 @@ import { Sparkles, Wallet } from 'lucide-react';
 import { useLoyaltyStore } from '@/store/loyaltyStore';
 import { tierName, walletRateName } from '@almond/shared/loyalty';
 import { TOPUP_AMOUNTS, tierProgress } from '@/data/loyalty';
-import { asLang, formatDate, formatJOD } from '@/lib/format';
+import { asLang, formatDate, formatJOD, formatJODHeld } from '@/lib/format';
 
 export function WalletView() {
   const t = useTranslations('Wallet');
@@ -32,7 +32,7 @@ export function WalletView() {
             <Wallet className="h-5 w-5" />
             <span className="text-sm">{t('balance')}</span>
           </div>
-          <p className="mt-2 text-display font-bold leading-none">{formatJOD(balance, lang)}</p>
+          <p className="mt-2 text-display font-bold leading-none">{formatJODHeld(balance, lang)}</p>
           <p className="mt-4 flex items-center gap-2 text-sm text-white/80">
             <Sparkles className="h-4 w-4" />
             {/* The wallet's one bonus is for SPENDING it (owner, 2026-10-15: «لا

@@ -10,7 +10,7 @@ import { WelcomeGiftNote } from '@/components/loyalty/WelcomeGiftNote';
 import { colors, spacing, radius, fontSize } from '@/constants/theme';
 import { MIN_TOUCH_TARGET } from '@/lib/a11y';
 import { useI18n } from '@/hooks/useI18n';
-import { formatJOD, formatNumber } from '@/lib/format';
+import { formatJODHeld, formatNumber } from '@/lib/format';
 import { useLoyaltyBalance, useWallet } from '@/hooks/useLoyalty';
 import { tierProgressCopy } from '@/lib/tierCopy';
 import { useEarnSheetStore } from '@/stores/earnSheetStore';
@@ -58,7 +58,7 @@ export function LoyaltyCard() {
   }
 
   const progress = tierProgressCopy(data, lang);
-  const worth = formatJOD(jodFromPoints(data.points), lang);
+  const worth = formatJODHeld(jodFromPoints(data.points), lang);
 
   return (
     <HeroCard style={styles.card}>
@@ -101,7 +101,7 @@ export function LoyaltyCard() {
           {t('home.walletBalance')}
         </Text>
         <Text variant="bodyBold" color={colors.onHero} style={styles.walletAmount}>
-          {formatJOD(wallet ?? 0, lang)}
+          {formatJODHeld(wallet ?? 0, lang)}
         </Text>
         <Text variant="caption" color={colors.onHero} style={styles.topUp}>
           {t('home.topUp')}

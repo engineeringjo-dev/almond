@@ -1,6 +1,9 @@
 import { afterEach, describe, it, expect, vi } from 'vitest';
 
-import { formatDate, formatDayKey, formatJOD, formatNumber, formatSignedJOD, formatTime, toFils, toJod } from '@/lib/format';
+import {
+  formatDate, formatDayKey, formatJOD, formatJODHeld, formatJODNeeded, formatNumber, formatSignedJOD,
+  formatTime, roundDownToQirsh, roundUpToQirsh, toFils, toJod,
+} from '@/lib/format';
 import { computeTotals } from '@almond/shared/cart';
 import type { CartItem } from '@almond/shared/types';
 import { config } from '@almond/shared/config';
@@ -155,5 +158,56 @@ describe('F4 a movement of money keeps its sign beside its number', () => {
     expect(formatSignedJOD(-2.675, 'en')).toBe('\u2212JOD 2.68');
     expect(formatSignedJOD(0, 'ar')).toBe(`${LRI}0.00${PDI} د.أ`);
     expect(formatSignedJOD(-0, 'en')).toBe('JOD 0.00');
+  });
+});
+
+/**
+ * F5 — TWO DECIMALS NEVER ASK FOR LESS THAN IS NEEDED, NOR SHOW MORE THAN IS
+ * HELD. Owner, 2026-10-19: «خانتان (كما بناه Codex)». The review of PRs #103 and
+ * #104 (docs/CODEX-LOYALTY-REVIEW-2026-10-19.ar.md) item 5: «إنفاق 1.488 يترك
+ * 18.512، فتقول الشاشة "اصرف 18.51 د.أ إضافية"», and after spending exactly that
+ * «اصرف 0.00 د.أ إضافية»; item 7: «رصيد 7.448 يظهر 7.45، ثم يُرفض تحويل 7.45».
+ * Both directions round in integer fils, never `x * 100` in binary floating point.
+ */
+describe('F5 an amount still needed rounds up, an amount held rounds down', () => {
+  const shown = (lang: 'ar' | 'en', value: string) => (lang === 'ar' ? `${value} د.أ` : `JOD ${value}`);
+
+  it.each(['ar', 'en'] as const)('needed: up to the next 0.01, and never 0.00 while something remains, in %s', (lang) => {
+    expect(formatJODNeeded(20 - 1.488, lang)).toBe(shown(lang, '18.52'));
+    expect(formatJODNeeded(20 - 19.998, lang)).toBe(shown(lang, '0.01'));
+    expect(formatJODNeeded(0.001, lang)).toBe(shown(lang, '0.01'));
+    expect(formatJODNeeded(8, lang)).toBe(shown(lang, '8.00'));
+    expect(formatJODNeeded(0, lang)).toBe(shown(lang, '0.00'));
+  });
+
+  it.each(['ar', 'en'] as const)('held: down to the 0.01 below, so a balance never reads more than it pays, in %s', (lang) => {
+    expect(formatJODHeld(1.005, lang)).toBe(shown(lang, '1.00'));
+    expect(formatJODHeld(7.448, lang)).toBe(shown(lang, '7.44'));
+    expect(formatJODHeld(9.575, lang)).toBe(shown(lang, '9.57'));
+    expect(formatJODHeld(12.4, lang)).toBe(shown(lang, '12.40'));
+    expect(formatJODHeld(0, lang)).toBe(shown(lang, '0.00'));
+  });
+
+  it('an amount already in whole qirsh is not moved by binary noise', () => {
+    // 1.1 * 100 is 110.00000000000001 and 0.57 * 100 is 56.99999999999999:
+    // a float ceil would ask for 1.11, a float floor would show 0.56.
+    expect(formatJODNeeded(1.1, 'en')).toBe('JOD 1.10');
+    expect(formatJODNeeded(0.1 + 0.2, 'en')).toBe('JOD 0.30');
+    expect(formatJODNeeded(20 - 1.49, 'en')).toBe('JOD 18.51');
+    expect(formatJODHeld(0.57, 'en')).toBe('JOD 0.57');
+    expect(formatJODHeld(4.35, 'en')).toBe('JOD 4.35');
+  });
+
+  it('for every whole-fils amount up to 100 JOD: held ≤ exact ≤ needed, each within one qirsh', () => {
+    const offenders: string[] = [];
+    for (let fils = 0; fils <= 100_000; fils += 1) {
+      const jod = fils / 1000;
+      const up = toFils(roundUpToQirsh(jod));
+      const down = toFils(roundDownToQirsh(jod));
+      if (up < fils || up - fils >= 10 || up % 10 !== 0) offenders.push(`up ${jod} → ${up / 1000}`);
+      if (down > fils || fils - down >= 10 || down % 10 !== 0) offenders.push(`down ${jod} → ${down / 1000}`);
+      if (fils > 0 && up === 0) offenders.push(`up ${jod} shows nothing`);
+    }
+    expect(offenders.slice(0, 10)).toEqual([]);
   });
 });

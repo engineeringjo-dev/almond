@@ -1,7 +1,7 @@
 import { Text } from '@/components/ui/Text';
 import { colors, fontSize } from '@/constants/theme';
 import { useI18n } from '@/hooks/useI18n';
-import { formatJOD } from '@/lib/format';
+import { formatJODHeld } from '@/lib/format';
 import { jodFromPoints } from '@almond/shared/loyalty/earn';
 
 /**
@@ -13,7 +13,7 @@ import { jodFromPoints } from '@almond/shared/loyalty/earn';
  */
 export function BalanceWorth({ points, tone = 'hero' }: { points: number; tone?: 'hero' | 'page' }) {
   const { t, lang } = useI18n();
-  const jod = formatJOD(jodFromPoints(points), lang);
+  const jod = formatJODHeld(jodFromPoints(points), lang);
   return (
     <Text
       variant="bodyBold"

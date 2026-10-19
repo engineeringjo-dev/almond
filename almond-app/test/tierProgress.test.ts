@@ -172,3 +172,20 @@ describe('TP3 points worth does not depend on the price of a drink', () => {
     });
   }
 });
+
+describe('TP4 the remaining spend on screen is never short of the rung', () => {
+  // Review of PRs #103/#104, item 5 (P1): a real standing of 1.488 JOD leaves
+  // 18.512, which two decimals printed as 18.51; spending exactly that left the
+  // member on 19.998, still at 2%, and the bar then asked for «0.00» more.
+  for (const lang of ['ar', 'en'] as const) {
+    it(`${lang}: 1.488 spent asks for 18.52, and 19.998 spent asks for 0.01`, async () => {
+      const i18n = await useLanguage(lang);
+      for (const [spent, rest] of [[1.488, '18.52'], [19.998, '0.01']] as const) {
+        const input = balance([{ day: '2026-10-15', jod: spent }]);
+        const jod = lang === 'ar' ? `${rest} د.أ` : `JOD ${rest}`;
+        expect(tierProgressCopy(input, lang)!.params.jod).toBe(jod);
+        expect(render(input)).toContain(i18n.t('loyalty.toPlus', { jod, tier: '4%' }));
+      }
+    });
+  }
+});

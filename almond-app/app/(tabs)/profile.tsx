@@ -14,7 +14,7 @@ import { LanguageSheet } from '@/components/profile/LanguageSheet';
 import { colors, spacing, radius, shadow } from '@/constants/theme';
 import { useI18n } from '@/hooks/useI18n';
 import { layoutFollowsLanguage } from '@/lib/direction';
-import { formatJOD } from '@/lib/format';
+import { formatJODHeld } from '@/lib/format';
 import { config } from '@/constants/config';
 import { isProfileComplete } from '@almond/shared/loyalty/profile';
 import { ltrIsolate } from '@almond/shared/lib/phone';
@@ -115,7 +115,7 @@ export default function ProfileScreen() {
           <ListRow
             icon="wallet"
             label={t('profile.wallet')}
-            value={wallet != null ? formatJOD(wallet, lang) : undefined}
+            value={wallet != null ? formatJODHeld(wallet, lang) : undefined}
             onPress={() => router.push('/profile/wallet')}
           />
           <ListRow icon="gift" label={t('profile.giftCards')} onPress={() => router.push('/profile/gift-cards')} />
