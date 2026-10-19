@@ -482,8 +482,13 @@ export function registerPosRoutes(app: FastifyInstance, backend: Backend): void 
    * is the FULL reversal of whatever is left, idempotent by posOrderRef.
    *
    * Never below zero: points the member already spent come back as
-   * `shortfall`, recorded for the back-office, not clawed. The figures in the
-   * reply are THIS refund's; `refundedTotal` and `fullyReversed` are the sale's.
+   * `shortfall`, and that becomes a points-only debt on the member
+   * (members.purchase_points_debt), recovered first from every later points
+   * credit, rewards, gifts and friends' transfers included
+   * (backend/pointsCredit.ts grantPointCredit). Owner, 2026-10-19: «من كل
+   * النقاط القادمة (كما بناه Codex)» (docs/HANDOVER.md §7). Never cash or
+   * wallet money. The figures in the reply are THIS refund's; `refundedTotal`
+   * and `fullyReversed` are the sale's.
    */
   app.post('/v1/pos/earn/reverse', async (req, reply) => {
     requirePosKey(req);
