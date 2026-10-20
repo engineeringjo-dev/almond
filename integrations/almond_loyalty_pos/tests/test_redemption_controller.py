@@ -225,5 +225,50 @@ class TestUnconfirmedSettle(ControllerDoubles, unittest.TestCase):
                 self.assertIn('_t("%s")' % message, STORE_JS)
 
 
+class TestSettleRefusalsSayWhatHappened(ControllerDoubles, unittest.TestCase):
+    """Reviewers, 2026-10-20: three settle refusals the till worded wrong or
+    not at all. None of them is uncertain, so none says "not confirmed"."""
+
+    def test_429_on_settle_says_wait_a_minute_never_not_confirmed(self):
+        # RateLimitedError is an UnavailableError: _settle_error must keep it
+        # out of the uncertain set. limitTill refuses before anything is spent.
+        for retry, source in SOURCES.items():
+            with self.subTest(source=retry):
+                self.api.settle_redemption.side_effect = C.AlmondLoyaltyClient._error_for(
+                    SETTLE, 429, {"error": "rate_limited"})
+                answer = self.settle(**source)
+                self.assertEqual(answer["error"], "rate_limited")
+                self.assertIn("Wait a minute", answer["message"])
+                self.assertNotIn("not confirmed", answer["message"])
+                self.assertEqual(self.ledger.created, [])
+
+    def test_a_raw_qr_a_scan_already_read_points_to_use_it_and_never_says_used(self):
+        # b46f11b2: the API refuses the raw token of a QR /scan read, and says
+        # to settle with that scan's receipt. The reservation is still open, so
+        # "already used / refresh it" would tell the member it was spent.
+        self.api.settle_redemption.side_effect = C.AlmondLoyaltyClient._error_for(SETTLE, 409, {
+            "error": "pos_token_replay",
+            "message": "this redemption QR was already scanned; settle it with that scan's receipt"})
+        answer = self.handler.settle(session_id=1, order_uuid="order-b", token="qr")
+        self.assertEqual(answer, {"ok": False, "error": "qr_scanned", "message": (
+            "This QR was already scanned on a till. If it was scanned on this order, press 'Use it'. "
+            "Otherwise ask the member to refresh it.")})
+        self.assertNotIn("already used", answer["message"])
+        self.assertEqual(self.ledger.created, [])
+
+    def test_a_redemption_already_settled_says_so_and_sends_the_cashier_to_the_manager(self):
+        # A first settle that committed, then a retry with the member's
+        # refreshed QR (a new key): the API answers 409 redemption_already_settled.
+        for retry, source in SOURCES.items():
+            with self.subTest(source=retry):
+                self.api.settle_redemption.side_effect = C.AlmondLoyaltyClient._error_for(SETTLE, 409, {
+                    "error": "redemption_already_settled", "message": "This code has already been used"})
+                answer = self.settle(**source)
+                self.assertEqual(answer, {"ok": False, "error": "already_settled", "message": (
+                    "This redemption is already settled. Ask the manager to check this order "
+                    "before taking another payment.")})
+                self.assertEqual(self.ledger.created, [])
+
+
 if __name__ == "__main__":
     unittest.main()

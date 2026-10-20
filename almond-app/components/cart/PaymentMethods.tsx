@@ -3,7 +3,7 @@ import { Text } from '@/components/ui/Text';
 import { Icon } from '@/components/ui/Icon';
 import { colors, radius, spacing } from '@/constants/theme';
 import { useI18n } from '@/hooks/useI18n';
-import { formatJODHeld } from '@/lib/format';
+import { formatJODHeld, walletCoversShown } from '@/lib/format';
 import { paymentIcon } from '@/lib/paymentIcon';
 import { choiceA11y, choiceGroupA11y } from '@/lib/a11y';
 import { paymentMethods } from '@/services/seed';
@@ -24,11 +24,13 @@ export function PaymentMethods({ value, onChange, walletBalance, total }: Props)
       {paymentMethods.map((m) => {
         const active = m.id === value;
         // Wallet can't cover the order → disable it (no silent failure at pay).
+        // Covering means the exact balance pays the exact total AND the figure
+        // shown here is not below the total shown (walletCoversShown).
         const disabled =
-          m.id === 'wallet' && walletBalance != null && total != null && walletBalance < total;
+          m.id === 'wallet' && walletBalance != null && total != null && !walletCoversShown(walletBalance, total);
         const name = lang === 'ar' ? m.nameAr : m.nameEn;
         // Shown rounded DOWN (formatJODHeld): the line never reads more than
-        // the wallet pays. `disabled` above compares the exact balance.
+        // the wallet pays.
         const shownBalance = walletBalance != null ? formatJODHeld(walletBalance, lang) : null;
         const detail =
           m.id === 'wallet' && shownBalance != null

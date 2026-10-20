@@ -40,6 +40,26 @@ describe('PO1 the shared rule: what is owed, purchase by purchase, oldest refund
       { sourceRef: 'pos:a', pointsOwedChange: -30 },
       { sourceRef: 'pos:b', pointsOwedChange: 30 },
     ])).toEqual([{ ref: 'pos:a', points: 10 }, { ref: 'pos:b', points: 30 }]);
+    // The line names a NEWER refund than the oldest open one: it pays the one
+    // it names, not the oldest (reviewers, 2026-10-20: every fixture above
+    // named the oldest, so a rule that ignored the name passed them all).
+    expect(owedByPurchase([
+      { sourceRef: 'pos:a', pointsOwedChange: 10 },
+      { sourceRef: 'pos:b', pointsOwedChange: 30 },
+      { sourceRef: 'pos:b', pointsOwedChange: -20 },
+    ])).toEqual([{ ref: 'pos:a', points: 10 }, { ref: 'pos:b', points: 10 }]);
+    // What the named purchase cannot absorb falls to the oldest refund; a line
+    // that names none is taken from the oldest.
+    expect(owedByPurchase([
+      { sourceRef: 'pos:a', pointsOwedChange: 10 },
+      { sourceRef: 'pos:b', pointsOwedChange: 30 },
+      { sourceRef: 'pos:b', pointsOwedChange: -35 },
+    ])).toEqual([{ ref: 'pos:a', points: 5 }]);
+    expect(owedByPurchase([
+      { sourceRef: 'pos:a', pointsOwedChange: 10 },
+      { sourceRef: 'pos:b', pointsOwedChange: 30 },
+      { sourceRef: null, pointsOwedChange: -15 },
+    ])).toEqual([{ ref: 'pos:b', points: 25 }]);
   });
 
   it('a recovery is split across the refunds it pays, oldest first, one piece per purchase', () => {

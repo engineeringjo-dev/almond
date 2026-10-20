@@ -23,10 +23,13 @@ import type { PointsLogEntry } from '@/types';
  * ahead: once it has passed, the points are either spent or written off on
  * their own «انتهاء صلاحية نقاط» line.
  *
- * A refund the points balance did not cover says what it left owed, and each
- * later deduction names the refunded purchase it pays (review 2026-10-19, item
- * 9; loyalty/history.ts owedNote). A line whose figure is 0 shows no figure:
- * never «−0» or «+0».
+ * A refund the points balance did not cover says how many points it could not
+ * take back, and each later deduction names the refunded purchase it pays
+ * (review 2026-10-19, item 9; loyalty/history.ts owedNote). The refund line is
+ * history: its figure never changes, so it says what happened then and never
+ * "you owe" or "we take them from your next points". What is owed now, and that
+ * promise, is PointsOwedNote's, from the balance, and hidden at 0. A line whose
+ * figure is 0 shows no figure: never «−0» or «+0».
  */
 export function PointsHistory({ entries: ledger }: { entries: readonly PointsLogEntry[] }) {
   const { t, lang } = useI18n();

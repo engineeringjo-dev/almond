@@ -1134,6 +1134,13 @@ describe('R3.22 migration 20261019200000_points_owed_lines.sql', () => {
     expect(await insert('refund', 0, -25)).toBe('23514');    // paid back, but no points taken
     expect(await insert('bonus', 50, -25)).toBe('23514');    // owed only on refund lines
     expect(await insert(null, 0, 5)).toBe('23514');
+    // Rows only the `kind = 'refund'` clause refuses: each would pass the
+    // figure clauses on its own (owed > 0, or points equal to the figure).
+    // Reviewers, 2026-10-20: the bonus row above is refused by the
+    // delta-equality clause, so dropping the kind restriction kept R3.22 green.
+    expect(await insert('purchase', 40, 5)).toBe('23514');
+    expect(await insert('bonus', -25, -25)).toBe('23514');
+    expect(await insert('expire', -25, -25)).toBe('23514');
 
     const shape = () => rows(pg, `select column_name, data_type, is_nullable, column_default from information_schema.columns
       where table_name = 'point_history' and column_name = 'points_owed_change'`);

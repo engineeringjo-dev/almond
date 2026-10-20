@@ -8,6 +8,7 @@ import { createInstance } from 'i18next';
 import { LoyaltyCard } from '@/components/home/LoyaltyCard';
 import { PaymentMethods } from '@/components/cart/PaymentMethods';
 import { I18N_OPTIONS } from '@/lib/i18nOptions';
+import { formatJOD, toFils, walletCoversShown } from '@/lib/format';
 
 /**
  * MR — TWO DECIMALS, ROUNDED TOWARD WHAT THE MEMBER CAN ACT ON.
@@ -131,5 +132,59 @@ describe('MR2 every balance and every amount still needed goes through its round
     }
     expect(calls.length, 'the scan must reach the app and website money calls').toBeGreaterThanOrEqual(40);
     expect(offenders).toEqual([]);
+  });
+});
+
+describe('MR3 an enabled wallet never reads below the total beside it', () => {
+  // Reviewers, 2026-10-20: the wallet line rounds DOWN (formatJODHeld) while
+  // the total rounds to nearest (formatJOD), and the wallet was enabled on the
+  // exact amounts. A wallet of 2.927 against a total of 2.925 (3.25 with the
+  // in-app ALMOND10 code) read «2.92» beside «2.93», and could be chosen.
+  const qirsh = (text: string) => Number(/(\d+\.\d{2})/.exec(text)?.[1]);
+
+  it('the rule: the exact wallet covers the exact total, AND the shown wallet is not below the shown total', () => {
+    expect(walletCoversShown(2.927, 2.925)).toBe(false);
+    expect(walletCoversShown(7.448, 7.445)).toBe(false);
+    expect(walletCoversShown(1.489, 1.488)).toBe(false);
+    expect(walletCoversShown(2.93, 2.925)).toBe(true);
+    expect(walletCoversShown(3, 3)).toBe(true);
+    expect(walletCoversShown(2.925, 2.925)).toBe(false); // «2.92» beside «2.93»
+    expect(walletCoversShown(2.92, 2.924)).toBe(false); // shows equal, but short by 4 fils
+    expect(walletCoversShown(0, 0)).toBe(true);
+    // Every whole-fils pair in a band that crosses qirsh boundaries.
+    for (let w = 2900; w <= 2960; w += 1) {
+      for (let t = 2900; t <= 2960; t += 1) {
+        const covers = walletCoversShown(w / 1000, t / 1000);
+        const shownWallet = Math.floor(w / 10);
+        const shownTotal = qirsh(formatJOD(t / 1000, 'en')) * 100;
+        expect(covers, `wallet ${w} fils, total ${t} fils`).toBe(w >= t && shownWallet >= Math.round(shownTotal));
+      }
+    }
+  });
+
+  for (const lang of ['ar', 'en'] as const) {
+    it(`${lang}: the cart's wallet line is enabled only when its figure is not below the total`, async () => {
+      await useLanguage(lang);
+      const short = state.t('cart.walletShort');
+      for (const [wallet, total] of [[2.927, 2.925], [7.448, 7.445], [1.489, 1.488], [2.93, 2.925], [7.45, 7.445], [3, 2.925]]) {
+        const html = renderToStaticMarkup(React.createElement(PaymentMethods, {
+          value: 'cash', onChange: () => undefined, walletBalance: wallet, total,
+        }));
+        const enabled = !html.includes(short);
+        // The figure the row shows (MR1 holds it to formatJODHeld).
+        const walletFigure = Math.floor(toFils(wallet) / 10);
+        expect(html).toContain(shown(lang, (walletFigure / 100).toFixed(2)));
+        const totalFigure = Math.round(qirsh(formatJOD(total, lang)) * 100);
+        if (enabled) expect(walletFigure, `wallet ${wallet}, total ${total}`).toBeGreaterThanOrEqual(totalFigure);
+        expect(enabled, `wallet ${wallet}, total ${total}`).toBe(walletCoversShown(wallet, total));
+      }
+    });
+  }
+
+  it('the cart decides with the same rule everywhere it compares the wallet with the total', () => {
+    const cart = src('almond-app/app/cart.tsx');
+    expect(cart).not.toMatch(/walletBalance\s*\??\s*\??\s*[0-9]*\)?\s*[<>]=?\s*totals\.total/);
+    expect(cart.match(/walletCoversShown\(/g)?.length ?? 0).toBeGreaterThanOrEqual(3);
+    expect(src('almond-app/components/cart/PaymentMethods.tsx')).toContain('walletCoversShown(walletBalance, total)');
   });
 });

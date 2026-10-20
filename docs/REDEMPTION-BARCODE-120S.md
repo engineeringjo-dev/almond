@@ -57,10 +57,24 @@ can replay after expiry. Changing the body/order under the same key is422;
 a fresh key cannot spend an expired authorization or settle an already-settled
 row again. A lost/uncertain response must retry the original credential, order
 and key. Do not refresh credentials and reuse that key. The till tells the
-cashier exactly this: an uncertain settle (timeout, lost connection, unreadable
-reply, 5xx, `409 request_in_progress`) reads "not confirmed: press 'Use it'
-again on this order before any other payment, do not ask for a new QR", never
-"continue without Almond". Both old typed-points
+cashier this: an uncertain settle (timeout, lost connection, unreadable reply,
+5xx, `409 request_in_progress`) reads "not confirmed", never "continue without
+Almond", and names the button that replays it: after a scan, "press 'Use it'
+again on this order before any other payment"; for a QR read into the
+redemption dialog, "press 'Apply' again with the same QR on this order before
+any other payment". Both add "do not ask for a new QR". A `429` says wait a
+minute: the till's rate limit refuses before anything is spent. The raw token
+of a scanned QR (`409 pos_token_replay`) reads "already scanned on a till: if
+it was scanned on this order, press 'Use it', otherwise ask the member to
+refresh it", never "already used". A new key that reaches a settled
+reservation (`409 redemption_already_settled`) reads "already settled: ask the
+manager to check this order before taking another payment".
+
+Limit of the dialog path: Odoo stores nothing for a raw-QR attempt before the
+API call, and the QR lives only in the open dialog. If the dialog closes after
+an unconfirmed settle and the member's app has since shown a new QR, the retry
+is a new key: it cannot replay the first answer, and if that settle committed
+the till reads "already settled". Both old typed-points
 settlement routes now fail closed with `redemption_barcode_required`; gift-card
 claim codes keep their separate purpose and flow.
 

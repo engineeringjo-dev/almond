@@ -56,11 +56,13 @@ describe('PO-A1 the sentence agrees with its number, in both languages', () => {
     expect(owed(5)).toBe('عليك 5 نقاط من مشتريات مُسترَدة، نخصمها من نقاطك القادمة');
     expect(owed(40)).toBe('عليك 40 نقطة من مشتريات مُسترَدة، نخصمها من نقاطك القادمة');
     expect(owed(120)).toBe('عليك 120 نقطة من مشتريات مُسترَدة، نخصمها من نقاطك القادمة');
+    // The refund line is history: what the balance could not cover then,
+    // never what is owed now (that is pointsOwed, beside the balance).
     const left = (n: number) => ar.t('loyalty.refundLeftOwed', { count: n, points: String(n) });
-    expect(left(1)).toBe('لم يكفِ رصيد نقاطك، فبقيت عليك نقطة واحدة نخصمها من نقاطك القادمة');
-    expect(left(2)).toBe('لم يكفِ رصيد نقاطك، فبقيت عليك نقطتان نخصمهما من نقاطك القادمة');
-    expect(left(7)).toBe('لم يكفِ رصيد نقاطك، فبقيت عليك 7 نقاط نخصمها من نقاطك القادمة');
-    expect(left(40)).toBe('لم يكفِ رصيد نقاطك، فبقيت عليك 40 نقطة نخصمها من نقاطك القادمة');
+    expect(left(1)).toBe('لم يكفِ رصيد نقاطك لخصم نقطة واحدة من هذا الطلب');
+    expect(left(2)).toBe('لم يكفِ رصيد نقاطك لخصم نقطتين من هذا الطلب');
+    expect(left(7)).toBe('لم يكفِ رصيد نقاطك لخصم 7 نقاط من هذا الطلب');
+    expect(left(40)).toBe('لم يكفِ رصيد نقاطك لخصم 40 نقطة من هذا الطلب');
   });
 
   it('English: one and many', async () => {
@@ -69,8 +71,10 @@ describe('PO-A1 the sentence agrees with its number, in both languages', () => {
       .toBe('You owe 1 point from refunded purchases. We take it from the next points you get.');
     expect(en.t('loyalty.pointsOwed', { count: 40, points: '40' }))
       .toBe('You owe 40 points from refunded purchases. We take them from the next points you get.');
+    expect(en.t('loyalty.refundLeftOwed', { count: 1, points: '1' }))
+      .toBe('Your points balance was not enough to take back 1 point of this purchase.');
     expect(en.t('loyalty.refundLeftOwed', { count: 40, points: '40' }))
-      .toBe('Your points balance did not cover it, so you owe 40 points. We take them from the next points you get.');
+      .toBe('Your points balance was not enough to take back 40 points of this purchase.');
   });
 });
 
@@ -126,10 +130,52 @@ describe('PO-A3 the history explains the debt where it starts and where it is pa
       const i18n = await useLanguage(lang);
       const html = text(renderToStaticMarkup(React.createElement(PointsHistory, { entries: lines })));
       expect(html).toContain(i18n.t('loyalty.refundLeftOwed', { count: 40, points: '40' }));
-      expect(html).toContain(i18n.t('loyalty.owedFromPurchase', { date: formatDate(bought, lang) }));
-      expect(html).toContain(i18n.t('loyalty.historyBranch', { name: lang === 'ar' ? 'الرابية' : 'Rabyeh' }));
+      const rabyeh = i18n.t('loyalty.historyBranch', { name: lang === 'ar' ? 'الرابية' : 'Rabyeh' });
+      // The paying line's whole caption: the purchase it pays AND that
+      // purchase's branch. The refund and purchase lines show the branch in
+      // their own meta line, so «فرع الرابية» alone proves nothing about the
+      // paying line (reviewers, 2026-10-20).
+      expect(html).toContain([i18n.t('loyalty.owedFromPurchase', { date: formatDate(bought, lang) }), rabyeh].join(' · '));
       expect(html).not.toMatch(/[+−-]\s*0(?![\d.,])/);
       expect(html).not.toMatch(/[٠-٩]/);
+    });
+  }
+});
+
+describe('PO-A5 a refund whose debt is paid promises no deduction', () => {
+  // Reviewers, 2026-10-20: the refund line kept saying «فبقيت عليك 40 نقطة
+  // نخصمها من نقاطك القادمة» after the paying line below it had settled all
+  // 40. owedNote reads the refund line's own figure, which never changes, so
+  // the line may only say what happened then. What is owed now, and the
+  // promise to take it from later points, is PointsOwedNote's, which is hidden
+  // at 0.
+  const lines: PointsLogEntry[] = [
+    { id: '4', deltaPoints: -40, pointsOwedChange: -40, kind: 'refund', sourceRef: 'pos:b', branchId: null,
+      reasonAr: 'تسوية نقاط طلب مُسترَد', reasonEn: 'Points owed on a refunded purchase', createdAt: '2026-10-19T09:00:00.000Z' },
+    { id: '3', deltaPoints: 40, kind: 'transfer', reasonAr: 'نقاط من صديق', reasonEn: 'Points from a friend',
+      createdAt: '2026-10-19T09:00:00.000Z' },
+    { id: '2', deltaPoints: 0, pointsOwedChange: 40, kind: 'refund', sourceRef: 'pos:b', branchId: 'rabyeh',
+      reasonAr: 'خصم نقاط طلب مُسترَد', reasonEn: 'Refunded purchase points', createdAt: '2026-10-14T09:00:00.000Z' },
+    { id: '1', deltaPoints: 40, kind: 'purchase', sourceRef: 'pos:b', branchId: 'rabyeh',
+      reasonAr: 'نقاط شراء في الفرع', reasonEn: 'In-store purchase points', createdAt: '2026-10-12T09:00:00.000Z' },
+  ];
+  const promise = { ar: /نخصم|القادمة|عليك/, en: /\bowe\b|next points|we take/i };
+
+  for (const lang of ['ar', 'en'] as const) {
+    it(`${lang}: the refund line says what happened, and nothing on the page says points are still owed`, async () => {
+      const i18n = await useLanguage(lang);
+      const html = text(renderToStaticMarkup(React.createElement(PointsHistory, { entries: lines })));
+      expect(html).toContain(i18n.t('loyalty.refundLeftOwed', { count: 40, points: '40' }));
+      expect(html).not.toMatch(promise[lang]);
+    });
+  }
+
+  for (const lang of ['ar', 'en'] as const) {
+    it(`${lang}: every form of the refund line is past tense and promises nothing`, async () => {
+      const i18n = await useLanguage(lang);
+      for (const n of [1, 2, 3, 7, 11, 40, 100, 1240]) {
+        expect(i18n.t('loyalty.refundLeftOwed', { count: n, points: String(n) })).not.toMatch(promise[lang]);
+      }
     });
   }
 });

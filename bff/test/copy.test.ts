@@ -876,6 +876,14 @@ describe('C26 one Arabic word for each thing', () => {
     // member types is «الرمز»; «باركود» is the one word that keeps the letters.
     { name: 'a typed code is «الرمز»', re: /(?<!بار)كود/, files: [APP_LOCALES.ar, WEB_LOCALES.ar] },
     { name: 'the channel is said in Arabic, never «أونلاين»', re: /[أاإ]ون\s?لاين/, files: [APP_LOCALES.ar, WEB_LOCALES.ar] },
+    // Reviewers, 2026-10-20: the copy commit made «اختر مشروبك وطعامك» but
+    // left «أكل + مشروب» and «أصناف الأكل» beside it on the same screen. Food
+    // is «طعام». The verb («تأكله») is not the noun and stays.
+    {
+      name: 'food is «طعام», never the noun «أكل»',
+      re: /(?<![\u0600-\u06FF])[وفبل]?(?:ال|لل)?أكل(?:ك|ه|ها|نا|هم)?(?![\u0600-\u06FF])/,
+      files: [APP_LOCALES.ar, WEB_LOCALES.ar],
+    },
   ];
   it('in the Arabic files', () => {
     const offenders: string[] = [];
@@ -915,6 +923,31 @@ describe('C26 one Arabic word for each thing', () => {
       }
     }
     expect(offenders).toEqual([]);
+  });
+
+  it('the English twin: "your balance" alone is the wallet; points go to "your points balance"', () => {
+    // Reviewers, 2026-10-20: three Arabic lines moved to «رصيد نقاطك» while
+    // their English kept "your balance", the wallet's word in en.json ("Pay
+    // from your balance"), so the two languages said different things.
+    const POINTS = /\bpoints?\b/i;
+    const PAYMENT = /\bpay(?:s|ing)?\b|\bpaid\b|top-?up|\bwallet\b|\{\{?jod\}?\}/i;
+    const offenders: string[] = [];
+    for (const rel of [APP_LOCALES.en, WEB_LOCALES.en]) {
+      for (const [k, v] of Object.entries(load(rel))) {
+        for (const sentence of v.split(/[.?!;\n]/)) {
+          if (/\byour balance\b/i.test(sentence) && POINTS.test(sentence) && !PAYMENT.test(sentence)) {
+            offenders.push(`${rel} ${k}: ${v}`);
+          }
+        }
+      }
+    }
+    expect(offenders).toEqual([]);
+  });
+
+  it('the guards above catch what they name (self-test)', () => {
+    const food = BANNED.find((b) => b.name.startsWith('food'))!.re;
+    for (const bad of ['أكل + مشروب', 'أصناف الأكل', 'وأكل', 'للأكل', 'أكلك']) expect(food.test(bad), bad).toBe(true);
+    for (const fine of ['شيئاً تأكله', 'طعامك', 'الطعام']) expect(food.test(fine), fine).toBe(false);
   });
 });
 

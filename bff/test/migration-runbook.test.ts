@@ -41,9 +41,19 @@ const SERVER_REQUIRED = [
   '20261016160212_redemption_slices.sql',
   '20261016160234_purchase_points_recovery.sql',
 ];
+/** One-way: once applied, the BFF is never rolled back to a build older than
+ *  them. PR #103's three (the reversal check refuses an older build), and the
+ *  points-owed column: an older build writes every paying line with 0, so the
+ *  lines no longer add up to members.purchase_points_debt and the next
+ *  deduction names a refund already paid (reviewers, 2026-10-20). */
+const ONE_WAY = [...SERVER_REQUIRED, '20261019200000_points_owed_lines.sql'];
 
 const DEPLOY_ORDER = [LOYALTY_MIGRATIONS[0], RLS, ...LOYALTY_MIGRATIONS.slice(1)];
 const stem = (file: string) => file.slice(0, file.indexOf('_'));
+/** HANDOVER §4.2: «الاثنتا عشرة الأخيرة (من 20261001 إلى 20261019200000)
+ *  تُطبَّق قبل نشر الخادم الذي يكتبها». Every file from 20261001 on, so a
+ *  file added later is held to it too. */
+const BEFORE_SERVER = DEPLOY_ORDER.filter((file) => stem(file) >= '20261001');
 
 /** HANDOVER §4.2, from its heading to the next one. */
 function runbookSection(): string {
@@ -101,16 +111,32 @@ describe('the migration runbook (HANDOVER §4.2, bff/.env.example) = LOYALTY_MIG
     expect([...envRows().keys()]).toEqual(DEPLOY_ORDER);
   });
 
-  it('RB6 — both lists mark PR #103’s three files as before the server deploy, and one-way', () => {
+  it('RB6 — both lists mark every migration the server writes (20261001 on) as before the server deploy', () => {
+    // Reviewers, 2026-10-20: this check covered only PR #103's three files, so
+    // the marker on 20261019200000 (every history line writes
+    // point_history.points_owed_change) could be deleted with every test green.
     const rows = runbookRows();
     const env = envRows();
-    for (const file of SERVER_REQUIRED) {
+    expect(BEFORE_SERVER, '«الاثنتا عشرة الأخيرة»').toHaveLength(12);
+    expect(BEFORE_SERVER.at(-1)).toBe('20261019200000_points_owed_lines.sql');
+    for (const file of BEFORE_SERVER) {
+      expect(rows.get(file) ?? '', `HANDOVER §4.2 row for ${file}`).toContain('قبل نشر الخادم');
+      expect(env.get(file) ?? '', `.env.example line for ${file}`).toContain('BEFORE deploying this BFF');
+    }
+  });
+
+  it('RB7 — both lists mark the one-way files one-way, and no other file', () => {
+    const rows = runbookRows();
+    const env = envRows();
+    for (const file of DEPLOY_ORDER) {
+      const oneWay = ONE_WAY.includes(file);
       const row = rows.get(file) ?? '';
       const line = env.get(file) ?? '';
-      expect(row, `HANDOVER §4.2 row for ${file}`).toContain('قبل نشر الخادم');
-      expect(row, `HANDOVER §4.2 row for ${file}`).toContain('باتجاه واحد');
-      expect(line, `.env.example line for ${file}`).toContain('BEFORE deploying this BFF');
-      expect(line, `.env.example line for ${file}`).toContain('one-way');
+      // «ليس باتجاه واحد» would read as one-way to a substring check, and is
+      // the claim the reviewers found wrong on 20261019200000.
+      expect(row, `HANDOVER §4.2 row for ${file}`).not.toContain('ليس باتجاه واحد');
+      expect(row.includes('باتجاه واحد'), `HANDOVER §4.2 row for ${file}: one-way = ${oneWay}`).toBe(oneWay);
+      expect(line.includes('one-way'), `.env.example line for ${file}: one-way = ${oneWay}`).toBe(oneWay);
     }
   });
 });

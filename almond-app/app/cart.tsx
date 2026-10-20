@@ -36,7 +36,7 @@ import { estimateEarnedPoints, type PointsFor } from '@/lib/earnEstimate';
 import { computePickupEstimate } from '@/lib/pickup';
 import { checkoutBlock, type CheckoutBlock } from '@/lib/cartBranch';
 import { CHECKOUT_RETURN, reviewOnReturn } from '@/lib/returnTo';
-import { formatJOD } from '@/lib/format';
+import { formatJOD, walletCoversShown } from '@/lib/format';
 import { inputTextAlign } from '@/lib/inputAlign';
 import { paymentService } from '@/services/payment.service';
 import { loyaltyService } from '@/services/loyalty.service';
@@ -131,7 +131,7 @@ export default function CartScreen() {
   // If wallet is selected but no longer covers the total, fall back to cash
   // (the wallet option is also disabled in the picker).
   useEffect(() => {
-    if (paymentMethod === 'wallet' && walletBalance != null && walletBalance < totals.total) {
+    if (paymentMethod === 'wallet' && walletBalance != null && !walletCoversShown(walletBalance, totals.total)) {
       setPaymentMethod('cash');
     }
   }, [paymentMethod, walletBalance, totals.total, setPaymentMethod]);
@@ -159,7 +159,7 @@ export default function CartScreen() {
     if (!branch) return;
     // Guard: never let a wallet payment proceed with an insufficient balance
     // (previously failed silently). Surface it and stop.
-    if (paymentMethod === 'wallet' && walletBalance != null && walletBalance < totals.total) {
+    if (paymentMethod === 'wallet' && walletBalance != null && !walletCoversShown(walletBalance, totals.total)) {
       useToastStore.getState().showError(t('cart.walletInsufficient'));
       return;
     }
@@ -372,7 +372,7 @@ export default function CartScreen() {
                     {t('cart.walletSelected', walletRate)}
                   </Text>
                 </View>
-              ) : (walletBalance ?? 0) >= totals.total ? (
+              ) : walletCoversShown(walletBalance ?? 0, totals.total) ? (
                 <Pressable
                   style={styles.walletUpsell}
                   onPress={() => setPaymentMethod('wallet')}

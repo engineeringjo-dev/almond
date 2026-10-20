@@ -26,6 +26,7 @@ from ..models.almond_loyalty_client import (
     BadRequestError,
     ClientValidationError,
     ConfigError,
+    ConflictError,
     NotFoundError,
     PosKeyInvalidError,
     RateLimitedError,
@@ -106,6 +107,20 @@ class AlmondLoyaltyController(http.Controller):
         uncertain = isinstance(exc, RequestInProgressError) or (
             isinstance(exc, UnavailableError) and not isinstance(exc, RateLimitedError))
         if not uncertain:
+            if isinstance(exc, TokenReplayError) and not from_scan:
+                # The raw token of a QR /scan already read. The reservation may
+                # still be open, settled by that scan's receipt ('Use it'), so
+                # never "already used".
+                return self._fail("qr_scanned", _(
+                    "This QR was already scanned on a till. If it was scanned on this order, press 'Use it'. "
+                    "Otherwise ask the member to refresh it."))
+            if isinstance(exc, ConflictError) and exc.api_code == "redemption_already_settled":
+                # A new key reached a settled redemption, for example a first
+                # settle that committed and a retry with a refreshed QR. The
+                # value is spent, maybe on this order.
+                return self._fail("already_settled", _(
+                    "This redemption is already settled. Ask the manager to check this order "
+                    "before taking another payment."))
             return self._api_error(exc)
         if from_scan:
             return self._fail("unconfirmed", _(

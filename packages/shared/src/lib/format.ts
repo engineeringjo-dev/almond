@@ -108,6 +108,25 @@ export function formatJODHeld(amount: number, lang: Lang): string {
 }
 
 /**
+ * CAN THE WALLET PAY THIS BILL, AS THE MEMBER READS BOTH FIGURES?
+ *
+ * The wallet line shows its balance rounded DOWN (formatJODHeld) and the total
+ * beside it shows the bill rounded to nearest (formatJOD). Enabled on the
+ * exact amounts alone, a wallet of 2.927 against a bill of 2.925 read «2.92»
+ * beside «2.93» and could still be chosen (reviewers, 2026-10-20). So the
+ * wallet pays only when the exact balance covers the exact bill (the server's
+ * rule: it charges fils) AND the figure shown for it is not below the total
+ * shown. The cost: a wallet less than a qirsh above a bill with a third fils
+ * digit is offered as short, which is what both figures on the screen say.
+ * In integer fils, as formatJOD rounds: half up to the qirsh.
+ */
+export function walletCoversShown(wallet: number, total: number): boolean {
+  const w = toFils(wallet);
+  const t = toFils(total);
+  return w >= t && Math.floor(w / 10) >= Math.round(t / 10);
+}
+
+/**
  * A MOVEMENT of money, signed: «+20.00 د.أ», «−3.25 د.أ» / "+JOD 20.00".
  *
  * In an Arabic line the sign and the digits must be one left-to-right run (an

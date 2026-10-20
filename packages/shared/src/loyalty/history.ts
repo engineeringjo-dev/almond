@@ -176,7 +176,10 @@ interface OwedLine {
  * later taken on a line tied to nothing. So:
  *
  *   left — a refund line that left `points` owed (its own figure is only what
- *          the balance covered, which may be 0).
+ *          the balance covered, which may be 0). This is what happened THEN:
+ *          the figure never changes when later lines pay it, so a screen words
+ *          it as history, never as a debt still open (the live debt is the
+ *          balance's `pointsOwed`).
  *   pays — a line that pays some of it back. `purchase` is the refunded
  *          purchase it names (the purchase line with the same `sourceRef`):
  *          its date and branch. Null when the line names none, or the

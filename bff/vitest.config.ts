@@ -21,6 +21,12 @@ export default defineConfig({
     // terminate a worker. Within-test transaction/race checks stay parallel.
     maxWorkers: 2,
     minWorkers: 1,
+    // A disk-backed PGlite test (close, reopen the directory, re-run a
+    // migration) takes 3.5 to 5.6 s on this host under the full suite, against
+    // vitest's 5 s default, so `npm test` failed on load and never reached the
+    // app and web suites (reviewers, 2026-10-20). 30 s, as the slowest
+    // fixtures already set per test; a hang still fails, only later.
+    testTimeout: 30_000,
     // Empties the double-points calendar so a run on a holiday computes what
     // any other day does, and switches the welcome gift off so a first
     // purchase leaves the balance a test asserts — see each file.
