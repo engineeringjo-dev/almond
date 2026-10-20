@@ -87,6 +87,8 @@ describe('N6 every caller of a counted string passes `count`', () => {
     'auth.resendIn', 'confirm.cancelWindow', 'rewards.statusSubPlus',
     // The points a refund left owed (review 2026-10-19, item 9).
     'loyalty.pointsOwed', 'loyalty.refundLeftOwed',
+    // The redemption barcode's countdown (review 2026-10-19, item 15).
+    'loyalty.redemptionCountdown',
   ];
   it('holds for every call site in the app', () => {
     const calls: string[] = [];
@@ -138,5 +140,49 @@ describe('N7 the countdowns and the visit count agree with the number', () => {
     expect(v(4)).toBe('4 زيارات خلال آخر 3 أشهر');
     expect(v(2)).toBe('زيارتان خلال آخر 3 أشهر');
     expect(v(12)).toBe('12 زيارة خلال آخر 3 أشهر');
+  });
+});
+
+describe('N8 the redemption barcode counts down in Arabic, not «خلال 3 ثانية»', () => {
+  // Review 2026-10-19, item 15: Codex's countdown read «ينتهي الباركود خلال
+  // 3 ثانية … خلال 10 ثانية» in front of the cashier, and «1 seconds» in
+  // English: the exact defect the style guide (rule 5) names, fixed once
+  // already in auth.resendIn. «بعد» is "when the time runs out"; «خلال» is
+  // "within", which is not what a countdown says.
+  it('agrees with the number in Arabic, and says «بعد»', () => {
+    const c = (n: number) => ar.t('loyalty.redemptionCountdown', { count: n, seconds: n });
+    expect(c(120)).toBe('ينتهي الباركود بعد 120 ثانية');
+    expect(c(100)).toBe('ينتهي الباركود بعد 100 ثانية');
+    expect(c(11)).toBe('ينتهي الباركود بعد 11 ثانية');
+    expect(c(10)).toBe('ينتهي الباركود بعد 10 ثوانٍ');
+    expect(c(3)).toBe('ينتهي الباركود بعد 3 ثوانٍ');
+    expect(c(2)).toBe('ينتهي الباركود بعد ثانيتين');
+    expect(c(1)).toBe('ينتهي الباركود بعد ثانية واحدة');
+  });
+
+  it('English says one second and many seconds', () => {
+    const c = (n: number) => en.t('loyalty.redemptionCountdown', { count: n, seconds: n });
+    expect(c(1)).toBe('Barcode expires in 1 second');
+    expect(c(2)).toBe('Barcode expires in 2 seconds');
+    expect(c(120)).toBe('Barcode expires in 120 seconds');
+  });
+});
+
+describe('N9 a points count Codex added reads right for any number', () => {
+  // Review 2026-10-19, item 15: «حجزنا 5 نقطة»، «استخدمنا 3 نقطة». For 3–10
+  // Arabic takes «نقاط»; these say the count in the form no number bends:
+  // «{{points}} من نقاطك» or «… : {{points}}» (style guide rule 5).
+  const KEYS = [
+    'loyalty.redemptionReserved',
+    'referral.pointsRemaining',
+    'details.savedBonusRecovered',
+    'details.savedBonusRecoveredAll',
+  ] as const;
+  it.each(KEYS)('%s', (key) => {
+    for (const n of [1, 2, 3, 5, 10, 11, 100]) {
+      const s = ar.t(key, { points: String(n), recovered: String(n), jod: '1.00 د.أ' });
+      expect(s, `${key} at ${n}`).not.toMatch(new RegExp(`(?<![\\d.])${n} نقط`));
+      expect(s, `${key} at ${n}`).toContain(String(n));
+    }
   });
 });

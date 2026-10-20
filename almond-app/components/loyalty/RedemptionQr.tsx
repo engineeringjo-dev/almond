@@ -70,7 +70,7 @@ export function RedemptionQr({ redemptionId }: { redemptionId: string }) {
             {/* Scanner contrast is fixed black/white in both schemes. */}
             <QRCode value={ready.token} size={size} quietZone={quietZone} color="#000000" backgroundColor="#FFFFFF" />
           </View>
-          <Text variant="bodyBold" center>{t('loyalty.redemptionCountdown', { seconds: state.remaining })}</Text>
+          <Text variant="bodyBold" center>{t('loyalty.redemptionCountdown', { count: state.remaining, seconds: state.remaining })}</Text>
           {ready.demo ? <Text variant="caption" center selectable>{t('loyalty.redemptionDemo')}</Text> : null}
         </>
       ) : state.status === 'closed' ? (

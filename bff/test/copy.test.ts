@@ -870,6 +870,12 @@ describe('C26 one Arabic word for each thing', () => {
     { name: 'gift card is «بطاقة هدية»', re: /إهداء/, files: [APP_LOCALES.ar, WEB_LOCALES.ar] },
     { name: 'a tier is «فئة»', re: /شرائح|شريحة/, files: [APP_LOCALES.ar, WEB_LOCALES.ar] },
     { name: 'the menu is «المنيو»', re: /القائمة/, files: [APP_LOCALES.ar] },
+    // Review 2026-10-19, item 17: Codex's gift-card lines turned «الرمز» into
+    // «الكود» beside lines in the same section that still said «رمز», and
+    // brought «أونلاين», a loan word the glossary does not hold. What the
+    // member types is «الرمز»; «باركود» is the one word that keeps the letters.
+    { name: 'a typed code is «الرمز»', re: /(?<!بار)كود/, files: [APP_LOCALES.ar, WEB_LOCALES.ar] },
+    { name: 'the channel is said in Arabic, never «أونلاين»', re: /[أاإ]ون\s?لاين/, files: [APP_LOCALES.ar, WEB_LOCALES.ar] },
   ];
   it('in the Arabic files', () => {
     const offenders: string[] = [];
@@ -889,6 +895,107 @@ describe('C26 one Arabic word for each thing', () => {
       /^(pay|earnSheet)\./.test(k) || ['home.showCode', 'notifications.autoEarnQr', 'rewards.step1Body'].includes(k));
     expect(scanned.length, 'the scan must find the barcode strings').toBeGreaterThan(8);
     expect(scanned.filter((k) => /رمز/.test(flat[k]!)).map((k) => `${k}: ${flat[k]}`)).toEqual([]);
+  });
+
+  it('«رصيدك» alone is the wallet; the points balance is «رصيد نقاطك»', () => {
+    // Review 2026-10-19, item 17. A sentence about points that says «رصيدك»
+    // with no payment in it («أضفنا 50 نقطة إلى رصيدك»، «راجع رصيدك لمعرفة
+    // النقاط المعادة») sends the member to the wallet to find points. «ونقاطك
+    // ×1.5 حين تدفع من رصيدك» is the wallet, and keeps the word.
+    const POINTS = /نقط|نقاط/;
+    const PAYMENT = /تدفع|ادفع|الدفع|يُدفع|اشحن|شحن|محفظ|\{\{?jod\}?\}/;
+    const offenders: string[] = [];
+    for (const rel of [APP_LOCALES.ar, WEB_LOCALES.ar]) {
+      for (const [k, v] of Object.entries(load(rel))) {
+        for (const sentence of v.split(/[.؟!؛\n]/)) {
+          if (/رصيدك/.test(sentence) && POINTS.test(sentence) && !PAYMENT.test(sentence)) {
+            offenders.push(`${rel} ${k}: ${v}`);
+          }
+        }
+      }
+    }
+    expect(offenders).toEqual([]);
+  });
+});
+
+describe('C28 the interface speaks light standard Arabic, not dialect', () => {
+  // Style guide rule 1 (docs/ARABIC-COPY-REVIEW-2026-10.ar.md): «لا عامية في
+  // الواجهة». Codex's PRs #103/#104 brought «شوف»، «اختار» (the imperative is
+  // «اختر»)، «خلّي الكاشير يمسح»، «للمّة», and «تمام» on the button that closes
+  // the profile reward, which rule 9 names «حسناً» (review 2026-10-19, item
+  // 16). C27 spares «تمام» on purpose, because it is not «تم». Whole words,
+  // with a joined و/ف/ب/ل: «حليب شوفان»، «إتمام» and «شيء» pass.
+  const DIALECT = /(?<![\p{L}\p{M}])[وفبل]?(?:شوف|اختار|خلّي|خلي|كمان|شي|زاكي|قعدة|لمّة|لمة|تمام|هيك|بدك|منيح)(?![\p{L}\p{M}])/u;
+
+  it('in both Arabic files', () => {
+    const offenders: string[] = [];
+    for (const rel of [APP_LOCALES.ar, WEB_LOCALES.ar]) {
+      for (const [k, v] of Object.entries(load(rel))) {
+        if (DIALECT.test(v)) offenders.push(`${rel} ${k}: ${v}`);
+      }
+    }
+    expect(offenders).toEqual([]);
+  });
+
+  it('in an Arabic literal typed into a screen', () => {
+    const offenders = sources
+      .filter((f) => /^(almond-app|almond-web|packages)\//.test(f.path))
+      .flatMap((f) => f.code.flatMap((line, i) => (DIALECT.test(line) ? [`${f.path}:${i + 1}: ${line.trim()}`] : [])));
+    expect(offenders).toEqual([]);
+  });
+
+  it('the pattern catches the dialect and spares the look-alikes', () => {
+    for (const s of ['شوف المنيو', 'اختار بطاقة', 'خلّي الكاشير', 'كمان من ألموند', 'ومعه شي زاكي', 'وقعدة', 'للمّة', 'تمام']) {
+      expect(DIALECT.test(s), s).toBe(true);
+    }
+    for (const s of ['حليب شوفان', 'اختر', 'اختيار', 'إتمام الطلب', 'شيء', 'كماني', 'حسناً']) {
+      expect(DIALECT.test(s), s).toBe(false);
+    }
+  });
+});
+
+describe('C29 one word for a refund, and «إرجاع» only for points coming back', () => {
+  // Review 2026-10-19, item 39: one event had four names. «طلب مُسترَد» on the
+  // ledger line, «مُرتجعة» on the old recovery line, «مشتريات مُرجَعة» across
+  // the policies page, «استرداد سابق» on the profile reward. A member who
+  // reads two words reads two events. The refund is «استرداد / مُسترَد»;
+  // «إرجاع» is said only of points that come back («إرجاع النقاط السارية»،
+  // «إرجاع نقاط استبدال لم يُستخدم»). The vocalised «مُرجَع» is the refund
+  // participle; a bare «مرجع» could be a reference and is left alone.
+  const bare = (s: string) => s.replace(/[ً-ْ]/g, '');
+  const aliases = (s: string): boolean =>
+    /مُرجَع/.test(s) || /مرتجع|مرجعة|إرجاع(?!\s+(?:ال)?نقاط)/.test(bare(s));
+
+  it('in both Arabic files', () => {
+    const offenders: string[] = [];
+    for (const rel of [APP_LOCALES.ar, WEB_LOCALES.ar]) {
+      for (const [k, v] of Object.entries(load(rel))) {
+        if (aliases(v)) offenders.push(`${rel} ${k}: ${v}`);
+      }
+    }
+    expect(offenders).toEqual([]);
+  });
+
+  it('in every Arabic ledger reason a store or the mock writes', () => {
+    const reasons: string[] = [];
+    for (const f of sources) {
+      for (const line of f.code) for (const m of line.matchAll(/reasonAr:\s*'([^']*)'/g)) reasons.push(`${f.path}: ${m[1]}`);
+    }
+    expect(reasons.length, 'the scan must find the ledger reasons').toBeGreaterThan(5);
+    expect(reasons.filter((r) => aliases(r))).toEqual([]);
+    // The mock wrote «غير مستخدم» where both stores write «لم يُستخدم»: the
+    // returned-redemption line reads one way wherever it comes from.
+    const returned = new Set(reasons.map((r) => r.split(': ')[1]!).filter((r) => r.startsWith('إرجاع نقاط استبدال')));
+    expect([...returned]).toEqual(['إرجاع نقاط استبدال لم يُستخدم']);
+  });
+
+  it('the pattern catches every alias and spares the points coming back', () => {
+    for (const s of ['نقاط المشتريات المُرجَعة', 'عند إرجاع مشتريات', 'تسوية نقاط مشتريات مُرتجعة', 'سبق إرجاعها', 'أو إرجاع عملية']) {
+      expect(aliases(s), s).toBe(true);
+    }
+    for (const s of ['طلب مُسترَد', 'استرداد سابق', 'إرجاع النقاط السارية', 'إرجاع نقاط استبدال لم يُستخدم', 'النقاط المعادة']) {
+      expect(aliases(s), s).toBe(false);
+    }
   });
 });
 

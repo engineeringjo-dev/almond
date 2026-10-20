@@ -378,7 +378,7 @@ function returnMockRedemption(u: LoyaltyUser, row: RedemptionRow, at: Date) {
   if (voucher) voucher.used = true;
   if (back.returnedPoints > 0) u.history.unshift({
     id: genId('log'), deltaPoints: back.returnedPoints, kind: 'return', sourceRef: `redemption:${row.id}`, createdAt: at.toISOString(),
-    reasonAr: 'إرجاع نقاط استبدال غير مستخدم', reasonEn: 'Unused redemption points returned',
+    reasonAr: 'إرجاع نقاط استبدال لم يُستخدم', reasonEn: 'Unused redemption points returned',
   });
 }
 

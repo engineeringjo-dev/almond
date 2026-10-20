@@ -35,7 +35,7 @@ async function saveSuccess(page: Page, lang: 'ar' | 'en'): Promise<void> {
   if (result === null) {
     // Feedback follows the actual server reply, even when local auth data was
     // already complete but this mock server has not paid the bonus before.
-    await celebration.getByRole('button', { name: lang === 'ar' ? 'تمام' : 'Done', exact: true }).click();
+    await celebration.getByRole('button', { name: copy.details.bonusCelebrationClose, exact: true }).click();
   } else {
     expect(result).toContain(copy.details.savedTitle);
   }
